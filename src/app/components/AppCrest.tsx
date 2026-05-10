@@ -91,13 +91,13 @@ export default function AppCrest({ apps }: Props) {
       <div className="mx-auto w-full max-w-[640px]">
         <button
           onClick={() => setOpenKey("family")}
-          className="brut-line w-full px-5 sm:px-6 py-5 sm:py-7 flex items-center gap-4 sm:gap-5 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition group bg-[var(--bg)]/40 backdrop-blur-sm cursor-pointer text-left"
+          className="brut-line w-full px-5 sm:px-6 py-5 sm:py-7 flex items-center gap-4 sm:gap-5 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition group bg-[var(--bg-2)] cursor-pointer text-left"
           aria-label="meet the family"
         >
           {/* mini family preview */}
           <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0">
             <Image
-              src="/family.png"
+              src="/family.webp"
               alt="The four mascots"
               fill
               sizes="80px"
@@ -269,7 +269,7 @@ export default function AppCrest({ apps }: Props) {
               {/* Family photo */}
               <div className="relative w-full aspect-[2/1] mb-6 sm:mb-8">
                 <Image
-                  src="/family.png"
+                  src="/family.webp"
                   alt="The four Klar mascots"
                   fill
                   sizes="(max-width: 640px) 90vw, 720px"

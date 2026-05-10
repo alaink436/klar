@@ -1,15 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --bg: oklch(0.03 0 0);
-  --bg-2: oklch(0.07 0 0);
-  --fg: oklch(0.97 0 0);
-  --fg-2: oklch(0.74 0 0);
-  --fg-3: oklch(0.48 0 0);
-  --fg-4: oklch(0.32 0 0);
-  --line: oklch(0.18 0 0);
-  --line-strong: oklch(0.85 0 0);
-  --silver: oklch(0.78 0 0);
+  --bg: oklch(0.04 0.002 270);        /* near-black with hint of brand hue */
+  --bg-2: oklch(0.08 0.002 270);
+  --fg: oklch(0.97 0.002 270);        /* off-white tinted toward bg hue */
+  --fg-2: oklch(0.74 0.002 270);
+  --fg-3: oklch(0.48 0.002 270);
+  --fg-4: oklch(0.32 0.002 270);
+  --line: oklch(0.18 0.002 270);
+  --line-strong: oklch(0.85 0.002 270);
+  --silver: oklch(0.78 0.002 270);
+
+  /* spacing scale (4pt) */
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --space-4xl: 96px;
 }
 
 @theme inline {
@@ -22,11 +33,6 @@
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
   --color-silver: var(--silver);
-
-  --font-display: var(--font-space-grotesk);
-  --font-editorial: var(--font-instrument-serif);
-  --font-body: var(--font-inter);
-  --font-mono: var(--font-jetbrains-mono);
 }
 
 * { border-color: var(--line); }
@@ -36,7 +42,7 @@ html { scroll-behavior: smooth; background: var(--bg); }
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-body), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
@@ -62,29 +68,27 @@ body {
   color: var(--fg);
 }
 .editorial {
-  font-family: var(--font-instrument-serif), serif;
+  font-family: var(--font-editorial), serif;
   font-style: italic;
   font-weight: 400;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 .display {
-  font-family: var(--font-space-grotesk), sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 0.86;
+  font-family: var(--font-display), sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 0.92;
   overflow-wrap: break-word;
   hyphens: manual;
 }
 
-.t-wordmark    { font-size: clamp(120px, 32vw, 480px); line-height: 0.84; letter-spacing: -0.06em; }
-.t-display     { font-size: clamp(36px, 8vw, 112px); line-height: 0.92; }
-.t-editorial-xl{ font-size: clamp(26px, 5.5vw, 64px); line-height: 1.06; }
-.t-editorial-lg{ font-size: clamp(20px, 4vw, 40px); line-height: 1.12; }
+.t-wordmark    { font-size: clamp(140px, 36vw, 540px); line-height: 0.84; letter-spacing: -0.04em; }
+.t-display     { font-size: clamp(40px, 9vw, 128px); line-height: 0.94; letter-spacing: -0.02em; }
+.t-editorial-xl{ font-size: clamp(28px, 6vw, 72px); line-height: 1.08; }
+.t-editorial-lg{ font-size: clamp(20px, 4vw, 40px); line-height: 1.14; }
 .t-body-lg     { font-size: clamp(15px, 2.2vw, 18px); line-height: 1.55; }
 
-/* ────────────────────────────────────────────────────────────
-   Liquid-metal background — 4 layers with cross-fade + drift
-   ──────────────────────────────────────────────────────────── */
+/* ── Liquid-metal background — 4-layer cross-fade ── */
 .bg-stage {
   position: fixed;
   inset: 0;
@@ -103,7 +107,6 @@ body {
   filter: saturate(0) contrast(1.18) brightness(0.72);
   opacity: 0;
 }
-/* 4 layers cross-fade across a 96s cycle. each peaks at its quarter */
 .bg-layer-1 { animation: bg-fade-1 96s linear infinite, drift-a 38s ease-in-out infinite alternate; }
 .bg-layer-2 { animation: bg-fade-2 96s linear infinite, drift-b 44s ease-in-out infinite alternate; mix-blend-mode: lighten; }
 .bg-layer-3 { animation: bg-fade-3 96s linear infinite, drift-c 52s ease-in-out infinite alternate; mix-blend-mode: screen; }
@@ -114,10 +117,9 @@ body {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 50% 35%, transparent 0%, oklch(0.03 0 0 / 0.55) 70%, oklch(0.03 0 0 / 0.85) 100%);
+    radial-gradient(ellipse at 50% 35%, transparent 0%, oklch(0.04 0.002 270 / 0.55) 70%, oklch(0.04 0.002 270 / 0.85) 100%);
 }
 
-/* peak at 0/25/50/75% with 5% fade in/out; each layer covers ~30% */
 @keyframes bg-fade-1 {
   0%, 18%   { opacity: 0.55; }
   23%, 73%  { opacity: 0; }
@@ -139,42 +141,39 @@ body {
   98%, 100% { opacity: 0; }
 }
 
-/* Faster + bigger drift, varied paths per layer */
 @keyframes drift-a {
-  0%   { transform: translate(0, 0) scale(1.06) rotate(0deg); }
-  100% { transform: translate(-6%, 4%) scale(1.18) rotate(2.5deg); }
+  0%   { transform: translate3d(0, 0, 0) scale(1.06) rotate(0deg); }
+  100% { transform: translate3d(-6%, 4%, 0) scale(1.18) rotate(2.5deg); }
 }
 @keyframes drift-b {
-  0%   { transform: translate(0, 0) scale(1.10) rotate(0deg); }
-  100% { transform: translate(7%, -5%) scale(1.22) rotate(-2deg); }
+  0%   { transform: translate3d(0, 0, 0) scale(1.10) rotate(0deg); }
+  100% { transform: translate3d(7%, -5%, 0) scale(1.22) rotate(-2deg); }
 }
 @keyframes drift-c {
-  0%   { transform: translate(0, 0) scale(1.08); }
-  100% { transform: translate(-4%, -6%) scale(1.20); }
+  0%   { transform: translate3d(0, 0, 0) scale(1.08); }
+  100% { transform: translate3d(-4%, -6%, 0) scale(1.20); }
 }
 @keyframes drift-d {
-  0%   { transform: translate(0, 0) scale(1.14) rotate(0deg); }
-  100% { transform: translate(5%, 6%) scale(1.24) rotate(1.5deg); }
+  0%   { transform: translate3d(0, 0, 0) scale(1.14) rotate(0deg); }
+  100% { transform: translate3d(5%, 6%, 0) scale(1.24) rotate(1.5deg); }
 }
 
-/* ── Section veils ── */
+/* ── Section veils (alpha overlays, no backdrop-filter) ── */
 .veil-light {
-  background: linear-gradient(180deg, oklch(0.03 0 0 / 0.10) 0%, oklch(0.03 0 0 / 0.45) 100%);
+  background: linear-gradient(180deg, oklch(0.04 0.002 270 / 0.10) 0%, oklch(0.04 0.002 270 / 0.45) 100%);
 }
 .veil-mid {
-  background: oklch(0.03 0 0 / 0.72);
+  background: oklch(0.04 0.002 270 / 0.72);
 }
 .veil-dark {
-  background: oklch(0.03 0 0 / 0.85);
+  background: oklch(0.04 0.002 270 / 0.85);
 }
 
-/* ────────────────────────────────────────────────────────────
-   Glitch wordmark v3 — six fonts, prime-number cycles
-   ──────────────────────────────────────────────────────────── */
+/* ── Glitch wordmark (4 strips, prime cycles) ── */
 .glitch-wordmark {
   position: relative;
   display: inline-block;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.04em;
   white-space: nowrap;
   line-height: 0.84;
   isolation: isolate;
@@ -182,8 +181,8 @@ body {
 .glitch-base {
   position: relative;
   display: block;
-  font-family: var(--font-space-grotesk), sans-serif;
-  font-weight: 700;
+  font-family: var(--font-display), sans-serif;
+  font-weight: 400;
   z-index: 2;
 }
 .glitch-strip,
@@ -193,128 +192,96 @@ body {
   top: 0;
   left: 0;
   width: 100%;
-  font-weight: 700;
+  font-weight: 400;
   pointer-events: none;
   opacity: 0;
   white-space: nowrap;
   line-height: inherit;
 }
 
-/* Six slice strips with six different fonts, prime cycles */
 .strip-1 {
   font-family: var(--font-bowlby), sans-serif;
-  letter-spacing: -0.08em;
-  font-size: 0.94em;
+  letter-spacing: -0.06em;
+  font-size: 0.92em;
   color: var(--fg);
-  clip-path: inset(0 0 78% 0);
+  clip-path: inset(0 0 70% 0);
   z-index: 4;
   animation: strip-flash-1 8s steps(1) infinite;
 }
 .strip-2 {
   font-family: var(--font-honk), sans-serif;
-  letter-spacing: -0.04em;
-  font-size: 0.93em;
+  letter-spacing: -0.02em;
+  font-size: 0.92em;
   color: oklch(0.92 0 0);
-  clip-path: inset(15% 0 60% 0);
+  clip-path: inset(30% 0 38% 0);
   z-index: 4;
   animation: strip-flash-2 11s steps(1) infinite;
 }
 .strip-3 {
-  font-family: var(--font-bungee), sans-serif;
-  letter-spacing: -0.06em;
-  font-size: 0.92em;
-  color: oklch(0.85 0 0);
-  clip-path: inset(38% 0 38% 0);
+  font-family: var(--font-audiowide), sans-serif;
+  letter-spacing: -0.02em;
+  font-size: 0.86em;
+  color: oklch(0.7 0 0);
+  clip-path: inset(60% 0 18% 0);
   z-index: 4;
   animation: strip-flash-3 13s steps(1) infinite;
 }
 .strip-4 {
-  font-family: var(--font-audiowide), sans-serif;
-  letter-spacing: -0.02em;
-  font-size: 0.88em;
-  color: oklch(0.7 0 0);
-  clip-path: inset(58% 0 22% 0);
-  z-index: 4;
-  animation: strip-flash-4 8s steps(1) infinite;
-}
-.strip-5 {
-  font-family: var(--font-tourney), sans-serif;
-  letter-spacing: -0.06em;
-  font-size: 0.95em;
-  color: oklch(0.88 0 0);
-  clip-path: inset(72% 0 8% 0);
-  z-index: 4;
-  animation: strip-flash-5 11s steps(1) infinite;
-}
-.strip-6 {
   font-family: var(--font-major-mono), monospace;
   letter-spacing: -0.04em;
-  font-size: 0.86em;
+  font-size: 0.84em;
   color: oklch(0.55 0 0);
-  clip-path: inset(85% 0 0 0);
+  clip-path: inset(82% 0 0 0);
   z-index: 4;
-  animation: strip-flash-6 13s steps(1) infinite;
+  animation: strip-flash-4 11s steps(1) infinite;
 }
 
-/* RGB-style mono shifts */
 .shift-1 {
-  font-family: var(--font-space-grotesk), sans-serif;
+  font-family: var(--font-display), sans-serif;
   color: oklch(0.95 0 0);
   z-index: 1;
   animation: shift-flash-1 8s steps(1) infinite;
 }
 .shift-2 {
-  font-family: var(--font-space-grotesk), sans-serif;
+  font-family: var(--font-display), sans-serif;
   color: oklch(0.55 0 0);
   z-index: 1;
   animation: shift-flash-2 8s steps(1) infinite;
 }
-
-/* Brief skew distortion */
 .glitch-skew {
-  font-family: var(--font-space-grotesk), sans-serif;
+  font-family: var(--font-display), sans-serif;
   color: var(--fg);
   z-index: 0;
   animation: skew-flash 11s steps(1) infinite;
 }
 
 @keyframes strip-flash-1 {
-  0%, 9%, 100% { opacity: 0; transform: translate(0, 0); }
-  7%, 7.6%     { opacity: 0.92; transform: translate(-3px, -2px); }
-  62%, 62.4%   { opacity: 0.7;  transform: translate(2px, 0); }
+  0%, 9%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
+  7%, 7.6%     { opacity: 0.92; transform: translate3d(-3px, -2px, 0); }
+  62%, 62.4%   { opacity: 0.7;  transform: translate3d(2px, 0, 0); }
 }
 @keyframes strip-flash-2 {
-  0%, 28%, 100% { opacity: 0; transform: translate(0, 0); }
-  25%, 25.7%    { opacity: 0.85; transform: translate(2px, 1px); }
-  78%, 78.5%    { opacity: 0.65; transform: translate(-1px, 0); }
+  0%, 28%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
+  25%, 25.7%    { opacity: 0.85; transform: translate3d(2px, 1px, 0); }
+  78%, 78.5%    { opacity: 0.65; transform: translate3d(-1px, 0, 0); }
 }
 @keyframes strip-flash-3 {
-  0%, 47%, 100% { opacity: 0; transform: translate(0, 0); }
-  44%, 44.6%    { opacity: 0.85; transform: translate(2px, 0); }
-  91%, 91.4%    { opacity: 0.7;  transform: translate(-2px, 1px); }
+  0%, 47%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
+  44%, 44.6%    { opacity: 0.75; transform: translate3d(2px, 0, 0); }
 }
 @keyframes strip-flash-4 {
-  0%, 36%, 100% { opacity: 0; transform: translate(0, 0); }
-  33%, 33.5%    { opacity: 0.75; transform: translate(0, 2px); }
+  0%, 70%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
+  68%, 68.5%    { opacity: 0.65; transform: translate3d(0, -1px, 0); }
 }
-@keyframes strip-flash-5 {
-  0%, 56%, 100% { opacity: 0; transform: translate(0, 0); }
-  54%, 54.5%    { opacity: 0.85; transform: translate(-2px, 0); }
-}
-@keyframes strip-flash-6 {
-  0%, 70%, 100% { opacity: 0; transform: translate(0, 0); }
-  68%, 68.5%    { opacity: 0.65; transform: translate(0, -1px); }
-}
-
 @keyframes shift-flash-1 {
-  0%, 6.5%, 100% { opacity: 0; transform: translate(0, 0); }
-  7%, 7.6%       { opacity: 0.55; transform: translate(-4px, 0); }
-  62%, 62.5%     { opacity: 0.45; transform: translate(-2px, 0); }
+  0%, 6.5%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
+  7%, 7.6%       { opacity: 0.55; transform: translate3d(-4px, 0, 0); }
+  62%, 62.5%     { opacity: 0.45; transform: translate3d(-2px, 0, 0); }
 }
 @keyframes shift-flash-2 {
-  0%, 7%, 100% { opacity: 0; transform: translate(0, 0); }
-  7.2%, 7.8%   { opacity: 0.5;  transform: translate(4px, 0); }
-  62.2%, 62.7% { opacity: 0.4;  transform: translate(2px, 0); }
+  0%, 7%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
+  7.2%, 7.8%   { opacity: 0.5;  transform: translate3d(4px, 0, 0); }
+  62.2%, 62.7% { opacity: 0.4;  transform: translate3d(2px, 0, 0); }
 }
 @keyframes skew-flash {
   0%, 24%, 100% { opacity: 0; transform: skewX(0); }
@@ -339,7 +306,7 @@ body {
 .invert-block {
   background: var(--fg);
   color: var(--bg);
-  padding: 14px 16px;
+  padding: var(--space-md) var(--space-md);
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 11px;
   letter-spacing: 0.2em;
@@ -347,7 +314,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 .invert-block-stripe {
   background: var(--fg);
@@ -366,6 +333,23 @@ body {
   transform: rotate(-1.5deg);
 }
 
+/* ── Quote prefix marker (replaces banned border-left stripe) ── */
+.quote-prefix {
+  position: relative;
+  padding-left: 1.4em;
+  font-style: italic;
+  color: var(--fg-3);
+}
+.quote-prefix::before {
+  content: "›";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--font-mono), monospace;
+  color: var(--fg-3);
+  font-style: normal;
+}
+
 /* ── Hover lift ── */
 .tap-lift {
   transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s, background 0.2s;
@@ -379,10 +363,10 @@ body {
 
 /* ── Form fields ── */
 .field {
-  background: oklch(0.07 0 0 / 0.85);
+  background: oklch(0.07 0 0);
   border: 1px solid var(--line);
   color: var(--fg);
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-body), sans-serif;
   font-size: 15px;
   line-height: 1.5;
   padding: 12px 14px;
@@ -394,12 +378,12 @@ body {
 .field:focus {
   outline: none;
   border-color: var(--fg);
-  background: oklch(0.07 0 0);
+  background: oklch(0.09 0 0);
 }
 .field-textarea {
   min-height: 120px;
   resize: vertical;
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-body), sans-serif;
 }
 
 /* ── Icon press / hover ── */
@@ -418,7 +402,7 @@ body {
   transition-duration: 0.08s;
 }
 
-/* ── Modal ── */
+/* ── Modal (legitimate use of backdrop-filter for readability) ── */
 @keyframes modal-in {
   0%   { opacity: 0; transform: translateY(20px) scale(0.96); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
@@ -431,14 +415,14 @@ body {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: oklch(0.03 0 0 / 0.85);
+  background: oklch(0.04 0 0 / 0.85);
   backdrop-filter: blur(14px) saturate(1.05);
   -webkit-backdrop-filter: blur(14px) saturate(1.05);
   animation: overlay-in 0.25s ease-out forwards;
 }
 .modal-card {
   position: relative;
-  background: oklch(0.05 0 0);
+  background: oklch(0.06 0 0);
   border: 1px solid var(--line-strong);
   max-width: 720px;
   width: 92%;
@@ -447,9 +431,7 @@ body {
   animation: modal-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
-/* ────────────────────────────────────────────────────────────
-   Collapsible sections (native <details>) — brutalist style
-   ──────────────────────────────────────────────────────────── */
+/* ── Collapsible <details> ── */
 .acc-summary {
   list-style: none;
   cursor: pointer;
@@ -466,13 +448,8 @@ body {
 .acc-summary::-webkit-details-marker { display: none; }
 .acc-summary::marker { content: ""; }
 @media (hover: hover) {
-  .acc-summary:hover {
-    background: var(--fg);
-    color: var(--bg);
-  }
-  .acc-summary:hover .acc-tag {
-    color: var(--bg);
-  }
+  .acc-summary:hover { background: var(--fg); color: var(--bg); }
+  .acc-summary:hover .acc-tag { color: var(--bg); }
 }
 .acc-tag {
   font-family: var(--font-mono), monospace;
@@ -483,25 +460,23 @@ body {
   flex-shrink: 0;
 }
 .acc-title {
-  font-family: var(--font-space-grotesk), sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.04em;
+  font-family: var(--font-display), sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
   font-size: clamp(28px, 6.5vw, 64px);
   line-height: 1;
   flex: 1;
   text-align: left;
 }
 .acc-pitch {
-  font-family: var(--font-instrument-serif), serif;
+  font-family: var(--font-editorial), serif;
   font-style: italic;
   font-size: clamp(14px, 2vw, 20px);
   color: var(--fg-3);
   flex-shrink: 0;
   display: none;
 }
-@media (min-width: 900px) {
-  .acc-pitch { display: inline; }
-}
+@media (min-width: 900px) { .acc-pitch { display: inline; } }
 .acc-toggle {
   font-family: var(--font-mono), monospace;
   font-size: 28px;
@@ -515,7 +490,6 @@ body {
 }
 .acc-toggle::after { content: "+"; }
 details[open] .acc-toggle::after { content: "−"; }
-
 .acc-body {
   padding: 24px 16px 32px 16px;
   animation: acc-fade-in 0.3s ease-out;
@@ -528,17 +502,12 @@ details[open] .acc-toggle::after { content: "−"; }
   .acc-summary { padding: 24px 48px; }
   .acc-body { padding: 40px 48px 72px 48px; }
 }
-
 @keyframes acc-fade-in {
   0%   { opacity: 0; transform: translateY(-4px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .acc-body { animation: none; }
-}
-
-/* ── Compact store badges (used directly under crest icons) ── */
+/* ── Compact store badges (under crest icons) ── */
 .compact-badge {
   display: inline-flex;
   align-items: center;

@@ -57,7 +57,7 @@ export function AffiliateForm() {
 
   if (state === "success") {
     return (
-      <div className="brut-line p-6 sm:p-8 bg-[var(--bg-2)]/40 backdrop-blur-sm">
+      <div className="brut-line p-6 sm:p-8 bg-[var(--bg-2)]">
         <p className="label-fg mb-2">↳ received.</p>
         <p className="t-body-lg">
           Thanks. We&apos;ll get back to you within a few days. Maybe sooner if
@@ -140,7 +140,7 @@ export function ConsultingForm() {
 
   if (state === "success") {
     return (
-      <div className="brut-line p-6 sm:p-8 bg-[var(--bg-2)]/40 backdrop-blur-sm">
+      <div className="brut-line p-6 sm:p-8 bg-[var(--bg-2)]">
         <p className="label-fg mb-2">↳ noted.</p>
         <p className="t-body-lg">
           We&apos;ll read your brief and write back. Usually within 48h.

@@ -80,19 +80,19 @@ export default function Home() {
       <div className="bg-stage" aria-hidden="true">
         <div
           className="bg-layer bg-layer-1"
-          style={{ backgroundImage: "url('/bg/bg-1.jpg')" }}
+          style={{ backgroundImage: "url('/bg/bg-1.webp')" }}
         />
         <div
           className="bg-layer bg-layer-2"
-          style={{ backgroundImage: "url('/bg/bg-2.jpg')" }}
+          style={{ backgroundImage: "url('/bg/bg-2.webp')" }}
         />
         <div
           className="bg-layer bg-layer-3"
-          style={{ backgroundImage: "url('/bg/bg-3.jpg')" }}
+          style={{ backgroundImage: "url('/bg/bg-3.webp')" }}
         />
         <div
           className="bg-layer bg-layer-4"
-          style={{ backgroundImage: "url('/bg/bg-4.jpg')" }}
+          style={{ backgroundImage: "url('/bg/bg-4.webp')" }}
         />
         <div className="bg-vignette" />
       </div>

@@ -1,61 +1,52 @@
 import type { Metadata } from "next";
 import {
-  Space_Grotesk,
-  Instrument_Serif,
-  Inter,
+  Anton,
+  Eczar,
+  Manrope,
   JetBrains_Mono,
   Bowlby_One_SC,
-  Bungee,
-  Major_Mono_Display,
   Honk,
   Audiowide,
-  Workbench,
-  Tourney,
+  Major_Mono_Display,
 } from "next/font/google";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const instrumentSerif = Instrument_Serif({
-  variable: "--font-instrument-serif",
+/* Display: Anton (condensed, brutalist, distinct — not in reflex list) */
+const anton = Anton({
+  variable: "--font-display",
   subsets: ["latin"],
   weight: ["400"],
-  style: ["normal", "italic"],
   display: "swap",
 });
 
-const inter = Inter({
-  variable: "--font-inter",
+/* Editorial italic: Eczar (display serif with strong italic) */
+const eczar = Eczar({
+  variable: "--font-editorial",
   subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  style: ["normal"],
   display: "swap",
 });
 
+/* Body: Manrope (geometric sans, not banned) */
+const manrope = Manrope({
+  variable: "--font-body",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+});
+
+/* Mono labels + tech indicators */
 const jetbrains = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
+  variable: "--font-mono",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   display: "swap",
 });
 
+/* Glitch overlay fonts (4 instead of 6 — perf) */
 const bowlby = Bowlby_One_SC({
   variable: "--font-bowlby",
-  subsets: ["latin"],
-  weight: ["400"],
-  display: "swap",
-});
-const bungee = Bungee({
-  variable: "--font-bungee",
-  subsets: ["latin"],
-  weight: ["400"],
-  display: "swap",
-});
-const majorMono = Major_Mono_Display({
-  variable: "--font-major-mono",
   subsets: ["latin"],
   weight: ["400"],
   display: "swap",
@@ -71,14 +62,10 @@ const audiowide = Audiowide({
   weight: ["400"],
   display: "swap",
 });
-const workbench = Workbench({
-  variable: "--font-workbench",
+const majorMono = Major_Mono_Display({
+  variable: "--font-major-mono",
   subsets: ["latin"],
-  display: "swap",
-});
-const tourney = Tourney({
-  variable: "--font-tourney",
-  subsets: ["latin"],
+  weight: ["400"],
   display: "swap",
 });
 
@@ -100,7 +87,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${spaceGrotesk.variable} ${instrumentSerif.variable} ${inter.variable} ${jetbrains.variable} ${bowlby.variable} ${bungee.variable} ${majorMono.variable} ${honk.variable} ${audiowide.variable} ${workbench.variable} ${tourney.variable} grain antialiased`}
+        className={`${anton.variable} ${eczar.variable} ${manrope.variable} ${jetbrains.variable} ${bowlby.variable} ${honk.variable} ${audiowide.variable} ${majorMono.variable} grain antialiased`}
       >
         {children}
       </body>

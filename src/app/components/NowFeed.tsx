@@ -135,7 +135,7 @@ export default async function NowFeed() {
   const blocks = parse(md);
 
   return (
-    <div className="brut-line bg-[var(--bg)]/85 backdrop-blur-sm">
+    <div className="brut-line bg-[var(--bg-2)]">
       <div className="flex items-center justify-between px-5 sm:px-6 py-3 border-b border-[var(--line)]">
         <p className="label-fg">live · auto-fetched from /now</p>
         <a
@@ -180,7 +180,7 @@ export default async function NowFeed() {
               return (
                 <p
                   key={idx}
-                  className="label italic mt-4 mb-2 border-l-2 border-[var(--line)] pl-3"
+                  className="label quote-prefix mt-4 mb-2"
                 >
                   {inline(b.text || "")}
                 </p>
