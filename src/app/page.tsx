@@ -108,20 +108,20 @@ export default function Home() {
             <Link href="#apps" className="label hover:text-[var(--fg)] transition">
               apps
             </Link>
+            <Link href="/log" className="label hover:text-[var(--fg)] transition">
+              log
+            </Link>
             <Link
               href="#affiliate"
-              className="label hidden sm:inline hover:text-[var(--fg)] transition"
+              className="label hidden md:inline hover:text-[var(--fg)] transition"
             >
               affiliate
             </Link>
             <Link
               href="#consulting"
-              className="label hidden sm:inline hover:text-[var(--fg)] transition"
+              className="label hidden md:inline hover:text-[var(--fg)] transition"
             >
               consulting
-            </Link>
-            <Link href="#now" className="label hover:text-[var(--fg)] transition">
-              now
             </Link>
             <Link
               href={GITHUB_PROFILE}
@@ -370,6 +370,12 @@ export default function Home() {
                 className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
               >
                 Apps
+              </Link>
+              <Link
+                href="/log"
+                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
+              >
+                Log
               </Link>
               <Link
                 href="#affiliate"
