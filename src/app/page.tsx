@@ -338,10 +338,10 @@ export default function Home() {
                 Work with us
               </Link>
               <Link
-                href="mailto:hi@klar.studio"
+                href="mailto:alainkessler04@gmail.com"
                 className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
               >
-                hi@klar.studio
+                alainkessler04@gmail.com
               </Link>
             </div>
             <div className="col-span-6 md:col-span-3">

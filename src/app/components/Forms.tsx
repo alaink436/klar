@@ -2,7 +2,9 @@
 
 import { useState, FormEvent } from "react";
 
-const FORM_ENDPOINT = "https://formsubmit.co/ajax/hi@klar.studio";
+// NOTE: formsubmit.co requires the destination email to actually exist.
+// Switch to alainkessler04@gmail.com once the domain is wired and a forwarder is in place.
+const FORM_ENDPOINT = "https://formsubmit.co/ajax/alainkessler04@gmail.com";
 
 type SubmitState = "idle" | "loading" | "success" | "error";
 
@@ -106,7 +108,7 @@ export function AffiliateForm() {
       </button>
       {state === "error" && (
         <p className="label sm:col-span-2 text-[var(--fg)]">
-          ↳ something broke. try again or email hi@klar.studio.
+          ↳ something broke. try again or email alainkessler04@gmail.com.
         </p>
       )}
     </form>
@@ -200,7 +202,7 @@ export function ConsultingForm() {
       </button>
       {state === "error" && (
         <p className="label sm:col-span-2 text-[var(--fg)]">
-          ↳ something broke. try again or email hi@klar.studio.
+          ↳ something broke. try again or email alainkessler04@gmail.com.
         </p>
       )}
     </form>
