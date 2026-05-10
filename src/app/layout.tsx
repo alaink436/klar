@@ -4,9 +4,6 @@ import {
   Instrument_Serif,
   Inter,
   JetBrains_Mono,
-  Bowlby_One_SC,
-  Bungee,
-  Major_Mono_Display,
 } from "next/font/google";
 import "./globals.css";
 
@@ -38,26 +35,6 @@ const jetbrains = JetBrains_Mono({
   display: "swap",
 });
 
-/* Glitch fonts */
-const bowlby = Bowlby_One_SC({
-  variable: "--font-bowlby",
-  subsets: ["latin"],
-  weight: ["400"],
-  display: "swap",
-});
-const bungee = Bungee({
-  variable: "--font-bungee",
-  subsets: ["latin"],
-  weight: ["400"],
-  display: "swap",
-});
-const majorMono = Major_Mono_Display({
-  variable: "--font-major-mono",
-  subsets: ["latin"],
-  weight: ["400"],
-  display: "swap",
-});
-
 export const metadata: Metadata = {
   title: "Klar — Indie App Studio",
   description:
@@ -76,7 +53,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${spaceGrotesk.variable} ${instrumentSerif.variable} ${inter.variable} ${jetbrains.variable} ${bowlby.variable} ${bungee.variable} ${majorMono.variable} grain antialiased`}
+        className={`${spaceGrotesk.variable} ${instrumentSerif.variable} ${inter.variable} ${jetbrains.variable} grain antialiased`}
       >
         {children}
       </body>
