@@ -245,6 +245,50 @@ body {
 .brut-line { border: 1px solid var(--line-strong); }
 .brut-line-thin { border: 1px solid var(--line); }
 
+/* ── Black brutalist accents — scattered through the page ── */
+.black-block {
+  background: var(--fg);
+  color: var(--bg);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  display: inline-block;
+}
+.invert-block {
+  /* big brutalist stripe — for section dividers */
+  background: var(--fg);
+  color: var(--bg);
+  padding: 14px 16px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.invert-block-stripe {
+  /* full-width black bar */
+  background: var(--fg);
+  height: 3px;
+  width: 100%;
+}
+.crash-block {
+  /* tilted black sticker — disrupts grid */
+  background: var(--fg);
+  color: var(--bg);
+  padding: 10px 14px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  display: inline-block;
+  transform: rotate(-1.5deg);
+}
+
 /* ── Hover lift ── */
 .tap-lift {
   transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s, background 0.2s;

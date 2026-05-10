@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import AppCrest, { type App } from "./components/AppCrest";
 import GlitchWordmark from "./components/GlitchWordmark";
+import NowFeed from "./components/NowFeed";
 import { AffiliateForm, ConsultingForm } from "./components/Forms";
 
 const APPS: App[] = [
@@ -19,6 +19,7 @@ const APPS: App[] = [
     status: "BUILD",
     buildNote: "build #2 · y2k onboarding done",
     icon: "/icons/trubel.png",
+    screenshots: ["/screenshots/trubel/01.jpg"],
   },
   {
     slug: "myloo",
@@ -63,10 +64,14 @@ const APPS: App[] = [
     },
     status: "LIVE",
     buildNote: "v1 · 4★+",
-    storeUrl: "https://apps.apple.com/app/yarn-stash",
+    appStoreUrl: "https://apps.apple.com/app/yarn-stash",
     icon: "/icons/yarnstash.png",
+    screenshots: ["/screenshots/yarn-stash/01.jpg"],
   },
 ];
+
+const GITHUB_PROFILE = "https://github.com/alaink436";
+const GITHUB_NOW = "https://github.com/alaink436/now";
 
 export default function Home() {
   return (
@@ -89,20 +94,24 @@ export default function Home() {
         <nav className="flex items-center justify-between px-4 sm:px-6 md:px-12 py-4 md:py-5 border-b border-[var(--line)] relative z-20 veil-dark">
           <div className="flex items-baseline gap-2 sm:gap-3">
             <span className="display text-xl sm:text-2xl">klar</span>
-            <span className="label hidden sm:inline">v0.4 · ch</span>
+            <span className="label hidden sm:inline">v0.5 · ch</span>
           </div>
           <div className="flex items-center gap-4 sm:gap-6 md:gap-10">
-            <Link
-              href="#apps"
-              className="label hover:text-[var(--fg)] transition"
-            >
+            <Link href="#apps" className="label hover:text-[var(--fg)] transition">
               apps
             </Link>
+            <Link href="#now" className="label hover:text-[var(--fg)] transition">
+              now
+            </Link>
+            <Link href="#work" className="label hover:text-[var(--fg)] transition">
+              work
+            </Link>
             <Link
-              href="#work"
+              href={GITHUB_PROFILE}
+              target="_blank"
               className="label hover:text-[var(--fg)] transition"
             >
-              work
+              github ↗
             </Link>
             <Link
               href="https://www.tiktok.com/@klar"
@@ -117,11 +126,11 @@ export default function Home() {
           </div>
         </nav>
 
-        {/* ─────────── HERO (light veil — bg most visible here) ─────────── */}
+        {/* ─────────── HERO ─────────── */}
         <section className="veil-light px-4 sm:px-6 md:px-12 pt-12 sm:pt-20 md:pt-32 pb-16 sm:pb-24 md:pb-36 relative z-10 border-b border-[var(--line)]">
           <div className="flex items-baseline justify-between mb-6 sm:mb-10">
             <p className="label">001 // hi.</p>
-            <p className="label">bern · ch · since &apos;26</p>
+            <p className="label">v0.5 · build / ship / loop</p>
           </div>
 
           <GlitchWordmark
@@ -141,15 +150,26 @@ export default function Home() {
                 <span className="text-[var(--silver)]">stopped scrolling</span>.
               </p>
               <p className="t-body-lg text-[var(--fg-2)] mt-5 sm:mt-7 max-w-md">
-                four apps. one person in the middle. shipped from a kitchen in
-                bern, switzerland — between coffee, code, and the occasional
-                tiktok loop.
+                four apps. one person in the middle — a business student who
+                ships software in the gaps between lectures.
               </p>
+
+              <div className="mt-6 flex flex-wrap items-center gap-2">
+                <span className="black-block">indie studio</span>
+                <span className="black-block">gen scroll</span>
+                <span className="black-block">v0.5</span>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* ─────────── APPS (mid veil — metal still visible) ─────────── */}
+        {/* ─── BLACK STRIPE ACCENT ─── */}
+        <div className="invert-block">
+          <span>↳ four apps. one person. one signal.</span>
+          <span className="hidden sm:inline">scroll ↓</span>
+        </div>
+
+        {/* ─────────── APPS ─────────── */}
         <section
           id="apps"
           className="veil-mid px-4 sm:px-6 md:px-12 py-14 sm:py-20 md:py-28 border-b border-[var(--line)] relative z-10"
@@ -161,8 +181,8 @@ export default function Home() {
 
           <AppCrest apps={APPS} />
 
-          {/* Apps row */}
-          <div className="border-t border-[var(--line-strong)]">
+          {/* Apps row — list */}
+          <div className="border-t border-[var(--line-strong)] mt-10 sm:mt-14">
             {APPS.map((app, i) => (
               <article
                 key={app.slug}
@@ -197,30 +217,60 @@ export default function Home() {
                     {app.status}
                   </span>
                   <span className="label hidden md:inline">{app.buildNote}</span>
-                  {app.storeUrl ? (
-                    <Link
-                      href={app.storeUrl}
-                      target="_blank"
-                      className="label-fg brut-line-thin px-2 py-1 tap-lift"
-                    >
-                      app store ↗
-                    </Link>
-                  ) : (
-                    <span className="label">— soon —</span>
-                  )}
                 </div>
               </article>
             ))}
           </div>
         </section>
 
-        {/* ─────────── WORK (dark veil — readability priority) ─────────── */}
+        {/* ─── BRUTAL STRIPE ─── */}
+        <div className="invert-block-stripe" aria-hidden="true" />
+
+        {/* ─────────── NOW ─────────── */}
+        <section
+          id="now"
+          className="veil-mid px-4 sm:px-6 md:px-12 py-14 sm:py-20 md:py-28 border-b border-[var(--line)] relative z-10"
+        >
+          <div className="flex items-baseline justify-between mb-6 sm:mb-10">
+            <p className="label">003 // now.</p>
+            <p className="label hidden sm:inline">build log</p>
+          </div>
+
+          <div className="grid grid-cols-12 gap-4 sm:gap-8 mb-8 sm:mb-12">
+            <div className="col-span-12 md:col-span-7">
+              <h2 className="display t-display">
+                what i&apos;m
+                <br />
+                <span className="editorial text-[var(--fg-3)] font-normal italic">
+                  building right now.
+                </span>
+              </h2>
+            </div>
+            <div className="col-span-12 md:col-span-5 flex md:items-end md:justify-end">
+              <span className="crash-block">
+                public · auto-fetched
+              </span>
+            </div>
+          </div>
+
+          <div className="max-w-3xl">
+            <NowFeed />
+          </div>
+        </section>
+
+        {/* ─── BLACK STRIPE ACCENT ─── */}
+        <div className="invert-block">
+          <span>↳ working with klar.</span>
+          <span className="hidden sm:inline">two doors</span>
+        </div>
+
+        {/* ─────────── WORK ─────────── */}
         <section
           id="work"
           className="veil-dark px-4 sm:px-6 md:px-12 py-14 sm:py-20 md:py-28 border-b border-[var(--line)] relative z-10"
         >
           <div className="flex items-baseline justify-between mb-8 sm:mb-12 md:mb-16">
-            <p className="label">003 // work with us.</p>
+            <p className="label">004 // work with us.</p>
             <p className="label hidden sm:inline">two doors.</p>
           </div>
 
@@ -235,7 +285,7 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
             <div>
               <div className="flex items-baseline gap-3 mb-3 sm:mb-4">
-                <span className="label">A</span>
+                <span className="black-block">A</span>
                 <h3 className="display text-2xl sm:text-3xl md:text-4xl">
                   affiliate
                 </h3>
@@ -254,7 +304,7 @@ export default function Home() {
 
             <div>
               <div className="flex items-baseline gap-3 mb-3 sm:mb-4">
-                <span className="label">B</span>
+                <span className="black-block">B</span>
                 <h3 className="display text-2xl sm:text-3xl md:text-4xl">
                   consulting
                 </h3>
@@ -273,15 +323,23 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ─── FINAL BLACK ACCENT ─── */}
+        <div className="invert-block">
+          <span>made by a business student. shipped in public.</span>
+          <span className="hidden sm:inline">↗ github</span>
+        </div>
+
         {/* ─────────── FOOTER ─────────── */}
         <footer className="veil-dark px-4 sm:px-6 md:px-12 py-8 sm:py-12 relative z-10">
           <div className="grid grid-cols-12 gap-6 sm:gap-8 mb-6 sm:mb-10">
             <div className="col-span-12 md:col-span-6">
               <div className="flex items-baseline gap-3 mb-2">
                 <span className="display text-3xl sm:text-4xl">klar</span>
-                <span className="label">v0.4</span>
+                <span className="label">v0.5</span>
               </div>
-              <p className="label">made in bern · coffee + cursor + claude</p>
+              <p className="label">
+                built by a business student · shipped in public
+              </p>
             </div>
             <div className="col-span-6 md:col-span-3">
               <p className="label mb-3">studio</p>
@@ -290,6 +348,12 @@ export default function Home() {
                 className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
               >
                 Apps
+              </Link>
+              <Link
+                href="#now"
+                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
+              >
+                Now
               </Link>
               <Link
                 href="#work"
@@ -319,6 +383,20 @@ export default function Home() {
                 className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
               >
                 Instagram ↗
+              </Link>
+              <Link
+                href={GITHUB_PROFILE}
+                target="_blank"
+                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
+              >
+                GitHub ↗
+              </Link>
+              <Link
+                href={GITHUB_NOW}
+                target="_blank"
+                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
+              >
+                /now ↗
               </Link>
             </div>
           </div>
