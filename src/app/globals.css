@@ -447,6 +447,97 @@ body {
   animation: modal-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
+/* ────────────────────────────────────────────────────────────
+   Collapsible sections (native <details>) — brutalist style
+   ──────────────────────────────────────────────────────────── */
+.acc-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 16px;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+  transition: background 0.2s, color 0.2s;
+  user-select: none;
+}
+.acc-summary::-webkit-details-marker { display: none; }
+.acc-summary::marker { content: ""; }
+@media (hover: hover) {
+  .acc-summary:hover {
+    background: var(--fg);
+    color: var(--bg);
+  }
+  .acc-summary:hover .acc-tag {
+    color: var(--bg);
+  }
+}
+.acc-tag {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  flex-shrink: 0;
+}
+.acc-title {
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  font-size: clamp(28px, 6.5vw, 64px);
+  line-height: 1;
+  flex: 1;
+  text-align: left;
+}
+.acc-pitch {
+  font-family: var(--font-instrument-serif), serif;
+  font-style: italic;
+  font-size: clamp(14px, 2vw, 20px);
+  color: var(--fg-3);
+  flex-shrink: 0;
+  display: none;
+}
+@media (min-width: 900px) {
+  .acc-pitch { display: inline; }
+}
+.acc-toggle {
+  font-family: var(--font-mono), monospace;
+  font-size: 28px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.acc-toggle::after { content: "+"; }
+details[open] .acc-toggle::after { content: "−"; }
+
+.acc-body {
+  padding: 24px 16px 32px 16px;
+  animation: acc-fade-in 0.3s ease-out;
+}
+@media (min-width: 768px) {
+  .acc-summary { padding: 22px 32px; }
+  .acc-body { padding: 32px 32px 56px 32px; }
+}
+@media (min-width: 1024px) {
+  .acc-summary { padding: 24px 48px; }
+  .acc-body { padding: 40px 48px 72px 48px; }
+}
+
+@keyframes acc-fade-in {
+  0%   { opacity: 0; transform: translateY(-4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acc-body { animation: none; }
+}
+
 /* ── Compact store badges (used directly under crest icons) ── */
 .compact-badge {
   display: inline-flex;

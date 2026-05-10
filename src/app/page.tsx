@@ -17,7 +17,7 @@ const APPS: App[] = [
       price: "tbd",
     },
     status: "BUILD",
-    buildNote: "build #2 · y2k onboarding done",
+    buildNote: "build · IAP done",
     icon: "/icons/trubel.png",
     screenshots: ["/screenshots/trubel/01.jpg"],
   },
@@ -30,10 +30,10 @@ const APPS: App[] = [
     business: {
       free: "5 photo scans / day, 30-day history, manual entries unlimited",
       paid: "Unlimited scans + history, PDF export for doctors, food-diary correlations, trigger detection",
-      price: "$4.99/mo or $29.99/yr",
+      price: "tbd",
     },
     status: "BETA",
-    buildNote: "ASC submitted · in review",
+    buildNote: "in review",
     icon: "/icons/myloo.png",
   },
   {
@@ -41,14 +41,14 @@ const APPS: App[] = [
     name: "Wavelength",
     pitch: "plan smarter, together.",
     description:
-      "Personal calendar plus voting tool for friend groups and sport teams. Heatmap availability voting, Vision-OCR for paper schedules, sport-specific lineups for 8 sports. The group plan that doesn't annoy.",
+      "Personal calendar plus voting tool for friend groups and sport teams. Heatmap availability voting, vision-OCR for paper schedules, sport-specific lineups for 8 sports. The group plan that doesn't annoy.",
     business: {
       free: "2 groups, 5 events per group, manual block creation",
-      paid: "Unlimited groups + events, Vision-OCR import, iOS calendar auto-sync, boost",
+      paid: "Unlimited groups + events, vision-OCR import, calendar auto-sync, boost",
       price: "tbd",
     },
     status: "BUILD",
-    buildNote: "native build #2 · push pending",
+    buildNote: "native build",
     icon: "/icons/wavelength.png",
   },
   {
@@ -58,12 +58,12 @@ const APPS: App[] = [
     description:
       "Yarn inventory, pattern matching via Ravelry and project tracking for knitters and crocheters. Scan the wrapper, Vision AI extracts everything automatically. Does the work Ravelry forgot.",
     business: {
-      free: "20 yarns, 3 active projects, pattern search, manual entry, wrapper scan (20/day)",
-      paid: "Unlimited stash, yarn-photo scan (no wrapper needed), sharing with friends, PDF/CSV export",
-      price: "$3.99/mo or $29.99/yr",
+      free: "20 yarns, 3 active projects, pattern search, manual entry, wrapper scan",
+      paid: "Unlimited stash, yarn-photo scan, sharing with friends, PDF/CSV export",
+      price: "tbd",
     },
     status: "LIVE",
-    buildNote: "v1 · 4★+",
+    buildNote: "live · 4★+",
     appStoreUrl: "https://apps.apple.com/app/yarn-stash",
     icon: "/icons/yarnstash.png",
     screenshots: ["/screenshots/yarn-stash/01.jpg"],
@@ -102,22 +102,31 @@ export default function Home() {
         <nav className="flex items-center justify-between px-4 sm:px-6 md:px-12 py-4 md:py-5 border-b border-[var(--line)] relative z-20 veil-dark">
           <div className="flex items-baseline gap-2 sm:gap-3">
             <span className="display text-xl sm:text-2xl">klar</span>
-            <span className="label hidden sm:inline">v0.5 · ch</span>
+            <span className="label hidden sm:inline">v0.7 · ch</span>
           </div>
-          <div className="flex items-center gap-4 sm:gap-6 md:gap-10">
+          <div className="flex items-center gap-3 sm:gap-5 md:gap-8">
             <Link href="#apps" className="label hover:text-[var(--fg)] transition">
               apps
+            </Link>
+            <Link
+              href="#affiliate"
+              className="label hidden sm:inline hover:text-[var(--fg)] transition"
+            >
+              affiliate
+            </Link>
+            <Link
+              href="#consulting"
+              className="label hidden sm:inline hover:text-[var(--fg)] transition"
+            >
+              consulting
             </Link>
             <Link href="#now" className="label hover:text-[var(--fg)] transition">
               now
             </Link>
-            <Link href="#work" className="label hover:text-[var(--fg)] transition">
-              work
-            </Link>
             <Link
               href={GITHUB_PROFILE}
               target="_blank"
-              className="label hover:text-[var(--fg)] transition"
+              className="label hidden md:inline hover:text-[var(--fg)] transition"
             >
               github ↗
             </Link>
@@ -138,7 +147,7 @@ export default function Home() {
         <section className="veil-light px-4 sm:px-6 md:px-12 pt-12 sm:pt-20 md:pt-32 pb-16 sm:pb-24 md:pb-36 relative z-10 border-b border-[var(--line)]">
           <div className="flex items-baseline justify-between mb-6 sm:mb-10">
             <p className="label">001 // hi.</p>
-            <p className="label">v0.5 · build / ship / loop</p>
+            <p className="label">v0.7 · build / ship / loop</p>
           </div>
 
           <GlitchWordmark
@@ -165,7 +174,7 @@ export default function Home() {
               <div className="mt-6 flex flex-wrap items-center gap-2">
                 <span className="black-block">indie studio</span>
                 <span className="black-block">gen scroll</span>
-                <span className="black-block">v0.5</span>
+                <span className="black-block">v0.7</span>
               </div>
             </div>
           </div>
@@ -177,7 +186,7 @@ export default function Home() {
           <span className="hidden sm:inline">scroll ↓</span>
         </div>
 
-        {/* ─────────── APPS ─────────── */}
+        {/* ─────────── APPS (always expanded) ─────────── */}
         <section
           id="apps"
           className="veil-mid px-4 sm:px-6 md:px-12 py-14 sm:py-20 md:py-28 border-b border-[var(--line)] relative z-10"
@@ -189,7 +198,6 @@ export default function Home() {
 
           <AppCrest apps={APPS} />
 
-          {/* Apps row — list */}
           <div className="border-t border-[var(--line-strong)] mt-10 sm:mt-14">
             {APPS.map((app, i) => (
               <article
@@ -234,101 +242,103 @@ export default function Home() {
         {/* ─── BRUTAL STRIPE ─── */}
         <div className="invert-block-stripe" aria-hidden="true" />
 
-        {/* ─────────── NOW ─────────── */}
+        {/* ─────────── COLLAPSIBLE SECTIONS ─────────── */}
+
+        {/* Affiliate */}
         <section
-          id="now"
-          className="veil-mid px-4 sm:px-6 md:px-12 py-14 sm:py-20 md:py-28 border-b border-[var(--line)] relative z-10"
+          id="affiliate"
+          className="veil-mid relative z-10"
         >
-          <div className="flex items-baseline justify-between mb-6 sm:mb-10">
-            <p className="label">003 // now.</p>
-            <p className="label hidden sm:inline">build log</p>
-          </div>
-
-          <div className="grid grid-cols-12 gap-4 sm:gap-8 mb-8 sm:mb-12">
-            <div className="col-span-12 md:col-span-7">
-              <h2 className="display t-display">
-                what i&apos;m
-                <br />
-                <span className="editorial text-[var(--fg-3)] font-normal italic">
-                  building right now.
-                </span>
-              </h2>
+          <details className="group">
+            <summary className="acc-summary">
+              <span className="acc-tag">003 // affiliate.</span>
+              <span className="acc-title">affiliate.</span>
+              <span className="acc-pitch">got an audience? bring it.</span>
+              <span className="acc-toggle" aria-hidden="true" />
+            </summary>
+            <div className="acc-body">
+              <div className="max-w-3xl">
+                <p className="editorial t-editorial-lg text-[var(--fg-2)] mb-3">
+                  got an audience?{" "}
+                  <span className="text-[var(--fg)]">bring it to klar.</span>
+                </p>
+                <p className="t-body-lg text-[var(--fg-2)] mb-6 sm:mb-8 max-w-2xl">
+                  You promote our apps to your audience, you get paid per
+                  install or sub. Niche fits welcome (knitting → yarn-stash,
+                  ibs/health → myloo, sport teams → wavelength, gen-z →
+                  trubel).
+                </p>
+                <AffiliateForm />
+              </div>
             </div>
-            <div className="col-span-12 md:col-span-5 flex md:items-end md:justify-end">
-              <span className="crash-block">
-                public · auto-fetched
-              </span>
-            </div>
-          </div>
-
-          <div className="max-w-3xl">
-            <NowFeed />
-          </div>
+          </details>
         </section>
 
-        {/* ─── BLACK STRIPE ACCENT ─── */}
-        <div className="invert-block">
-          <span>↳ working with klar.</span>
-          <span className="hidden sm:inline">two doors</span>
-        </div>
-
-        {/* ─────────── WORK ─────────── */}
-        <section
-          id="work"
-          className="veil-dark px-4 sm:px-6 md:px-12 py-14 sm:py-20 md:py-28 border-b border-[var(--line)] relative z-10"
-        >
-          <div className="flex items-baseline justify-between mb-8 sm:mb-12 md:mb-16">
-            <p className="label">004 // work with us.</p>
-            <p className="label hidden sm:inline">two doors.</p>
-          </div>
-
-          <h2 className="display t-display mb-10 sm:mb-14 md:mb-16">
-            two ways in.
-            <br />
-            <span className="editorial text-[var(--fg-3)] font-normal italic">
-              pick yours.
-            </span>
-          </h2>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
-            <div>
-              <div className="flex items-baseline gap-3 mb-3 sm:mb-4">
-                <span className="black-block">A</span>
-                <h3 className="display text-2xl sm:text-3xl md:text-4xl">
-                  affiliate
-                </h3>
+        {/* Consulting */}
+        <section id="consulting" className="veil-mid relative z-10">
+          <details className="group">
+            <summary className="acc-summary">
+              <span className="acc-tag">004 // consulting.</span>
+              <span className="acc-title">consulting.</span>
+              <span className="acc-pitch">building something? let&apos;s talk.</span>
+              <span className="acc-toggle" aria-hidden="true" />
+            </summary>
+            <div className="acc-body">
+              <div className="max-w-3xl">
+                <p className="editorial t-editorial-lg text-[var(--fg-2)] mb-3">
+                  building something?{" "}
+                  <span className="text-[var(--fg)]">let&apos;s talk.</span>
+                </p>
+                <p className="t-body-lg text-[var(--fg-2)] mb-6 sm:mb-8 max-w-2xl">
+                  One-person studio means I pick projects carefully. Mobile
+                  apps, ai integrations, growth/tiktok systems — happy to
+                  jam if the brief is sharp.
+                </p>
+                <ConsultingForm />
               </div>
-              <p className="editorial t-editorial-lg text-[var(--fg-2)] mb-3">
-                got an audience? <br className="sm:hidden" />
-                bring it to klar.
-              </p>
-              <p className="t-body-lg text-[var(--fg-2)] mb-6 sm:mb-8 max-w-md">
-                You promote our apps to your audience, you get paid per install
-                or sub. Niche fits welcome (knitting → yarn-stash, ibs/health →
-                myloo, sport teams → wavelength, gen-z → trubel).
-              </p>
-              <AffiliateForm />
             </div>
+          </details>
+        </section>
 
-            <div>
-              <div className="flex items-baseline gap-3 mb-3 sm:mb-4">
-                <span className="black-block">B</span>
-                <h3 className="display text-2xl sm:text-3xl md:text-4xl">
-                  consulting
-                </h3>
+        {/* Now / GitHub */}
+        <section id="now" className="veil-dark relative z-10">
+          <details className="group">
+            <summary className="acc-summary">
+              <span className="acc-tag">005 // now.</span>
+              <span className="acc-title">now.</span>
+              <span className="acc-pitch">build log · auto-fetched</span>
+              <span className="acc-toggle" aria-hidden="true" />
+            </summary>
+            <div className="acc-body">
+              <div className="grid grid-cols-12 gap-4 sm:gap-8 mb-6 sm:mb-10">
+                <div className="col-span-12 md:col-span-7">
+                  <p className="editorial t-editorial-lg text-[var(--fg-2)]">
+                    what i&apos;m building right now —{" "}
+                    <span className="text-[var(--fg)]">live from github.</span>
+                  </p>
+                </div>
+                <div className="col-span-12 md:col-span-5 flex md:items-end md:justify-end gap-3 flex-wrap">
+                  <Link
+                    href={GITHUB_PROFILE}
+                    target="_blank"
+                    className="label-fg brut-line-thin px-3 py-1.5 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition"
+                  >
+                    github profile ↗
+                  </Link>
+                  <Link
+                    href={GITHUB_NOW}
+                    target="_blank"
+                    className="label-fg brut-line-thin px-3 py-1.5 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition"
+                  >
+                    /now repo ↗
+                  </Link>
+                </div>
               </div>
-              <p className="editorial t-editorial-lg text-[var(--fg-2)] mb-3">
-                building something? <br className="sm:hidden" />
-                let&apos;s talk.
-              </p>
-              <p className="t-body-lg text-[var(--fg-2)] mb-6 sm:mb-8 max-w-md">
-                One-person studio means I pick projects carefully. Mobile apps,
-                ai integrations, growth/tiktok systems — happy to jam if the
-                brief is sharp.
-              </p>
-              <ConsultingForm />
+              <div className="max-w-3xl">
+                <NowFeed />
+              </div>
             </div>
-          </div>
+          </details>
         </section>
 
         {/* ─── FINAL BLACK ACCENT ─── */}
@@ -343,7 +353,7 @@ export default function Home() {
             <div className="col-span-12 md:col-span-6">
               <div className="flex items-baseline gap-3 mb-2">
                 <span className="display text-3xl sm:text-4xl">klar</span>
-                <span className="label">v0.5</span>
+                <span className="label">v0.7</span>
               </div>
               <p className="label">
                 built by a business student · shipped in public
@@ -358,16 +368,22 @@ export default function Home() {
                 Apps
               </Link>
               <Link
+                href="#affiliate"
+                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
+              >
+                Affiliate
+              </Link>
+              <Link
+                href="#consulting"
+                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
+              >
+                Consulting
+              </Link>
+              <Link
                 href="#now"
                 className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
               >
                 Now
-              </Link>
-              <Link
-                href="#work"
-                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
-              >
-                Work with us
               </Link>
               <Link
                 href="mailto:alainkessler04@gmail.com"
