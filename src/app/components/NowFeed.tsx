@@ -115,7 +115,7 @@ export default async function NowFeed() {
   if (!md) {
     return (
       <div className="brut-line p-6">
-        <p className="label mb-2">— offline —</p>
+        <p className="label mb-2">offline.</p>
         <p className="t-body-lg text-[var(--fg-2)]">
           Couldn&apos;t fetch the live status. See{" "}
           <a

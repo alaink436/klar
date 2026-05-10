@@ -10,7 +10,7 @@ const APPS: App[] = [
     name: "Trubel",
     pitch: "drop a pin. fill it with photos.",
     description:
-      "Geo-tagged photo albums with a time window, shared via QR code. Guests shoot with their normal camera during the event. At the host-set trigger time the app scans their camera roll for matching photos and proposes them for upload — zero friction during the party. All albums land as pins on a world map.",
+      "Geo-tagged photo albums with a time window, shared via QR code. Guests shoot with their normal camera during the event. At the host-set trigger time the app scans their camera roll for matching photos and proposes them for upload. Zero friction during the party. All albums land as pins on a world map.",
     business: {
       free: "3 active albums, 100 photos per album, basic world map",
       paid: "Unlimited albums, 4K downloads, auto-reel highlights, public map visibility",
@@ -26,7 +26,7 @@ const APPS: App[] = [
     name: "MyLoo",
     pitch: "tracking. without the gross.",
     description:
-      "Take a photo, Vision AI classifies it on the Bristol Stool Scale. For people with IBS, Crohn's, colitis and parents who track for doctor's visits — no friction, no judgement. Photos stay local on the device by default; cloud sync is opt-in only.",
+      "Take a photo, Vision AI classifies it on the Bristol Stool Scale. For people with IBS, Crohn's, colitis and parents who track for doctor's visits. No friction, no judgement. Photos stay local on the device by default; cloud sync is opt-in only.",
     business: {
       free: "5 photo scans / day, 30-day history, manual entries unlimited",
       paid: "Unlimited scans + history, PDF export for doctors, food-diary correlations, trigger detection",
@@ -102,7 +102,7 @@ export default function Home() {
         <nav className="flex items-center justify-between px-4 sm:px-6 md:px-12 py-4 md:py-5 border-b border-[var(--line)] relative z-20 veil-dark">
           <div className="flex items-baseline gap-2 sm:gap-3">
             <span className="display text-xl sm:text-2xl">klar</span>
-            <span className="label hidden sm:inline">v0.7 · ch</span>
+            <span className="label hidden sm:inline">v0.8 · ch</span>
           </div>
           <div className="flex items-center gap-3 sm:gap-5 md:gap-8">
             <Link href="#apps" className="label hover:text-[var(--fg)] transition">
@@ -147,7 +147,7 @@ export default function Home() {
         <section className="veil-light px-4 sm:px-6 md:px-12 pt-12 sm:pt-20 md:pt-32 pb-16 sm:pb-24 md:pb-36 relative z-10 border-b border-[var(--line)]">
           <div className="flex items-baseline justify-between mb-6 sm:mb-10">
             <p className="label">001 // hi.</p>
-            <p className="label">v0.7 · build / ship / loop</p>
+            <p className="label">v0.8 · build / ship / loop</p>
           </div>
 
           <GlitchWordmark
@@ -167,14 +167,18 @@ export default function Home() {
                 <span className="text-[var(--silver)]">stopped scrolling</span>.
               </p>
               <p className="t-body-lg text-[var(--fg-2)] mt-5 sm:mt-7 max-w-md">
-                four apps. one person in the middle — a business student who
+                four apps. one person in the middle. a business student who
                 ships software in the gaps between lectures.
+              </p>
+              <p className="t-body-lg text-[var(--fg-3)] mt-3 max-w-md">
+                solo studio. ai handles the parts that would otherwise eat
+                days, leaving the taste, the calls, and the design to me.
               </p>
 
               <div className="mt-6 flex flex-wrap items-center gap-2">
                 <span className="black-block">indie studio</span>
-                <span className="black-block">gen scroll</span>
-                <span className="black-block">v0.7</span>
+                <span className="black-block">solo + ai loop</span>
+                <span className="black-block">v0.8</span>
               </div>
             </div>
           </div>
@@ -291,7 +295,7 @@ export default function Home() {
                 </p>
                 <p className="t-body-lg text-[var(--fg-2)] mb-6 sm:mb-8 max-w-2xl">
                   One-person studio means I pick projects carefully. Mobile
-                  apps, ai integrations, growth/tiktok systems — happy to
+                  apps, ai integrations, growth/tiktok systems. Happy to
                   jam if the brief is sharp.
                 </p>
                 <ConsultingForm />
@@ -313,7 +317,7 @@ export default function Home() {
               <div className="grid grid-cols-12 gap-4 sm:gap-8 mb-6 sm:mb-10">
                 <div className="col-span-12 md:col-span-7">
                   <p className="editorial t-editorial-lg text-[var(--fg-2)]">
-                    what i&apos;m building right now —{" "}
+                    what i&apos;m building right now.{" "}
                     <span className="text-[var(--fg)]">live from github.</span>
                   </p>
                 </div>
@@ -353,10 +357,10 @@ export default function Home() {
             <div className="col-span-12 md:col-span-6">
               <div className="flex items-baseline gap-3 mb-2">
                 <span className="display text-3xl sm:text-4xl">klar</span>
-                <span className="label">v0.7</span>
+                <span className="label">v0.8</span>
               </div>
               <p className="label">
-                built by a business student · shipped in public
+                built solo, with ai in every loop · shipped in public
               </p>
             </div>
             <div className="col-span-6 md:col-span-3">

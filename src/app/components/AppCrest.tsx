@@ -228,7 +228,7 @@ export default function AppCrest({ apps }: Props) {
                 <PlayBadge href={open.playStoreUrl} />
               </div>
               {!open.appStoreUrl && !open.playStoreUrl && (
-                <p className="label mt-3">— stores soon —</p>
+                <p className="label mt-3">stores coming soon</p>
               )}
             </div>
           </article>
@@ -286,10 +286,10 @@ export default function AppCrest({ apps }: Props) {
               </p>
 
               <p className="t-body-lg text-[var(--fg-2)] leading-relaxed mb-6">
-                Four characters, four apps. They don&apos;t share a universe —
-                each one is its own little thing — but they all live under
-                klar. Each one solves something specific for someone specific.
-                None of them want to be your operating system.
+                Four characters, four apps. They don&apos;t share a universe.
+                Each one is its own thing. But they all live under klar. Each
+                one solves something specific for someone specific. None of
+                them want to be your operating system.
               </p>
 
               {/* Quick row of all 4 */}
