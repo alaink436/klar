@@ -1,13 +1,15 @@
 /**
- * Glitch wordmark — horizontal slice + font-swap.
+ * Glitch wordmark v3 — more strips, more fonts, more variations.
  *
- * Approach: base layer is always visible Space Grotesk.
- * Three semi-transparent overlay strips clip-paths into top / middle / bottom
- * thirds and swap to different Google Fonts. They flash briefly at staggered
- * times. Two extra base-font duplicates with x-shift create an RGB-style echo.
+ * Layers (back to front):
+ *   - Two RGB-style mono shifts (white + grey x-translated duplicates)
+ *   - Base wordmark (Space Grotesk)
+ *   - Six clip-path slice strips at different vertical bands, each with
+ *     a different Google Font (Bowlby, Bungee, Major Mono, Honk, Audiowide,
+ *     Tourney) flashing at staggered times
  *
- * Width never breaks the layout because every overlay is absolute-positioned
- * and inherits the base's box; clip-path keeps each strip inside the bounds.
+ * Animations run on prime-number cycles (8s, 11s, 13s) so the pattern
+ * doesn't visibly repeat.
  */
 interface Props {
   text?: string;
@@ -26,6 +28,10 @@ export default function GlitchWordmark({
       <span className="glitch-strip strip-1" aria-hidden="true">{text}</span>
       <span className="glitch-strip strip-2" aria-hidden="true">{text}</span>
       <span className="glitch-strip strip-3" aria-hidden="true">{text}</span>
+      <span className="glitch-strip strip-4" aria-hidden="true">{text}</span>
+      <span className="glitch-strip strip-5" aria-hidden="true">{text}</span>
+      <span className="glitch-strip strip-6" aria-hidden="true">{text}</span>
+      <span className="glitch-skew" aria-hidden="true">{text}</span>
     </span>
   );
 }

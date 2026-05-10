@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { AppleBadge, PlayBadge } from "./StoreBadges";
+import {
+  AppleBadge,
+  PlayBadge,
+  CompactAppleBadge,
+  CompactPlayBadge,
+} from "./StoreBadges";
 
 export type Status = "LIVE" | "BETA" | "BUILD";
 
@@ -52,26 +57,32 @@ export default function AppCrest({ apps }: Props) {
       <div className="relative mx-auto w-full max-w-[640px] mb-6 sm:mb-10">
         <div className="grid grid-cols-2 gap-4 sm:gap-8 md:gap-12">
           {apps.map((app) => (
-            <button
-              key={app.slug}
-              onClick={() => setOpenKey(app.slug)}
-              className="icon-card group flex flex-col items-center bg-transparent border-0 p-0 cursor-pointer"
-              aria-label={`open ${app.name} details`}
-            >
-              <div className="relative w-full aspect-square">
-                <Image
-                  src={app.icon}
-                  alt={app.name}
-                  fill
-                  sizes="(max-width: 640px) 40vw, 280px"
-                  className="object-contain"
-                  priority
-                />
+            <div key={app.slug} className="flex flex-col items-center">
+              <button
+                onClick={() => setOpenKey(app.slug)}
+                className="icon-card group flex flex-col items-center bg-transparent border-0 p-0 cursor-pointer w-full"
+                aria-label={`open ${app.name} details`}
+              >
+                <div className="relative w-full aspect-square">
+                  <Image
+                    src={app.icon}
+                    alt={app.name}
+                    fill
+                    sizes="(max-width: 640px) 40vw, 280px"
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+                <span className="display text-base sm:text-xl md:text-2xl mt-2 sm:mt-3">
+                  {app.name.toLowerCase()}
+                </span>
+              </button>
+              {/* Stores directly under each icon */}
+              <div className="flex flex-wrap items-center justify-center gap-1.5 mt-2 sm:mt-3">
+                <CompactAppleBadge href={app.appStoreUrl} />
+                <CompactPlayBadge href={app.playStoreUrl} />
               </div>
-              <span className="display text-base sm:text-xl md:text-2xl mt-2 sm:mt-3">
-                {app.name.toLowerCase()}
-              </span>
-            </button>
+            </div>
           ))}
         </div>
       </div>

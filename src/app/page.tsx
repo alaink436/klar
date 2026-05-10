@@ -76,7 +76,7 @@ const GITHUB_NOW = "https://github.com/alaink436/now";
 export default function Home() {
   return (
     <>
-      {/* ─── GLOBAL LIQUID-METAL BACKGROUND ─── */}
+      {/* ─── GLOBAL LIQUID-METAL BACKGROUND (4-layer cross-fade) ─── */}
       <div className="bg-stage" aria-hidden="true">
         <div
           className="bg-layer bg-layer-1"
@@ -85,6 +85,14 @@ export default function Home() {
         <div
           className="bg-layer bg-layer-2"
           style={{ backgroundImage: "url('/bg/bg-2.jpg')" }}
+        />
+        <div
+          className="bg-layer bg-layer-3"
+          style={{ backgroundImage: "url('/bg/bg-3.jpg')" }}
+        />
+        <div
+          className="bg-layer bg-layer-4"
+          style={{ backgroundImage: "url('/bg/bg-4.jpg')" }}
         />
         <div className="bg-vignette" />
       </div>

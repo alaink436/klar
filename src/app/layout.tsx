@@ -7,6 +7,10 @@ import {
   Bowlby_One_SC,
   Bungee,
   Major_Mono_Display,
+  Honk,
+  Audiowide,
+  Workbench,
+  Tourney,
 } from "next/font/google";
 import "./globals.css";
 
@@ -56,6 +60,27 @@ const majorMono = Major_Mono_Display({
   weight: ["400"],
   display: "swap",
 });
+const honk = Honk({
+  variable: "--font-honk",
+  subsets: ["latin"],
+  display: "swap",
+});
+const audiowide = Audiowide({
+  variable: "--font-audiowide",
+  subsets: ["latin"],
+  weight: ["400"],
+  display: "swap",
+});
+const workbench = Workbench({
+  variable: "--font-workbench",
+  subsets: ["latin"],
+  display: "swap",
+});
+const tourney = Tourney({
+  variable: "--font-tourney",
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Klar — Indie App Studio",
@@ -75,7 +100,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${spaceGrotesk.variable} ${instrumentSerif.variable} ${inter.variable} ${jetbrains.variable} ${bowlby.variable} ${bungee.variable} ${majorMono.variable} grain antialiased`}
+        className={`${spaceGrotesk.variable} ${instrumentSerif.variable} ${inter.variable} ${jetbrains.variable} ${bowlby.variable} ${bungee.variable} ${majorMono.variable} ${honk.variable} ${audiowide.variable} ${workbench.variable} ${tourney.variable} grain antialiased`}
       >
         {children}
       </body>
