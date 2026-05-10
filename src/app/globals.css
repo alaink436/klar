@@ -1,19 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  /* ── Core monochrome ── */
-  --bg: oklch(0.04 0 0);
-  --bg-2: oklch(0.08 0 0);
-  --fg: oklch(0.97 0 0);
-  --fg-2: oklch(0.78 0 0);
-  --fg-3: oklch(0.52 0 0);
-  --line: oklch(0.22 0 0);
-  --line-strong: oklch(0.97 0 0);
+  /* ── Pure monochrome chrome ── */
+  --bg: oklch(0.03 0 0);              /* near-pitch black */
+  --bg-2: oklch(0.07 0 0);
+  --fg: oklch(0.97 0 0);              /* off-white */
+  --fg-2: oklch(0.74 0 0);
+  --fg-3: oklch(0.48 0 0);
+  --fg-4: oklch(0.32 0 0);
+  --line: oklch(0.18 0 0);
+  --line-strong: oklch(0.85 0 0);
 
-  /* ── Accents (matched to chrome logo holographic spectrum) ── */
-  --accent: oklch(0.72 0.32 348);     /* hot magenta */
-  --accent-2: oklch(0.78 0.18 240);   /* chrome blue */
-  --accent-3: oklch(0.94 0.13 100);   /* chartreuse */
+  /* ── No accent colors. Just chrome. ── */
+  --silver: oklch(0.78 0 0);
 }
 
 @theme inline {
@@ -22,16 +21,18 @@
   --color-fg: var(--fg);
   --color-fg-2: var(--fg-2);
   --color-fg-3: var(--fg-3);
+  --color-fg-4: var(--fg-4);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
-  --color-accent: var(--accent);
-  --color-accent-2: var(--accent-2);
-  --color-accent-3: var(--accent-3);
+  --color-silver: var(--silver);
 
   --font-display: var(--font-space-grotesk);
   --font-editorial: var(--font-instrument-serif);
   --font-body: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);
+  --font-glitch-1: var(--font-bowlby);
+  --font-glitch-2: var(--font-bungee);
+  --font-glitch-3: var(--font-major-mono);
 }
 
 * { border-color: var(--line); }
@@ -45,25 +46,24 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
+  position: relative;
+  isolation: isolate;
 }
 
-::selection { background: var(--accent); color: var(--bg); }
+::selection { background: var(--fg); color: var(--bg); }
 
-/* ── Brutalist building blocks ── */
-.brut-line { border: 1px solid var(--line-strong); }
-.brut-line-thick { border: 2px solid var(--line-strong); }
-
+/* ── Type primitives ── */
 .label {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: clamp(10px, 2.4vw, 11px);
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--fg-3);
 }
 .label-fg {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: clamp(10px, 2.4vw, 11px);
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--fg);
 }
@@ -79,55 +79,209 @@ body {
   letter-spacing: -0.04em;
   line-height: 0.86;
   overflow-wrap: break-word;
-  word-break: normal;
   hyphens: manual;
 }
 
-/* ── Responsive type scales (mobile-first via clamp) ── */
-.t-wordmark   { font-size: clamp(96px, 28vw, 360px); line-height: 0.84; letter-spacing: -0.06em; }
-.t-display    { font-size: clamp(40px, 9vw, 128px); line-height: 0.88; }
-.t-editorial-xl { font-size: clamp(28px, 6.5vw, 80px); line-height: 1.04; }
-.t-editorial-lg { font-size: clamp(22px, 4.5vw, 48px); line-height: 1.1; }
-.t-body-lg    { font-size: clamp(15px, 2.4vw, 18px); line-height: 1.55; }
+.t-wordmark    { font-size: clamp(120px, 32vw, 480px); line-height: 0.84; letter-spacing: -0.06em; }
+.t-display     { font-size: clamp(36px, 8vw, 112px); line-height: 0.92; }
+.t-editorial-xl{ font-size: clamp(26px, 5.5vw, 64px); line-height: 1.06; }
+.t-editorial-lg{ font-size: clamp(20px, 4vw, 40px); line-height: 1.12; }
+.t-body-lg     { font-size: clamp(15px, 2.2vw, 18px); line-height: 1.55; }
 
-/* ── Slight tilts for hand-made indie feel ── */
-.tilt-1   { transform: rotate(-1.2deg); }
-.tilt-2   { transform: rotate(0.9deg); }
-.tilt-3   { transform: rotate(-0.6deg); }
-.tilt-4   { transform: rotate(1.4deg); }
-
-/* ── Dotted underline for marginalia / footnote markers ── */
-.fn {
-  border-bottom: 1px dotted var(--fg-3);
-  cursor: help;
+/* ── BG: animated liquid-metal layer system ── */
+.bg-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: var(--bg);
+  pointer-events: none;
+}
+.bg-layer {
+  position: absolute;
+  inset: -15%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  will-change: transform, opacity;
+  filter: saturate(0) contrast(1.15) brightness(0.78);
+}
+.bg-layer-1 {
+  opacity: 0.55;
+  animation: drift-1 60s ease-in-out infinite alternate;
+}
+.bg-layer-2 {
+  opacity: 0.4;
+  mix-blend-mode: screen;
+  animation: drift-2 80s ease-in-out infinite alternate;
+}
+.bg-layer-3 {
+  opacity: 0.28;
+  mix-blend-mode: lighten;
+  animation: drift-3 95s ease-in-out infinite alternate;
+}
+.bg-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at center, transparent 0%, oklch(0.03 0 0 / 0.55) 70%, oklch(0.03 0 0 / 0.92) 100%);
+  pointer-events: none;
 }
 
-/* ── Cursor blink ── */
-.cursor-blink::after {
-  content: "_";
+@keyframes drift-1 {
+  0%   { transform: translate(0, 0) scale(1.05) rotate(0deg); }
+  100% { transform: translate(-3%, 2%) scale(1.12) rotate(2deg); }
+}
+@keyframes drift-2 {
+  0%   { transform: translate(0, 0) scale(1.1) rotate(0deg); }
+  100% { transform: translate(4%, -3%) scale(1.18) rotate(-3deg); }
+}
+@keyframes drift-3 {
+  0%   { transform: translate(0, 0) scale(1.08); }
+  100% { transform: translate(-2%, 4%) scale(1.16); }
+}
+
+/* ── Glitch wordmark — multiple stacked fonts flicker ── */
+.glitch-wordmark {
+  position: relative;
   display: inline-block;
-  margin-left: 0.04em;
-  animation: blink 1.1s steps(2) infinite;
-  color: var(--accent);
+  line-height: 0.84;
+  overflow: hidden; /* clip glitch overflow on tight viewports */
 }
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+.glitch-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  letter-spacing: -0.06em;
+  font-weight: 700;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+.glitch-layer-1 {
+  font-family: var(--font-bowlby), sans-serif;
+  color: oklch(0.92 0 0);
+  white-space: nowrap;
+  overflow: hidden;
+  animation: flicker-1 6.4s steps(1) infinite;
+}
+.glitch-layer-2 {
+  font-family: var(--font-bungee), sans-serif;
+  color: oklch(0.78 0 0);
+  letter-spacing: -0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  animation: flicker-2 6.4s steps(1) infinite;
+}
+.glitch-layer-3 {
+  font-family: var(--font-major-mono), monospace;
+  color: oklch(0.65 0 0);
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  animation: flicker-3 6.4s steps(1) infinite;
 }
 
-/* ── Logo glow ── */
-.logo-glow {
-  filter: drop-shadow(0 0 50px oklch(0.72 0.32 348 / 0.55))
-          drop-shadow(0 0 110px oklch(0.78 0.18 240 / 0.32));
+@keyframes flicker-1 {
+  0%, 7%, 100% { opacity: 0; transform: translate(0, 0); }
+  4%, 5%       { opacity: 0.85; transform: translate(-1px, 0); }
+  4.5%         { opacity: 0.95; transform: translate(2px, -1px); }
+}
+@keyframes flicker-2 {
+  0%, 28%, 100% { opacity: 0; transform: translate(0, 0); }
+  25%, 26%      { opacity: 0.9; transform: translate(1px, 1px); }
+  25.5%         { opacity: 1;   transform: translate(-2px, 0); }
+}
+@keyframes flicker-3 {
+  0%, 60%, 100% { opacity: 0; transform: translate(0, 0); }
+  56%, 57%      { opacity: 0.8; transform: translate(0, -1px); }
+  56.5%         { opacity: 0.95; transform: translate(1px, 1px); }
 }
 
-/* ── Icon hover lift (desktop only) ── */
+/* tiny RGB-style horizontal slice glitch */
+.glitch-base {
+  position: relative;
+  display: inline-block;
+}
+.glitch-base::before,
+.glitch-base::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  opacity: 0;
+}
+.glitch-base::before {
+  color: oklch(0.95 0 0);
+  animation: slice-1 8s steps(1) infinite;
+  clip-path: inset(0 0 70% 0);
+}
+.glitch-base::after {
+  color: oklch(0.6 0 0);
+  animation: slice-2 8s steps(1) infinite;
+  clip-path: inset(70% 0 0 0);
+}
+@keyframes slice-1 {
+  0%, 12%, 100% { opacity: 0; transform: translate(0); }
+  10%, 10.6%    { opacity: 0.85; transform: translate(-3px, 0); }
+}
+@keyframes slice-2 {
+  0%, 12%, 100% { opacity: 0; transform: translate(0); }
+  10.3%, 10.9%  { opacity: 0.85; transform: translate(3px, 0); }
+}
+
+/* ── Brutalist building blocks ── */
+.brut-line { border: 1px solid var(--line-strong); }
+.brut-line-thin { border: 1px solid var(--line); }
+
+/* ── Hover lift on tap targets ── */
+.tap-lift {
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s;
+}
+@media (hover: hover) {
+  .tap-lift:hover {
+    transform: translateY(-3px);
+    border-color: var(--fg);
+  }
+}
+
+/* ── Form fields ── */
+.field {
+  background: oklch(0.07 0 0 / 0.6);
+  border: 1px solid var(--line);
+  color: var(--fg);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  padding: 12px 14px;
+  border-radius: 0;
+  width: 100%;
+  transition: border-color 0.2s, background 0.2s;
+}
+.field::placeholder { color: var(--fg-4); }
+.field:focus {
+  outline: none;
+  border-color: var(--fg);
+  background: oklch(0.07 0 0 / 0.8);
+}
+.field-textarea {
+  min-height: 120px;
+  resize: vertical;
+  font-family: var(--font-inter), sans-serif;
+}
+
+/* ── Icon hover lift on Crest ── */
 .icon-card {
   transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 @media (hover: hover) {
   .icon-card:hover {
-    transform: translateY(-8px) rotate(-0.6deg) !important;
+    transform: translateY(-6px) rotate(-0.4deg) !important;
   }
 }
 
@@ -138,18 +292,13 @@ body {
 }
 .marquee { animation: marquee 60s linear infinite; }
 
-/* ── Vertical divider on apps list ── */
-.divider-strong {
-  border-top: 1px solid var(--line-strong);
-}
-
-/* ── Grain overlay ── */
+/* ── Subtle film grain ── */
 .grain::after {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 50;
+  z-index: 60;
   opacity: 0.05;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -163,7 +312,8 @@ body {
 
 /* ── Reduce motion ── */
 @media (prefers-reduced-motion: reduce) {
-  .marquee { animation: none; }
-  .cursor-blink::after { animation: none; }
-  .icon-card { transition: none; }
+  .marquee,
+  .bg-layer-1, .bg-layer-2, .bg-layer-3,
+  .glitch-layer-1, .glitch-layer-2, .glitch-layer-3,
+  .glitch-base::before, .glitch-base::after { animation: none; }
 }

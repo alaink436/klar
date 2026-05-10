@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
+import {
+  Space_Grotesk,
+  Instrument_Serif,
+  Inter,
+  JetBrains_Mono,
+  Bowlby_One_SC,
+  Bungee,
+  Major_Mono_Display,
+} from "next/font/google";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -30,14 +38,34 @@ const jetbrains = JetBrains_Mono({
   display: "swap",
 });
 
+/* Glitch fonts */
+const bowlby = Bowlby_One_SC({
+  variable: "--font-bowlby",
+  subsets: ["latin"],
+  weight: ["400"],
+  display: "swap",
+});
+const bungee = Bungee({
+  variable: "--font-bungee",
+  subsets: ["latin"],
+  weight: ["400"],
+  display: "swap",
+});
+const majorMono = Major_Mono_Display({
+  variable: "--font-major-mono",
+  subsets: ["latin"],
+  weight: ["400"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Klar — Studio for the Generation Scroll",
+  title: "Klar — Indie App Studio",
   description:
-    "Klar baut Apps für die Generation Scroll. Trubel, MyLoo, Wavelength, Yarn-Stash.",
-  metadataBase: new URL("https://klar.studio"),
+    "Klar builds apps for the generation scroll. Trubel, MyLoo, Wavelength, Yarn-Stash. One-person studio out of Bern, Switzerland.",
+  metadataBase: new URL("https://klar-five.vercel.app"),
   openGraph: {
-    title: "Klar",
-    description: "Studio for the Generation Scroll.",
+    title: "Klar — Indie App Studio",
+    description: "Apps for the generation scroll.",
     type: "website",
   },
 };
@@ -46,9 +74,9 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="de">
+    <html lang="en">
       <body
-        className={`${spaceGrotesk.variable} ${instrumentSerif.variable} ${inter.variable} ${jetbrains.variable} grain antialiased`}
+        className={`${spaceGrotesk.variable} ${instrumentSerif.variable} ${inter.variable} ${jetbrains.variable} ${bowlby.variable} ${bungee.variable} ${majorMono.variable} grain antialiased`}
       >
         {children}
       </body>
