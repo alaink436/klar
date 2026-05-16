@@ -1,10 +1,10 @@
 // Central Klar payout control-plane. Server-rendered, no client JS, all
 // secrets server-side. Gated by KLAR_ADMIN_KEY (query ?key= once -> cookie).
-// Views via ?view= : overview (default) | <app-slug> | outreach
+// Views via ?view= : overview | revenue | <app-slug> | outreach
 //
-// Styling mirrors the klar design system (globals.css tokens + Anton/Eczar/
-// Manrope/JetBrains Mono, brutalist, monochrome). A route handler does not
-// inherit the app's bundled CSS, so the tokens + fonts are ported faithfully.
+// Styling mirrors the klar tokens (globals.css oklch, brutalist monochrome).
+// Fonts: Manrope + JetBrains Mono only (robust, no display-font swap jank).
+// Revenue chart is server-rendered SVG (no client JS).
 //
 // Env: KLAR_ADMIN_KEY, KLAR_ADMIN_APPS (JSON registry, see lib/adminApps),
 //      KLAR_OUTREACH_SHEET_ID (optional, defaults to the Marketing master).
@@ -46,23 +46,23 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:'Manrope',system-
 a{color:inherit;text-decoration:none}
 .layout{display:flex;min-height:100vh}
 .side{width:232px;flex-shrink:0;border-right:1px solid var(--line-strong);padding:26px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:2px}
-.brand{font-family:'Anton',sans-serif;font-size:28px;letter-spacing:-0.02em;padding:0 10px}
-.brand small{display:block;font-family:'JetBrains Mono',ui-monospace,monospace;color:var(--fg-3);font-size:10px;text-transform:uppercase;letter-spacing:0.2em;margin:8px 0 20px}
+.brand{font-weight:800;font-size:24px;letter-spacing:-0.03em;padding:0 10px}
+.brand small{display:block;font-family:'JetBrains Mono',ui-monospace,monospace;color:var(--fg-3);font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:0.2em;margin:8px 0 20px}
 .nav{display:block;padding:10px 11px;color:var(--fg-3);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;border:1px solid transparent}
 .nav:hover{color:var(--fg);border-color:var(--line)}
 .nav.on{background:var(--fg);color:var(--bg);font-weight:600}
 .nav .d{margin-right:8px;opacity:0.7}
 .spacer{flex:1}
 .main{flex:1;padding:36px 42px;max-width:1120px}
-h1{font-family:'Anton',sans-serif;font-weight:400;font-size:44px;letter-spacing:-0.02em;line-height:0.95;margin:0 0 8px}
-h2{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--fg-3);margin:30px 0 0;font-weight:400}
-.sub{font-family:'Eczar',serif;font-style:italic;color:var(--fg-3);font-size:17px;margin:0 0 26px}
+h1{font-weight:800;font-size:34px;letter-spacing:-0.03em;line-height:1.05;margin:0 0 6px}
+h2{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--fg-3);margin:32px 0 12px;font-weight:400}
+.sub{color:var(--fg-3);font-size:15px;margin:0 0 26px}
 .flash{border:1px solid var(--line-strong);padding:12px 16px;margin-bottom:22px;font-size:13px;background:var(--bg-2)}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));border:1px solid var(--line-strong);margin-bottom:28px}
 .card{padding:18px 20px;border-right:1px solid var(--line)}
 .card:last-child{border-right:0}
 .k{font-family:'JetBrains Mono',ui-monospace,monospace;color:var(--fg-3);font-size:10px;text-transform:uppercase;letter-spacing:0.18em}
-.v{font-family:'Anton',sans-serif;font-size:34px;margin-top:8px;line-height:1}
+.v{font-weight:800;font-size:30px;margin-top:8px;line-height:1;letter-spacing:-0.02em}
 .s{color:var(--fg-3);font-size:12px;margin-top:5px}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--fg-3);text-align:left;font-weight:400;border-bottom:1px solid var(--line-strong);padding:9px 8px}
@@ -77,7 +77,10 @@ td{padding:9px 8px;border-bottom:1px solid var(--line)}
 .batch{border:1px solid var(--line-strong);padding:14px 16px;margin-top:14px;background:var(--bg-2)}
 .muted{color:var(--fg-3)}
 .warn{color:var(--bg);background:var(--fg);padding:1px 6px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px}
-.applink{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid var(--fg);padding-bottom:1px}
+.applink{font-weight:700;border-bottom:1px solid var(--fg);padding-bottom:1px}
+.chart{border:1px solid var(--line-strong);background:var(--bg-2);padding:18px}
+.legend{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:var(--fg-3);margin-top:10px;display:flex;gap:18px}
+.legend i{display:inline-block;width:11px;height:11px;margin-right:6px;vertical-align:-1px}
 .iframewrap{border:1px solid var(--line-strong);background:#fff}
 iframe{width:100%;height:74vh;border:0;display:block}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--line)}
@@ -88,7 +91,7 @@ function doc(inner: string): Response {
   return new Response(
     `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Klar Control</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Eczar:ital,wght@1,400&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>${STYLE}</style></head><body>${inner}</body></html>`,
     { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } },
   );
@@ -96,7 +99,7 @@ function doc(inner: string): Response {
 
 function loginPage(err?: string): Response {
   return doc(`<div style="max-width:360px;margin:15vh auto;text-align:center">
-    <div class="brand" style="font-size:34px">klar<small>control · affiliate payouts</small></div>
+    <div class="brand" style="font-size:30px">klar<small>control · affiliate payouts</small></div>
     ${err ? `<p style="color:#FF6B6B;font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.1em">${esc(err)}</p>` : ""}
     <form method="GET" action="/admin">
       <input name="key" type="password" placeholder="KLAR_ADMIN_KEY" autofocus
@@ -113,6 +116,7 @@ function shell(view: string, apps: AdminApp[], flash: string | null, main: strin
     <aside class="side">
       <div class="brand">klar<small>control</small></div>
       ${item("overview", "Overview")}
+      ${item("revenue", "Einnahmen")}
       ${appLinks || `<span class="nav muted">keine apps</span>`}
       ${item("outreach", "Outreach")}
       <div class="spacer"></div>
@@ -122,6 +126,35 @@ function shell(view: string, apps: AdminApp[], flash: string | null, main: strin
       ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
       ${main}
     </main></div>`;
+}
+
+// Server-rendered SVG grouped bar chart. series: [{label, gross, payout}] in cents.
+function barChart(series: { label: string; gross: number; payout: number }[]): string {
+  if (series.length === 0)
+    return `<div class="chart muted" style="font-size:13px">Noch keine Einnahmen-Daten.</div>`;
+  const W = 1000, H = 260, padL = 60, padB = 34, padT = 14, padR = 14;
+  const cw = (W - padL - padR) / series.length;
+  const max = Math.max(1, ...series.map((d) => Math.max(d.gross, d.payout)));
+  const niceMax = Math.ceil(max / 100) * 100;
+  const y = (v: number) => padT + (H - padT - padB) * (1 - v / niceMax);
+  const gridLines = [0, 0.25, 0.5, 0.75, 1].map((f) => {
+    const val = niceMax * f, yy = y(val);
+    return `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="oklch(0.18 0.002 270)" stroke-width="1"/>
+      <text x="${padL - 8}" y="${yy + 3}" text-anchor="end" font-family="'JetBrains Mono',monospace" font-size="9" fill="oklch(0.48 0.002 270)">${(val / 100).toFixed(0)}</text>`;
+  }).join("");
+  const bars = series.map((d, i) => {
+    const x0 = padL + i * cw;
+    const bw = Math.max(6, cw * 0.28);
+    const gx = x0 + cw / 2 - bw - 3, px = x0 + cw / 2 + 3;
+    const gy = y(Math.max(0, d.gross)), py = y(Math.max(0, d.payout));
+    const base = y(0);
+    return `<rect x="${gx}" y="${gy}" width="${bw}" height="${Math.max(0, base - gy)}" fill="oklch(0.97 0.002 270)"/>
+      <rect x="${px}" y="${py}" width="${bw}" height="${Math.max(0, base - py)}" fill="oklch(0.48 0.002 270)"/>
+      <text x="${x0 + cw / 2}" y="${H - padB + 16}" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="oklch(0.48 0.002 270)">${esc(d.label)}</text>`;
+  }).join("");
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Einnahmen pro Monat">
+    ${gridLines}<line x1="${padL}" y1="${y(0)}" x2="${W - padR}" y2="${y(0)}" stroke="oklch(0.85 0.002 270)" stroke-width="1"/>${bars}</svg>
+    <div class="legend"><span><i style="background:oklch(0.97 0.002 270)"></i>Affiliate-Umsatz</span><span><i style="background:oklch(0.48 0.002 270)"></i>Auszahlung an Affiliates</span><span>EUR pro Monat</span></div></div>`;
 }
 
 async function overview(apps: AdminApp[]): Promise<string> {
@@ -155,6 +188,63 @@ async function overview(apps: AdminApp[]): Promise<string> {
     </tr>`).join("")}
   </tbody></table>`;
   return `<h1>Overview</h1><p class="sub">Alle verbundenen Apps. Klick eine App für Details und Auszahlungen.</p>${cards}${tbl}`;
+}
+
+async function revenueView(apps: AdminApp[]): Promise<string> {
+  if (apps.length === 0)
+    return `<h1>Einnahmen</h1><p class="sub">Keine Apps konfiguriert.</p>`;
+  const monthly = new Map<string, { gross: number; payout: number }>();
+  let totalGross = 0, totalPayout = 0, totalOpen = 0, totalAff = 0;
+
+  const perApp = await Promise.all(apps.map(async (app) => {
+    const [inf, claim, events] = await Promise.all([
+      sbGet(app, "influencers?select=status"),
+      sbGet(app, "influencer_claimable?select=claimable_eur_cents"),
+      sbGet(app, "referral_revenue_events?select=event_at,gross_revenue_cents,share_cents_eur&order=event_at&limit=4000"),
+    ]);
+    let gross = 0, payout = 0;
+    for (const e of events) {
+      const g = Number(e.gross_revenue_cents ?? 0);
+      const p = Number(e.share_cents_eur ?? 0);
+      gross += g; payout += p;
+      const mkey = String(e.event_at ?? "").slice(0, 7);
+      if (mkey) {
+        const m = monthly.get(mkey) ?? { gross: 0, payout: 0 };
+        m.gross += g; m.payout += p;
+        monthly.set(mkey, m);
+      }
+    }
+    const open = claim.reduce((s: number, c: any) => s + Number(c.claimable_eur_cents ?? 0), 0);
+    totalGross += gross; totalPayout += payout; totalOpen += open; totalAff += inf.length;
+    return { app, affiliates: inf.length, gross, payout, open };
+  }));
+
+  const series = [...monthly.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-12)
+    .map(([k, v]) => {
+      const [yy, mm] = k.split("-");
+      return { label: `${mm}/${yy.slice(2)}`, gross: v.gross, payout: v.payout };
+    });
+
+  const cards = `<div class="cards">
+    <div class="card"><div class="k">Affiliate-Umsatz gesamt</div><div class="v">${eur(totalGross)}</div><div class="s">von geworbenen Usern</div></div>
+    <div class="card"><div class="k">Auszahlung an Affiliates</div><div class="v">${eur(totalPayout)}</div><div class="s">verbucht (50% Anteil)</div></div>
+    <div class="card"><div class="k">Davon offen</div><div class="v">${eur(totalOpen)}</div><div class="s">noch nicht ausgezahlt</div></div>
+    <div class="card"><div class="k">Affiliates gesamt</div><div class="v">${totalAff}</div></div>
+  </div>`;
+
+  const tbl = `<table><thead><tr><th>App</th><th class="r">Affiliates</th><th class="r">Affiliate-Umsatz</th><th class="r">Auszahlung verbucht</th><th class="r">Offen</th></tr></thead><tbody>
+    ${perApp.map((r) => `<tr>
+      <td><a class="applink" href="/admin?view=${esc(r.app.slug)}">${esc(r.app.name)}</a></td>
+      <td class="r">${r.affiliates}</td>
+      <td class="r">${eur(r.gross)}</td>
+      <td class="r">${eur(r.payout)}</td>
+      <td class="r">${eur(r.open)}</td>
+    </tr>`).join("")}
+  </tbody></table>`;
+
+  return `<h1>Einnahmen</h1><p class="sub">Affiliate-attribuierter Umsatz pro App und Monat. Nicht der Gesamt-App-Umsatz (der bräuchte RevenueCat/Store-Daten, separate Integration).</p>
+    ${cards}<h2>Pro Monat</h2>${barChart(series)}<h2>Pro App</h2>${tbl}`;
 }
 
 async function appView(app: AdminApp): Promise<string> {
@@ -193,15 +283,15 @@ async function appView(app: AdminApp): Promise<string> {
   return `<h1>${esc(app.name)}</h1><p class="sub">Affiliate-Saldo und Auszahlungen.</p>${cards}
     <form method="POST" action="/admin/reconcile" style="margin:0 0 18px"><input type="hidden" name="app" value="${esc(app.slug)}"/><button class="btn ghost" type="submit">Status aktualisieren · Wise nach DB</button></form>
     <table><thead><tr><th>Handle</th><th>Status</th><th>Methode</th><th class="r">Gereift</th><th class="r">Bezahlt</th><th class="r">Offen</th><th class="c">FX</th></tr></thead><tbody>${claimRows}</tbody></table>
-    <h2>Batches</h2>${batchHtml || `<p class="muted" style="margin-top:12px">noch keine Batches (pg_cron baut am 1. des Monats)</p>`}`;
+    <h2>Batches</h2>${batchHtml || `<p class="muted">noch keine Batches (pg_cron baut am 1. des Monats)</p>`}`;
 }
 
 function outreachView(): string {
-  const view = `https://docs.google.com/spreadsheets/d/${OUTREACH_SHEET_ID}/preview`;
+  const v = `https://docs.google.com/spreadsheets/d/${OUTREACH_SHEET_ID}/preview`;
   const edit = `https://docs.google.com/spreadsheets/d/${OUTREACH_SHEET_ID}/edit`;
   return `<h1>Outreach</h1><p class="sub">Influencer-Outreach-Master. Status pro App-Tab: To-Contact, Contacted, Replied, Posted.</p>
     <div style="margin-bottom:16px"><a class="btn" target="_blank" rel="noopener" href="${edit}">In Google Sheets öffnen</a></div>
-    <div class="iframewrap"><iframe src="${view}" loading="lazy"></iframe></div>
+    <div class="iframewrap"><iframe src="${v}" loading="lazy"></iframe></div>
     <p class="sub" style="margin-top:16px;font-size:14px">Lädt nur wenn du im selben Browser bei dem Google-Account angemeldet bist der Zugriff auf das Sheet hat. Eine automatische "X angeschrieben"-Zahl pro App braucht Google-Sheets-API-Zugang (Service-Account), separater Schritt.</p>`;
 }
 
@@ -219,6 +309,7 @@ export async function GET(req: Request): Promise<Response> {
 
   let main: string;
   if (view === "outreach") main = outreachView();
+  else if (view === "revenue") main = await revenueView(apps);
   else {
     const app = apps.find((a) => a.slug === view);
     main = app ? await appView(app) : await overview(apps);
