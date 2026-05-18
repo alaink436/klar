@@ -2,8 +2,9 @@
 // secrets server-side. Gated by KLAR_ADMIN_KEY (query ?key= once -> cookie).
 // Views via ?view= : overview | revenue | <app-slug> | outreach
 //
-// Styling mirrors the klar tokens (globals.css oklch, brutalist monochrome).
-// Fonts: Manrope + JetBrains Mono only (robust, no display-font swap jank).
+// Styling mirrors the klar brand (oklch tokens, editorial brutalism).
+// Fonts: Space Grotesk (display) + Inter (UI) + Instrument Serif (italic
+// intros), via Google Fonts. Restrained magenta accent for orientation.
 // Revenue chart is server-rendered SVG (no client JS).
 //
 // Env: KLAR_ADMIN_KEY, KLAR_ADMIN_APPS (JSON registry, see lib/adminApps),
@@ -62,92 +63,130 @@ const eur = (c: number | null | undefined) =>
   (Number(c ?? 0) / 100).toLocaleString("de-CH", { style: "currency", currency: "EUR" });
 
 const STYLE = `
-:root{--bg:oklch(0.04 0.002 270);--bg-2:oklch(0.08 0.002 270);--fg:oklch(0.97 0.002 270);--fg-2:oklch(0.74 0.002 270);--fg-3:oklch(0.48 0.002 270);--fg-4:oklch(0.32 0.002 270);--line:oklch(0.18 0.002 270);--line-strong:oklch(0.85 0.002 270)}
+:root{
+ --bg:oklch(0.045 0.004 270);--bg-2:oklch(0.082 0.004 270);--bg-3:oklch(0.12 0.004 270);
+ --fg:oklch(0.97 0.002 270);--fg-2:oklch(0.79 0.002 270);--fg-3:oklch(0.58 0.002 270);--fg-4:oklch(0.42 0.002 270);
+ --line:oklch(0.20 0.003 270);--line-2:oklch(0.30 0.003 270);--line-strong:oklch(0.86 0.002 270);
+ --accent:oklch(0.72 0.20 348);
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:'Manrope',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:'Inter',system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 a{color:inherit;text-decoration:none}
+::selection{background:var(--accent);color:var(--bg)}
 .layout{display:flex;min-height:100vh}
-.side{width:232px;flex-shrink:0;border-right:1px solid var(--line-strong);padding:26px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:2px}
-.brand{font-weight:800;font-size:24px;letter-spacing:-0.03em;padding:0 10px}
-.brand small{display:block;font-family:'JetBrains Mono',ui-monospace,monospace;color:var(--fg-3);font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:0.2em;margin:8px 0 20px}
-.nav{display:block;padding:10px 11px;color:var(--fg-3);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;border:1px solid transparent}
-.nav:hover{color:var(--fg);border-color:var(--line)}
-.nav.on{background:var(--fg);color:var(--bg);font-weight:600}
-.nav .d{margin-right:8px;opacity:0.7}
-.spacer{flex:1}
-.main{flex:1;padding:36px 42px;max-width:1120px}
-h1{font-weight:800;font-size:34px;letter-spacing:-0.03em;line-height:1.05;margin:0 0 6px}
-h2{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--fg-3);margin:32px 0 12px;font-weight:400}
-.sub{color:var(--fg-3);font-size:15px;margin:0 0 26px}
-.flash{border:1px solid var(--line-strong);padding:12px 16px;margin-bottom:22px;font-size:13px;background:var(--bg-2)}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));border:1px solid var(--line-strong);margin-bottom:28px}
-.card{padding:18px 20px;border-right:1px solid var(--line)}
-.card:last-child{border-right:0}
-.k{font-family:'JetBrains Mono',ui-monospace,monospace;color:var(--fg-3);font-size:10px;text-transform:uppercase;letter-spacing:0.18em}
-.v{font-weight:800;font-size:30px;margin-top:8px;line-height:1;letter-spacing:-0.02em}
-.s{color:var(--fg-3);font-size:12px;margin-top:5px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--fg-3);text-align:left;font-weight:400;border-bottom:1px solid var(--line-strong);padding:9px 8px}
-td{padding:9px 8px;border-bottom:1px solid var(--line)}
+.side{width:248px;flex-shrink:0;border-right:1px solid var(--line);padding:28px 18px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
+.brand{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:25px;letter-spacing:-0.03em;padding:0 8px;display:flex;align-items:baseline;gap:7px}
+.brand .dot{color:var(--accent)}
+.brand small{font-family:'Inter',sans-serif;color:var(--fg-3);font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.2em}
+.navsec{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.16em;color:var(--fg-4);padding:0 11px;margin:22px 0 7px}
+.nav{display:flex;align-items:center;gap:9px;padding:9px 11px;color:var(--fg-3);font-size:13.5px;font-weight:500;border-radius:7px;transition:color .15s,background .15s}
+.nav:hover{color:var(--fg);background:var(--bg-2)}
+.nav.on{color:var(--fg);background:var(--bg-2);font-weight:600;box-shadow:inset 2px 0 0 var(--accent)}
+.nav .d{font-size:8px;color:var(--fg-4)}
+.nav.on .d{color:var(--accent)}
+.spacer{flex:1;min-height:18px}
+.logout{color:var(--fg-4);font-size:12.5px}
+.logout:hover{color:var(--fg)}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:8px;padding:16px 44px;border-bottom:1px solid var(--line);font-size:12px;color:var(--fg-3);position:sticky;top:0;background:oklch(0.045 0.004 270 / 0.86);backdrop-filter:blur(8px);z-index:5}
+.crumb{color:var(--fg-4)}
+.crumb b{color:var(--fg-2);font-weight:600}
+.content{padding:40px 44px;max-width:1140px;width:100%}
+h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:33px;letter-spacing:-0.025em;line-height:1.08;margin:0 0 10px}
+.sub{font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:19px;line-height:1.45;color:var(--fg-2);margin:0 0 30px;max-width:62ch}
+h2{font-size:11px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--fg-3);margin:38px 0 14px}
+.flash{border:1px solid var(--line-2);border-left:2px solid var(--accent);padding:13px 16px;margin-bottom:24px;font-size:13.5px;background:var(--bg-2);border-radius:6px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:30px}
+.card{padding:20px 22px;background:var(--bg)}
+.k{color:var(--fg-3);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.13em}
+.v{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;margin-top:9px;line-height:1;letter-spacing:-0.02em;font-variant-numeric:tabular-nums}
+.s{color:var(--fg-3);font-size:12.5px;margin-top:6px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-size:10.5px;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;color:var(--fg-3);text-align:left;border-bottom:1px solid var(--line-strong);padding:10px 10px}
+td{padding:11px 10px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+tr:hover td{background:var(--bg-2)}
 .r{text-align:right}.c{text-align:center}
-.pill{display:inline-block;padding:3px 9px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;border:1px solid var(--line);color:var(--fg-3)}
-.pill.live{background:var(--fg);color:var(--bg);border-color:var(--fg)}
-.btn{display:inline-block;padding:11px 18px;border:1px solid var(--fg);background:var(--fg);color:var(--bg);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;cursor:pointer}
-.btn:hover{background:var(--bg);color:var(--fg)}
-.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line-strong)}
-.btn.ghost:hover{background:var(--fg);color:var(--bg)}
-.batch{border:1px solid var(--line-strong);padding:14px 16px;margin-top:14px;background:var(--bg-2)}
+.pill{display:inline-block;padding:3px 10px;font-size:10.5px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;border:1px solid var(--line-2);border-radius:999px;color:var(--fg-3)}
+.pill.live{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.btn{display:inline-block;padding:11px 20px;border:1px solid var(--fg);background:var(--fg);color:var(--bg);font-size:12.5px;font-weight:600;letter-spacing:0.03em;border-radius:7px;cursor:pointer;transition:opacity .15s}
+.btn:hover{opacity:.82}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line-2)}
+.btn.ghost:hover{background:var(--bg-2);opacity:1}
+.batch{border:1px solid var(--line-2);border-radius:8px;padding:16px 18px;margin-top:14px;background:var(--bg-2)}
 .muted{color:var(--fg-3)}
-.warn{color:var(--bg);background:var(--fg);padding:1px 6px;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px}
-.applink{font-weight:700;border-bottom:1px solid var(--fg);padding-bottom:1px}
-.chart{border:1px solid var(--line-strong);background:var(--bg-2);padding:18px}
-.legend{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:var(--fg-3);margin-top:10px;display:flex;gap:18px}
-.legend i{display:inline-block;width:11px;height:11px;margin-right:6px;vertical-align:-1px}
-.iframewrap{border:1px solid var(--line-strong);background:#fff}
+.warn{color:var(--bg);background:var(--accent);padding:2px 7px;border-radius:5px;font-size:10.5px;font-weight:600}
+.applink{font-weight:600;border-bottom:1px solid var(--line-2);padding-bottom:1px}
+.applink:hover{border-color:var(--accent)}
+.chart{border:1px solid var(--line-2);background:var(--bg-2);padding:20px;border-radius:9px}
+.legend{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:var(--fg-3);margin-top:12px;display:flex;gap:20px;flex-wrap:wrap}
+.legend i{display:inline-block;width:11px;height:11px;margin-right:6px;vertical-align:-1px;border-radius:2px}
+.iframewrap{border:1px solid var(--line-2);background:#fff;border-radius:8px;overflow:hidden}
 iframe{width:100%;height:74vh;border:0;display:block}
-::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--line)}
-@media(max-width:760px){.layout{flex-direction:column}.side{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--line-strong)}.main{padding:22px}}
+::-webkit-scrollbar{width:7px;height:7px}::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:4px}
+@media(max-width:820px){
+ .layout{flex-direction:column}
+ .side{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;gap:5px;border-right:0;border-bottom:1px solid var(--line);padding:14px 16px}
+ .brand{width:100%;margin-bottom:4px}
+ .navsec{display:none}.spacer{display:none}
+ .topbar{padding:13px 20px}.content{padding:24px 20px}
+}
 `;
 
 function doc(inner: string): Response {
   return new Response(
     `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Klar Control</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style>${STYLE}</style></head><body>${inner}</body></html>`,
     { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } },
   );
 }
 
 function loginPage(err?: string): Response {
-  return doc(`<div style="max-width:360px;margin:15vh auto;text-align:center">
-    <div class="brand" style="font-size:30px">klar<small>control · affiliate payouts</small></div>
-    ${err ? `<p style="color:#FF6B6B;font-family:'JetBrains Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.1em">${esc(err)}</p>` : ""}
-    <form method="GET" action="/admin">
-      <input name="key" type="password" placeholder="KLAR_ADMIN_KEY" autofocus
-        style="width:100%;padding:13px;border:1px solid var(--line);background:oklch(0.07 0 0);color:var(--fg);font-size:15px;font-family:'Manrope',sans-serif"/>
-      <button class="btn" style="margin-top:12px;width:100%;padding:13px" type="submit">Enter</button>
-    </form></div>`);
+  return doc(`<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
+    <div style="width:100%;max-width:380px;text-align:center">
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:42px;letter-spacing:-0.03em;line-height:1">klar<span style="color:var(--accent)">.</span></div>
+      <p style="font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:18px;color:var(--fg-2);margin:8px 0 30px">Das Kontrollzentrum hinter dem Studio.</p>
+      ${err ? `<p style="color:var(--accent);font-size:12.5px;font-weight:600;letter-spacing:.03em;margin:0 0 14px">${esc(err)}</p>` : ""}
+      <form method="GET" action="/admin">
+        <input name="key" type="password" placeholder="Admin-Key" autofocus autocomplete="current-password"
+          style="width:100%;padding:14px 16px;border:1px solid var(--line-2);background:var(--bg-2);color:var(--fg);font-size:15px;font-family:'Inter',sans-serif;border-radius:8px;outline:none"/>
+        <button class="btn" style="margin-top:12px;width:100%;padding:14px" type="submit">Anmelden</button>
+      </form>
+      <p style="color:var(--fg-4);font-size:11.5px;margin-top:24px;letter-spacing:.03em">Intern · getklar.org</p>
+    </div></div>`);
 }
 
 function shell(view: string, apps: AdminApp[], flash: string | null, main: string): string {
-  const item = (v: string, label: string, live = false) =>
-    `<a class="nav ${view === v ? "on" : ""}" href="/admin?view=${encodeURIComponent(v)}"><span class="d">${live ? "●" : "○"}</span>${esc(label)}</a>`;
-  const appLinks = apps.map((a) => item(a.slug, a.name, true)).join("");
+  const item = (v: string, label: string, dot = "○") =>
+    `<a class="nav ${view === v ? "on" : ""}" href="/admin?view=${encodeURIComponent(v)}"><span class="d">${dot}</span>${esc(label)}</a>`;
+  const appLinks = apps.map((a) => item(a.slug, a.name, "●")).join("");
+  const labels: Record<string, string> = {
+    overview: "Übersicht", inbox: "Inbox", revenue: "Einnahmen", outreach: "Outreach",
+  };
+  const here =
+    labels[view] ?? apps.find((a) => a.slug === view)?.name ?? "Übersicht";
   return `<div class="layout">
     <aside class="side">
-      <div class="brand">klar<small>control</small></div>
-      ${item("overview", "Overview")}
+      <div class="brand">klar<span class="dot">.</span><small>Control</small></div>
+      <div class="navsec">Studio</div>
+      ${item("overview", "Übersicht")}
       ${item("inbox", "Inbox")}
+      <div class="navsec">Affiliate</div>
       ${item("revenue", "Einnahmen")}
-      ${appLinks || `<span class="nav muted">keine apps</span>`}
+      ${appLinks || `<span class="nav muted">keine Apps</span>`}
+      <div class="navsec">Extern</div>
       ${item("outreach", "Outreach")}
       <div class="spacer"></div>
-      <a class="nav" href="/admin/logout">Logout</a>
+      <a class="nav logout" href="/admin/logout"><span class="d">→</span>Logout</a>
     </aside>
     <main class="main">
-      ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
-      ${main}
+      <div class="topbar"><span class="crumb">Klar Control&nbsp; ·&nbsp; <b>${esc(here)}</b></span></div>
+      <div class="content">
+        ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
+        ${main}
+      </div>
     </main></div>`;
 }
 
@@ -163,7 +202,7 @@ function barChart(series: { label: string; gross: number; payout: number }[]): s
   const gridLines = [0, 0.25, 0.5, 0.75, 1].map((f) => {
     const val = niceMax * f, yy = y(val);
     return `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="oklch(0.18 0.002 270)" stroke-width="1"/>
-      <text x="${padL - 8}" y="${yy + 3}" text-anchor="end" font-family="'JetBrains Mono',monospace" font-size="9" fill="oklch(0.48 0.002 270)">${(val / 100).toFixed(0)}</text>`;
+      <text x="${padL - 8}" y="${yy + 3}" text-anchor="end" font-family="'Inter',sans-serif" font-size="9" fill="oklch(0.48 0.002 270)">${(val / 100).toFixed(0)}</text>`;
   }).join("");
   const bars = series.map((d, i) => {
     const x0 = padL + i * cw;
@@ -173,7 +212,7 @@ function barChart(series: { label: string; gross: number; payout: number }[]): s
     const base = y(0);
     return `<rect x="${gx}" y="${gy}" width="${bw}" height="${Math.max(0, base - gy)}" fill="oklch(0.97 0.002 270)"/>
       <rect x="${px}" y="${py}" width="${bw}" height="${Math.max(0, base - py)}" fill="oklch(0.48 0.002 270)"/>
-      <text x="${x0 + cw / 2}" y="${H - padB + 16}" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="oklch(0.48 0.002 270)">${esc(d.label)}</text>`;
+      <text x="${x0 + cw / 2}" y="${H - padB + 16}" text-anchor="middle" font-family="'Inter',sans-serif" font-size="9" fill="oklch(0.48 0.002 270)">${esc(d.label)}</text>`;
   }).join("");
   return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Einnahmen pro Monat">
     ${gridLines}<line x1="${padL}" y1="${y(0)}" x2="${W - padR}" y2="${y(0)}" stroke="oklch(0.85 0.002 270)" stroke-width="1"/>${bars}</svg>
@@ -182,7 +221,7 @@ function barChart(series: { label: string; gross: number; payout: number }[]): s
 
 async function overview(apps: AdminApp[]): Promise<string> {
   if (apps.length === 0)
-    return `<h1>Overview</h1><p class="sub">Setze KLAR_ADMIN_APPS (JSON) im klar-Vercel-Projekt.</p>`;
+    return `<h1>Übersicht</h1><p class="sub">Noch keine Apps verbunden. Sobald KLAR_ADMIN_APPS im klar-Vercel-Projekt gesetzt ist, tauchen sie hier auf.</p>`;
   const rows = await Promise.all(apps.map(async (app) => {
     const [inf, claim] = await Promise.all([
       sbGet(app, "influencers?select=status"),
@@ -210,12 +249,12 @@ async function overview(apps: AdminApp[]): Promise<string> {
       <td class="r"><a class="pill" href="/admin?view=${esc(r.app.slug)}">öffnen</a></td>
     </tr>`).join("")}
   </tbody></table>`;
-  return `<h1>Overview</h1><p class="sub">Alle verbundenen Apps. Klick eine App für Details und Auszahlungen.</p>${cards}${tbl}`;
+  return `<h1>Übersicht</h1><p class="sub">Alle verbundenen Apps auf einen Blick. Wähl eine App für Salden, Details und Auszahlungen.</p>${cards}${tbl}`;
 }
 
 async function revenueView(apps: AdminApp[]): Promise<string> {
   if (apps.length === 0)
-    return `<h1>Einnahmen</h1><p class="sub">Keine Apps konfiguriert.</p>`;
+    return `<h1>Einnahmen</h1><p class="sub">Noch keine Apps konfiguriert, darum gibt es hier nichts zu zeigen.</p>`;
   const monthly = new Map<string, { gross: number; payout: number }>();
   let totalGross = 0, totalPayout = 0, totalOpen = 0, totalAff = 0;
 
@@ -266,7 +305,7 @@ async function revenueView(apps: AdminApp[]): Promise<string> {
     </tr>`).join("")}
   </tbody></table>`;
 
-  return `<h1>Einnahmen</h1><p class="sub">Affiliate-attribuierter Umsatz pro App und Monat. Nicht der Gesamt-App-Umsatz (der bräuchte RevenueCat/Store-Daten, separate Integration).</p>
+  return `<h1>Einnahmen</h1><p class="sub">Affiliate-attribuierter Umsatz pro App und Monat. Nicht der gesamte App-Umsatz, der bräuchte RevenueCat- und Store-Daten als separate Integration.</p>
     ${cards}<h2>Pro Monat</h2>${barChart(series)}<h2>Pro App</h2>${tbl}`;
 }
 
@@ -277,7 +316,7 @@ async function appView(app: AdminApp): Promise<string> {
     sbGet(app, "influencer_payout_batches?select=id,period_start,period_end,status,item_count,total_amount_cents&order=created_at.desc&limit=8"),
   ]);
   if (inf.length === 0 && claim.length === 0 && batches.length === 0)
-    return `<h1>${esc(app.name)}</h1><p class="sub muted">Noch nicht ausgerollt: kein Affiliate-Schema/Daten in diesem Supabase-Projekt.</p>`;
+    return `<h1>${esc(app.name)}</h1><p class="sub muted">Für diese App ist noch kein Affiliate-Schema in Supabase ausgerollt, darum gibt es noch keine Daten.</p>`;
   const active = inf.filter((i: any) => i.status === "active").length;
   const open = claim.reduce((s: number, c: any) => s + Number(c.claimable_eur_cents ?? 0), 0);
   const ids = batches.map((b: any) => b.id);
@@ -303,7 +342,7 @@ async function appView(app: AdminApp): Promise<string> {
       ${can ? `<form method="POST" action="/admin/dispatch" style="margin:11px 0"><input type="hidden" name="app" value="${esc(app.slug)}"/><input type="hidden" name="batch_id" value="${esc(b.id)}"/><button class="btn" type="submit">Via Wise vorbereiten</button></form>` : ""}
       <table style="margin-top:8px"><thead><tr><th>Handle</th><th class="r">Betrag</th><th>Methode</th><th>Status</th><th>Ref</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }).join("");
-  return `<h1>${esc(app.name)}</h1><p class="sub">Affiliate-Saldo und Auszahlungen.</p>${cards}
+  return `<h1>${esc(app.name)}</h1><p class="sub">Affiliate-Salden und Auszahlungen für ${esc(app.name)}.</p>${cards}
     <form method="POST" action="/admin/reconcile" style="margin:0 0 18px"><input type="hidden" name="app" value="${esc(app.slug)}"/><button class="btn ghost" type="submit">Status aktualisieren · Wise nach DB</button></form>
     <table><thead><tr><th>Handle</th><th>Status</th><th>Methode</th><th class="r">Gereift</th><th class="r">Bezahlt</th><th class="r">Offen</th><th class="c">FX</th></tr></thead><tbody>${claimRows}</tbody></table>
     <h2>Batches</h2>${batchHtml || `<p class="muted">noch keine Batches (pg_cron baut am 1. des Monats)</p>`}`;
@@ -312,7 +351,7 @@ async function appView(app: AdminApp): Promise<string> {
 function outreachView(): string {
   const v = `https://docs.google.com/spreadsheets/d/${OUTREACH_SHEET_ID}/preview`;
   const edit = `https://docs.google.com/spreadsheets/d/${OUTREACH_SHEET_ID}/edit`;
-  return `<h1>Outreach</h1><p class="sub">Influencer-Outreach-Master. Status pro App-Tab: To-Contact, Contacted, Replied, Posted.</p>
+  return `<h1>Outreach</h1><p class="sub">Der Influencer-Outreach-Master. Jeder App-Tab führt den Status: To-Contact, Contacted, Replied, Posted.</p>
     <div style="margin-bottom:16px"><a class="btn" target="_blank" rel="noopener" href="${edit}">In Google Sheets öffnen</a></div>
     <div class="iframewrap"><iframe src="${v}" loading="lazy"></iframe></div>
     <p class="sub" style="margin-top:16px;font-size:14px">Lädt nur wenn du im selben Browser bei dem Google-Account angemeldet bist der Zugriff auf das Sheet hat. Eine automatische "X angeschrieben"-Zahl pro App braucht Google-Sheets-API-Zugang (Service-Account), separater Schritt.</p>`;
@@ -320,7 +359,7 @@ function outreachView(): string {
 
 async function inboxView(): Promise<string> {
   if (!KLAR_INBOX_KEY)
-    return `<h1>Inbox</h1><p class="sub muted">Service-Key fehlt. Setze <span class="warn">KLAR_INBOX_SERVICE_KEY</span> im klar-Vercel-Projekt (Wert: anime-vault &rarr; Project Settings &rarr; API &rarr; <em>service_role</em> secret). Optional <span class="warn">KLAR_INBOX_SUPABASE_URL</span> falls die DB mal wechselt. Submissions werden trotzdem schon gespeichert, nur die Anzeige hier braucht den Key.</p>`;
+    return `<h1>Inbox</h1><p class="sub muted">Fast fertig, es fehlt nur der Lese-Key. Setze <span class="warn">KLAR_INBOX_SERVICE_KEY</span> im klar-Vercel-Projekt (Wert: anime-vault &rarr; Settings &rarr; API &rarr; <em>service_role</em>). Optional <span class="warn">KLAR_INBOX_SUPABASE_URL</span>. Anfragen werden schon dauerhaft gespeichert, nur die Anzeige hier braucht den Key.</p>`;
   let rows: Inquiry[] = [];
   try {
     const res = await fetch(
@@ -335,11 +374,11 @@ async function inboxView(): Promise<string> {
       },
     );
     if (!res.ok)
-      return `<h1>Inbox</h1><p class="sub muted">Laden fehlgeschlagen (HTTP ${res.status}). Stimmt der service_role-Key?</p>`;
+      return `<h1>Inbox</h1><p class="sub muted">Anfragen konnten nicht geladen werden (HTTP ${res.status}). Vermutlich stimmt der hinterlegte service_role-Key nicht.</p>`;
     const j = await res.json();
     rows = Array.isArray(j) ? j : [];
   } catch {
-    return `<h1>Inbox</h1><p class="sub muted">Netzwerkfehler beim Laden der Inbox.</p>`;
+    return `<h1>Inbox</h1><p class="sub muted">Netzwerkfehler beim Laden der Inbox. Einmal neu laden hilft meist.</p>`;
   }
 
   const nNew = rows.filter((r) => r.status === "new").length;
@@ -390,7 +429,7 @@ async function inboxView(): Promise<string> {
         .join("")
     : `<tr><td colspan="5" class="muted">noch keine Anfragen</td></tr>`;
 
-  return `<h1>Inbox</h1><p class="sub">getklar.org Affiliate- und Consulting-Anfragen. Durable in Supabase (anime-vault), neueste zuerst. Klick die Email zum Antworten.</p>
+  return `<h1>Inbox</h1><p class="sub">Affiliate- und Consulting-Anfragen von getklar.org. Dauerhaft in Supabase gespeichert, neueste zuerst. Klick eine Email zum direkten Antworten.</p>
     ${cards}
     <table><thead><tr><th>Wann</th><th>Typ</th><th>Email</th><th>Details</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>`;
 }
