@@ -129,7 +129,7 @@ tr:hover td{background:var(--bg-2)}
 .legend{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:var(--fg-3);margin-top:12px;display:flex;gap:20px;flex-wrap:wrap}
 .legend i{display:inline-block;width:11px;height:11px;margin-right:6px;vertical-align:-1px;border-radius:2px}
 .iframewrap{border:1px solid var(--line-2);background:#fff;border-radius:8px;overflow:hidden}
-iframe{width:100%;height:74vh;border:0;display:block}
+iframe{width:100%;height:88vh;border:0;display:block}
 ::-webkit-scrollbar{width:7px;height:7px}::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:4px}
 @view-transition{navigation:auto}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:130ms}
