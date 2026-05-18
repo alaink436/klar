@@ -124,6 +124,20 @@ tr:hover td{background:var(--bg-2)}
 .iframewrap{border:1px solid var(--line-2);background:#fff;border-radius:8px;overflow:hidden}
 iframe{width:100%;height:74vh;border:0;display:block}
 ::-webkit-scrollbar{width:7px;height:7px}::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:4px}
+@view-transition{navigation:auto}
+::view-transition-old(root),::view-transition-new(root){animation-duration:130ms}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden}
+.login::before{content:"";position:absolute;top:50%;left:50%;width:640px;height:640px;border-radius:50%;background:radial-gradient(circle,oklch(0.72 0.20 348 / 0.16),transparent 62%);filter:blur(38px);transform:translate(-50%,-56%);pointer-events:none;z-index:0}
+.login-card{position:relative;z-index:1;width:100%;max-width:392px;text-align:center;border:1px solid var(--line-2);background:var(--bg-2);border-radius:16px;padding:42px 38px;box-shadow:0 26px 64px -30px rgba(0,0,0,0.72)}
+.login-badge{display:flex;align-items:center;justify-content:center;width:44px;height:44px;margin:0 auto 16px;border:1px solid var(--line-2);border-radius:12px;background:var(--bg);color:var(--accent)}
+.login-mark{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:44px;letter-spacing:-0.03em;line-height:1}
+.login-tag{font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:18px;color:var(--fg-2);margin:10px 0 0}
+.login-rule{height:1px;background:var(--line);margin:24px 0 22px}
+.login-err{color:var(--accent);font-size:12.5px;font-weight:600;letter-spacing:.03em;margin:0 0 14px}
+.login-input{width:100%;padding:14px 16px;border:1px solid var(--line-2);background:var(--bg);color:var(--fg);font-size:15px;font-family:'Inter',sans-serif;border-radius:9px;transition:border-color .15s}
+.login-foot{color:var(--fg-4);font-size:11px;letter-spacing:.07em;text-transform:uppercase;margin-top:24px}
+@media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none}}
 @media(max-width:820px){
  .layout{flex-direction:column}
  .side{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;gap:5px;border-right:0;border-bottom:1px solid var(--line);padding:14px 16px}
@@ -138,23 +152,27 @@ function doc(inner: string): Response {
     `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Klar Control</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<script type="speculationrules">{"prerender":[{"where":{"and":[{"href_matches":"/admin*"},{"not":{"href_matches":"/admin/logout*"}}]},"eagerness":"moderate"}]}</script>
 <style>${STYLE}</style></head><body>${inner}</body></html>`,
     { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } },
   );
 }
 
 function loginPage(err?: string): Response {
-  return doc(`<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
-    <div style="width:100%;max-width:380px;text-align:center">
-      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:42px;letter-spacing:-0.03em;line-height:1">klar<span style="color:var(--accent)">.</span></div>
-      <p style="font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:18px;color:var(--fg-2);margin:8px 0 30px">Das Kontrollzentrum hinter dem Studio.</p>
-      ${err ? `<p style="color:var(--accent);font-size:12.5px;font-weight:600;letter-spacing:.03em;margin:0 0 14px">${esc(err)}</p>` : ""}
+  return doc(`<div class="login">
+    <div class="login-card">
+      <div class="login-badge" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div class="login-mark">klar<span style="color:var(--accent)">.</span></div>
+      <p class="login-tag">Das Kontrollzentrum hinter dem Studio.</p>
+      <div class="login-rule"></div>
+      ${err ? `<p class="login-err">${esc(err)}</p>` : ""}
       <form method="GET" action="/admin">
-        <input name="key" type="password" placeholder="Admin-Key" autofocus autocomplete="current-password"
-          style="width:100%;padding:14px 16px;border:1px solid var(--line-2);background:var(--bg-2);color:var(--fg);font-size:15px;font-family:'Inter',sans-serif;border-radius:8px;outline:none"/>
+        <input class="login-input" name="key" type="password" placeholder="Admin-Key" autofocus autocomplete="current-password"/>
         <button class="btn" style="margin-top:12px;width:100%;padding:14px" type="submit">Anmelden</button>
       </form>
-      <p style="color:var(--fg-4);font-size:11.5px;margin-top:24px;letter-spacing:.03em">Intern · getklar.org</p>
+      <p class="login-foot">Intern · getklar.org</p>
     </div></div>`);
 }
 
