@@ -1,9 +1,14 @@
 import Link from "next/link";
+import Image from "next/image";
 import AppCrest, { type App } from "./components/AppCrest";
 import GlitchWordmark from "./components/GlitchWordmark";
 import NowFeed from "./components/NowFeed";
 import CodebaseView from "./components/CodebaseView";
 import { AffiliateForm, ConsultingForm, CoachingForm } from "./components/Forms";
+import codebase from "./data/codebase.json";
+
+const CB_TOTALS = codebase.totals;
+const nf = (n: number) => n.toLocaleString("en-US");
 
 const APPS: App[] = [
   {
@@ -205,8 +210,8 @@ export default function Home() {
         {/* ─────────── HERO ─────────── */}
         <section className="veil-light px-4 sm:px-6 md:px-12 pt-12 sm:pt-20 md:pt-32 pb-16 sm:pb-24 md:pb-36 relative z-10 border-b border-[var(--line)]">
           <div className="flex items-baseline justify-between mb-6 sm:mb-10">
-            <p className="label">001 // hi.</p>
-            <p className="label">v0.8 · build / ship / loop</p>
+            <p className="label">001 // klar studio</p>
+            <p className="label">{nf(CB_TOTALS.lines)} lines · solo</p>
           </div>
 
           <GlitchWordmark
@@ -214,11 +219,8 @@ export default function Home() {
             className="t-wordmark text-[var(--fg)] -ml-1 sm:-ml-2"
           />
 
-          <div className="grid grid-cols-12 gap-4 sm:gap-6 mt-10 sm:mt-16 md:mt-20">
-            <div className="col-span-1 md:col-span-2 flex justify-center md:justify-end pt-2">
-              <span className="label">↳</span>
-            </div>
-            <div className="col-span-11 md:col-span-7 max-w-2xl">
+          <div className="mt-8 sm:mt-12 md:mt-16 grid grid-cols-1 md:grid-cols-12 gap-7 sm:gap-8 md:items-end">
+            <div className="md:col-span-7 max-w-2xl">
               <p className="editorial t-editorial-xl">
                 we build apps for the
                 <br />
@@ -226,21 +228,76 @@ export default function Home() {
                 <span className="text-[var(--silver)]">stopped scrolling</span>.
               </p>
               <p className="t-body-lg text-[var(--fg-2)] mt-5 sm:mt-7 max-w-md">
-                six apps. one person in the middle. a business student who
-                ships software in the gaps between lectures.
+                a one-person studio. six shipped apps, designed and coded
+                solo with ai in every loop. the receipts are below.
               </p>
-              <p className="t-body-lg text-[var(--fg-3)] mt-3 max-w-md">
-                solo studio. ai handles the parts that would otherwise eat
-                days, leaving the taste, the calls, and the design to me.
-              </p>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <Link
+                  href="#apps"
+                  className="brut-line label-fg px-4 py-3 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition"
+                >
+                  see the work ↓
+                </Link>
+                <Link
+                  href="#code"
+                  className="brut-line-thin label px-4 py-3 hover:text-[var(--fg)] hover:border-[var(--fg)] transition"
+                >
+                  the codebase →
+                </Link>
+                <Link
+                  href="https://www.tiktok.com/@klar"
+                  target="_blank"
+                  className="brut-line-thin label px-4 py-3 hover:text-[var(--fg)] hover:border-[var(--fg)] transition"
+                >
+                  @klar ↗
+                </Link>
+              </div>
+            </div>
 
-              <div className="mt-6 flex flex-wrap items-center gap-2">
-                <span className="black-block">indie studio</span>
-                <span className="black-block">solo + ai loop</span>
-                <span className="black-block">v0.8</span>
+            {/* live, data-backed proof panel */}
+            <div className="md:col-span-5">
+              <div className="brut-line bg-[var(--bg-2)]">
+                {([
+                  [String(CB_TOTALS.apps), "apps shipped"],
+                  [nf(CB_TOTALS.lines), "lines of code"],
+                  [nf(CB_TOTALS.commits), "commits · build/ship/loop"],
+                ] as [string, string][]).map(([v, k], i) => (
+                  <div
+                    key={k}
+                    className={`flex items-baseline justify-between px-4 sm:px-5 py-3 sm:py-4 ${
+                      i > 0 ? "border-t border-[var(--line)]" : ""
+                    }`}
+                  >
+                    <span className="display text-3xl sm:text-4xl">{v}</span>
+                    <span className="label text-right">{k}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
+
+          {/* app strip — instant "this is an app studio" signal */}
+          <Link
+            href="#apps"
+            className="mt-10 sm:mt-14 flex items-center gap-3 sm:gap-5 flex-wrap"
+            aria-label="see all apps"
+          >
+            <span className="label shrink-0">the six ↓</span>
+            {APPS.map((a) => (
+              <span
+                key={a.slug}
+                className="relative w-11 h-11 sm:w-14 sm:h-14 icon-card"
+              >
+                <Image
+                  src={a.icon}
+                  alt={a.name}
+                  fill
+                  sizes="56px"
+                  className="object-contain"
+                />
+              </span>
+            ))}
+          </Link>
         </section>
 
         {/* ─── BLACK STRIPE ACCENT ─── */}

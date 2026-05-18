@@ -8,6 +8,69 @@ import {
   CompactAppleBadge,
   CompactPlayBadge,
 } from "./StoreBadges";
+import codebase from "../data/codebase.json";
+
+interface CbMetric {
+  files: number;
+  lines: number;
+  kb: number;
+  code_lines: number;
+  style_lines: number;
+  sql_lines: number;
+  commits: number | null;
+  avg_per_file: number;
+  dirs: { name: string; lines: number }[];
+}
+const CB = (codebase as { apps: Record<string, CbMetric> }).apps;
+const nfmt = (n: number) => n.toLocaleString("en-US");
+
+function Codebase({ slug }: { slug: string }) {
+  const m = CB[slug];
+  if (!m) return null;
+  const max = Math.max(...m.dirs.map((d) => d.lines), 1);
+  const cards: [string, string][] = [
+    [nfmt(m.lines), "lines"],
+    [nfmt(m.files), "files"],
+    [m.commits != null ? nfmt(m.commits) : "—", "commits"],
+    [nfmt(m.avg_per_file), "avg / file"],
+  ];
+  return (
+    <div className="brut-line p-4 sm:p-5 mb-6 sm:mb-8 bg-[var(--bg-2)]">
+      <p className="label mb-3">codebase · scanned from the repo</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-5">
+        {cards.map(([v, k]) => (
+          <div key={k}>
+            <p className="display text-2xl sm:text-3xl">{v}</p>
+            <p className="label mt-1">{k}</p>
+          </div>
+        ))}
+      </div>
+      <p className="label mb-2">where the code lives · scroll</p>
+      <div className="max-h-44 overflow-y-auto pr-1 space-y-1.5">
+        {m.dirs.map((d) => (
+          <div key={d.name} className="flex items-center gap-3">
+            <span className="label-fg w-24 sm:w-32 shrink-0 truncate">
+              {d.name}
+            </span>
+            <span className="flex-1 h-2 bg-[var(--bg)] relative">
+              <span
+                className="absolute inset-y-0 left-0 bg-[var(--fg)]"
+                style={{ width: `${Math.round((d.lines / max) * 100)}%` }}
+              />
+            </span>
+            <span className="label w-12 text-right shrink-0 tabular-nums">
+              {nfmt(d.lines)}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p className="label mt-3">
+        {nfmt(m.code_lines)} ts/tsx
+        {m.sql_lines ? ` · ${nfmt(m.sql_lines)} sql` : ""} · solo + ai loop
+      </p>
+    </div>
+  );
+}
 
 export type Status = "LIVE" | "BETA" | "BUILD";
 
@@ -221,6 +284,9 @@ export default function AppCrest({ apps }: Props) {
                   </div>
                 </div>
               </div>
+
+              {/* Codebase x-ray */}
+              <Codebase slug={open.slug} />
 
               {/* Store badges */}
               <div className="flex flex-wrap gap-3">

@@ -1,0 +1,299 @@
+{
+ "apps": {
+  "trubel": {
+   "files": 128,
+   "lines": 40283,
+   "kb": 1367,
+   "code_lines": 39675,
+   "style_lines": 4,
+   "sql_lines": 604,
+   "commits": 73,
+   "avg_per_file": 315,
+   "dirs": [
+    {
+     "name": "app",
+     "lines": 17613
+    },
+    {
+     "name": "components",
+     "lines": 10135
+    },
+    {
+     "name": "design",
+     "lines": 4846
+    },
+    {
+     "name": "constants",
+     "lines": 3340
+    },
+    {
+     "name": "services",
+     "lines": 1678
+    },
+    {
+     "name": "supabase",
+     "lines": 1048
+    },
+    {
+     "name": "scripts",
+     "lines": 517
+    },
+    {
+     "name": "hooks",
+     "lines": 351
+    },
+    {
+     "name": "contexts",
+     "lines": 280
+    }
+   ]
+  },
+  "myloo": {
+   "files": 144,
+   "lines": 27465,
+   "kb": 972,
+   "code_lines": 26234,
+   "style_lines": 4,
+   "sql_lines": 1227,
+   "commits": 35,
+   "avg_per_file": 191,
+   "dirs": [
+    {
+     "name": "components",
+     "lines": 8888
+    },
+    {
+     "name": "app",
+     "lines": 6728
+    },
+    {
+     "name": "lib",
+     "lines": 4274
+    },
+    {
+     "name": "constants",
+     "lines": 2656
+    },
+    {
+     "name": "supabase",
+     "lines": 1642
+    },
+    {
+     "name": "services",
+     "lines": 1395
+    },
+    {
+     "name": "stores",
+     "lines": 843
+    },
+    {
+     "name": "contexts",
+     "lines": 297
+    },
+    {
+     "name": "hooks",
+     "lines": 228
+    }
+   ]
+  },
+  "wavelength": {
+   "files": 150,
+   "lines": 29992,
+   "kb": 1037,
+   "code_lines": 28277,
+   "style_lines": 0,
+   "sql_lines": 1715,
+   "commits": 120,
+   "avg_per_file": 200,
+   "dirs": [
+    {
+     "name": "app",
+     "lines": 15949
+    },
+    {
+     "name": "components",
+     "lines": 7980
+    },
+    {
+     "name": "lib",
+     "lines": 3639
+    },
+    {
+     "name": "supabase-migrations",
+     "lines": 1568
+    },
+    {
+     "name": "constants",
+     "lines": 223
+    },
+    {
+     "name": "\u00b7",
+     "lines": 195
+    },
+    {
+     "name": "contexts",
+     "lines": 194
+    },
+    {
+     "name": "types",
+     "lines": 112
+    },
+    {
+     "name": "supabase",
+     "lines": 71
+    }
+   ]
+  },
+  "yarn-stash": {
+   "files": 208,
+   "lines": 30926,
+   "kb": 1190,
+   "code_lines": 29014,
+   "style_lines": 4,
+   "sql_lines": 1908,
+   "commits": 53,
+   "avg_per_file": 149,
+   "dirs": [
+    {
+     "name": "app",
+     "lines": 12915
+    },
+    {
+     "name": "components",
+     "lines": 6068
+    },
+    {
+     "name": "services",
+     "lines": 3385
+    },
+    {
+     "name": "supabase",
+     "lines": 3268
+    },
+    {
+     "name": "constants",
+     "lines": 3050
+    },
+    {
+     "name": "stores",
+     "lines": 652
+    },
+    {
+     "name": "hooks",
+     "lines": 467
+    },
+    {
+     "name": "types",
+     "lines": 420
+    },
+    {
+     "name": "contexts",
+     "lines": 245
+    }
+   ]
+  },
+  "kelva": {
+   "files": 153,
+   "lines": 21611,
+   "kb": 837,
+   "code_lines": 20580,
+   "style_lines": 4,
+   "sql_lines": 1027,
+   "commits": 32,
+   "avg_per_file": 141,
+   "dirs": [
+    {
+     "name": "app",
+     "lines": 9179
+    },
+    {
+     "name": "components",
+     "lines": 3886
+    },
+    {
+     "name": "supabase",
+     "lines": 2673
+    },
+    {
+     "name": "constants",
+     "lines": 2580
+    },
+    {
+     "name": "services",
+     "lines": 1213
+    },
+    {
+     "name": "stores",
+     "lines": 1089
+    },
+    {
+     "name": "types",
+     "lines": 233
+    },
+    {
+     "name": "contexts",
+     "lines": 197
+    },
+    {
+     "name": "utils",
+     "lines": 154
+    }
+   ]
+  },
+  "moto": {
+   "files": 189,
+   "lines": 39533,
+   "kb": 1612,
+   "code_lines": 38348,
+   "style_lines": 4,
+   "sql_lines": 1181,
+   "commits": 130,
+   "avg_per_file": 209,
+   "dirs": [
+    {
+     "name": "app",
+     "lines": 15868
+    },
+    {
+     "name": "constants",
+     "lines": 11375
+    },
+    {
+     "name": "components",
+     "lines": 5343
+    },
+    {
+     "name": "services",
+     "lines": 2438
+    },
+    {
+     "name": "supabase",
+     "lines": 1632
+    },
+    {
+     "name": "utils",
+     "lines": 752
+    },
+    {
+     "name": "stores",
+     "lines": 745
+    },
+    {
+     "name": "hooks",
+     "lines": 658
+    },
+    {
+     "name": "contexts",
+     "lines": 302
+    }
+   ]
+  }
+ },
+ "generated": "2026-05-19",
+ "totals": {
+  "apps": 6,
+  "lines": 189810,
+  "files": 972,
+  "commits": 443
+ }
+}
