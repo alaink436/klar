@@ -10,11 +10,18 @@
 // Env: KLAR_ADMIN_KEY, KLAR_ADMIN_APPS (JSON registry, see lib/adminApps),
 //      KLAR_OUTREACH_SHEET_ID (optional, defaults to the Marketing master).
 
+import { createSign } from "node:crypto";
 import { getApps, sbGet, type AdminApp } from "../../lib/adminApps";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const KLAR_ADMIN_KEY = process.env.KLAR_ADMIN_KEY ?? "";
+// Google Sheets read for the Outreach view. Whole service-account JSON key
+// file content in one Vercel env var (KLAR_SHEETS_SA_JSON) so the escaped
+// \n in private_key survive via JSON.parse. Never in the repo/chat. Without
+// it the Outreach view degrades to the embedded-iframe-only fallback.
+const KLAR_SHEETS_SA = process.env.KLAR_SHEETS_SA_JSON ?? "";
 const OUTREACH_SHEET_ID =
   process.env.KLAR_OUTREACH_SHEET_ID ?? "16MLUtfYVDzbu3bxjntilRqD_XjHSaRmypwpj1Rarx0c";
 
@@ -366,13 +373,168 @@ async function appView(app: AdminApp): Promise<string> {
     <h2>Batches</h2>${batchHtml || `<p class="muted">noch keine Batches (pg_cron baut am 1. des Monats)</p>`}`;
 }
 
-function outreachView(): string {
+// ---- Google Sheets via service account, zero extra deps -------------------
+let sheetsTok: { token: string; exp: number } | null = null;
+
+function b64url(input: Buffer | string): string {
+  return Buffer.from(input)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+async function sheetsToken(): Promise<string | null> {
+  if (sheetsTok && sheetsTok.exp > Date.now() + 30_000) return sheetsTok.token;
+  let creds: { client_email?: string; private_key?: string };
+  try {
+    creds = JSON.parse(KLAR_SHEETS_SA);
+  } catch {
+    return null;
+  }
+  if (!creds.client_email || !creds.private_key) return null;
+  const now = Math.floor(Date.now() / 1000);
+  const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const claim = b64url(
+    JSON.stringify({
+      iss: creds.client_email,
+      scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
+      aud: "https://oauth2.googleapis.com/token",
+      iat: now,
+      exp: now + 3600,
+    }),
+  );
+  let signature: string;
+  try {
+    const signer = createSign("RSA-SHA256");
+    signer.update(`${header}.${claim}`);
+    signer.end();
+    signature = b64url(signer.sign(creds.private_key));
+  } catch {
+    return null;
+  }
+  try {
+    const res = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion: `${header}.${claim}.${signature}`,
+      }),
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const j = await res.json();
+    if (!j?.access_token) return null;
+    sheetsTok = {
+      token: j.access_token,
+      exp: Date.now() + (Number(j.expires_in ?? 3600) - 60) * 1000,
+    };
+    return sheetsTok.token;
+  } catch {
+    return null;
+  }
+}
+
+async function sheetsApi(path: string, token: string): Promise<any | null> {
+  try {
+    const res = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${path}`,
+      { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+const sheetRange = (title: string) =>
+  encodeURIComponent(`'${title.replace(/'/g, "''")}'`);
+
+async function outreachStats(): Promise<string> {
+  const token = await sheetsToken();
+  if (!token) return "";
+  const meta = await sheetsApi(
+    `${OUTREACH_SHEET_ID}?fields=${encodeURIComponent("sheets(properties(title))")}`,
+    token,
+  );
+  const tabs: string[] = (meta?.sheets ?? [])
+    .map((s: any) => String(s?.properties?.title ?? ""))
+    .filter((t: string) => t)
+    .slice(0, 25);
+  if (tabs.length === 0) return "";
+  const ranges = tabs.map((t) => `ranges=${sheetRange(t)}`).join("&");
+  const vals = await sheetsApi(
+    `${OUTREACH_SHEET_ID}/values:batchGet?${ranges}&majorDimension=ROWS`,
+    token,
+  );
+  const vr: any[] = vals?.valueRanges ?? [];
+
+  const STAT = ["to-contact", "contacted", "replied", "posted"];
+  const agg: Record<string, number> = {};
+  let totRows = 0;
+  const rows = tabs.map((title, i) => {
+    const grid: string[][] = vr[i]?.values ?? [];
+    const header = (grid[0] ?? []).map((h) => String(h).trim().toLowerCase());
+    const body = grid
+      .slice(1)
+      .filter((r) => r.some((c) => String(c ?? "").trim()));
+    totRows += body.length;
+    const si = header.findIndex((h) => h.includes("status"));
+    let tally = "";
+    if (si >= 0) {
+      const counts: Record<string, number> = {};
+      for (const r of body) {
+        const v = String(r[si] ?? "").trim().toLowerCase();
+        if (!v) continue;
+        counts[v] = (counts[v] ?? 0) + 1;
+        agg[v] = (agg[v] ?? 0) + 1;
+      }
+      tally = STAT.filter((k) => counts[k])
+        .map((k) => `<span class="pill">${esc(k)} ${counts[k]}</span>`)
+        .join(" ");
+      const extra = Object.keys(counts)
+        .filter((k) => !STAT.includes(k))
+        .reduce((s, k) => s + counts[k], 0);
+      if (extra) tally += ` <span class="pill">andere ${extra}</span>`;
+    }
+    return `<tr><td>${esc(title)}</td><td class="r">${body.length}</td><td>${tally || '<span class="muted">kein Status-Feld</span>'}</td></tr>`;
+  });
+
+  const aggChips =
+    STAT.filter((k) => agg[k])
+      .map((k) => `<span class="pill">${esc(k)} ${agg[k]}</span>`)
+      .join(" ") || '<span class="muted">keine Status-Spalten erkannt</span>';
+
+  return `<div class="cards">
+      <div class="card"><div class="k">App-Tabs</div><div class="v">${tabs.length}</div></div>
+      <div class="card"><div class="k">Kontakte gesamt</div><div class="v">${totRows}</div><div class="s">Zeilen mit Inhalt</div></div>
+      <div class="card"><div class="k">Status gesamt</div><div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${aggChips}</div></div>
+    </div>
+    <h2>Pro App-Tab</h2>
+    <table><thead><tr><th>Tab</th><th class="r">Kontakte</th><th>Status</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+}
+
+async function outreachView(): Promise<string> {
   const v = `https://docs.google.com/spreadsheets/d/${OUTREACH_SHEET_ID}/preview`;
   const edit = `https://docs.google.com/spreadsheets/d/${OUTREACH_SHEET_ID}/edit`;
+  let stats = "";
+  let hint = "";
+  if (KLAR_SHEETS_SA) {
+    stats = await outreachStats();
+    if (!stats)
+      hint = `<p class="sub muted" style="font-size:14px">Service-Account-Stats nicht ladbar. Key gültig? Sheet mit der SA-Mail als Betrachter geteilt? Solange greift das eingebettete Sheet unten.</p>`;
+  } else {
+    hint = `<p class="sub muted" style="font-size:14px">Für automatische Zahlen pro App: <span class="warn">KLAR_SHEETS_SA_JSON</span> (kompletter Dienstkonto-JSON-Key) im klar-Vercel-Projekt setzen + Sheet mit der SA-Mail als Betrachter teilen. Bis dahin nur das eingebettete Sheet.</p>`;
+  }
   return `<h1>Outreach</h1><p class="sub">Der Influencer-Outreach-Master. Jeder App-Tab führt den Status: To-Contact, Contacted, Replied, Posted.</p>
+    ${stats}
+    ${hint}
+    <h2>Volles Sheet</h2>
     <div style="margin-bottom:16px"><a class="btn" target="_blank" rel="noopener" href="${edit}">In Google Sheets öffnen</a></div>
     <div class="iframewrap"><iframe src="${v}" loading="lazy"></iframe></div>
-    <p class="sub" style="margin-top:16px;font-size:14px">Lädt nur wenn du im selben Browser bei dem Google-Account angemeldet bist der Zugriff auf das Sheet hat. Eine automatische "X angeschrieben"-Zahl pro App braucht Google-Sheets-API-Zugang (Service-Account), separater Schritt.</p>`;
+    <p class="sub muted" style="margin-top:16px;font-size:14px">Das eingebettete Sheet lädt nur, wenn du im selben Browser beim berechtigten Google-Account angemeldet bist.</p>`;
 }
 
 async function inboxView(): Promise<string> {
@@ -465,7 +627,7 @@ export async function GET(req: Request): Promise<Response> {
   const view = url.searchParams.get("view") || "overview";
 
   let main: string;
-  if (view === "outreach") main = outreachView();
+  if (view === "outreach") main = await outreachView();
   else if (view === "inbox") main = await inboxView();
   else if (view === "revenue") main = await revenueView(apps);
   else {
