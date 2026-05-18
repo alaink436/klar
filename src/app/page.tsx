@@ -2,7 +2,7 @@ import Link from "next/link";
 import AppCrest, { type App } from "./components/AppCrest";
 import GlitchWordmark from "./components/GlitchWordmark";
 import NowFeed from "./components/NowFeed";
-import { AffiliateForm, ConsultingForm } from "./components/Forms";
+import { AffiliateForm, ConsultingForm, CoachingForm } from "./components/Forms";
 
 const APPS: App[] = [
   {
@@ -122,6 +122,12 @@ export default function Home() {
               className="label hidden md:inline hover:text-[var(--fg)] transition"
             >
               consulting
+            </Link>
+            <Link
+              href="#coaching"
+              className="label hidden md:inline hover:text-[var(--fg)] transition"
+            >
+              coaching
             </Link>
             <Link
               href={GITHUB_PROFILE}
@@ -304,11 +310,38 @@ export default function Home() {
           </details>
         </section>
 
+        {/* Coaching */}
+        <section id="coaching" className="veil-mid relative z-10">
+          <details className="group">
+            <summary className="acc-summary">
+              <span className="acc-tag">005 // coaching.</span>
+              <span className="acc-title">coaching.</span>
+              <span className="acc-pitch">building solo? let&apos;s fix that.</span>
+              <span className="acc-toggle" aria-hidden="true" />
+            </summary>
+            <div className="acc-body">
+              <div className="max-w-3xl">
+                <p className="editorial t-editorial-lg text-[var(--fg-2)] mb-3">
+                  stuck shipping solo?{" "}
+                  <span className="text-[var(--fg)]">let&apos;s fix that.</span>
+                </p>
+                <p className="t-body-lg text-[var(--fg-2)] mb-6 sm:mb-8 max-w-2xl">
+                  Not consulting where I build it. Coaching where you do, and I
+                  help you move faster: shipping solo with ai, app-store, growth
+                  and tiktok, the messy 0 → 1 part. Honest take on whether I&apos;m
+                  the right person before we start.
+                </p>
+                <CoachingForm />
+              </div>
+            </div>
+          </details>
+        </section>
+
         {/* Now / GitHub */}
         <section id="now" className="veil-dark relative z-10">
           <details className="group">
             <summary className="acc-summary">
-              <span className="acc-tag">005 // now.</span>
+              <span className="acc-tag">006 // now.</span>
               <span className="acc-title">now.</span>
               <span className="acc-pitch">build log · auto-fetched</span>
               <span className="acc-toggle" aria-hidden="true" />
@@ -388,6 +421,12 @@ export default function Home() {
                 className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
               >
                 Consulting
+              </Link>
+              <Link
+                href="#coaching"
+                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
+              >
+                Coaching
               </Link>
               <Link
                 href="#now"

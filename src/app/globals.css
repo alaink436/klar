@@ -99,18 +99,21 @@ body {
 }
 .bg-layer {
   position: absolute;
-  inset: -12%;
+  inset: 0;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  will-change: transform, opacity;
-  filter: saturate(0) contrast(1.18) brightness(0.72);
+  will-change: opacity;
+  transform: translateZ(0);
+  filter: saturate(0) contrast(1.15) brightness(0.7);
   opacity: 0;
 }
-.bg-layer-1 { animation: bg-fade-1 96s linear infinite, drift-a 38s ease-in-out infinite alternate; }
-.bg-layer-2 { animation: bg-fade-2 96s linear infinite, drift-b 44s ease-in-out infinite alternate; mix-blend-mode: lighten; }
-.bg-layer-3 { animation: bg-fade-3 96s linear infinite, drift-c 52s ease-in-out infinite alternate; mix-blend-mode: screen; }
-.bg-layer-4 { animation: bg-fade-4 96s linear infinite, drift-d 46s ease-in-out infinite alternate; }
+/* Opacity-only cross-fade. No mix-blend-mode / continuous transform =
+   GPU-cheap, no scroll jank (the old drift/blend was the main cost). */
+.bg-layer-1 { animation: bg-fade-1 96s linear infinite; }
+.bg-layer-2 { animation: bg-fade-2 96s linear infinite; }
+.bg-layer-3 { animation: bg-fade-3 96s linear infinite; }
+.bg-layer-4 { animation: bg-fade-4 96s linear infinite; }
 
 .bg-vignette {
   position: absolute;
@@ -141,23 +144,6 @@ body {
   98%, 100% { opacity: 0; }
 }
 
-@keyframes drift-a {
-  0%   { transform: translate3d(0, 0, 0) scale(1.06) rotate(0deg); }
-  100% { transform: translate3d(-6%, 4%, 0) scale(1.18) rotate(2.5deg); }
-}
-@keyframes drift-b {
-  0%   { transform: translate3d(0, 0, 0) scale(1.10) rotate(0deg); }
-  100% { transform: translate3d(7%, -5%, 0) scale(1.22) rotate(-2deg); }
-}
-@keyframes drift-c {
-  0%   { transform: translate3d(0, 0, 0) scale(1.08); }
-  100% { transform: translate3d(-4%, -6%, 0) scale(1.20); }
-}
-@keyframes drift-d {
-  0%   { transform: translate3d(0, 0, 0) scale(1.14) rotate(0deg); }
-  100% { transform: translate3d(5%, 6%, 0) scale(1.24) rotate(1.5deg); }
-}
-
 /* ── Section veils (alpha overlays, no backdrop-filter) ── */
 .veil-light {
   background: linear-gradient(180deg, oklch(0.04 0.002 270 / 0.10) 0%, oklch(0.04 0.002 270 / 0.45) 100%);
@@ -169,7 +155,7 @@ body {
   background: oklch(0.04 0.002 270 / 0.85);
 }
 
-/* ── Glitch wordmark (4 strips, prime cycles) ── */
+/* ── Glitch wordmark (slim: base + 2 subtle same-font shifts) ── */
 .glitch-wordmark {
   position: relative;
   display: inline-block;
@@ -185,108 +171,32 @@ body {
   font-weight: 400;
   z-index: 2;
 }
-.glitch-strip,
-.glitch-shift,
-.glitch-skew {
+.glitch-shift {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
+  font-family: var(--font-display), sans-serif;
   font-weight: 400;
   pointer-events: none;
   opacity: 0;
   white-space: nowrap;
   line-height: inherit;
-}
-
-.strip-1 {
-  font-family: var(--font-bowlby), sans-serif;
-  letter-spacing: -0.06em;
-  font-size: 0.92em;
-  color: var(--fg);
-  clip-path: inset(0 0 70% 0);
-  z-index: 4;
-  animation: strip-flash-1 8s steps(1) infinite;
-}
-.strip-2 {
-  font-family: var(--font-honk), sans-serif;
-  letter-spacing: -0.02em;
-  font-size: 0.92em;
-  color: oklch(0.92 0 0);
-  clip-path: inset(30% 0 38% 0);
-  z-index: 4;
-  animation: strip-flash-2 11s steps(1) infinite;
-}
-.strip-3 {
-  font-family: var(--font-audiowide), sans-serif;
-  letter-spacing: -0.02em;
-  font-size: 0.86em;
-  color: oklch(0.7 0 0);
-  clip-path: inset(60% 0 18% 0);
-  z-index: 4;
-  animation: strip-flash-3 13s steps(1) infinite;
-}
-.strip-4 {
-  font-family: var(--font-major-mono), monospace;
-  letter-spacing: -0.04em;
-  font-size: 0.84em;
-  color: oklch(0.55 0 0);
-  clip-path: inset(82% 0 0 0);
-  z-index: 4;
-  animation: strip-flash-4 11s steps(1) infinite;
-}
-
-.shift-1 {
-  font-family: var(--font-display), sans-serif;
-  color: oklch(0.95 0 0);
   z-index: 1;
-  animation: shift-flash-1 8s steps(1) infinite;
+  will-change: opacity, transform;
 }
-.shift-2 {
-  font-family: var(--font-display), sans-serif;
-  color: oklch(0.55 0 0);
-  z-index: 1;
-  animation: shift-flash-2 8s steps(1) infinite;
-}
-.glitch-skew {
-  font-family: var(--font-display), sans-serif;
-  color: var(--fg);
-  z-index: 0;
-  animation: skew-flash 11s steps(1) infinite;
-}
+.shift-1 { color: oklch(0.95 0 0); animation: g-shift-1 9s steps(1) infinite; }
+.shift-2 { color: var(--silver); animation: g-shift-2 9s steps(1) infinite; }
 
-@keyframes strip-flash-1 {
-  0%, 9%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
-  7%, 7.6%     { opacity: 0.92; transform: translate3d(-3px, -2px, 0); }
-  62%, 62.4%   { opacity: 0.7;  transform: translate3d(2px, 0, 0); }
+@keyframes g-shift-1 {
+  0%, 6%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
+  6.4%, 7%     { opacity: 0.4;  transform: translate3d(-3px, 0, 0); }
+  61%, 61.5%   { opacity: 0.28; transform: translate3d(-2px, 0, 0); }
 }
-@keyframes strip-flash-2 {
-  0%, 28%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
-  25%, 25.7%    { opacity: 0.85; transform: translate3d(2px, 1px, 0); }
-  78%, 78.5%    { opacity: 0.65; transform: translate3d(-1px, 0, 0); }
-}
-@keyframes strip-flash-3 {
-  0%, 47%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
-  44%, 44.6%    { opacity: 0.75; transform: translate3d(2px, 0, 0); }
-}
-@keyframes strip-flash-4 {
-  0%, 70%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
-  68%, 68.5%    { opacity: 0.65; transform: translate3d(0, -1px, 0); }
-}
-@keyframes shift-flash-1 {
-  0%, 6.5%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
-  7%, 7.6%       { opacity: 0.55; transform: translate3d(-4px, 0, 0); }
-  62%, 62.5%     { opacity: 0.45; transform: translate3d(-2px, 0, 0); }
-}
-@keyframes shift-flash-2 {
-  0%, 7%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
-  7.2%, 7.8%   { opacity: 0.5;  transform: translate3d(4px, 0, 0); }
-  62.2%, 62.7% { opacity: 0.4;  transform: translate3d(2px, 0, 0); }
-}
-@keyframes skew-flash {
-  0%, 24%, 100% { opacity: 0; transform: skewX(0); }
-  25%, 25.4%    { opacity: 0.4; transform: skewX(-4deg); }
-  77%, 77.4%    { opacity: 0.3; transform: skewX(3deg); }
+@keyframes g-shift-2 {
+  0%, 6.2%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
+  6.6%, 7.2%     { opacity: 0.36; transform: translate3d(3px, 0, 0); }
+  61.2%, 61.7%   { opacity: 0.24; transform: translate3d(2px, 0, 0); }
 }
 
 /* ── Brutalist building blocks ── */
@@ -560,7 +470,7 @@ details[open] .acc-toggle::after { content: "−"; }
 /* ── Reduce motion ── */
 @media (prefers-reduced-motion: reduce) {
   .bg-layer-1, .bg-layer-2, .bg-layer-3, .bg-layer-4,
-  .glitch-strip, .glitch-shift, .glitch-skew { animation: none; }
+  .glitch-shift { animation: none; }
   .bg-layer-1 { opacity: 0.4; }
   .icon-card { transition: none; }
 }

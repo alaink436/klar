@@ -48,7 +48,7 @@ export async function POST(req: Request): Promise<Response> {
   if (str(payload.company, 200)) return json({ success: true });
 
   const type = str(payload.type, 20);
-  if (type !== "affiliate" && type !== "consulting")
+  if (type !== "affiliate" && type !== "consulting" && type !== "coaching")
     return json({ success: false, error: "bad_type" }, 400);
 
   const email = str(payload.email, 320);

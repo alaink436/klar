@@ -1,14 +1,5 @@
 import type { Metadata } from "next";
-import {
-  Anton,
-  Eczar,
-  Manrope,
-  JetBrains_Mono,
-  Bowlby_One_SC,
-  Honk,
-  Audiowide,
-  Major_Mono_Display,
-} from "next/font/google";
+import { Anton, Eczar, Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 /* Display: Anton (condensed, brutalist, distinct — not in reflex list) */
@@ -44,31 +35,6 @@ const jetbrains = JetBrains_Mono({
   display: "swap",
 });
 
-/* Glitch overlay fonts (4 instead of 6 — perf) */
-const bowlby = Bowlby_One_SC({
-  variable: "--font-bowlby",
-  subsets: ["latin"],
-  weight: ["400"],
-  display: "swap",
-});
-const honk = Honk({
-  variable: "--font-honk",
-  subsets: ["latin"],
-  display: "swap",
-});
-const audiowide = Audiowide({
-  variable: "--font-audiowide",
-  subsets: ["latin"],
-  weight: ["400"],
-  display: "swap",
-});
-const majorMono = Major_Mono_Display({
-  variable: "--font-major-mono",
-  subsets: ["latin"],
-  weight: ["400"],
-  display: "swap",
-});
-
 export const metadata: Metadata = {
   title: "Klar · Indie App Studio",
   description:
@@ -87,7 +53,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${anton.variable} ${eczar.variable} ${manrope.variable} ${jetbrains.variable} ${bowlby.variable} ${honk.variable} ${audiowide.variable} ${majorMono.variable} grain antialiased`}
+        className={`${anton.variable} ${eczar.variable} ${manrope.variable} ${jetbrains.variable} grain antialiased`}
       >
         {children}
       </body>
