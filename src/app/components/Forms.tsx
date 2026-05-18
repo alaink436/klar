@@ -2,16 +2,13 @@
 
 import { useState, FormEvent } from "react";
 
-// NOTE: formsubmit.co requires the destination email to actually exist.
-// Switch to alainkessler04@gmail.com once the domain is wired and a forwarder is in place.
-const FORM_ENDPOINT = "https://formsubmit.co/ajax/alainkessler04@gmail.com";
+// Submissions are persisted server-side into Supabase via /api/inquiry
+// (durable, visible in /admin). No more fire-and-forget email.
+const FORM_ENDPOINT = "/api/inquiry";
 
 type SubmitState = "idle" | "loading" | "success" | "error";
 
-async function submitForm(
-  payload: Record<string, string>,
-  subject: string
-): Promise<boolean> {
+async function submitForm(payload: Record<string, string>): Promise<boolean> {
   try {
     const res = await fetch(FORM_ENDPOINT, {
       method: "POST",
@@ -19,17 +16,30 @@ async function submitForm(
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify({
-        ...payload,
-        _subject: subject,
-        _captcha: "false",
-      }),
+      body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    return Boolean(data?.success);
+    const data = await res.json().catch(() => null);
+    return res.ok && Boolean(data?.success);
   } catch {
     return false;
   }
+}
+
+// Off-screen bot trap. Real users never see or fill this.
+function Honeypot() {
+  return (
+    <div aria-hidden="true" className="hidden">
+      <label>
+        company
+        <input
+          type="text"
+          name="company"
+          tabIndex={-1}
+          autoComplete="off"
+        />
+      </label>
+    </div>
+  );
 }
 
 /* ─────────────────────────────────────── AFFILIATE FORM ─────────────────────────────────────── */
@@ -40,17 +50,15 @@ export function AffiliateForm() {
     e.preventDefault();
     setState("loading");
     const fd = new FormData(e.currentTarget);
-    const ok = await submitForm(
-      {
-        type: "affiliate",
-        email: String(fd.get("email") || ""),
-        handle: String(fd.get("handle") || ""),
-        audience: String(fd.get("audience") || ""),
-        platforms: String(fd.get("platforms") || ""),
-        why: String(fd.get("why") || ""),
-      },
-      "klar / affiliate inquiry"
-    );
+    const ok = await submitForm({
+      type: "affiliate",
+      email: String(fd.get("email") || ""),
+      handle: String(fd.get("handle") || ""),
+      audience: String(fd.get("audience") || ""),
+      platforms: String(fd.get("platforms") || ""),
+      why: String(fd.get("why") || ""),
+      company: String(fd.get("company") || ""),
+    });
     setState(ok ? "success" : "error");
     if (ok) e.currentTarget.reset();
   };
@@ -72,6 +80,7 @@ export function AffiliateForm() {
       onSubmit={onSubmit}
       className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"
     >
+      <Honeypot />
       <input
         required
         type="email"
@@ -123,17 +132,15 @@ export function ConsultingForm() {
     e.preventDefault();
     setState("loading");
     const fd = new FormData(e.currentTarget);
-    const ok = await submitForm(
-      {
-        type: "consulting",
-        name: String(fd.get("name") || ""),
-        email: String(fd.get("email") || ""),
-        project: String(fd.get("project") || ""),
-        budget: String(fd.get("budget") || ""),
-        brief: String(fd.get("brief") || ""),
-      },
-      "klar / consulting inquiry"
-    );
+    const ok = await submitForm({
+      type: "consulting",
+      name: String(fd.get("name") || ""),
+      email: String(fd.get("email") || ""),
+      project: String(fd.get("project") || ""),
+      budget: String(fd.get("budget") || ""),
+      brief: String(fd.get("brief") || ""),
+      company: String(fd.get("company") || ""),
+    });
     setState(ok ? "success" : "error");
     if (ok) e.currentTarget.reset();
   };
@@ -154,6 +161,7 @@ export function ConsultingForm() {
       onSubmit={onSubmit}
       className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"
     >
+      <Honeypot />
       <input
         required
         name="name"

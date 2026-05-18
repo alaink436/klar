@@ -17,6 +17,28 @@ const KLAR_ADMIN_KEY = process.env.KLAR_ADMIN_KEY ?? "";
 const OUTREACH_SHEET_ID =
   process.env.KLAR_OUTREACH_SHEET_ID ?? "16MLUtfYVDzbu3bxjntilRqD_XjHSaRmypwpj1Rarx0c";
 
+// Contact-form inbox. Reads klar_inquiries from the anime-vault project with a
+// service-role key (RLS-bypass for read). Service key lives only in Vercel env,
+// never in the repo. Without it the view degrades to a setup hint.
+const KLAR_INBOX_URL =
+  process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
+const KLAR_INBOX_KEY = process.env.KLAR_INBOX_SERVICE_KEY ?? "";
+
+interface Inquiry {
+  created_at?: string;
+  type?: string;
+  email?: string;
+  status?: string;
+  handle?: string;
+  audience?: string;
+  platforms?: string;
+  why?: string;
+  name?: string;
+  project?: string;
+  budget?: string;
+  brief?: string;
+}
+
 function ctEqual(a: string, b: string): boolean {
   const x = new TextEncoder().encode(a), y = new TextEncoder().encode(b);
   if (x.length !== y.length) return false;
@@ -116,6 +138,7 @@ function shell(view: string, apps: AdminApp[], flash: string | null, main: strin
     <aside class="side">
       <div class="brand">klar<small>control</small></div>
       ${item("overview", "Overview")}
+      ${item("inbox", "Inbox")}
       ${item("revenue", "Einnahmen")}
       ${appLinks || `<span class="nav muted">keine apps</span>`}
       ${item("outreach", "Outreach")}
@@ -295,6 +318,83 @@ function outreachView(): string {
     <p class="sub" style="margin-top:16px;font-size:14px">Lädt nur wenn du im selben Browser bei dem Google-Account angemeldet bist der Zugriff auf das Sheet hat. Eine automatische "X angeschrieben"-Zahl pro App braucht Google-Sheets-API-Zugang (Service-Account), separater Schritt.</p>`;
 }
 
+async function inboxView(): Promise<string> {
+  if (!KLAR_INBOX_KEY)
+    return `<h1>Inbox</h1><p class="sub muted">Service-Key fehlt. Setze <span class="warn">KLAR_INBOX_SERVICE_KEY</span> im klar-Vercel-Projekt (Wert: anime-vault &rarr; Project Settings &rarr; API &rarr; <em>service_role</em> secret). Optional <span class="warn">KLAR_INBOX_SUPABASE_URL</span> falls die DB mal wechselt. Submissions werden trotzdem schon gespeichert, nur die Anzeige hier braucht den Key.</p>`;
+  let rows: Inquiry[] = [];
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_inquiries?select=*&order=created_at.desc&limit=200`,
+      {
+        headers: {
+          apikey: KLAR_INBOX_KEY,
+          Authorization: `Bearer ${KLAR_INBOX_KEY}`,
+          Accept: "application/json",
+        },
+        cache: "no-store",
+      },
+    );
+    if (!res.ok)
+      return `<h1>Inbox</h1><p class="sub muted">Laden fehlgeschlagen (HTTP ${res.status}). Stimmt der service_role-Key?</p>`;
+    const j = await res.json();
+    rows = Array.isArray(j) ? j : [];
+  } catch {
+    return `<h1>Inbox</h1><p class="sub muted">Netzwerkfehler beim Laden der Inbox.</p>`;
+  }
+
+  const nNew = rows.filter((r) => r.status === "new").length;
+  const aff = rows.filter((r) => r.type === "affiliate").length;
+  const con = rows.filter((r) => r.type === "consulting").length;
+  const cards = `<div class="cards">
+    <div class="card"><div class="k">Neu</div><div class="v">${nNew}</div><div class="s">ungelesen</div></div>
+    <div class="card"><div class="k">Affiliate</div><div class="v">${aff}</div></div>
+    <div class="card"><div class="k">Consulting</div><div class="v">${con}</div></div>
+    <div class="card"><div class="k">Gesamt</div><div class="v">${rows.length}</div><div class="s">letzte 200</div></div>
+  </div>`;
+
+  const fmt = (s: unknown) => {
+    const d = new Date(String(s));
+    return isNaN(d.getTime())
+      ? esc(s)
+      : d.toLocaleString("de-CH", { dateStyle: "medium", timeStyle: "short" });
+  };
+  const detail = (r: Inquiry) =>
+    (r.type === "affiliate"
+      ? [
+          r.handle && `handle: ${r.handle}`,
+          r.audience && `audience: ${r.audience}`,
+          r.platforms && `plat: ${r.platforms}`,
+          r.why && `why: ${r.why}`,
+        ]
+      : [
+          r.name && `name: ${r.name}`,
+          r.project && `project: ${r.project}`,
+          r.budget && `budget: ${r.budget}`,
+          r.brief && `brief: ${r.brief}`,
+        ]
+    )
+      .filter(Boolean)
+      .join(" · ");
+
+  const body = rows.length
+    ? rows
+        .map(
+          (r) => `<tr>
+        <td class="muted" style="white-space:nowrap">${fmt(r.created_at)}</td>
+        <td><span class="pill ${r.status === "new" ? "live" : ""}">${esc(r.type)}</span></td>
+        <td><a class="applink" href="mailto:${esc(r.email)}">${esc(r.email)}</a></td>
+        <td class="muted" style="font-size:12px;max-width:520px">${esc(detail(r))}</td>
+        <td>${esc(r.status)}</td>
+      </tr>`,
+        )
+        .join("")
+    : `<tr><td colspan="5" class="muted">noch keine Anfragen</td></tr>`;
+
+  return `<h1>Inbox</h1><p class="sub">getklar.org Affiliate- und Consulting-Anfragen. Durable in Supabase (anime-vault), neueste zuerst. Klick die Email zum Antworten.</p>
+    ${cards}
+    <table><thead><tr><th>Wann</th><th>Typ</th><th>Email</th><th>Details</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+
 export async function GET(req: Request): Promise<Response> {
   if (!KLAR_ADMIN_KEY) return doc(`<p style="color:#FF6B6B;padding:24px;font-family:'JetBrains Mono',monospace">Server misconfigured: KLAR_ADMIN_KEY not set.</p>`);
   const url = new URL(req.url);
@@ -309,6 +409,7 @@ export async function GET(req: Request): Promise<Response> {
 
   let main: string;
   if (view === "outreach") main = outreachView();
+  else if (view === "inbox") main = await inboxView();
   else if (view === "revenue") main = await revenueView(apps);
   else {
     const app = apps.find((a) => a.slug === view);
