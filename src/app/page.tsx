@@ -2,6 +2,7 @@ import Link from "next/link";
 import AppCrest, { type App } from "./components/AppCrest";
 import GlitchWordmark from "./components/GlitchWordmark";
 import NowFeed from "./components/NowFeed";
+import CodebaseView from "./components/CodebaseView";
 import { AffiliateForm, ConsultingForm, CoachingForm } from "./components/Forms";
 
 const APPS: App[] = [
@@ -19,7 +20,11 @@ const APPS: App[] = [
     status: "BUILD",
     buildNote: "build · IAP done",
     icon: "/icons/trubel.png",
-    screenshots: ["/screenshots/trubel/01.jpg"],
+    screenshots: [
+      "/screenshots/trubel/01.jpg",
+      "/screenshots/trubel/02.jpg",
+      "/screenshots/trubel/03.jpg",
+    ],
   },
   {
     slug: "myloo",
@@ -35,6 +40,13 @@ const APPS: App[] = [
     status: "BETA",
     buildNote: "in review",
     icon: "/icons/myloo.png",
+    screenshots: [
+      "/screenshots/myloo/01.jpg",
+      "/screenshots/myloo/02.jpg",
+      "/screenshots/myloo/03.jpg",
+      "/screenshots/myloo/04.jpg",
+      "/screenshots/myloo/05.jpg",
+    ],
   },
   {
     slug: "wavelength",
@@ -66,7 +78,42 @@ const APPS: App[] = [
     buildNote: "live · 4★+",
     appStoreUrl: "https://apps.apple.com/app/yarn-stash",
     icon: "/icons/yarnstash.png",
-    screenshots: ["/screenshots/yarn-stash/01.jpg"],
+    screenshots: [
+      "/screenshots/yarn-stash/01.jpg",
+      "/screenshots/yarn-stash/02.jpg",
+      "/screenshots/yarn-stash/03.jpg",
+      "/screenshots/yarn-stash/04.jpg",
+    ],
+  },
+  {
+    slug: "kelva",
+    name: "Kelva",
+    pitch: "your life, one calm hub.",
+    description:
+      "An all-in-one personal hub: tasks, notes, habits and routines in one calm place instead of ten apps fighting for your attention. Built for people who want structure without the productivity-cult overhead.",
+    business: {
+      free: "Core hub, daily planner, habits, limited history",
+      paid: "Unlimited everything, cross-device sync, advanced routines, exports",
+      price: "tbd",
+    },
+    status: "BUILD",
+    buildNote: "in review",
+    icon: "/icons/kelva.png",
+  },
+  {
+    slug: "moto",
+    name: "Moto",
+    pitch: "every service, logged.",
+    description:
+      "Maintenance and service tracking for motorcycles: oil, chain, tyres and mileage-based reminders, full service history and a shop log. Know exactly when the bike needs what, and prove it when you sell.",
+    business: {
+      free: "1 bike, core service log, basic reminders",
+      paid: "Unlimited bikes, smart mileage reminders, full history export, shop sharing",
+      price: "tbd",
+    },
+    status: "BUILD",
+    buildNote: "in review",
+    icon: "/icons/moto.png",
   },
 ];
 
@@ -110,6 +157,12 @@ export default function Home() {
             </Link>
             <Link href="/log" className="label hover:text-[var(--fg)] transition">
               log
+            </Link>
+            <Link
+              href="#code"
+              className="label hidden md:inline hover:text-[var(--fg)] transition"
+            >
+              code
             </Link>
             <Link
               href="#affiliate"
@@ -173,7 +226,7 @@ export default function Home() {
                 <span className="text-[var(--silver)]">stopped scrolling</span>.
               </p>
               <p className="t-body-lg text-[var(--fg-2)] mt-5 sm:mt-7 max-w-md">
-                four apps. one person in the middle. a business student who
+                six apps. one person in the middle. a business student who
                 ships software in the gaps between lectures.
               </p>
               <p className="t-body-lg text-[var(--fg-3)] mt-3 max-w-md">
@@ -192,7 +245,7 @@ export default function Home() {
 
         {/* ─── BLACK STRIPE ACCENT ─── */}
         <div className="invert-block">
-          <span>↳ four apps. one person. one signal.</span>
+          <span>↳ six apps. one person. one signal.</span>
           <span className="hidden sm:inline">scroll ↓</span>
         </div>
 
@@ -202,7 +255,7 @@ export default function Home() {
           className="veil-mid px-4 sm:px-6 md:px-12 py-14 sm:py-20 md:py-28 border-b border-[var(--line)] relative z-10"
         >
           <div className="flex items-baseline justify-between mb-8 sm:mb-12 md:mb-16">
-            <p className="label">002 // the four.</p>
+            <p className="label">002 // the work.</p>
             <p className="label hidden sm:inline">tap an icon for details</p>
           </div>
 
@@ -378,6 +431,31 @@ export default function Home() {
           </details>
         </section>
 
+        {/* Code */}
+        <section id="code" className="veil-mid relative z-10">
+          <details className="group">
+            <summary className="acc-summary">
+              <span className="acc-tag">007 // code.</span>
+              <span className="acc-title">code.</span>
+              <span className="acc-pitch">the receipts, by the numbers</span>
+              <span className="acc-toggle" aria-hidden="true" />
+            </summary>
+            <div className="acc-body">
+              <div className="mb-6 sm:mb-8 max-w-3xl">
+                <p className="editorial t-editorial-lg text-[var(--fg-2)]">
+                  not a portfolio of mockups.{" "}
+                  <span className="text-[var(--fg)]">shipped, live, in git.</span>
+                </p>
+                <p className="t-body-lg text-[var(--fg-2)] mt-4 max-w-2xl">
+                  Six apps and the rest of the workshop, built solo with ai in
+                  every loop. Pulled live from GitHub.
+                </p>
+              </div>
+              <CodebaseView />
+            </div>
+          </details>
+        </section>
+
         {/* ─── FINAL BLACK ACCENT ─── */}
         <div className="invert-block">
           <span>made by a business student. shipped in public.</span>
@@ -433,6 +511,12 @@ export default function Home() {
                 className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
               >
                 Now
+              </Link>
+              <Link
+                href="#code"
+                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
+              >
+                Code
               </Link>
               <Link
                 href="mailto:alainkessler04@gmail.com"
