@@ -136,18 +136,21 @@ deg = dict(G.degree())
 linked = [i for i in range(len(ids)) if deg[i] > 0]
 iso = [i for i in range(len(ids)) if deg[i] == 0]
 sub = G.subgraph(linked)
-pos = nx.spring_layout(sub, k=2.6 / math.sqrt(max(len(linked), 1)),
-                       iterations=140, seed=7)
+# stronger repulsion + more iterations -> the linked core breathes
+# instead of collapsing into one tight ball
+pos = nx.spring_layout(sub, k=4.4 / math.sqrt(max(len(linked), 1)),
+                       iterations=260, seed=7)
 xs = [pos[i][0] for i in linked] or [0]
 ys = [pos[i][1] for i in linked] or [0]
 cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
-sc = 1.7 / max(max(xs) - min(xs), max(ys) - min(ys), 1e-6)
+sc = 1.95 / max(max(xs) - min(xs), max(ys) - min(ys), 1e-6)
 P = {i: ((pos[i][0] - cx) * sc, (pos[i][1] - cy) * sc) for i in linked}
 
+# isolated notes in a calm halo, clearly outside the (now larger) core
 iso.sort(key=lambda i: (notes[ids[i]]["group"], ids[i]))
 for j, i in enumerate(iso):
     ang = 2 * math.pi * j / max(len(iso), 1)
-    rr = 1.16 + 0.13 * ((j * 7) % 5) / 5.0
+    rr = 1.46 + 0.16 * ((j * 7) % 5) / 5.0
     P[i] = (rr * math.cos(ang), rr * math.sin(ang))
 
 

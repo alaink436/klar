@@ -127,39 +127,36 @@ export default function Zeitraffer() {
   const curWeek =
     progress > 0 && !done ? WEEKS[Math.min(idx, LEN - 1)] : null;
 
-  const tiles: [string, string, string][] = [
-    [fmt(T.totalCommits), "commits", "build / ship / loop"],
-    [`${T.activeDays}/${T.spanDays}`, "days shipped", "since first commit"],
-    [fmt(T.brainNotes), "brain notes", "the obsidian vault"],
-    [String(T.projects), "projects", "tracked end to end"],
-  ];
-
   return (
     <div ref={ref}>
-      {/* headline counter + playhead date */}
-      <div className="brut-line bg-[var(--bg-2)] mb-6 sm:mb-8">
-        <div className="flex flex-wrap items-end justify-between gap-4 px-4 sm:px-6 py-5 sm:py-7">
-          <div>
-            <p className="label mb-1">commits to date</p>
-            <p className="display text-5xl sm:text-7xl md:text-8xl tabular-nums leading-none">
-              {fmt(counter)}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="label mb-1">
+      <div className="brut-line bg-[var(--bg-2)]">
+        {/* counter + bars + control, one tight block */}
+        <div className="flex items-end justify-between gap-4 px-4 sm:px-5 pt-3">
+          <p className="display text-3xl sm:text-4xl tabular-nums leading-none">
+            {fmt(counter)}{" "}
+            <span className="label align-baseline">commits</span>
+          </p>
+          <div className="flex items-center gap-3">
+            <span className="label">
               {curWeek
-                ? `week of ${mon(curWeek.w)}`
-                : `${mon(String(worklog.first))} → ${mon(String(worklog.last))}`}
-            </p>
-            <p className="editorial text-lg sm:text-2xl text-[var(--fg-2)]">
-              {done ? "two months, solo." : "playing back…"}
-            </p>
+                ? mon(curWeek.w)
+                : `${mon(String(worklog.first))}→${mon(String(worklog.last))}`}
+            </span>
+            {!reduce && (
+              <button
+                type="button"
+                onClick={() => done && setRunId((n) => n + 1)}
+                disabled={!done}
+                className="label-fg brut-line-thin px-2.5 py-1 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--fg-3)]"
+              >
+                {done ? "↻" : "▸"}
+              </button>
+            )}
           </div>
         </div>
 
-        {/* the time-lapse bars */}
-        <div className="border-t border-[var(--line)] px-4 sm:px-6 pt-6 pb-4">
-          <div className="flex items-end gap-1.5 sm:gap-2 h-40 sm:h-52">
+        <div className="px-4 sm:px-5 pt-2 pb-3">
+          <div className="flex items-end gap-1 sm:gap-1.5 h-16 sm:h-20">
             {WEEKS.map((wk, i) => {
               const full = (wk.total / MAX) * 100;
               const hPct =
@@ -179,11 +176,10 @@ export default function Zeitraffer() {
                       transition: "height 90ms linear",
                       background: "var(--fg)",
                       boxShadow: active
-                        ? "0 0 0 1px var(--fg), 0 0 18px oklch(0.85 0 0 / 0.35)"
+                        ? "0 0 0 1px var(--fg), 0 0 14px oklch(0.85 0 0 / 0.35)"
                         : "none",
                     }}
                   >
-                    {/* ai-brain portion (lighter, stacked on top) */}
                     <div
                       className="absolute top-0 left-0 w-full"
                       style={{
@@ -197,67 +193,26 @@ export default function Zeitraffer() {
               );
             })}
           </div>
-          <div className="flex justify-between mt-3">
-            <span className="label">{mon(String(worklog.first))}</span>
-            <span className="label">
-              peak week · {fmt(T.peakWeek.total)} commits
-            </span>
-            <span className="label">now</span>
-          </div>
         </div>
 
-        {/* legend + replay */}
-        <div className="border-t border-[var(--line)] flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3">
-          <div className="flex items-center gap-5">
-            <span className="label-fg flex items-center gap-2">
-              <span
-                className="inline-block w-3 h-3"
-                style={{ background: "var(--fg)" }}
-              />
-              app code · {fmt(T.appCommits)}
+        {/* one compact stat + legend strip */}
+        <div className="border-t border-[var(--line)] flex flex-wrap items-center justify-between gap-x-5 gap-y-1 px-4 sm:px-5 py-2.5">
+          <span className="label">
+            {fmt(T.totalCommits)} commits · {T.activeDays}/{T.spanDays} days ·{" "}
+            {fmt(T.brainNotes)} notes · {T.projects} projects
+          </span>
+          <span className="label flex items-center gap-3">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-2.5 h-2.5" style={{ background: "var(--fg)" }} />
+              app {fmt(T.appCommits)}
             </span>
-            <span className="label flex items-center gap-2">
-              <span
-                className="inline-block w-3 h-3"
-                style={{ background: "var(--silver)", opacity: 0.55 }}
-              />
-              ai-brain · {fmt(T.brainCommits)}
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-2.5 h-2.5" style={{ background: "var(--silver)", opacity: 0.55 }} />
+              brain {fmt(T.brainCommits)}
             </span>
-          </div>
-          {!reduce && (
-            <button
-              type="button"
-              onClick={() => done && setRunId((n) => n + 1)}
-              disabled={!done}
-              className="label-fg brut-line-thin px-3 py-1.5 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--fg-3)]"
-            >
-              {done ? "↻ replay" : "playing…"}
-            </button>
-          )}
+          </span>
         </div>
       </div>
-
-      {/* hard numbers */}
-      <div className="grid grid-cols-2 md:grid-cols-4 border-t border-l border-[var(--line-strong)]">
-        {tiles.map(([v, k, s]) => (
-          <div
-            key={k}
-            className="border-b border-r border-[var(--line-strong)] p-4 sm:p-5"
-          >
-            <p className="display text-3xl sm:text-4xl md:text-5xl tabular-nums">
-              {v}
-            </p>
-            <p className="label-fg mt-2">{k}</p>
-            <p className="label mt-1">{s}</p>
-          </div>
-        ))}
-      </div>
-
-      <p className="t-body-lg text-[var(--fg-3)] mt-6 max-w-2xl">
-        Every bar is a real week of git history across the six app repos and
-        the brain that runs them. Not a streak graph for show, the actual
-        tempo of shipping solo.
-      </p>
     </div>
   );
 }

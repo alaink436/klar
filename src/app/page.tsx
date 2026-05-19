@@ -5,7 +5,7 @@ import GlitchWordmark from "./components/GlitchWordmark";
 import NowFeed from "./components/NowFeed";
 import CodebaseView from "./components/CodebaseView";
 import Zeitraffer from "./components/Zeitraffer";
-import AIBrain from "./components/AIBrain";
+import BrainGraph from "./components/BrainGraph";
 import { AffiliateForm, ConsultingForm, CoachingForm } from "./components/Forms";
 import codebase from "./data/codebase.json";
 
@@ -130,110 +130,48 @@ const GITHUB_NOW = "https://github.com/alaink436/now";
 export default function Home() {
   return (
     <>
-      {/* ─── GLOBAL LIQUID-METAL BACKGROUND (4-layer cross-fade) ─── */}
+      {/* ─── GLOBAL LIQUID-METAL BACKGROUND ─── */}
       <div className="bg-stage" aria-hidden="true">
-        <div
-          className="bg-layer bg-layer-1"
-          style={{ backgroundImage: "url('/bg/bg-1.webp')" }}
-        />
-        <div
-          className="bg-layer bg-layer-2"
-          style={{ backgroundImage: "url('/bg/bg-2.webp')" }}
-        />
-        <div
-          className="bg-layer bg-layer-3"
-          style={{ backgroundImage: "url('/bg/bg-3.webp')" }}
-        />
-        <div
-          className="bg-layer bg-layer-4"
-          style={{ backgroundImage: "url('/bg/bg-4.webp')" }}
-        />
+        <div className="bg-layer bg-layer-1" style={{ backgroundImage: "url('/bg/bg-1.webp')" }} />
+        <div className="bg-layer bg-layer-2" style={{ backgroundImage: "url('/bg/bg-2.webp')" }} />
+        <div className="bg-layer bg-layer-3" style={{ backgroundImage: "url('/bg/bg-3.webp')" }} />
+        <div className="bg-layer bg-layer-4" style={{ backgroundImage: "url('/bg/bg-4.webp')" }} />
         <div className="bg-vignette" />
       </div>
 
       <main className="min-h-screen relative">
         {/* ─────────── NAV ─────────── */}
-        <nav className="flex items-center justify-between px-4 sm:px-6 md:px-12 py-4 md:py-5 border-b border-[var(--line)] relative z-20 veil-dark">
+        <nav className="flex items-center justify-between px-4 sm:px-6 md:px-12 py-3 md:py-4 border-b border-[var(--line)] relative z-20 veil-dark">
           <div className="flex items-baseline gap-2 sm:gap-3">
-            <span className="display text-xl sm:text-2xl">klar</span>
+            <span className="display text-lg sm:text-xl">klar</span>
             <span className="label hidden sm:inline">v0.8 · ch</span>
           </div>
-          <div className="flex items-center gap-3 sm:gap-5 md:gap-8">
-            <Link href="#apps" className="label hover:text-[var(--fg)] transition">
-              apps
-            </Link>
-            <Link
-              href="#zeitraffer"
-              className="label hover:text-[var(--fg)] transition"
-            >
-              zeitraffer
-            </Link>
-            <Link href="/log" className="label hidden sm:inline hover:text-[var(--fg)] transition">
-              log
-            </Link>
-            <Link
-              href="#code"
-              className="label hidden md:inline hover:text-[var(--fg)] transition"
-            >
-              code
-            </Link>
-            <Link
-              href="#ai-brain"
-              className="label hidden md:inline hover:text-[var(--fg)] transition"
-            >
-              brain
-            </Link>
-            <Link
-              href="#affiliate"
-              className="label hidden md:inline hover:text-[var(--fg)] transition"
-            >
-              affiliate
-            </Link>
-            <Link
-              href="#consulting"
-              className="label hidden md:inline hover:text-[var(--fg)] transition"
-            >
-              consulting
-            </Link>
-            <Link
-              href="#coaching"
-              className="label hidden md:inline hover:text-[var(--fg)] transition"
-            >
-              coaching
-            </Link>
-            <Link
-              href={GITHUB_PROFILE}
-              target="_blank"
-              className="label hidden md:inline hover:text-[var(--fg)] transition"
-            >
-              github ↗
-            </Link>
-            <Link
-              href="https://www.tiktok.com/@klar"
-              target="_blank"
-              className="label-fg flex items-center gap-1.5 group"
-            >
-              <span className="text-[var(--silver)] group-hover:text-[var(--fg)] transition">
-                ●
-              </span>
+          <div className="flex items-center gap-3 sm:gap-5 md:gap-7">
+            <Link href="#apps" className="label hover:text-[var(--fg)] transition">apps</Link>
+            <Link href="#brain" className="label hover:text-[var(--fg)] transition">brain</Link>
+            <Link href="#zeitraffer" className="label hidden sm:inline hover:text-[var(--fg)] transition">zeitraffer</Link>
+            <Link href="#consulting" className="label hidden sm:inline hover:text-[var(--fg)] transition">work</Link>
+            <Link href="#affiliate" className="label hidden md:inline hover:text-[var(--fg)] transition">affiliate</Link>
+            <Link href="#code" className="label hidden md:inline hover:text-[var(--fg)] transition">code</Link>
+            <Link href="/log" className="label hidden md:inline hover:text-[var(--fg)] transition">log</Link>
+            <Link href={GITHUB_PROFILE} target="_blank" className="label hidden md:inline hover:text-[var(--fg)] transition">github ↗</Link>
+            <Link href="https://www.tiktok.com/@klar" target="_blank" className="label-fg flex items-center gap-1.5 group">
+              <span className="text-[var(--silver)] group-hover:text-[var(--fg)] transition">●</span>
               @klar
             </Link>
           </div>
         </nav>
 
-        {/* ─────────── HERO ─────────── */}
-        <section className="veil-light px-4 sm:px-6 md:px-12 pt-12 sm:pt-20 md:pt-32 pb-16 sm:pb-24 md:pb-36 relative z-10 border-b border-[var(--line)]">
-          <div className="flex items-baseline justify-between mb-6 sm:mb-10">
+        {/* ─────────── HERO (now carries the brain) ─────────── */}
+        <section className="veil-light px-4 sm:px-6 md:px-12 pt-8 sm:pt-12 md:pt-16 pb-10 sm:pb-12 md:pb-14 relative z-10 border-b border-[var(--line)]">
+          <div className="flex items-baseline justify-between mb-4 sm:mb-6">
             <p className="label">001 // klar studio</p>
             <p className="label">{nf(CB_TOTALS.lines)} lines · solo</p>
           </div>
 
-          <GlitchWordmark
-            text="klar"
-            className="t-wordmark text-[var(--fg)] -ml-1 sm:-ml-2"
-          />
+          <GlitchWordmark text="klar" className="t-wordmark text-[var(--fg)] -ml-1" />
 
-          <div className="mt-8 sm:mt-12 md:mt-16 grid grid-cols-1 md:grid-cols-12 gap-7 sm:gap-8 md:items-end">
+          <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-12 gap-6 md:items-end">
             <div className="md:col-span-7 max-w-2xl">
               <p className="editorial t-editorial-xl">
                 we build apps for the
@@ -241,34 +179,27 @@ export default function Home() {
                 people who never{" "}
                 <span className="text-[var(--silver)]">stopped scrolling</span>.
               </p>
-              <p className="t-body-lg text-[var(--fg-2)] mt-5 sm:mt-7 max-w-md">
-                a one-person studio. six shipped apps, designed and coded
-                solo with ai in every loop. the receipts are below.
+              <p className="t-body-lg text-[var(--fg-2)] mt-4 max-w-md">
+                a one-person studio. six shipped apps, designed and coded solo
+                with ai in every loop, run out of one obsidian brain.
               </p>
-              <div className="mt-7 flex flex-wrap gap-3">
-                <Link
-                  href="#apps"
-                  className="brut-line label-fg px-4 py-3 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition"
-                >
+              <div className="mt-5 flex flex-wrap gap-2.5">
+                <Link href="#apps" className="brut-line label-fg px-4 py-2.5 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition">
                   see the work ↓
                 </Link>
-                <Link
-                  href="#code"
-                  className="brut-line-thin label px-4 py-3 hover:text-[var(--fg)] hover:border-[var(--fg)] transition"
-                >
-                  the codebase →
+                <Link href="#consulting" className="brut-line label-fg px-4 py-2.5 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition">
+                  work with me →
                 </Link>
-                <Link
-                  href="https://www.tiktok.com/@klar"
-                  target="_blank"
-                  className="brut-line-thin label px-4 py-3 hover:text-[var(--fg)] hover:border-[var(--fg)] transition"
-                >
-                  @klar ↗
+                <Link href="#affiliate" className="brut-line-thin label px-4 py-2.5 hover:text-[var(--fg)] hover:border-[var(--fg)] transition">
+                  affiliate →
+                </Link>
+                <Link href="#brain" className="brut-line-thin label px-4 py-2.5 hover:text-[var(--fg)] hover:border-[var(--fg)] transition">
+                  the brain ↓
                 </Link>
               </div>
             </div>
 
-            {/* live, data-backed proof panel */}
+            {/* compact proof panel */}
             <div className="md:col-span-5">
               <div className="brut-line bg-[var(--bg-2)]">
                 {([
@@ -278,11 +209,11 @@ export default function Home() {
                 ] as [string, string][]).map(([v, k], i) => (
                   <div
                     key={k}
-                    className={`flex items-baseline justify-between px-4 sm:px-5 py-3 sm:py-4 ${
+                    className={`flex items-baseline justify-between px-4 sm:px-5 py-2.5 ${
                       i > 0 ? "border-t border-[var(--line)]" : ""
                     }`}
                   >
-                    <span className="display text-3xl sm:text-4xl">{v}</span>
+                    <span className="display text-2xl sm:text-3xl">{v}</span>
                     <span className="label text-right">{k}</span>
                   </div>
                 ))}
@@ -290,77 +221,73 @@ export default function Home() {
             </div>
           </div>
 
-          {/* app strip — instant "this is an app studio" signal */}
+          {/* app strip */}
           <Link
             href="#apps"
-            className="mt-10 sm:mt-14 flex items-center gap-3 sm:gap-5 flex-wrap"
+            className="mt-8 flex items-center gap-3 sm:gap-4 flex-wrap"
             aria-label="see all apps"
           >
             <span className="label shrink-0">the six ↓</span>
             {APPS.map((a) => (
-              <span
-                key={a.slug}
-                className="relative w-11 h-11 sm:w-14 sm:h-14 icon-card"
-              >
-                <Image
-                  src={a.icon}
-                  alt={a.name}
-                  fill
-                  sizes="56px"
-                  className="object-contain"
-                />
+              <span key={a.slug} className="relative w-10 h-10 sm:w-12 sm:h-12 icon-card">
+                <Image src={a.icon} alt={a.name} fill sizes="48px" className="object-contain" />
               </span>
             ))}
           </Link>
+
+          {/* the brain, in the hero */}
+          <div id="brain" className="mt-8 sm:mt-10 scroll-mt-20">
+            <div className="flex items-baseline justify-between mb-3">
+              <p className="label">the brain · one obsidian vault, in git</p>
+              <p className="label hidden sm:inline">drag · zoom · hover</p>
+            </div>
+            <BrainGraph />
+          </div>
         </section>
 
-        {/* ─── BLACK STRIPE ACCENT ─── */}
+        {/* ─── BLACK STRIPE ─── */}
         <div className="invert-block">
           <span>↳ six apps. one person. one signal.</span>
           <span className="hidden sm:inline">scroll ↓</span>
         </div>
 
-        {/* ─────────── APPS (always expanded) ─────────── */}
+        {/* ─────────── APPS ─────────── */}
         <section
           id="apps"
-          className="veil-mid px-4 sm:px-6 md:px-12 py-14 sm:py-20 md:py-28 border-b border-[var(--line)] relative z-10"
+          className="veil-mid px-4 sm:px-6 md:px-12 py-10 sm:py-14 md:py-16 border-b border-[var(--line)] relative z-10 scroll-mt-16"
         >
-          <div className="flex items-baseline justify-between mb-8 sm:mb-12 md:mb-16">
+          <div className="flex items-baseline justify-between mb-6 sm:mb-10">
             <p className="label">002 // the work.</p>
             <p className="label hidden sm:inline">tap an icon for details</p>
           </div>
 
           <AppCrest apps={APPS} />
 
-          <div className="border-t border-[var(--line-strong)] mt-10 sm:mt-14">
+          <div className="border-t border-[var(--line-strong)] mt-8 sm:mt-12">
             {APPS.map((app, i) => (
               <article
                 key={app.slug}
-                className="border-b border-[var(--line)] py-5 sm:py-6 grid grid-cols-12 gap-3 sm:gap-4 items-center"
+                className="border-b border-[var(--line)] py-4 sm:py-5 grid grid-cols-12 gap-3 sm:gap-4 items-center"
               >
                 <div className="col-span-1">
                   <span className="label">{String(i + 1).padStart(2, "0")}</span>
                 </div>
                 <div className="col-span-4 sm:col-span-3">
-                  <span className="display text-xl sm:text-2xl md:text-3xl">
+                  <span className="display text-lg sm:text-xl md:text-2xl">
                     {app.name.toLowerCase()}
                   </span>
                 </div>
                 <div className="col-span-7 sm:col-span-5">
-                  <p className="editorial text-sm sm:text-base md:text-lg text-[var(--fg-2)]">
+                  <p className="editorial text-sm sm:text-base text-[var(--fg-2)]">
                     {app.pitch}
                   </p>
                 </div>
-                <div className="col-span-12 sm:col-span-3 flex items-center justify-end gap-2 sm:gap-3 mt-2 sm:mt-0">
+                <div className="col-span-12 sm:col-span-3 flex items-center justify-end gap-2 sm:gap-3 mt-1 sm:mt-0">
                   <span
                     className="label-fg brut-line-thin px-2 py-1"
                     style={
                       app.status === "LIVE"
-                        ? {
-                            background: "var(--fg)",
-                            color: "var(--bg)",
-                            borderColor: "var(--fg)",
-                          }
+                        ? { background: "var(--fg)", color: "var(--bg)", borderColor: "var(--fg)" }
                         : {}
                     }
                   >
@@ -373,26 +300,16 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ─── BRUTAL STRIPE ─── */}
-        <div className="invert-block-stripe" aria-hidden="true" />
-
-        {/* ─────────── ZEITRAFFER (always expanded) ─────────── */}
+        {/* ─────────── ZEITRAFFER (compact) ─────────── */}
         <section
           id="zeitraffer"
-          className="veil-mid px-4 sm:px-6 md:px-12 py-14 sm:py-20 md:py-28 border-b border-[var(--line)] relative z-10"
+          className="veil-mid px-4 sm:px-6 md:px-12 py-10 sm:py-14 md:py-16 border-b border-[var(--line)] relative z-10 scroll-mt-16"
         >
-          <div className="flex items-baseline justify-between mb-6 sm:mb-10">
+          <div className="flex items-baseline justify-between mb-4 sm:mb-6">
             <p className="label">003 // zeitraffer.</p>
-            <p className="label hidden sm:inline">scroll to play</p>
-          </div>
-          <div className="mb-8 sm:mb-12 max-w-3xl">
-            <p className="editorial t-editorial-xl text-[var(--fg-2)]">
+            <p className="editorial text-sm sm:text-base text-[var(--fg-2)]">
               two months of shipping,{" "}
               <span className="text-[var(--fg)]">on fast-forward</span>.
-            </p>
-            <p className="t-body-lg text-[var(--fg-2)] mt-4 max-w-2xl">
-              Not a claim. Every commit, every week, scanned from the repos
-              and the brain that runs them.
             </p>
           </div>
           <Zeitraffer />
@@ -401,10 +318,7 @@ export default function Home() {
         {/* ─────────── COLLAPSIBLE SECTIONS ─────────── */}
 
         {/* Affiliate */}
-        <section
-          id="affiliate"
-          className="veil-mid relative z-10"
-        >
+        <section id="affiliate" className="veil-mid relative z-10 scroll-mt-16">
           <details className="group">
             <summary className="acc-summary">
               <span className="acc-tag">004 // affiliate.</span>
@@ -418,11 +332,10 @@ export default function Home() {
                   got an audience?{" "}
                   <span className="text-[var(--fg)]">bring it to klar.</span>
                 </p>
-                <p className="t-body-lg text-[var(--fg-2)] mb-6 sm:mb-8 max-w-2xl">
+                <p className="t-body-lg text-[var(--fg-2)] mb-6 max-w-2xl">
                   You promote our apps to your audience, you get paid per
                   install or sub. Niche fits welcome (knitting → yarn-stash,
-                  ibs/health → myloo, sport teams → wavelength, gen-z →
-                  trubel).
+                  ibs/health → myloo, sport teams → wavelength, gen-z → trubel).
                 </p>
                 <AffiliateForm />
               </div>
@@ -430,70 +343,59 @@ export default function Home() {
           </details>
         </section>
 
-        {/* Consulting */}
-        <section id="consulting" className="veil-mid relative z-10">
+        {/* Consulting + Coaching (merged) */}
+        <section id="consulting" className="veil-mid relative z-10 scroll-mt-16">
           <details className="group">
             <summary className="acc-summary">
-              <span className="acc-tag">005 // consulting.</span>
-              <span className="acc-title">consulting.</span>
-              <span className="acc-pitch">building something? let&apos;s talk.</span>
+              <span className="acc-tag">005 // work with me.</span>
+              <span className="acc-title">work with me.</span>
+              <span className="acc-pitch">consulting &amp; coaching</span>
               <span className="acc-toggle" aria-hidden="true" />
             </summary>
             <div className="acc-body">
-              <div className="max-w-3xl">
-                <p className="editorial t-editorial-lg text-[var(--fg-2)] mb-3">
-                  building something?{" "}
-                  <span className="text-[var(--fg)]">let&apos;s talk.</span>
-                </p>
-                <p className="t-body-lg text-[var(--fg-2)] mb-6 sm:mb-8 max-w-2xl">
-                  One-person studio means I pick projects carefully. Mobile
-                  apps, ai integrations, growth/tiktok systems. Happy to
-                  jam if the brief is sharp.
-                </p>
-                <ConsultingForm />
-              </div>
-            </div>
-          </details>
-        </section>
-
-        {/* Coaching */}
-        <section id="coaching" className="veil-mid relative z-10">
-          <details className="group">
-            <summary className="acc-summary">
-              <span className="acc-tag">006 // coaching.</span>
-              <span className="acc-title">coaching.</span>
-              <span className="acc-pitch">building solo? let&apos;s fix that.</span>
-              <span className="acc-toggle" aria-hidden="true" />
-            </summary>
-            <div className="acc-body">
-              <div className="max-w-3xl">
-                <p className="editorial t-editorial-lg text-[var(--fg-2)] mb-3">
-                  stuck shipping solo?{" "}
-                  <span className="text-[var(--fg)]">let&apos;s fix that.</span>
-                </p>
-                <p className="t-body-lg text-[var(--fg-2)] mb-6 sm:mb-8 max-w-2xl">
-                  Not consulting where I build it. Coaching where you do, and I
-                  help you move faster: shipping solo with ai, app-store, growth
-                  and tiktok, the messy 0 → 1 part. Honest take on whether I&apos;m
-                  the right person before we start.
-                </p>
-                <CoachingForm />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12">
+                <div>
+                  <p className="label mb-2">consulting · i build it</p>
+                  <p className="editorial t-editorial-lg text-[var(--fg-2)] mb-3">
+                    building something?{" "}
+                    <span className="text-[var(--fg)]">let&apos;s talk.</span>
+                  </p>
+                  <p className="t-body-lg text-[var(--fg-2)] mb-5">
+                    One-person studio means I pick projects carefully. Mobile
+                    apps, ai integrations, growth/tiktok systems. Happy to jam
+                    if the brief is sharp.
+                  </p>
+                  <ConsultingForm />
+                </div>
+                <div id="coaching" className="scroll-mt-16">
+                  <p className="label mb-2">coaching · you build it</p>
+                  <p className="editorial t-editorial-lg text-[var(--fg-2)] mb-3">
+                    stuck shipping solo?{" "}
+                    <span className="text-[var(--fg)]">let&apos;s fix that.</span>
+                  </p>
+                  <p className="t-body-lg text-[var(--fg-2)] mb-5">
+                    Coaching where you do the building and I help you move
+                    faster: shipping solo with ai, app-store, growth and tiktok,
+                    the messy 0 → 1 part. Honest take first.
+                  </p>
+                  <CoachingForm />
+                </div>
               </div>
             </div>
           </details>
         </section>
 
         {/* Now / GitHub */}
-        <section id="now" className="veil-dark relative z-10">
+        <section id="now" className="veil-dark relative z-10 scroll-mt-16">
           <details className="group">
             <summary className="acc-summary">
-              <span className="acc-tag">007 // now.</span>
+              <span className="acc-tag">006 // now.</span>
               <span className="acc-title">now.</span>
               <span className="acc-pitch">build log · auto-fetched</span>
               <span className="acc-toggle" aria-hidden="true" />
             </summary>
             <div className="acc-body">
-              <div className="grid grid-cols-12 gap-4 sm:gap-8 mb-6 sm:mb-10">
+              <div className="grid grid-cols-12 gap-4 sm:gap-8 mb-5 sm:mb-8">
                 <div className="col-span-12 md:col-span-7">
                   <p className="editorial t-editorial-lg text-[var(--fg-2)]">
                     what i&apos;m building right now.{" "}
@@ -501,18 +403,10 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="col-span-12 md:col-span-5 flex md:items-end md:justify-end gap-3 flex-wrap">
-                  <Link
-                    href={GITHUB_PROFILE}
-                    target="_blank"
-                    className="label-fg brut-line-thin px-3 py-1.5 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition"
-                  >
+                  <Link href={GITHUB_PROFILE} target="_blank" className="label-fg brut-line-thin px-3 py-1.5 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition">
                     github profile ↗
                   </Link>
-                  <Link
-                    href={GITHUB_NOW}
-                    target="_blank"
-                    className="label-fg brut-line-thin px-3 py-1.5 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition"
-                  >
+                  <Link href={GITHUB_NOW} target="_blank" className="label-fg brut-line-thin px-3 py-1.5 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition">
                     /now repo ↗
                   </Link>
                 </div>
@@ -525,41 +419,22 @@ export default function Home() {
         </section>
 
         {/* Code */}
-        <section id="code" className="veil-mid relative z-10">
+        <section id="code" className="veil-mid relative z-10 scroll-mt-16">
           <details className="group">
             <summary className="acc-summary">
-              <span className="acc-tag">008 // code.</span>
+              <span className="acc-tag">007 // code.</span>
               <span className="acc-title">code.</span>
               <span className="acc-pitch">the receipts, by the numbers</span>
               <span className="acc-toggle" aria-hidden="true" />
             </summary>
             <div className="acc-body">
-              <div className="mb-6 sm:mb-8 max-w-3xl">
+              <div className="mb-5 sm:mb-7 max-w-3xl">
                 <p className="editorial t-editorial-lg text-[var(--fg-2)]">
                   not a portfolio of mockups.{" "}
                   <span className="text-[var(--fg)]">shipped, live, in git.</span>
                 </p>
-                <p className="t-body-lg text-[var(--fg-2)] mt-4 max-w-2xl">
-                  Six apps and the rest of the workshop, built solo with ai in
-                  every loop. Pulled live from GitHub.
-                </p>
               </div>
               <CodebaseView />
-            </div>
-          </details>
-        </section>
-
-        {/* AI-Brain */}
-        <section id="ai-brain" className="veil-dark relative z-10">
-          <details className="group">
-            <summary className="acc-summary">
-              <span className="acc-tag">009 // brain.</span>
-              <span className="acc-title">brain.</span>
-              <span className="acc-pitch">the system behind the loop</span>
-              <span className="acc-toggle" aria-hidden="true" />
-            </summary>
-            <div className="acc-body">
-              <AIBrain />
             </div>
           </details>
         </section>
@@ -571,11 +446,11 @@ export default function Home() {
         </div>
 
         {/* ─────────── FOOTER ─────────── */}
-        <footer className="veil-dark px-4 sm:px-6 md:px-12 py-8 sm:py-12 relative z-10">
-          <div className="grid grid-cols-12 gap-6 sm:gap-8 mb-6 sm:mb-10">
+        <footer className="veil-dark px-4 sm:px-6 md:px-12 py-8 sm:py-10 relative z-10">
+          <div className="grid grid-cols-12 gap-6 sm:gap-8 mb-6">
             <div className="col-span-12 md:col-span-6">
               <div className="flex items-baseline gap-3 mb-2">
-                <span className="display text-3xl sm:text-4xl">klar</span>
+                <span className="display text-2xl sm:text-3xl">klar</span>
                 <span className="label">v0.8</span>
               </div>
               <p className="label">
@@ -584,95 +459,38 @@ export default function Home() {
             </div>
             <div className="col-span-6 md:col-span-3">
               <p className="label mb-3">studio</p>
-              <Link
-                href="#apps"
-                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
-              >
-                Apps
-              </Link>
-              <Link
-                href="#zeitraffer"
-                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
-              >
-                Zeitraffer
-              </Link>
-              <Link
-                href="/log"
-                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
-              >
-                Log
-              </Link>
-              <Link
-                href="#affiliate"
-                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
-              >
-                Affiliate
-              </Link>
-              <Link
-                href="#consulting"
-                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
-              >
-                Consulting
-              </Link>
-              <Link
-                href="#coaching"
-                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
-              >
-                Coaching
-              </Link>
-              <Link
-                href="#now"
-                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
-              >
-                Now
-              </Link>
-              <Link
-                href="#code"
-                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
-              >
-                Code
-              </Link>
-              <Link
-                href="#ai-brain"
-                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
-              >
-                Brain
-              </Link>
-              <Link
-                href="mailto:alainkessler04@gmail.com"
-                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
-              >
-                alainkessler04@gmail.com
-              </Link>
+              {[
+                ["#apps", "Apps"],
+                ["#brain", "Brain"],
+                ["#zeitraffer", "Zeitraffer"],
+                ["#consulting", "Work with me"],
+                ["#affiliate", "Affiliate"],
+                ["#now", "Now"],
+                ["#code", "Code"],
+                ["/log", "Log"],
+                ["mailto:alainkessler04@gmail.com", "alainkessler04@gmail.com"],
+              ].map(([href, label]) => (
+                <Link
+                  key={label}
+                  href={href}
+                  className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
+                >
+                  {label}
+                </Link>
+              ))}
             </div>
             <div className="col-span-6 md:col-span-3">
               <p className="label mb-3">social</p>
-              <Link
-                href="https://www.tiktok.com/@klar"
-                target="_blank"
-                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
-              >
+              <Link href="https://www.tiktok.com/@klar" target="_blank" className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5">
                 TikTok ↗
               </Link>
-              <Link
-                href="https://www.instagram.com/klar"
-                target="_blank"
-                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
-              >
+              <Link href="https://www.instagram.com/klar" target="_blank" className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5">
                 Instagram ↗
               </Link>
-              <Link
-                href={GITHUB_PROFILE}
-                target="_blank"
-                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
-              >
+              <Link href={GITHUB_PROFILE} target="_blank" className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5">
                 GitHub ↗
               </Link>
-              <Link
-                href={GITHUB_NOW}
-                target="_blank"
-                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
-              >
+              <Link href={GITHUB_NOW} target="_blank" className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5">
                 /now ↗
               </Link>
             </div>

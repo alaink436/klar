@@ -83,7 +83,7 @@ body {
   hyphens: manual;
 }
 
-.t-wordmark    { font-size: clamp(140px, 36vw, 540px); line-height: 0.84; letter-spacing: -0.035em; font-weight: 800; }
+.t-wordmark    { font-size: clamp(84px, 19vw, 248px); line-height: 0.86; letter-spacing: -0.035em; font-weight: 800; }
 .t-display     { font-size: clamp(40px, 9vw, 128px); line-height: 0.94; letter-spacing: -0.02em; }
 .t-editorial-xl{ font-size: clamp(28px, 6vw, 72px); line-height: 1.08; }
 .t-editorial-lg{ font-size: clamp(20px, 4vw, 40px); line-height: 1.14; }
@@ -190,14 +190,18 @@ body {
 .shift-2 { color: var(--silver); animation: g-shift-2 9s steps(1) infinite; }
 
 @keyframes g-shift-1 {
-  0%, 6%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
-  6.4%, 6.9%   { opacity: 0.22; transform: translate3d(-2px, 0, 0); }
-  61%, 61.4%   { opacity: 0.15; transform: translate3d(-1px, 0, 0); }
+  0%, 5%, 100%   { opacity: 0; transform: translate3d(0, 0, 0); }
+  5.3%, 6.4%     { opacity: 0.55; transform: translate3d(-5px, 0, 0); }
+  6.6%, 7%       { opacity: 0.3;  transform: translate3d(3px, 0, 0); }
+  38%, 38.6%     { opacity: 0.45; transform: translate3d(-4px, 1px, 0); }
+  61%, 61.7%     { opacity: 0.5;  transform: translate3d(-3px, 0, 0); }
 }
 @keyframes g-shift-2 {
-  0%, 6.2%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
-  6.6%, 7.1%     { opacity: 0.18; transform: translate3d(2px, 0, 0); }
-  61.2%, 61.6%   { opacity: 0.13; transform: translate3d(1px, 0, 0); }
+  0%, 5.2%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
+  5.5%, 6.6%     { opacity: 0.42; transform: translate3d(5px, 0, 0); }
+  6.8%, 7.2%     { opacity: 0.26; transform: translate3d(-3px, 0, 0); }
+  38.2%, 38.8%   { opacity: 0.36; transform: translate3d(4px, -1px, 0); }
+  61.2%, 61.9%   { opacity: 0.4;  transform: translate3d(3px, 0, 0); }
 }
 
 /* ── Brutalist building blocks ── */
