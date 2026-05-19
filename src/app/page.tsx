@@ -40,9 +40,9 @@ const APPS: App[] = [
     description:
       "Take a photo, Vision AI classifies it on the Bristol Stool Scale. For people with IBS, Crohn's, colitis and parents who track for doctor's visits. No friction, no judgement. Photos stay local on the device by default; cloud sync is opt-in only.",
     business: {
-      free: "5 photo scans / day, 30-day history, manual entries unlimited",
-      paid: "Unlimited scans + history, PDF export for doctors, food-diary correlations, trigger detection",
-      price: "tbd",
+      free: "5 photo scans / day, 30-day history, manual entries unlimited, basic trends",
+      paid: "Unlimited scans + history, PDF export for doctors, food-diary correlations, trigger detection, health-app sync",
+      price: "$4.99/mo · $29.99/yr",
     },
     status: "BETA",
     buildNote: "in review",
@@ -77,9 +77,9 @@ const APPS: App[] = [
     description:
       "Yarn inventory, pattern matching via Ravelry and project tracking for knitters and crocheters. Scan the wrapper, Vision AI extracts everything automatically. Does the work Ravelry forgot.",
     business: {
-      free: "20 yarns, 3 active projects, pattern search, manual entry, wrapper scan",
+      free: "20 yarns, 3 active projects, pattern search, manual entry, wrapper scan (20/day)",
       paid: "Unlimited stash, yarn-photo scan, sharing with friends, PDF/CSV export",
-      price: "tbd",
+      price: "$3.99/mo · $29.99/yr",
     },
     status: "LIVE",
     buildNote: "live · 4★+",
@@ -95,13 +95,13 @@ const APPS: App[] = [
   {
     slug: "kelva",
     name: "Kelva",
-    pitch: "your life, one calm hub.",
+    pitch: "every renewal, before it lapses.",
     description:
-      "An all-in-one personal hub: tasks, notes, habits and routines in one calm place instead of ten apps fighting for your attention. Built for people who want structure without the productivity-cult overhead.",
+      "One place for every piece of life admin: warranties, subscriptions, documents, maintenance and deadlines. Smart reminders before anything expires, photograph every receipt, and let AI auto-file forwarded emails and scanned documents. Built because half of all warranty claims are lost to missing receipts.",
     business: {
-      free: "Core hub, daily planner, habits, limited history",
-      paid: "Unlimited everything, cross-device sync, advanced routines, exports",
-      price: "tbd",
+      free: "15 items, manual entry unlimited, 3 household members, 1 forwarding alias, smart reminders",
+      paid: "Unlimited items, AI auto-capture (email + document scan), 6 household members, 5 aliases, vault + subscription dashboard",
+      price: "$3.99/mo · $29.99/yr",
     },
     status: "BUILD",
     buildNote: "in review",
@@ -114,9 +114,9 @@ const APPS: App[] = [
     description:
       "Maintenance and service tracking for motorcycles: oil, chain, tyres and mileage-based reminders, full service history and a shop log. Know exactly when the bike needs what, and prove it when you sell.",
     business: {
-      free: "1 bike, core service log, basic reminders",
-      paid: "Unlimited bikes, smart mileage reminders, full history export, shop sharing",
-      price: "tbd",
+      free: "1 bike, full service log, recall alerts",
+      paid: "Unlimited bikes, cost analysis, full service-history export, fuel log",
+      price: "$3.99/mo · $24.99/yr",
     },
     status: "BUILD",
     buildNote: "in review",

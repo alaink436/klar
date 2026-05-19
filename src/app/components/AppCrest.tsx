@@ -1,13 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import {
-  AppleBadge,
-  PlayBadge,
-  CompactAppleBadge,
-  CompactPlayBadge,
-} from "./StoreBadges";
+import { AppleBadge, PlayBadge } from "./StoreBadges";
 import codebase from "../data/codebase.json";
 
 interface CbMetric {
@@ -92,19 +87,20 @@ interface Props {
   apps: App[];
 }
 
-type ModalKey = string | "family";
+const SPIN_MS = 44000;
 
 export default function AppCrest({ apps }: Props) {
-  const [openKey, setOpenKey] = useState<ModalKey | null>(null);
-  const open = openKey && openKey !== "family"
-    ? apps.find((a) => a.slug === openKey) ?? null
-    : null;
-  const isFamilyOpen = openKey === "family";
+  const [openSlug, setOpenSlug] = useState<string | null>(null);
+  const [hover, setHover] = useState<string | null>(null);
+  const [size, setSize] = useState(0);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<HTMLDivElement>(null);
+  const open = openSlug ? apps.find((a) => a.slug === openSlug) ?? null : null;
 
   useEffect(() => {
-    if (!openKey) return;
+    if (!openSlug) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenKey(null);
+      if (e.key === "Escape") setOpenSlug(null);
     };
     window.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
@@ -112,88 +108,125 @@ export default function AppCrest({ apps }: Props) {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [openKey]);
+  }, [openSlug]);
+
+  // measure the stage so the orbit radius scales with the layout
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setSize(el.clientWidth));
+    ro.observe(el);
+    setSize(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+
+  // orbit via Web Animations API (bypasses the CSS bundler; ring spins,
+  // each icon counter-spins so it stays upright). Reduced-motion -> static.
+  useEffect(() => {
+    const ring = ringRef.current;
+    if (!ring || size === 0) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const opts = {
+      duration: SPIN_MS,
+      iterations: Infinity,
+      easing: "linear",
+    } as const;
+    const a = ring.animate(
+      [{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }],
+      opts
+    );
+    const items = Array.from(
+      ring.querySelectorAll<HTMLElement>("[data-orbit]")
+    );
+    const counter = items.map((el) =>
+      el.animate(
+        [{ transform: "rotate(0deg)" }, { transform: "rotate(-360deg)" }],
+        opts
+      )
+    );
+    return () => {
+      a.cancel();
+      counter.forEach((c) => c.cancel());
+    };
+  }, [size]);
+
+  const hovered = hover ? apps.find((a) => a.slug === hover) : null;
+  const R = size * 0.3; // orbit radius
+  const box = Math.max(40, size * 0.42); // icon box
 
   return (
     <>
-      {/* 2x2 Crest grid (no central logo anymore) */}
-      <div className="relative mx-auto w-full max-w-[640px] mb-6 sm:mb-10">
-        <div className="grid grid-cols-2 gap-4 sm:gap-8 md:gap-12">
-          {apps.map((app) => (
-            <div key={app.slug} className="flex flex-col items-center">
-              <button
-                onClick={() => setOpenKey(app.slug)}
-                className="icon-card group flex flex-col items-center bg-transparent border-0 p-0 cursor-pointer w-full"
-                aria-label={`open ${app.name} details`}
+      {/* Orbiting crest — 6 icons circling, tap one */}
+      <div
+        ref={stageRef}
+        className="relative mx-auto w-[min(86vw,520px)] aspect-square"
+        role="group"
+        aria-label="the six apps — tap an icon"
+      >
+        <div ref={ringRef} className="absolute inset-0">
+          {apps.map((app, i) => {
+            const ang = i * (360 / apps.length);
+            return (
+              <div
+                key={app.slug}
+                className="absolute left-1/2 top-1/2"
+                style={{
+                  width: box,
+                  height: box,
+                  transform: `translate(-50%,-50%) rotate(${ang}deg) translateY(${-R}px) rotate(${-ang}deg)`,
+                }}
               >
-                <div className="relative w-full aspect-square">
-                  <Image
-                    src={app.icon}
-                    alt={app.name}
-                    fill
-                    sizes="(max-width: 640px) 40vw, 280px"
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-                <span className="display text-base sm:text-xl md:text-2xl mt-2 sm:mt-3">
-                  {app.name.toLowerCase()}
-                </span>
-              </button>
-              {/* Stores directly under each icon */}
-              <div className="flex flex-wrap items-center justify-center gap-1.5 mt-2 sm:mt-3">
-                <CompactAppleBadge href={app.appStoreUrl} />
-                <CompactPlayBadge href={app.playStoreUrl} />
+                <button
+                  type="button"
+                  data-orbit
+                  onClick={() => setOpenSlug(app.slug)}
+                  onMouseEnter={() => setHover(app.slug)}
+                  onMouseLeave={() =>
+                    setHover((h) => (h === app.slug ? null : h))
+                  }
+                  onFocus={() => setHover(app.slug)}
+                  onBlur={() => setHover((h) => (h === app.slug ? null : h))}
+                  className="block w-full h-full p-0 border-0 bg-transparent cursor-pointer"
+                  aria-label={`open ${app.name} details`}
+                >
+                  <span className="block w-full h-full icon-card relative">
+                    <Image
+                      src={app.icon}
+                      alt={app.name}
+                      fill
+                      sizes="(max-width: 640px) 38vw, 220px"
+                      className="object-contain"
+                      priority={i < 3}
+                    />
+                  </span>
+                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
-      </div>
 
-      {/* Family tile — 5th window under the crest */}
-      <div className="mx-auto w-full max-w-[640px]">
-        <button
-          onClick={() => setOpenKey("family")}
-          className="brut-line w-full px-5 sm:px-6 py-5 sm:py-7 flex items-center gap-4 sm:gap-5 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition group bg-[var(--bg-2)] cursor-pointer text-left"
-          aria-label="meet the family"
-        >
-          {/* mini family preview */}
-          <div className="relative h-16 w-16 sm:h-20 sm:w-20 shrink-0">
-            <Image
-              src="/family.webp"
-              alt="The four mascots"
-              fill
-              sizes="80px"
-              className="object-contain"
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="label mb-1 group-hover:text-[var(--bg)] group-hover:opacity-80">
-              + bonus tile
-            </p>
-            <p className="display text-xl sm:text-2xl md:text-3xl">
-              meet the family
-            </p>
-          </div>
-          <span className="display text-2xl sm:text-3xl shrink-0">→</span>
-        </button>
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none w-[46%]">
+          <p className="display text-2xl sm:text-3xl md:text-4xl leading-none">
+            {hovered ? hovered.name.toLowerCase() : "the six"}
+          </p>
+          <p className="label mt-2">
+            {hovered ? hovered.pitch : "tap an icon"}
+          </p>
+        </div>
       </div>
 
       {/* ─────────── APP MODAL ─────────── */}
       {open && (
         <div
           className="modal-overlay flex items-center justify-center px-3 py-6 sm:py-10"
-          onClick={() => setOpenKey(null)}
+          onClick={() => setOpenSlug(null)}
           role="dialog"
           aria-modal="true"
           aria-label={`${open.name} details`}
         >
-          <article
-            className="modal-card"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <article className="modal-card" onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={() => setOpenKey(null)}
+              onClick={() => setOpenSlug(null)}
               className="absolute top-3 right-3 sm:top-4 sm:right-4 label-fg w-9 h-9 flex items-center justify-center brut-line-thin hover:bg-[var(--fg)] hover:text-[var(--bg)] hover:border-[var(--fg)] transition z-10 bg-[var(--bg)]"
               aria-label="close"
             >
@@ -296,91 +329,6 @@ export default function AppCrest({ apps }: Props) {
               {!open.appStoreUrl && !open.playStoreUrl && (
                 <p className="label mt-3">stores coming soon</p>
               )}
-            </div>
-          </article>
-        </div>
-      )}
-
-      {/* ─────────── FAMILY MODAL ─────────── */}
-      {isFamilyOpen && (
-        <div
-          className="modal-overlay flex items-center justify-center px-3 py-6 sm:py-10"
-          onClick={() => setOpenKey(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-label="The family"
-        >
-          <article
-            className="modal-card"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setOpenKey(null)}
-              className="absolute top-3 right-3 sm:top-4 sm:right-4 label-fg w-9 h-9 flex items-center justify-center brut-line-thin hover:bg-[var(--fg)] hover:text-[var(--bg)] hover:border-[var(--fg)] transition z-10 bg-[var(--bg)]"
-              aria-label="close"
-            >
-              ×
-            </button>
-
-            <div className="bg-[var(--fg)] text-[var(--bg)] px-5 sm:px-7 py-2 flex items-center justify-between">
-              <span className="label-fg" style={{ color: "var(--bg)" }}>
-                + bonus
-              </span>
-              <span className="label-fg" style={{ color: "var(--bg)" }}>
-                the family
-              </span>
-            </div>
-
-            <div className="p-5 sm:p-8">
-              {/* Family photo */}
-              <div className="relative w-full aspect-[2/1] mb-6 sm:mb-8">
-                <Image
-                  src="/family.webp"
-                  alt="The four Klar mascots"
-                  fill
-                  sizes="(max-width: 640px) 90vw, 720px"
-                  className="object-contain"
-                  priority
-                />
-              </div>
-
-              <h3 className="display text-3xl sm:text-5xl mb-2">
-                the four.
-              </h3>
-              <p className="editorial text-lg sm:text-2xl text-[var(--fg-2)] mb-6">
-                left to right: trubel, myloo, wavelength, yarn-stash.
-              </p>
-
-              <p className="t-body-lg text-[var(--fg-2)] leading-relaxed mb-6">
-                Four characters, four apps. They don&apos;t share a universe.
-                Each one is its own thing. But they all live under klar. Each
-                one solves something specific for someone specific. None of
-                them want to be your operating system.
-              </p>
-
-              {/* Quick row of all 4 */}
-              <div className="grid grid-cols-4 gap-3 sm:gap-5">
-                {apps.map((app) => (
-                  <button
-                    key={app.slug}
-                    onClick={() => setOpenKey(app.slug)}
-                    className="flex flex-col items-center gap-2 bg-transparent border-0 p-0 cursor-pointer icon-card"
-                  >
-                    <div className="relative w-full aspect-square">
-                      <Image
-                        src={app.icon}
-                        alt={app.name}
-                        fill
-                        sizes="120px"
-                        className="object-contain"
-                      />
-                    </div>
-                    <span className="label-fg">
-                      {app.name.toLowerCase()}
-                    </span>
-                  </button>
-                ))}
-              </div>
             </div>
           </article>
         </div>

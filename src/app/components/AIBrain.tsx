@@ -5,6 +5,7 @@
  * and the receipts, not a dead link (same stance as the code section).
  */
 import worklog from "../data/worklog.json";
+import BrainGraph from "./BrainGraph";
 
 const T = worklog.totals;
 const fmt = (n: number) => n.toLocaleString("en-US");
@@ -47,6 +48,12 @@ export default function AIBrain() {
         <div className="col-span-12 md:col-span-5 flex md:justify-end md:items-start">
           <span className="crash-block">private vault · public results</span>
         </div>
+      </div>
+
+      {/* the actual obsidian graph */}
+      <div className="mb-8 sm:mb-10">
+        <p className="label mb-3">the graph · live from the vault</p>
+        <BrainGraph />
       </div>
 
       {/* the receipts */}
