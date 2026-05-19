@@ -1,0 +1,35 @@
+{
+  "id": "/admin",
+  "name": "Klar Control",
+  "short_name": "Klar Control",
+  "description": "Das Kontrollzentrum hinter dem Studio.",
+  "lang": "de",
+  "start_url": "/admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#070709",
+  "theme_color": "#070709",
+  "categories": ["productivity", "business"],
+  "icons": [
+    {
+      "src": "/logo/klar-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo/klar-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo/klar-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
