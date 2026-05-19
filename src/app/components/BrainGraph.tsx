@@ -1,11 +1,14 @@
 "use client";
 
 /**
- * BrainGraph — the actual Obsidian graph view, on the site. Every node is a
- * note in the AI-Brain vault, every edge a [[wikilink]]. Layout is force-
- * directed offline (scripts/gen-brain-graph.py -> brainGraph.json), drawn on
- * a canvas. Drag to pan, scroll to zoom, hover a node to trace its links.
- * Static like Obsidian (no idle animation) so it's cheap and visibility-safe.
+ * BrainGraph — the AI-Brain Obsidian vault, on the site. Every node is a
+ * note, every edge a [[wikilink]]. Force-laid-out offline
+ * (scripts/gen-brain-graph.py -> brainGraph.json).
+ *
+ * On reveal it plays a "growth" time-lapse: notes pop in by their real
+ * git creation date while a date ticks forward, then it settles into the
+ * full interactive graph (drag / scroll-zoom / hover-trace). Growth runs
+ * on a time-based interval (not rAF — rAF pauses while the tab is hidden).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import graph from "../data/brainGraph.json";
@@ -15,7 +18,7 @@ interface GNode {
   y: number;
   r: number;
   g: number;
-  t: number;
+  c: number;
   l: string;
 }
 const NODES = graph.nodes as GNode[];
@@ -23,10 +26,14 @@ const EDGES = graph.edges as [number, number][];
 const GROUPS = graph.groups as {
   key: string;
   label: string;
-  tone: number;
+  color: string;
   count: number;
 }[];
+const ORDER = graph.order as string[];
 const C = graph.counts as { nodes: number; edges: number; linked: number };
+const N = NODES.length;
+const GROW_MS = 7000;
+const FADE = N * 0.05; // per-node fade-in window (in rank units)
 
 // adjacency for hover-tracing
 const ADJ: number[][] = NODES.map(() => []);
@@ -34,20 +41,35 @@ for (const [a, b] of EDGES) {
   ADJ[a].push(b);
   ADJ[b].push(a);
 }
+// top hubs get an always-on label
+const HUBS = [...NODES.keys()]
+  .sort((a, b) => NODES[b].r - NODES[a].r)
+  .slice(0, 16);
+const HUBSET = new Set(HUBS);
 
-const TONE_VARS = ["--fg", "--silver", "--fg-3", "--fg-4"];
+const mon = (iso: string) => {
+  const d = new Date(iso + "T00:00:00Z");
+  const m = d.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+  return `${m} '${String(d.getUTCFullYear()).slice(2)}`;
+};
 
 export default function BrainGraph() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const view = useRef({ scale: 1, x: 0, y: 0, base: 0, cx: 0, cy: 0 });
-  const drag = useRef<{ on: boolean; px: number; py: number }>({
-    on: false,
-    px: 0,
-    py: 0,
-  });
-  const hoverRef = useRef<number>(-1);
+  const drag = useRef({ on: false, px: 0, py: 0 });
+  const hoverRef = useRef(-1);
+  const grownF = useRef(N); // visible rank cutoff (float); N = fully grown
+  const [reduce, setReduce] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "grow" | "done">("idle");
+  const [dateLbl, setDateLbl] = useState(graph.last as string);
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
+  const [runId, setRunId] = useState(0);
+
+  useEffect(() => {
+    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduce(m.matches);
+  }, []);
 
   const draw = useCallback(() => {
     const cv = canvasRef.current;
@@ -68,10 +90,6 @@ export default function BrainGraph() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
 
-    const cs = getComputedStyle(document.documentElement);
-    const tone = TONE_VARS.map((v) => cs.getPropertyValue(v).trim() || "#fff");
-    const line = cs.getPropertyValue("--line").trim() || "#333";
-
     const v = view.current;
     if (v.base === 0) {
       v.base = Math.min(W, H) * 0.46;
@@ -81,6 +99,9 @@ export default function BrainGraph() {
     const k = v.base * v.scale;
     const sx = (n: GNode) => v.cx + n.x * k + v.x;
     const sy = (n: GNode) => v.cy + n.y * k + v.y;
+    const gf = grownF.current;
+    const vis = (i: number) =>
+      Math.max(0, Math.min(1, (gf - NODES[i].c) / FADE));
 
     const hv = hoverRef.current;
     const near = new Set<number>();
@@ -92,9 +113,11 @@ export default function BrainGraph() {
     // edges
     ctx.lineWidth = 1;
     for (const [a, b] of EDGES) {
+      const av = Math.min(vis(a), vis(b));
+      if (av <= 0) continue;
       const on = hv >= 0 && (a === hv || b === hv);
-      ctx.strokeStyle = on ? tone[1] : line;
-      ctx.globalAlpha = hv >= 0 ? (on ? 0.7 : 0.06) : 0.22;
+      ctx.strokeStyle = on ? "#bfeae3" : "#5b6072";
+      ctx.globalAlpha = (hv >= 0 ? (on ? 0.8 : 0.05) : 0.16) * av;
       ctx.beginPath();
       ctx.moveTo(sx(NODES[a]), sy(NODES[a]));
       ctx.lineTo(sx(NODES[b]), sy(NODES[b]));
@@ -103,47 +126,64 @@ export default function BrainGraph() {
     ctx.globalAlpha = 1;
 
     // nodes
-    for (let i = 0; i < NODES.length; i++) {
+    for (let i = 0; i < N; i++) {
+      const a = vis(i);
+      if (a <= 0) continue;
       const n = NODES[i];
       const X = sx(n);
       const Y = sy(n);
-      if (X < -20 || X > W + 20 || Y < -20 || Y > H + 20) continue;
+      if (X < -30 || X > W + 30 || Y < -30 || Y > H + 30) continue;
+      const col = GROUPS[n.g]?.color || "#9aa0b0";
       const dim = hv >= 0 && !near.has(i);
-      ctx.globalAlpha = dim ? 0.18 : 1;
-      ctx.fillStyle = i === hv ? tone[0] : tone[n.t] || tone[2];
+      const rr = Math.max(1.6, n.r * Math.sqrt(v.scale));
+      ctx.globalAlpha = (dim ? 0.16 : 1) * a;
+      if (n.r > 7) {
+        ctx.shadowColor = col;
+        ctx.shadowBlur = 14;
+      }
+      ctx.fillStyle = i === hv ? "#ffffff" : col;
       ctx.beginPath();
-      ctx.arc(X, Y, Math.max(1.5, n.r * Math.sqrt(v.scale)), 0, 6.2832);
+      ctx.arc(X, Y, rr, 0, 6.2832);
       ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(7,7,9,0.85)";
+      ctx.stroke();
       if (i === hv) {
-        ctx.strokeStyle = tone[0];
-        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = "#fff";
+        ctx.globalAlpha = 0.5 * a;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(X, Y, n.r * Math.sqrt(v.scale) + 4, 0, 6.2832);
+        ctx.arc(X, Y, rr + 5, 0, 6.2832);
         ctx.stroke();
       }
     }
     ctx.globalAlpha = 1;
 
-    // hover label
-    if (hv >= 0) {
-      const n = NODES[hv];
+    // always-on hub labels (+ hovered)
+    ctx.font = "11px ui-monospace, 'JetBrains Mono', monospace";
+    ctx.textBaseline = "middle";
+    const labelled = new Set(HUBS);
+    if (hv >= 0) labelled.add(hv);
+    for (const i of labelled) {
+      if (vis(i) < 0.6) continue;
+      const n = NODES[i];
       const X = sx(n);
       const Y = sy(n);
-      ctx.font =
-        "11px ui-monospace, 'JetBrains Mono', monospace";
-      const tw = ctx.measureText(n.l).width;
-      const bx = Math.min(Math.max(X + 10, 6), W - tw - 14);
-      const by = Math.min(Math.max(Y - 26, 6), H - 26);
-      ctx.fillStyle = "rgba(0,0,0,0.82)";
-      ctx.fillRect(bx - 6, by, tw + 12, 20);
-      ctx.fillStyle = tone[0];
-      ctx.fillText(n.l, bx, by + 14);
+      if (X < 0 || X > W || Y < 0 || Y > H) continue;
+      const t = n.l;
+      const tw = ctx.measureText(t).width;
+      const lx = X + n.r * Math.sqrt(v.scale) + 6;
+      const ly = Y;
+      ctx.globalAlpha = i === hv ? 1 : 0.72;
+      ctx.fillStyle = "rgba(7,7,9,0.7)";
+      ctx.fillRect(lx - 3, ly - 8, tw + 6, 16);
+      ctx.fillStyle = i === hv ? "#fff" : GROUPS[n.g]?.color || "#cfd2dc";
+      ctx.fillText(t, lx, ly + 1);
     }
+    ctx.globalAlpha = 1;
   }, []);
 
-  // schedule a redraw (rAF only fires while visible — fine, interactions
-  // only happen when visible; resize/open path calls draw() directly)
   const queued = useRef(false);
   const redraw = useCallback(() => {
     if (queued.current) return;
@@ -154,41 +194,73 @@ export default function BrainGraph() {
     });
   }, [draw]);
 
-  const pick = useCallback((mx: number, my: number) => {
-    const v = view.current;
-    const k = v.base * v.scale;
-    let best = -1;
-    let bd = 16 * 16;
-    for (let i = 0; i < NODES.length; i++) {
-      const n = NODES[i];
-      const dx = v.cx + n.x * k + v.x - mx;
-      const dy = v.cy + n.y * k + v.y - my;
-      const d = dx * dx + dy * dy;
-      const rr = Math.max(6, n.r * Math.sqrt(v.scale) + 4);
-      if (d < rr * rr && d < bd) {
-        bd = d;
-        best = i;
-      }
+  // growth playback (time-based interval)
+  useEffect(() => {
+    if (phase !== "grow") return;
+    if (reduce) {
+      grownF.current = N;
+      setDateLbl(graph.last as string);
+      setPhase("done");
+      return;
     }
-    return best;
-  }, []);
+    grownF.current = 0;
+    const start = performance.now();
+    const id = window.setInterval(() => {
+      const p = Math.min((performance.now() - start) / GROW_MS, 1);
+      grownF.current = p * (N + FADE);
+      const ri = Math.min(N - 1, Math.floor(p * N));
+      setDateLbl(ORDER[ri]);
+      draw();
+      if (p >= 1) {
+        window.clearInterval(id);
+        grownF.current = N;
+        setPhase("done");
+      }
+    }, 40);
+    return () => window.clearInterval(id);
+  }, [phase, reduce, runId, draw]);
 
+  // start growth once the section is on screen (ResizeObserver fires when
+  // the collapsible <details> opens; works even while the tab is hidden)
   useEffect(() => {
     const wrap = wrapRef.current;
     const cv = canvasRef.current;
     if (!wrap || !cv) return;
-
+    let started = false;
     const ro = new ResizeObserver(() => {
-      view.current.base = 0; // refit on size change
       draw();
+      if (!started && wrap.clientWidth > 0) {
+        started = true;
+        setPhase("grow");
+      }
     });
     ro.observe(wrap);
     draw();
 
+    const xy = (e: PointerEvent) => {
+      const r = cv.getBoundingClientRect();
+      return [e.clientX - r.left, e.clientY - r.top] as const;
+    };
+    const pick = (mx: number, my: number) => {
+      const v = view.current;
+      const k = v.base * v.scale;
+      let best = -1;
+      let bd = Infinity;
+      for (let i = 0; i < N; i++) {
+        if (grownF.current < NODES[i].c) continue;
+        const dx = v.cx + NODES[i].x * k + v.x - mx;
+        const dy = v.cy + NODES[i].y * k + v.y - my;
+        const d = dx * dx + dy * dy;
+        const rr = Math.max(7, NODES[i].r * Math.sqrt(v.scale) + 4);
+        if (d < rr * rr && d < bd) {
+          bd = d;
+          best = i;
+        }
+      }
+      return best;
+    };
     const onMove = (e: PointerEvent) => {
-      const rect = cv.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
+      const [mx, my] = xy(e);
       if (drag.current.on) {
         view.current.x += mx - drag.current.px;
         view.current.y += my - drag.current.py;
@@ -197,21 +269,17 @@ export default function BrainGraph() {
         redraw();
         return;
       }
-      const hit = pick(mx, my);
-      if (hit !== hoverRef.current) {
-        hoverRef.current = hit;
-        setHoverLabel(hit >= 0 ? NODES[hit].l : null);
-        cv.style.cursor = hit >= 0 ? "pointer" : "grab";
+      const h = pick(mx, my);
+      if (h !== hoverRef.current) {
+        hoverRef.current = h;
+        setHoverLabel(h >= 0 ? NODES[h].l : null);
+        cv.style.cursor = h >= 0 ? "pointer" : "grab";
         redraw();
       }
     };
     const onDown = (e: PointerEvent) => {
-      const rect = cv.getBoundingClientRect();
-      drag.current = {
-        on: true,
-        px: e.clientX - rect.left,
-        py: e.clientY - rect.top,
-      };
+      const [px, py] = xy(e);
+      drag.current = { on: true, px, py };
       cv.setPointerCapture(e.pointerId);
       cv.style.cursor = "grabbing";
     };
@@ -219,23 +287,6 @@ export default function BrainGraph() {
       drag.current.on = false;
       cv.style.cursor = "grab";
     };
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const rect = cv.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const v = view.current;
-      const f = e.deltaY < 0 ? 1.12 : 1 / 1.12;
-      const ns = Math.min(Math.max(v.scale * f, 0.4), 6);
-      // zoom toward cursor
-      const k0 = v.base * v.scale;
-      const k1 = v.base * ns;
-      v.x = mx - ((mx - v.cx - v.x) / k0) * k1 - v.cx;
-      v.y = my - ((my - v.cy - v.y) / k0) * k1 - v.cy;
-      v.scale = ns;
-      redraw();
-    };
-
     const onLeave = () => {
       drag.current.on = false;
       if (hoverRef.current !== -1) {
@@ -244,12 +295,25 @@ export default function BrainGraph() {
         redraw();
       }
     };
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const r = cv.getBoundingClientRect();
+      const mx = e.clientX - r.left;
+      const my = e.clientY - r.top;
+      const v = view.current;
+      const ns = Math.min(Math.max(v.scale * (e.deltaY < 0 ? 1.12 : 0.893), 0.4), 7);
+      const k0 = v.base * v.scale;
+      const k1 = v.base * ns;
+      v.x = mx - ((mx - v.cx - v.x) / k0) * k1 - v.cx;
+      v.y = my - ((my - v.cy - v.y) / k0) * k1 - v.cy;
+      v.scale = ns;
+      redraw();
+    };
     cv.addEventListener("pointermove", onMove);
     cv.addEventListener("pointerdown", onDown);
     cv.addEventListener("pointerup", onUp);
     cv.addEventListener("pointerleave", onLeave);
     cv.addEventListener("wheel", onWheel, { passive: false });
-
     return () => {
       ro.disconnect();
       cv.removeEventListener("pointermove", onMove);
@@ -258,20 +322,22 @@ export default function BrainGraph() {
       cv.removeEventListener("pointerleave", onLeave);
       cv.removeEventListener("wheel", onWheel);
     };
-  }, [draw, redraw, pick]);
+  }, [draw, redraw]);
 
   return (
     <div>
       <div
         ref={wrapRef}
         className="relative w-full brut-line bg-[var(--bg-2)] overflow-hidden"
-        style={{ height: "clamp(340px, 56vw, 560px)" }}
+        style={{ height: "clamp(360px, 60vw, 620px)" }}
       >
         <canvas ref={canvasRef} className="block touch-none" />
+
         {/* legend */}
         <div className="absolute top-3 left-3 sm:top-4 sm:left-4 pointer-events-none">
           <p className="label mb-2">
-            {C.nodes.toLocaleString("en-US")} notes · {C.edges.toLocaleString("en-US")} links
+            {C.nodes.toLocaleString("en-US")} notes ·{" "}
+            {C.edges.toLocaleString("en-US")} links
           </p>
           <div className="flex flex-col gap-1">
             {GROUPS.slice(0, 6).map((g) => (
@@ -282,21 +348,51 @@ export default function BrainGraph() {
               >
                 <span
                   className="inline-block w-2.5 h-2.5"
-                  style={{ background: `var(${TONE_VARS[g.tone]})` }}
+                  style={{ background: g.color }}
                 />
                 {g.label} · {g.count}
               </span>
             ))}
           </div>
         </div>
-        <p className="label absolute bottom-3 right-3 sm:bottom-4 sm:right-4 pointer-events-none">
-          {hoverLabel ? hoverLabel : "drag · scroll to zoom · hover a node"}
-        </p>
+
+        {/* growth date + control */}
+        <div className="absolute top-3 right-3 sm:top-4 sm:right-4 text-right pointer-events-none">
+          <p className="label">
+            {phase === "grow" ? "growing…" : "the brain, today"}
+          </p>
+          <p
+            className="display text-2xl sm:text-3xl tabular-nums leading-none mt-1"
+            style={{ color: "var(--fg)" }}
+          >
+            {mon(dateLbl)}
+          </p>
+        </div>
+
+        <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 flex items-end justify-between gap-3">
+          <p className="label pointer-events-none">
+            {hoverLabel ?? "drag · scroll to zoom · hover a node"}
+          </p>
+          {!reduce && phase === "done" && (
+            <button
+              type="button"
+              onClick={() => {
+                setRunId((n) => n + 1);
+                setPhase("grow");
+              }}
+              className="label-fg brut-line-thin px-3 py-1.5 bg-[var(--bg)] hover:bg-[var(--fg)] hover:text-[var(--bg)] transition shrink-0"
+            >
+              ↻ replay growth
+            </button>
+          )}
+        </div>
       </div>
+
       <p className="t-body-lg text-[var(--fg-3)] mt-4 max-w-2xl">
-        Every dot is a real note, every line a link I made between them. This
-        is the actual graph, not a decoration — {C.linked.toLocaleString("en-US")}{" "}
-        of {C.nodes.toLocaleString("en-US")} notes are wired into the web.
+        The whole vault, every note and every link I made between them, grown
+        back in the order it was actually written. {C.linked.toLocaleString("en-US")}{" "}
+        of {C.nodes.toLocaleString("en-US")} notes are wired into the web; the
+        loose halo is everything else I keep in here.
       </p>
     </div>
   );

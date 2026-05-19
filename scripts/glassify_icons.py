@@ -15,7 +15,7 @@ from scipy import ndimage
 
 ICONS = r"C:\Users\Alain Kessler\klar\public\icons"
 OUT = 1024              # match wavelength/yarnstash
-CONTENT_FRAC = 0.66     # icon spans ~66% of canvas (the others' visual size)
+CONTENT_FRAC = 0.72     # every icon spans exactly this much of the canvas
 
 
 def lum(rgb):
@@ -132,7 +132,9 @@ def glassify_myloo():
     print(f"myloo_v2: glassified (periwinkle key bg={bg.astype(int).tolist()})")
 
 
-def fix_corners(name):
+def refine_framed(name):
+    """kelva/moto: kill corner residue AND the subtle dark frame rim, then
+    size-match (fit into CONTENT_FRAC like the glass set)."""
     im = Image.open(f"{ICONS}/{name}.png").convert("RGBA")
     a = np.array(im).astype(np.float32)
     al = a[..., 3]
@@ -140,21 +142,39 @@ def fix_corners(name):
     ys, xs = np.where(al > 32)
     x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
     w, h = im.size
+    side = max(x1 - x0, y1 - y0)
     rm = rounded_mask(w, h, int(min(w, h) * 0.205))
-    # restrict to the content bbox too (corners outside frame -> 0)
     box = np.zeros((h, w), np.float32)
     box[y0:y1, x0:x1] = 1.0
     newa = al * rm * box
-    # kill dark low-alpha fringe (the visible black corner halo)
-    fringe = (newa < 110) & (L < 70)
-    newa[fringe] = 0.0
+    # trim the outermost ring (the dark frame outline that reads as a
+    # subtle black border): erode the shape by ~1.4% of the icon size
+    inset = max(6, int(round(side * 0.014)))
+    solid = (newa > 40).astype(np.uint8)
+    dist = ndimage.distance_transform_edt(solid)
+    edge = dist < inset
+    newa[edge] = 0.0
+    # and any remaining dark low-alpha speckle
+    newa[(newa < 110) & (L < 70)] = 0.0
     a[..., 3] = np.clip(newa, 0, 255)
-    Image.fromarray(a.astype(np.uint8), "RGBA").save(f"{ICONS}/{name}_v2.png")
-    print(f"{name}_v2: corner residue cleaned")
+    res = Image.fromarray(a.astype(np.uint8), "RGBA")
+    res = res.filter(ImageFilter.GaussianBlur(0.5))
+    fit_canvas(res).save(f"{ICONS}/{name}_v2.png")
+    print(f"{name}_v2: rim trimmed (inset {inset}px) + size-matched")
+
+
+def refit(name):
+    """wavelength/yarnstash are already clean glass — just normalise their
+    on-canvas size to the shared CONTENT_FRAC so all 6 match exactly."""
+    im = Image.open(f"{ICONS}/{name}.png").convert("RGBA")
+    fit_canvas(im).save(f"{ICONS}/{name}_v2.png")
+    print(f"{name}_v2: size-normalised")
 
 
 if __name__ == "__main__":
     glassify_trubel()
     glassify_myloo()
-    fix_corners("kelva")
-    fix_corners("moto")
+    refine_framed("kelva")
+    refine_framed("moto")
+    refit("wavelength")
+    refit("yarnstash")
