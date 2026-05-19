@@ -109,7 +109,7 @@ const APPS: App[] = [
   },
   {
     slug: "moto",
-    name: "Moto",
+    name: "ThrottleUp",
     pitch: "every service, logged.",
     description:
       "Maintenance and service tracking for motorcycles: oil, chain, tyres and mileage-based reminders, full service history and a shop log. Know exactly when the bike needs what, and prove it when you sell.",

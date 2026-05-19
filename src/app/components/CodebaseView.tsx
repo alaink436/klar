@@ -23,7 +23,7 @@ const NAMES: Record<string, string> = {
   wavelength: "wavelength",
   "yarn-stash": "yarn-stash",
   kelva: "kelva",
-  moto: "moto",
+  moto: "throttleup",
 };
 
 export default function CodebaseView() {
