@@ -41,11 +41,11 @@ for (const [a, b] of EDGES) {
   ADJ[a].push(b);
   ADJ[b].push(a);
 }
-// top hubs get an always-on label
+// only the very top hubs get an always-on label (kept few so they
+// don't blob up the centre)
 const HUBS = [...NODES.keys()]
   .sort((a, b) => NODES[b].r - NODES[a].r)
-  .slice(0, 16);
-const HUBSET = new Set(HUBS);
+  .slice(0, 6);
 
 const mon = (iso: string) => {
   const d = new Date(iso + "T00:00:00Z");
@@ -110,17 +110,40 @@ export default function BrainGraph() {
       for (const nb of ADJ[hv]) near.add(nb);
     }
 
-    // edges
+    // edges — each one bowed perpendicular, away from the graph centre,
+    // by however much it takes to wrap around the hollow middle. Chords
+    // that would cut straight through the centre bow the most.
+    const gcx = v.cx + v.x;
+    const gcy = v.cy + v.y;
+    const HOLE = 0.34 * k;
     ctx.lineWidth = 1;
     for (const [a, b] of EDGES) {
       const av = Math.min(vis(a), vis(b));
       if (av <= 0) continue;
       const on = hv >= 0 && (a === hv || b === hv);
-      ctx.strokeStyle = on ? "#bfeae3" : "#5b6072";
-      ctx.globalAlpha = (hv >= 0 ? (on ? 0.8 : 0.05) : 0.16) * av;
+      ctx.strokeStyle = on ? "#bfeae3" : "#4a4f60";
+      ctx.globalAlpha = (hv >= 0 ? (on ? 0.9 : 0.025) : 0.032) * av;
+      const ax = sx(NODES[a]);
+      const ay = sy(NODES[a]);
+      const bx = sx(NODES[b]);
+      const by = sy(NODES[b]);
+      const dx = bx - ax;
+      const dy = by - ay;
+      const L = Math.hypot(dx, dy) || 1;
+      const nx = -dy / L;
+      const ny = dx / L;
+      // signed distance of the graph centre from the chord line
+      const sd = (gcx - ax) * nx + (gcy - ay) * ny;
+      const clear = Math.max(0, HOLE - Math.abs(sd));
+      const bow = (6 + clear * 2.3) * (sd > 0 ? -1 : 1);
       ctx.beginPath();
-      ctx.moveTo(sx(NODES[a]), sy(NODES[a]));
-      ctx.lineTo(sx(NODES[b]), sy(NODES[b]));
+      ctx.moveTo(ax, ay);
+      ctx.quadraticCurveTo(
+        (ax + bx) / 2 + nx * bow,
+        (ay + by) / 2 + ny * bow,
+        bx,
+        by
+      );
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
@@ -135,11 +158,11 @@ export default function BrainGraph() {
       if (X < -30 || X > W + 30 || Y < -30 || Y > H + 30) continue;
       const col = GROUPS[n.g]?.color || "#9aa0b0";
       const dim = hv >= 0 && !near.has(i);
-      const rr = Math.max(1.6, n.r * Math.sqrt(v.scale));
+      const rr = Math.max(1.0, n.r * 0.62 * Math.sqrt(v.scale));
       ctx.globalAlpha = (dim ? 0.16 : 1) * a;
-      if (n.r > 7) {
+      if (n.r > 6) {
         ctx.shadowColor = col;
-        ctx.shadowBlur = 14;
+        ctx.shadowBlur = 8;
       }
       ctx.fillStyle = i === hv ? "#ffffff" : col;
       ctx.beginPath();
@@ -172,14 +195,16 @@ export default function BrainGraph() {
       const Y = sy(n);
       if (X < 0 || X > W || Y < 0 || Y > H) continue;
       const t = n.l;
-      const tw = ctx.measureText(t).width;
-      const lx = X + n.r * Math.sqrt(v.scale) + 6;
+      const lx = X + n.r * 0.62 * Math.sqrt(v.scale) + 6;
       const ly = Y;
-      ctx.globalAlpha = i === hv ? 1 : 0.72;
-      ctx.fillStyle = "rgba(7,7,9,0.7)";
-      ctx.fillRect(lx - 3, ly - 8, tw + 6, 16);
+      // soft shadow instead of a solid box, so labels don't form a
+      // dark mass in the middle
+      ctx.globalAlpha = i === hv ? 1 : 0.66;
+      ctx.shadowColor = "rgba(0,0,0,0.9)";
+      ctx.shadowBlur = 4;
       ctx.fillStyle = i === hv ? "#fff" : GROUPS[n.g]?.color || "#cfd2dc";
       ctx.fillText(t, lx, ly + 1);
+      ctx.shadowBlur = 0;
     }
     ctx.globalAlpha = 1;
   }, []);

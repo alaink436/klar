@@ -38,11 +38,11 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Klar · Indie App Studio",
   description:
-    "Klar builds apps for the generation scroll. Trubel, MyLoo, Wavelength, Yarn-Stash. Solo studio with AI in every loop.",
+    "Zero tech background, self-taught, six apps shipped in public. Trubel, MyLoo, Wavelength, Yarn-Stash, Kelva, ThrottleUp.",
   metadataBase: new URL("https://klar-five.vercel.app"),
   openGraph: {
     title: "Klar · Indie App Studio",
-    description: "Apps for the generation scroll.",
+    description: "No tech background. Self-taught. Shipped anyway.",
     type: "website",
   },
 };

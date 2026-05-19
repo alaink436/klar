@@ -174,14 +174,15 @@ export default function Home() {
           <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-12 gap-6 md:items-end">
             <div className="md:col-span-7 max-w-2xl">
               <p className="editorial t-editorial-xl">
-                we build apps for the
+                we had zero tech background.
                 <br />
-                people who never{" "}
-                <span className="text-[var(--silver)]">stopped scrolling</span>.
+                we taught ourselves{" "}
+                <span className="text-[var(--silver)]">all of it</span>.
               </p>
               <p className="t-body-lg text-[var(--fg-2)] mt-4 max-w-md">
-                a one-person studio. six shipped apps, designed and coded solo
-                with ai in every loop, run out of one obsidian brain.
+                no cs degree, no team, no shortcuts. just stubborn, self-taught,
+                and good at this now. six apps live, run out of one obsidian
+                brain. the receipts are right here.
               </p>
               <div className="mt-5 flex flex-wrap gap-2.5">
                 <Link href="#apps" className="brut-line label-fg px-4 py-2.5 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition">
@@ -247,7 +248,7 @@ export default function Home() {
 
         {/* ─── BLACK STRIPE ─── */}
         <div className="invert-block">
-          <span>↳ six apps. one person. one signal.</span>
+          <span>↳ no tech background. self-taught. shipped anyway.</span>
           <span className="hidden sm:inline">scroll ↓</span>
         </div>
 
@@ -361,9 +362,9 @@ export default function Home() {
                     <span className="text-[var(--fg)]">let&apos;s talk.</span>
                   </p>
                   <p className="t-body-lg text-[var(--fg-2)] mb-5">
-                    One-person studio means I pick projects carefully. Mobile
-                    apps, ai integrations, growth/tiktok systems. Happy to jam
-                    if the brief is sharp.
+                    Self-taught and hands-on, so I pick projects carefully.
+                    Mobile apps, ai integrations, growth/tiktok systems. Happy
+                    to jam if the brief is sharp.
                   </p>
                   <ConsultingForm />
                 </div>
@@ -441,7 +442,7 @@ export default function Home() {
 
         {/* ─── FINAL BLACK ACCENT ─── */}
         <div className="invert-block">
-          <span>made by a business student. shipped in public.</span>
+          <span>taught ourselves to build. shipping in public.</span>
           <span className="hidden sm:inline">↗ github</span>
         </div>
 
@@ -454,7 +455,7 @@ export default function Home() {
                 <span className="label">v0.8</span>
               </div>
               <p className="label">
-                built solo, with ai in every loop · shipped in public
+                self-taught, no tech background · hard work, shipped in public
               </p>
             </div>
             <div className="col-span-6 md:col-span-3">

@@ -156,22 +156,25 @@ r_s = np.hypot(pts[:, 0], pts[:, 1])
 r_s = r_s / (r_s.max() or 1.0)
 dg = np.array([deg[linked[k]] for k in range(n)], dtype=float)
 dn = np.sqrt(dg) / math.sqrt(dg.max() or 1.0)        # 0..1, hubs -> 1
-r_deg = 0.10 + 0.95 * (1.0 - dn) ** 1.7              # steep: leaves far out
-r_f = 0.18 * r_s + 0.82 * r_deg
+# spread the high-degree end across a band (don't pin every hub to the
+# same inner radius -> hubs + their labels stop clustering in one spot)
+r_deg = 0.30 + 0.70 * (1.0 - dn) ** 1.15
+r_f = 0.10 * r_s + 0.90 * r_deg
 # deterministic radial + angular jitter so equal-degree nodes don't ring
 jit = np.array([((hash(ids[linked[k]]) % 1000) / 1000.0 - 0.5)
                 for k in range(n)])
 jit2 = np.array([((hash(ids[linked[k]] + "r") % 1000) / 1000.0 - 0.5)
                  for k in range(n)])
-th = th + jit * 0.22
-r_f = np.clip(r_f + jit2 * 0.06, 0.04, None)
+th = th + jit * 0.26
+# hard inner hole: nothing closer than 0.18 to dead centre
+r_f = np.clip(r_f + jit2 * 0.07, 0.18, None)
 pts = np.stack([r_f * np.cos(th), r_f * np.sin(th)], axis=1)
 pts -= pts.mean(0)
 
-# ONLY resolve true overlaps — a strong relaxation would re-homogenise
-# density and undo the degree-radial spread. Small radius, few passes.
-MIN_D = 1.25 / math.sqrt(max(n, 1))
-for it in range(45):
+# resolve overlaps with a real gap so nodes don't touch (keep passes
+# low so the degree-radial spread isn't homogenised away)
+MIN_D = 2.1 / math.sqrt(max(n, 1))
+for it in range(55):
     diff = pts[:, None, :] - pts[None, :, :]
     d = np.sqrt((diff * diff).sum(-1))
     np.fill_diagonal(d, 1e9)
@@ -186,9 +189,18 @@ for it in range(45):
 
 # scale so the core fills the view (~1.0); tight halo just outside so
 # BrainGraph's fit-to-view doesn't zoom out and re-shrink the core.
+pts -= pts.mean(0)  # re-centre before measuring the radius
 core_r0 = float(np.hypot(pts[:, 0], pts[:, 1]).max()) or 1.0
 sc = 1.0 / core_r0
 core_pts = pts * sc
+# hard inner hole, applied LAST so no later re-centring can fill it:
+# anything inside HOLE is pushed out along its own angle. Empties the
+# dead centre -> the hub mass sits in a readable ring, not a blob.
+HOLE = 0.30
+rr = np.hypot(core_pts[:, 0], core_pts[:, 1])
+ang = np.arctan2(core_pts[:, 1], core_pts[:, 0])
+rr = np.where(rr < HOLE, HOLE + (HOLE - rr) * 0.5, rr)
+core_pts = np.stack([rr * np.cos(ang), rr * np.sin(ang)], axis=1)
 P = {i: (float(core_pts[k, 0]), float(core_pts[k, 1]))
      for k, i in enumerate(linked)}
 
@@ -200,7 +212,8 @@ for j, i in enumerate(iso):
 
 
 def rad(d):
-    return round(min(2.2 + math.sqrt(d) * 2.6, 18.0), 2)
+    # smaller dots: clumping is mostly node-diameter vs gap, not layout
+    return round(min(1.3 + math.sqrt(d) * 1.5, 10.0), 2)
 
 
 # chronological rank
