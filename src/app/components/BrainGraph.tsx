@@ -10,8 +10,22 @@
  * full interactive graph (drag / scroll-zoom / hover-trace). Growth runs
  * on a time-based interval (not rAF — rAF pauses while the tab is hidden).
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import graph from "../data/brainGraph.json";
+
+// de-AI overlay text: humanist body font, normal case (not mono caps)
+const META: CSSProperties = {
+  fontFamily: "var(--font-body), system-ui, sans-serif",
+  fontSize: "11px",
+  letterSpacing: "0.02em",
+  textTransform: "none",
+};
 
 interface GNode {
   x: number;
@@ -59,6 +73,8 @@ export default function BrainGraph() {
   const view = useRef({ scale: 1, x: 0, y: 0, base: 0, cx: 0, cy: 0 });
   const drag = useRef({ on: false, px: 0, py: 0 });
   const hoverRef = useRef(-1);
+  // editorial serif for node labels (not the AI-looking mono)
+  const labelFontRef = useRef("Georgia, 'Times New Roman', serif");
   const grownF = useRef(N); // visible rank cutoff (float); N = fully grown
   const [reduce, setReduce] = useState(false);
   const [phase, setPhase] = useState<"idle" | "grow" | "done">("idle");
@@ -69,6 +85,10 @@ export default function BrainGraph() {
   useEffect(() => {
     const m = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReduce(m.matches);
+    const ed = getComputedStyle(document.body)
+      .getPropertyValue("--font-editorial")
+      .trim();
+    if (ed) labelFontRef.current = `${ed}, Georgia, serif`;
   }, []);
 
   const draw = useCallback(() => {
@@ -183,8 +203,8 @@ export default function BrainGraph() {
     }
     ctx.globalAlpha = 1;
 
-    // always-on hub labels (+ hovered)
-    ctx.font = "11px ui-monospace, 'JetBrains Mono', monospace";
+    // always-on hub labels (+ hovered) — editorial serif, not AI mono
+    ctx.font = `italic 13px ${labelFontRef.current}`;
     ctx.textBaseline = "middle";
     const labelled = new Set(HUBS);
     if (hv >= 0) labelled.add(hv);
@@ -354,25 +374,26 @@ export default function BrainGraph() {
       <div
         ref={wrapRef}
         className="relative w-full brut-line bg-[var(--bg-2)] overflow-hidden"
-        style={{ height: "clamp(360px, 60vw, 620px)" }}
+        style={{ height: "clamp(320px, 64vw, 600px)" }}
       >
-        <canvas ref={canvasRef} className="block touch-none" />
+        {/* touch-pan-y: vertical swipes scroll the page (no scroll trap on
+            mobile); horizontal drag / mouse still pans the graph */}
+        <canvas ref={canvasRef} className="block touch-pan-y" />
 
-        {/* legend */}
-        <div className="absolute top-3 left-3 sm:top-4 sm:left-4 pointer-events-none">
-          <p className="label mb-2">
+        {/* legend (group breakdown hidden on small screens to declutter) */}
+        <div
+          className="absolute top-3 left-3 sm:top-4 sm:left-4 pointer-events-none"
+          style={META}
+        >
+          <p className="mb-2 text-[var(--fg-2)]">
             {C.nodes.toLocaleString("en-US")} notes ·{" "}
             {C.edges.toLocaleString("en-US")} links
           </p>
-          <div className="flex flex-col gap-1">
+          <div className="hidden sm:flex flex-col gap-1">
             {GROUPS.slice(0, 6).map((g) => (
-              <span
-                key={g.key}
-                className="label flex items-center gap-2"
-                style={{ fontSize: "10px" }}
-              >
+              <span key={g.key} className="flex items-center gap-2">
                 <span
-                  className="inline-block w-2.5 h-2.5"
+                  className="inline-block w-2.5 h-2.5 shrink-0"
                   style={{ background: g.color }}
                 />
                 {g.label} · {g.count}
@@ -382,12 +403,15 @@ export default function BrainGraph() {
         </div>
 
         {/* growth date + control */}
-        <div className="absolute top-3 right-3 sm:top-4 sm:right-4 text-right pointer-events-none">
-          <p className="label">
+        <div
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 text-right pointer-events-none"
+          style={META}
+        >
+          <p className="text-[var(--fg-3)]">
             {phase === "grow" ? "growing…" : "the brain, today"}
           </p>
           <p
-            className="display text-2xl sm:text-3xl tabular-nums leading-none mt-1"
+            className="editorial text-xl sm:text-3xl leading-none mt-1"
             style={{ color: "var(--fg)" }}
           >
             {mon(dateLbl)}
@@ -395,8 +419,12 @@ export default function BrainGraph() {
         </div>
 
         <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 flex items-end justify-between gap-3">
-          <p className="label pointer-events-none">
-            {hoverLabel ?? "drag · scroll to zoom · hover a node"}
+          <p
+            className="pointer-events-none truncate text-[var(--fg-3)]"
+            style={META}
+          >
+            {hoverLabel ??
+              "drag, scroll to zoom, hover a node"}
           </p>
           {!reduce && phase === "done" && (
             <button
@@ -405,15 +433,24 @@ export default function BrainGraph() {
                 setRunId((n) => n + 1);
                 setPhase("grow");
               }}
-              className="label-fg brut-line-thin px-3 py-1.5 bg-[var(--bg)] hover:bg-[var(--fg)] hover:text-[var(--bg)] transition shrink-0"
+              className="brut-line-thin px-3 py-1.5 bg-[var(--bg)] hover:bg-[var(--fg)] hover:text-[var(--bg)] transition shrink-0 text-[var(--fg-2)]"
+              style={META}
             >
-              ↻ replay growth
+              ↻ replay
             </button>
           )}
         </div>
       </div>
 
-      <p className="t-body-lg text-[var(--fg-3)] mt-4 max-w-2xl">
+      <p
+        className="text-[var(--fg-3)] mt-4 max-w-2xl"
+        style={{
+          fontFamily: "var(--font-editorial), Georgia, serif",
+          fontStyle: "italic",
+          fontSize: "clamp(15px, 2.4vw, 19px)",
+          lineHeight: 1.5,
+        }}
+      >
         The whole vault, every note and every link I made between them, grown
         back in the order it was actually written. {C.linked.toLocaleString("en-US")}{" "}
         of {C.nodes.toLocaleString("en-US")} notes are wired into the web; the
