@@ -135,22 +135,67 @@ deg = dict(G.degree())
 # outer ring grouped by folder so the centre stays readable
 linked = [i for i in range(len(ids)) if deg[i] > 0]
 iso = [i for i in range(len(ids)) if deg[i] == 0]
-sub = G.subgraph(linked)
-# stronger repulsion + more iterations -> the linked core breathes
-# instead of collapsing into one tight ball
-pos = nx.spring_layout(sub, k=4.4 / math.sqrt(max(len(linked), 1)),
-                       iterations=260, seed=7)
-xs = [pos[i][0] for i in linked] or [0]
-ys = [pos[i][1] for i in linked] or [0]
-cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
-sc = 1.95 / max(max(xs) - min(xs), max(ys) - min(ys), 1e-6)
-P = {i: ((pos[i][0] - cx) * sc, (pos[i][1] - cy) * sc) for i in linked}
+import numpy as np
 
-# isolated notes in a calm halo, clearly outside the (now larger) core
+sub = G.subgraph(linked)
+# spring gives the cluster structure...
+pos = nx.spring_layout(sub, k=5.5 / math.sqrt(max(len(linked), 1)),
+                       iterations=300, seed=7)
+pts = np.array([pos[i] for i in linked], dtype=float)
+pts -= pts.mean(0)
+pts /= (np.abs(pts).max() or 1.0)
+
+# Degree-radial remap: a uniform packing of 353 nodes is unavoidably
+# dense in the middle. So keep the *angle* from spring (preserves which
+# cluster points where) but set each node's *radius* mostly by degree —
+# hubs stay near the centre with room around them, low-degree leaf notes
+# fan outward. The centre becomes a readable hub skeleton, not a pile.
+n = len(pts)
+th = np.arctan2(pts[:, 1], pts[:, 0])
+r_s = np.hypot(pts[:, 0], pts[:, 1])
+r_s = r_s / (r_s.max() or 1.0)
+dg = np.array([deg[linked[k]] for k in range(n)], dtype=float)
+dn = np.sqrt(dg) / math.sqrt(dg.max() or 1.0)        # 0..1, hubs -> 1
+r_deg = 0.10 + 0.95 * (1.0 - dn) ** 1.7              # steep: leaves far out
+r_f = 0.18 * r_s + 0.82 * r_deg
+# deterministic radial + angular jitter so equal-degree nodes don't ring
+jit = np.array([((hash(ids[linked[k]]) % 1000) / 1000.0 - 0.5)
+                for k in range(n)])
+jit2 = np.array([((hash(ids[linked[k]] + "r") % 1000) / 1000.0 - 0.5)
+                 for k in range(n)])
+th = th + jit * 0.22
+r_f = np.clip(r_f + jit2 * 0.06, 0.04, None)
+pts = np.stack([r_f * np.cos(th), r_f * np.sin(th)], axis=1)
+pts -= pts.mean(0)
+
+# ONLY resolve true overlaps — a strong relaxation would re-homogenise
+# density and undo the degree-radial spread. Small radius, few passes.
+MIN_D = 1.25 / math.sqrt(max(n, 1))
+for it in range(45):
+    diff = pts[:, None, :] - pts[None, :, :]
+    d = np.sqrt((diff * diff).sum(-1))
+    np.fill_diagonal(d, 1e9)
+    close = d < MIN_D
+    if not close.any():
+        break
+    unit = diff / d[..., None]
+    force = (np.where(close[..., None], unit * (MIN_D - d)[..., None], 0.0)
+             .sum(1))
+    pts += force * 0.5 * (1.0 - it / 60.0)
+    pts -= pts.mean(0)
+
+# scale so the core fills the view (~1.0); tight halo just outside so
+# BrainGraph's fit-to-view doesn't zoom out and re-shrink the core.
+core_r0 = float(np.hypot(pts[:, 0], pts[:, 1]).max()) or 1.0
+sc = 1.0 / core_r0
+core_pts = pts * sc
+P = {i: (float(core_pts[k, 0]), float(core_pts[k, 1]))
+     for k, i in enumerate(linked)}
+
 iso.sort(key=lambda i: (notes[ids[i]]["group"], ids[i]))
 for j, i in enumerate(iso):
     ang = 2 * math.pi * j / max(len(iso), 1)
-    rr = 1.46 + 0.16 * ((j * 7) % 5) / 5.0
+    rr = 1.08 + 0.14 * ((j * 7) % 5) / 5.0
     P[i] = (rr * math.cos(ang), rr * math.sin(ang))
 
 
