@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { Syne, Fraunces, Manrope, JetBrains_Mono } from "next/font/google";
+import { Space_Grotesk, Fraunces, Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-/* Display: Syne — an idiosyncratic art-studio grotesque with hand-cut
-   character. Strong human/indie signal, no Anton-style AI-default blockiness. */
-const display = Syne({
+/* Display: Space Grotesk — clean, normally-proportioned geometric grotesque.
+   Deliberately not an elongated/condensed face (Syne read as too stretched). */
+const display = Space_Grotesk({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
