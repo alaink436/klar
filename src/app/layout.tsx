@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Fraunces, Manrope, JetBrains_Mono } from "next/font/google";
+import { Syne, Fraunces, Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-/* Display: Bricolage Grotesque — a drawn, contemporary grotesque with real
-   character. Bold presence without Anton's slab/AI-default blockiness. */
-const display = Bricolage_Grotesque({
+/* Display: Syne — an idiosyncratic art-studio grotesque with hand-cut
+   character. Strong human/indie signal, no Anton-style AI-default blockiness. */
+const display = Syne({
   variable: "--font-display",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 });
 

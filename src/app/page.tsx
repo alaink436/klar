@@ -6,6 +6,7 @@ import NowFeed from "./components/NowFeed";
 import CodebaseView from "./components/CodebaseView";
 import Zeitraffer from "./components/Zeitraffer";
 import BrainGraph from "./components/BrainGraph";
+import HashAccordion from "./components/HashAccordion";
 import { AffiliateForm, ConsultingForm, CoachingForm } from "./components/Forms";
 import codebase from "./data/codebase.json";
 
@@ -130,6 +131,8 @@ const GITHUB_NOW = "https://github.com/alaink436/now";
 export default function Home() {
   return (
     <>
+      <HashAccordion />
+
       {/* ─── GLOBAL LIQUID-METAL BACKGROUND ─── */}
       <div className="bg-stage" aria-hidden="true">
         <div className="bg-layer bg-layer-1" style={{ backgroundImage: "url('/bg/bg-1.webp')" }} />
@@ -150,11 +153,17 @@ export default function Home() {
             <Link href="#apps" className="label hover:text-[var(--fg)] transition">apps</Link>
             <Link href="#brain" className="label hover:text-[var(--fg)] transition">brain</Link>
             <Link href="#zeitraffer" className="label hidden sm:inline hover:text-[var(--fg)] transition">zeitraffer</Link>
-            <Link href="#consulting" className="label hidden sm:inline hover:text-[var(--fg)] transition">work</Link>
             <Link href="#affiliate" className="label hidden md:inline hover:text-[var(--fg)] transition">affiliate</Link>
             <Link href="#code" className="label hidden md:inline hover:text-[var(--fg)] transition">code</Link>
             <Link href="/log" className="label hidden md:inline hover:text-[var(--fg)] transition">log</Link>
             <Link href={GITHUB_PROFILE} target="_blank" className="label hidden md:inline hover:text-[var(--fg)] transition">github ↗</Link>
+            <Link
+              href="#consulting"
+              className="label-fg brut-line-thin px-2.5 py-1 whitespace-nowrap hover:bg-[var(--fg)] hover:text-[var(--bg)] hover:border-[var(--fg)] transition"
+            >
+              <span className="sm:hidden">work</span>
+              <span className="hidden sm:inline">work with me</span>
+            </Link>
             <Link href="https://www.tiktok.com/@klar" target="_blank" className="label-fg flex items-center gap-1.5 group">
               <span className="text-[var(--silver)] group-hover:text-[var(--fg)] transition">●</span>
               @klar
