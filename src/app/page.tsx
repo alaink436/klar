@@ -4,6 +4,8 @@ import AppCrest, { type App } from "./components/AppCrest";
 import GlitchWordmark from "./components/GlitchWordmark";
 import NowFeed from "./components/NowFeed";
 import CodebaseView from "./components/CodebaseView";
+import Zeitraffer from "./components/Zeitraffer";
+import AIBrain from "./components/AIBrain";
 import { AffiliateForm, ConsultingForm, CoachingForm } from "./components/Forms";
 import codebase from "./data/codebase.json";
 
@@ -160,7 +162,13 @@ export default function Home() {
             <Link href="#apps" className="label hover:text-[var(--fg)] transition">
               apps
             </Link>
-            <Link href="/log" className="label hover:text-[var(--fg)] transition">
+            <Link
+              href="#zeitraffer"
+              className="label hover:text-[var(--fg)] transition"
+            >
+              zeitraffer
+            </Link>
+            <Link href="/log" className="label hidden sm:inline hover:text-[var(--fg)] transition">
               log
             </Link>
             <Link
@@ -168,6 +176,12 @@ export default function Home() {
               className="label hidden md:inline hover:text-[var(--fg)] transition"
             >
               code
+            </Link>
+            <Link
+              href="#ai-brain"
+              className="label hidden md:inline hover:text-[var(--fg)] transition"
+            >
+              brain
             </Link>
             <Link
               href="#affiliate"
@@ -362,6 +376,28 @@ export default function Home() {
         {/* ─── BRUTAL STRIPE ─── */}
         <div className="invert-block-stripe" aria-hidden="true" />
 
+        {/* ─────────── ZEITRAFFER (always expanded) ─────────── */}
+        <section
+          id="zeitraffer"
+          className="veil-mid px-4 sm:px-6 md:px-12 py-14 sm:py-20 md:py-28 border-b border-[var(--line)] relative z-10"
+        >
+          <div className="flex items-baseline justify-between mb-6 sm:mb-10">
+            <p className="label">003 // zeitraffer.</p>
+            <p className="label hidden sm:inline">scroll to play</p>
+          </div>
+          <div className="mb-8 sm:mb-12 max-w-3xl">
+            <p className="editorial t-editorial-xl text-[var(--fg-2)]">
+              two months of shipping,{" "}
+              <span className="text-[var(--fg)]">on fast-forward</span>.
+            </p>
+            <p className="t-body-lg text-[var(--fg-2)] mt-4 max-w-2xl">
+              Not a claim. Every commit, every week, scanned from the repos
+              and the brain that runs them.
+            </p>
+          </div>
+          <Zeitraffer />
+        </section>
+
         {/* ─────────── COLLAPSIBLE SECTIONS ─────────── */}
 
         {/* Affiliate */}
@@ -371,7 +407,7 @@ export default function Home() {
         >
           <details className="group">
             <summary className="acc-summary">
-              <span className="acc-tag">003 // affiliate.</span>
+              <span className="acc-tag">004 // affiliate.</span>
               <span className="acc-title">affiliate.</span>
               <span className="acc-pitch">got an audience? bring it.</span>
               <span className="acc-toggle" aria-hidden="true" />
@@ -398,7 +434,7 @@ export default function Home() {
         <section id="consulting" className="veil-mid relative z-10">
           <details className="group">
             <summary className="acc-summary">
-              <span className="acc-tag">004 // consulting.</span>
+              <span className="acc-tag">005 // consulting.</span>
               <span className="acc-title">consulting.</span>
               <span className="acc-pitch">building something? let&apos;s talk.</span>
               <span className="acc-toggle" aria-hidden="true" />
@@ -424,7 +460,7 @@ export default function Home() {
         <section id="coaching" className="veil-mid relative z-10">
           <details className="group">
             <summary className="acc-summary">
-              <span className="acc-tag">005 // coaching.</span>
+              <span className="acc-tag">006 // coaching.</span>
               <span className="acc-title">coaching.</span>
               <span className="acc-pitch">building solo? let&apos;s fix that.</span>
               <span className="acc-toggle" aria-hidden="true" />
@@ -451,7 +487,7 @@ export default function Home() {
         <section id="now" className="veil-dark relative z-10">
           <details className="group">
             <summary className="acc-summary">
-              <span className="acc-tag">006 // now.</span>
+              <span className="acc-tag">007 // now.</span>
               <span className="acc-title">now.</span>
               <span className="acc-pitch">build log · auto-fetched</span>
               <span className="acc-toggle" aria-hidden="true" />
@@ -492,7 +528,7 @@ export default function Home() {
         <section id="code" className="veil-mid relative z-10">
           <details className="group">
             <summary className="acc-summary">
-              <span className="acc-tag">007 // code.</span>
+              <span className="acc-tag">008 // code.</span>
               <span className="acc-title">code.</span>
               <span className="acc-pitch">the receipts, by the numbers</span>
               <span className="acc-toggle" aria-hidden="true" />
@@ -509,6 +545,21 @@ export default function Home() {
                 </p>
               </div>
               <CodebaseView />
+            </div>
+          </details>
+        </section>
+
+        {/* AI-Brain */}
+        <section id="ai-brain" className="veil-dark relative z-10">
+          <details className="group">
+            <summary className="acc-summary">
+              <span className="acc-tag">009 // brain.</span>
+              <span className="acc-title">brain.</span>
+              <span className="acc-pitch">the system behind the loop</span>
+              <span className="acc-toggle" aria-hidden="true" />
+            </summary>
+            <div className="acc-body">
+              <AIBrain />
             </div>
           </details>
         </section>
@@ -538,6 +589,12 @@ export default function Home() {
                 className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
               >
                 Apps
+              </Link>
+              <Link
+                href="#zeitraffer"
+                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
+              >
+                Zeitraffer
               </Link>
               <Link
                 href="/log"
@@ -574,6 +631,12 @@ export default function Home() {
                 className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
               >
                 Code
+              </Link>
+              <Link
+                href="#ai-brain"
+                className="block text-[var(--fg-2)] hover:text-[var(--fg)] transition text-sm py-0.5"
+              >
+                Brain
               </Link>
               <Link
                 href="mailto:alainkessler04@gmail.com"

@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
-import { Anton, Eczar, Manrope, JetBrains_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Fraunces, Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-/* Display: Anton (condensed, brutalist, distinct — not in reflex list) */
-const anton = Anton({
+/* Display: Bricolage Grotesque — a drawn, contemporary grotesque with real
+   character. Bold presence without Anton's slab/AI-default blockiness. */
+const display = Bricolage_Grotesque({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["400"],
   display: "swap",
 });
 
-/* Editorial italic: Eczar (display serif with strong italic) */
-const eczar = Eczar({
+/* Editorial: Fraunces — high-contrast old-style serif with optical sizing
+   and wonk. The strongest "made by a human" signal on the page. */
+const editorial = Fraunces({
   variable: "--font-editorial",
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  style: ["normal"],
+  style: ["normal", "italic"],
   display: "swap",
 });
 
@@ -53,7 +53,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${anton.variable} ${eczar.variable} ${manrope.variable} ${jetbrains.variable} grain antialiased`}
+        className={`${display.variable} ${editorial.variable} ${manrope.variable} ${jetbrains.variable} grain antialiased`}
       >
         {children}
       </body>
