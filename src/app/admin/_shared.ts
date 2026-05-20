@@ -86,8 +86,8 @@ export const STYLE = `
  --shadow:0 1px 3px rgba(0,0,0,.06),0 8px 24px -8px rgba(0,0,0,.08);
  --shadow-lg:0 4px 14px rgba(0,0,0,.08),0 18px 48px -16px rgba(0,0,0,.12);
  --radius:10px;--radius-sm:6px;--radius-lg:14px;
- --font-display:'Syne',system-ui,sans-serif;--font-editorial:'Fraunces',Georgia,serif;
- --font-body:'Manrope',system-ui,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;
+ --font-display:var(--font-bebas),'Bebas Neue',system-ui,sans-serif;--font-editorial:'Fraunces',Georgia,serif;
+ --font-body:var(--font-geist),'Geist',system-ui,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;
 }
 [data-theme="dark"]{
  color-scheme:dark;
@@ -121,9 +121,13 @@ a{color:inherit;text-decoration:none}
 .side::-webkit-scrollbar{width:4px}
 .side::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
 
-.brand{font-family:var(--font-display);font-weight:800;font-size:22px;letter-spacing:-.03em;padding:6px 10px 14px;display:flex;align-items:baseline;gap:6px;color:var(--fg)}
-.brand .dot{color:var(--fg-3)}
-.brand small{font-family:var(--font-mono);color:var(--fg-4);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.2em}
+.brand{padding:4px 8px 14px;display:flex;align-items:center;gap:10px;color:var(--fg)}
+.brand-mark{width:34px;height:34px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--surface-2);display:flex;align-items:center;justify-content:center;border:1px solid var(--line)}
+[data-theme="dark"] .brand-mark{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10);box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 4px 14px -6px rgba(0,0,0,.5)}
+.brand-mark img{width:100%;height:100%;object-fit:contain;display:block}
+.brand-text{display:flex;flex-direction:column;gap:1px;line-height:1;min-width:0}
+.brand-text .brand-name{font-family:var(--font-display);font-weight:400;font-size:26px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg)}
+.brand-text .brand-sub{font-family:var(--font-mono);color:var(--fg-4);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.22em;margin-top:2px}
 
 .navsec{font-family:var(--font-mono);font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:var(--fg-4);padding:0 12px;margin:18px 0 6px;display:flex;align-items:center;gap:8px}
 .navsec::after{content:"";flex:1;height:1px;background:var(--line)}
@@ -160,7 +164,7 @@ a{color:inherit;text-decoration:none}
 
 .content{padding:36px;max-width:1180px;width:100%;margin:0 auto}
 
-h1{font-family:var(--font-display);font-weight:700;font-size:clamp(26px,3.4vw,34px);letter-spacing:-.025em;line-height:1.05;margin:0 0 8px;color:var(--fg)}
+h1{font-family:var(--font-display);font-weight:400;font-size:clamp(34px,4.6vw,46px);letter-spacing:.04em;text-transform:uppercase;line-height:1;margin:0 0 10px;color:var(--fg)}
 .sub{font-family:var(--font-editorial);font-style:italic;font-size:17px;line-height:1.45;color:var(--fg-3);margin:0 0 28px;max-width:62ch}
 h2{font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-3);margin:32px 0 12px;display:flex;align-items:center;gap:10px}
 h2::after{content:"";flex:1;height:1px;background:var(--line)}
@@ -247,7 +251,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 .login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(800px 400px at 80% -10%,color-mix(in oklab,var(--fg) 4%,transparent),transparent),radial-gradient(600px 300px at 10% 110%,color-mix(in oklab,var(--fg) 3%,transparent),transparent),var(--bg)}
 .login-card{width:100%;max-width:380px;text-align:center;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-lg);padding:44px 36px;box-shadow:var(--shadow-lg)}
 .login-badge{display:flex;align-items:center;justify-content:center;width:44px;height:44px;margin:0 auto 20px;border-radius:var(--radius);background:var(--surface-2);color:var(--fg-2)}
-.login-mark{font-family:var(--font-display);font-weight:800;font-size:48px;letter-spacing:-.035em;line-height:1}
+.login-mark{font-family:var(--font-display);font-weight:400;font-size:54px;letter-spacing:.06em;text-transform:uppercase;line-height:1;color:var(--fg)}
 .login-mark .dot{color:var(--fg-3)}
 .login-tag{font-family:var(--font-editorial);font-style:italic;font-size:16px;color:var(--fg-3);margin:10px 0 0}
 .login-rule{height:1px;background:var(--line);margin:24px 0 22px}
@@ -260,42 +264,43 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 /* Smoke canvas: full-viewport, fixed behind everything, fades to 0 in light mode */
 #klar-smoke-bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-2;display:block;opacity:0;transition:opacity .6s ease;pointer-events:none}
 [data-theme="dark"] #klar-smoke-bg{opacity:.55}
-/* Aurora wash on top of smoke, adds violet/cyan gradient bloom */
-.klar-aurora{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:0;transition:opacity .6s ease;background:radial-gradient(ellipse 1200px 800px at 15% -10%,rgba(139,92,246,.22),transparent 60%),radial-gradient(ellipse 900px 700px at 85% 110%,rgba(6,182,212,.18),transparent 60%),radial-gradient(ellipse 700px 500px at 50% 50%,rgba(236,72,153,.08),transparent 70%)}
+/* Aurora wash on top of smoke (subtle ink-tone wash, monochrome to match VS) */
+.klar-aurora{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:0;transition:opacity .6s ease;background:radial-gradient(ellipse 1400px 900px at 15% -10%,rgba(255,255,255,.06),transparent 60%),radial-gradient(ellipse 900px 700px at 85% 110%,rgba(255,255,255,.04),transparent 60%)}
 [data-theme="dark"] .klar-aurora{opacity:1}
-/* Dark theme: pull surfaces to transparent-glass so smoke shines through */
+/* Dark theme: VS Ink & Steel — monochrome charcoal, glass cards over smoke */
 [data-theme="dark"]{
-  --bg:#06060A;
-  --surface:rgba(20,18,28,.62);
-  --surface-2:rgba(28,26,38,.55);
-  --surface-3:rgba(38,36,50,.50);
+  --bg:#0A0A0A;
+  --surface:rgba(17,17,17,.62);
+  --surface-2:rgba(26,26,26,.55);
+  --surface-3:rgba(38,38,38,.50);
+  --fg:#FAFAFA;--fg-2:#D4D4D4;--fg-3:#A3A3A3;--fg-4:#737373;
   --line:rgba(255,255,255,.07);
   --line-strong:rgba(255,255,255,.14);
-  --accent:#E5E7EB;--accent-fg:#0A0A0F;
-  --chart-1:#E5E7EB;--chart-2:#A78BFA;--chart-3:#22D3EE;--chart-4:#F472B6;--chart-fill:rgba(167,139,250,.22);
+  --accent:#FAFAFA;--accent-fg:#0A0A0A;
+  --chart-1:#FAFAFA;--chart-2:#A3A3A3;--chart-3:#737373;--chart-4:#525252;--chart-fill:rgba(250,250,250,.18);
 }
-[data-theme="dark"] body{background:#06060A}
+[data-theme="dark"] body{background:#0A0A0A}
 /* Side rail in dark: subtle frosted vertical stripe */
 [data-theme="dark"] .side{background:linear-gradient(180deg,rgba(20,18,28,.78) 0%,rgba(10,10,16,.62) 100%);backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);border-right:1px solid rgba(255,255,255,.08)}
 /* Topbar in dark: thin frosted slab */
 [data-theme="dark"] .topbar{background:linear-gradient(180deg,rgba(10,10,16,.55),rgba(10,10,16,.25));backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);border-bottom:1px solid rgba(255,255,255,.06)}
 /* Cards in dark: liquid glass surface */
-[data-theme="dark"] .card,[data-theme="dark"] .chart,[data-theme="dark"] .batch,[data-theme="dark"] .app-tab{backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);border:1px solid rgba(255,255,255,.10);box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 24px 60px -28px rgba(0,0,0,.6),0 8px 22px -16px rgba(139,92,246,.18)}
-[data-theme="dark"] .card:hover,[data-theme="dark"] .app-tab:hover{border-color:rgba(167,139,250,.34);box-shadow:0 1px 0 rgba(255,255,255,.10) inset,0 30px 80px -28px rgba(0,0,0,.7),0 14px 36px -20px rgba(167,139,250,.30)}
+[data-theme="dark"] .card,[data-theme="dark"] .chart,[data-theme="dark"] .batch,[data-theme="dark"] .app-tab{backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);border:1px solid rgba(255,255,255,.10);box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 24px 60px -28px rgba(0,0,0,.6),0 8px 22px -16px rgba(0,0,0,.4)}
+[data-theme="dark"] .card:hover,[data-theme="dark"] .app-tab:hover{border-color:rgba(255,255,255,.22);box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 30px 80px -28px rgba(0,0,0,.7),0 14px 36px -20px rgba(0,0,0,.5)}
 /* Tables in dark: glass surface, soft borders */
 [data-theme="dark"] table{backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);border:1px solid rgba(255,255,255,.08)}
 [data-theme="dark"] th{background:rgba(20,18,28,.65)}
-[data-theme="dark"] tbody tr:hover td{background:rgba(167,139,250,.06)}
-/* Pills + buttons in dark: refined glass-on-glass */
+[data-theme="dark"] tbody tr:hover td{background:rgba(255,255,255,.04)}
+/* Pills + buttons in dark: refined glass-on-glass, monochrome */
 [data-theme="dark"] .pill{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10);color:var(--fg-2)}
-[data-theme="dark"] .pill.live{background:linear-gradient(135deg,#A78BFA,#22D3EE);color:#0A0A0F;border-color:transparent;box-shadow:0 4px 14px -4px rgba(167,139,250,.5)}
-[data-theme="dark"] .btn{background:linear-gradient(135deg,rgba(229,231,235,.94),rgba(229,231,235,.86));color:#0A0A0F;border:1px solid rgba(255,255,255,.18);box-shadow:0 4px 14px -4px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.4) inset;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
-[data-theme="dark"] .btn:hover{box-shadow:0 8px 22px -6px rgba(167,139,250,.4),0 1px 0 rgba(255,255,255,.5) inset;transform:translateY(-1px)}
-/* Login card glass in dark */
-[data-theme="dark"] .login{background:radial-gradient(800px 600px at 50% -20%,rgba(167,139,250,.22),transparent),radial-gradient(700px 500px at 50% 120%,rgba(34,211,238,.18),transparent),#06060A}
-[data-theme="dark"] .login-card{backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);background:rgba(20,18,28,.55);border:1px solid rgba(255,255,255,.10);box-shadow:0 1px 0 rgba(255,255,255,.10) inset,0 40px 80px -20px rgba(0,0,0,.7),0 16px 40px -16px rgba(167,139,250,.25)}
+[data-theme="dark"] .pill.live{background:#FAFAFA;color:#0A0A0A;border-color:#FAFAFA;box-shadow:0 4px 14px -4px rgba(255,255,255,.18)}
+[data-theme="dark"] .btn{background:#FAFAFA;color:#0A0A0A;border:1px solid rgba(255,255,255,.18);box-shadow:0 4px 14px -4px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.5) inset}
+[data-theme="dark"] .btn:hover{box-shadow:0 8px 22px -6px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.6) inset;transform:translateY(-1px);opacity:1}
+/* Login card glass in dark, monochrome wash */
+[data-theme="dark"] .login{background:radial-gradient(900px 700px at 50% -20%,rgba(255,255,255,.05),transparent),radial-gradient(800px 600px at 50% 120%,rgba(255,255,255,.03),transparent),#0A0A0A}
+[data-theme="dark"] .login-card{backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);background:rgba(17,17,17,.55);border:1px solid rgba(255,255,255,.10);box-shadow:0 1px 0 rgba(255,255,255,.10) inset,0 40px 80px -20px rgba(0,0,0,.7)}
 /* Iframe-wrap in dark: glassy frame */
-[data-theme="dark"] .iframewrap{background:rgba(20,18,28,.62);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+[data-theme="dark"] .iframewrap{background:rgba(17,17,17,.62);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
 
 @media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none}html{scroll-behavior:auto}.card{transition:none}#klar-smoke-bg{display:none}.klar-aurora{display:none}}
 @media(max-width:820px){
@@ -367,8 +372,8 @@ export const SMOKE_BG_SCRIPT = String.raw`(function(){
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,1,-1,-1,1,1,1,-1]), gl.STATIC_DRAW);
   var pos = gl.getAttribLocation(prog, 'position'); gl.enableVertexAttribArray(pos); gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
   var uRes = gl.getUniformLocation(prog, 'resolution'), uTime = gl.getUniformLocation(prog, 'time'), uColor = gl.getUniformLocation(prog, 'u_color');
-  // Smoke colour: muted violet-cyan, sits well behind glass cards
-  var color = [0.42, 0.38, 0.56];
+  // Smoke colour: VS default neutral grey (#808080 rgb 0.5,0.5,0.5)
+  var color = [0.5, 0.5, 0.5];
   function resize(){ var dpr = Math.max(0.5, (window.devicePixelRatio || 1) * 0.5); c.width = Math.floor(window.innerWidth * dpr); c.height = Math.floor(window.innerHeight * dpr); gl.viewport(0, 0, c.width, c.height); }
   resize(); window.addEventListener('resize', resize, { passive: true });
   var raf, last = 0, interval = 1000 / 30; // 30 fps target

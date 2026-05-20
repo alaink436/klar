@@ -110,8 +110,8 @@ if("serviceWorker"in navigator){addEventListener("load",function(){navigator.ser
 function loginPage(err?: string): Response {
   return doc(`<div class="login">
     <div class="login-card">
-      <div class="login-badge" aria-hidden="true" style="width:44px;height:44px">${ICON.lock}</div>
-      <div class="login-mark">klar<span class="dot">.</span></div>
+      <div class="login-badge" aria-hidden="true" style="width:56px;height:56px;padding:6px"><img src="/logo/klar-symbol.png" alt="Klar" style="width:100%;height:100%;object-fit:contain;display:block"/></div>
+      <div class="login-mark">Klar</div>
       <p class="login-tag">Das Kontrollzentrum hinter dem Studio.</p>
       <div class="login-rule"></div>
       ${err ? `<p class="login-err">${esc(err)}</p>` : ""}
@@ -134,7 +134,10 @@ function shell(view: string, apps: AdminApp[], flash: string | null, main: strin
     labels[view] ?? apps.find((a) => a.slug === view)?.name ?? "Übersicht";
   return `<div class="layout">
     <aside class="side">
-      <div class="brand">klar<span class="dot">.</span><small>Control</small></div>
+      <a class="brand" href="/admin?view=overview" aria-label="Klar Control Home">
+        <span class="brand-mark"><img src="/logo/klar-symbol.png" alt="" width="34" height="34"/></span>
+        <span class="brand-text"><span class="brand-name">Klar</span><span class="brand-sub">Control</span></span>
+      </a>
       <div class="navsec">Studio</div>
       ${item("overview", "Übersicht", ICON.overview)}
       ${item("inbox", "Inbox", ICON.inbox)}
