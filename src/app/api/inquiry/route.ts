@@ -7,9 +7,24 @@
 // surface cannot read, update or delete rows even if abused. The anon key is
 // public by design (shipped in app bundles), so it is safe to ship here.
 // Reading happens in /admin via a server-side service-role key (separate env).
+//
+// Hardening:
+//   - 32 KB body cap, before reading the stream
+//   - origin/referer must match our allowed-list (best-effort CSRF guard)
+//   - per-IP rate-limit: 5 inserts / 10 min before we reject
+//   - honeypot still active below, so even allowed clients can't spam
+
+import {
+  clientIp,
+  exceedsContentLength,
+  isAllowedOrigin,
+  rateLimit,
+} from "@/lib/apiGuards";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const MAX_BODY_BYTES = 32 * 1024;
 
 const SUPABASE_URL =
   process.env.KLAR_INQUIRY_SUPABASE_URL ??
@@ -36,6 +51,23 @@ function json(body: Json, status = 200): Response {
 }
 
 export async function POST(req: Request): Promise<Response> {
+  if (exceedsContentLength(req, MAX_BODY_BYTES))
+    return json({ success: false, error: "too_large" }, 413);
+  if (!isAllowedOrigin(req))
+    return json({ success: false, error: "bad_origin" }, 403);
+  const rl = rateLimit("inquiry", clientIp(req), 5, 10 * 60 * 1000);
+  if (!rl.ok)
+    return new Response(
+      JSON.stringify({ success: false, error: "rate_limited" }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(rl.retryAfterSeconds),
+        },
+      },
+    );
+
   let payload: Json;
   try {
     payload = (await req.json()) as Json;

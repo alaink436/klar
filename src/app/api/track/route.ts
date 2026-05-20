@@ -14,9 +14,17 @@
 //      falls back to KLAR_ADMIN_KEY which is already secret).
 
 import { createHash } from "node:crypto";
+import {
+  clientIp,
+  exceedsContentLength,
+  isAllowedOrigin,
+  rateLimit,
+} from "@/lib/apiGuards";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const MAX_BODY_BYTES = 2 * 1024;
 
 const SUPABASE_URL =
   process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
@@ -63,6 +71,20 @@ export async function POST(req: Request): Promise<Response> {
     return new Response(null, { status: 204 });
   }
 
+  // Drop anything that didn't come from our own pages and anything obviously
+  // oversized. Both are silent (204) on purpose — we never want to surface
+  // analytics errors to the visitor.
+  if (exceedsContentLength(req, MAX_BODY_BYTES))
+    return new Response(null, { status: 204 });
+  if (!isAllowedOrigin(req)) return new Response(null, { status: 204 });
+
+  // Cheap-flood guard: cap a single client to 60 pageviews / minute. Real
+  // humans burst nowhere near this; bots that get past the UA filter below
+  // can still try, but they won't bloat klar_pageviews.
+  const ip = clientIp(req);
+  const rl = rateLimit("track", ip, 60, 60 * 1000);
+  if (!rl.ok) return new Response(null, { status: 204 });
+
   let body: { path?: unknown; referrer?: unknown };
   try {
     body = await req.json();
@@ -76,10 +98,6 @@ export async function POST(req: Request): Promise<Response> {
   }
   const referrer = trim(typeof body.referrer === "string" ? body.referrer : "", 200);
 
-  const ip =
-    (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() ||
-    req.headers.get("x-real-ip") ||
-    "";
   const ua = req.headers.get("user-agent") ?? "";
   // Block obvious bots; they bloat the table without telling us anything useful.
   if (/bot|crawler|spider|preview|prerender|headless/i.test(ua)) {

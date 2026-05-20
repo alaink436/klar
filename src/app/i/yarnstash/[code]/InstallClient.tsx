@@ -8,7 +8,7 @@
 // A best-effort write on mount covers Android/desktop (no gesture needed).
 //
 // Visual identity = the "Atelier" design system from the Yarn-Stash app
-// (constants/theme.ts), with the official app icon (/icons/yarnstash.png)
+// (constants/theme.ts), with the official app icon (/icons/yarnstash.webp)
 // as the brand anchor and a warm bone surface that mirrors the in-app feel.
 
 import { useEffect, useRef, useState } from "react";
@@ -130,7 +130,7 @@ export function InstallClient({ code }: { code: string }) {
           }}
         >
           <Image
-            src="/icons/yarnstash.png"
+            src="/icons/yarnstash.webp"
             alt="My Yarn Stash"
             fill
             sizes="92px"

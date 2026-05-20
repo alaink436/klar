@@ -28,7 +28,7 @@ const APPS: App[] = [
     },
     status: "BUILD",
     buildNote: "build · IAP done",
-    icon: "/icons/trubel.png",
+    icon: "/icons/trubel.webp",
     screenshots: [
       "/screenshots/trubel/01.jpg",
       "/screenshots/trubel/02.jpg",
@@ -48,7 +48,7 @@ const APPS: App[] = [
     },
     status: "BETA",
     buildNote: "in review",
-    icon: "/icons/myloo.png",
+    icon: "/icons/myloo.webp",
     screenshots: [
       "/screenshots/myloo/01.jpg",
       "/screenshots/myloo/02.jpg",
@@ -70,7 +70,7 @@ const APPS: App[] = [
     },
     status: "BUILD",
     buildNote: "native build",
-    icon: "/icons/wavelength.png",
+    icon: "/icons/wavelength.webp",
   },
   {
     slug: "yarn-stash",
@@ -86,7 +86,7 @@ const APPS: App[] = [
     status: "LIVE",
     buildNote: "live · 4★+",
     appStoreUrl: "https://apps.apple.com/app/yarn-stash",
-    icon: "/icons/yarnstash.png",
+    icon: "/icons/yarnstash.webp",
     screenshots: [
       "/screenshots/yarn-stash/01.jpg",
       "/screenshots/yarn-stash/02.jpg",
@@ -107,7 +107,7 @@ const APPS: App[] = [
     },
     status: "BUILD",
     buildNote: "in review",
-    icon: "/icons/kelva.png",
+    icon: "/icons/kelva.webp",
   },
   {
     slug: "moto",
@@ -122,7 +122,7 @@ const APPS: App[] = [
     },
     status: "BUILD",
     buildNote: "in review",
-    icon: "/icons/moto.png",
+    icon: "/icons/moto.webp",
   },
 ];
 

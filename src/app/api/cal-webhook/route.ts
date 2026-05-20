@@ -9,9 +9,14 @@
 // Both header variants are checked.
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { exceedsContentLength } from "@/lib/apiGuards";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// Cal.com payloads are well under 16 KB in practice; cap generously so we
+// drop anything obviously oversized before we parse it.
+const MAX_BODY_BYTES = 64 * 1024;
 
 const SUPABASE_URL =
   process.env.KLAR_INBOX_SUPABASE_URL ??
@@ -83,8 +88,12 @@ export async function POST(req: Request): Promise<Response> {
     console.error("cal-webhook: KLAR_CAL_WEBHOOK_SECRET not set");
     return j({ ok: false, error: "misconfigured" }, 500);
   }
+  if (exceedsContentLength(req, MAX_BODY_BYTES))
+    return j({ ok: false, error: "too_large" }, 413);
 
   const rawBody = await req.text();
+  if (rawBody.length > MAX_BODY_BYTES)
+    return j({ ok: false, error: "too_large" }, 413);
   const sig =
     req.headers.get("x-cal-signature-256") ??
     req.headers.get("cal-signature-256");

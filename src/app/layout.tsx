@@ -58,7 +58,7 @@ export const metadata: Metadata = {
   title: "Klar · Indie App Studio",
   description:
     "Zero tech background, self-taught, six apps shipped in public. Trubel, MyLoo, Wavelength, Yarn-Stash, Kelva, ThrottleUp.",
-  metadataBase: new URL("https://klar-five.vercel.app"),
+  metadataBase: new URL("https://getklar.org"),
   openGraph: {
     title: "Klar · Indie App Studio",
     description: "No tech background. Self-taught. Shipped anyway.",

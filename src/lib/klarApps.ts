@@ -21,18 +21,18 @@ export interface KlarAppMeta {
 }
 
 export const KLAR_APPS: KlarAppMeta[] = [
-  { slug: "trubel", name: "Trubel", icon: "/icons/trubel.png", status: "BUILD" },
-  { slug: "myloo", name: "MyLoo", icon: "/icons/myloo.png", status: "BETA" },
-  { slug: "wavelength", name: "Wavelength", icon: "/icons/wavelength.png", status: "BUILD" },
+  { slug: "trubel", name: "Trubel", icon: "/icons/trubel.webp", status: "BUILD" },
+  { slug: "myloo", name: "MyLoo", icon: "/icons/myloo.webp", status: "BETA" },
+  { slug: "wavelength", name: "Wavelength", icon: "/icons/wavelength.webp", status: "BUILD" },
   {
     slug: "yarn-stash",
     name: "Yarn-Stash",
-    icon: "/icons/yarnstash.png",
+    icon: "/icons/yarnstash.webp",
     status: "LIVE",
     affiliatePathPrefix: "/i/yarnstash",
   },
-  { slug: "kelva", name: "Kelva", icon: "/icons/kelva.png", status: "BUILD" },
-  { slug: "moto", name: "ThrottleUp", icon: "/icons/moto.png", status: "BUILD" },
+  { slug: "kelva", name: "Kelva", icon: "/icons/kelva.webp", status: "BUILD" },
+  { slug: "moto", name: "ThrottleUp", icon: "/icons/moto.webp", status: "BUILD" },
 ];
 
 export function findKlarApp(slug: string): KlarAppMeta | undefined {
