@@ -101,7 +101,9 @@ export async function POST(req: Request): Promise<Response> {
 
   const p = event.payload ?? {};
   const calUid = typeof p.uid === "string" ? p.uid : null;
-  if (!calUid) return j({ ok: false, error: "missing_uid" }, 400);
+  // Cal.com test-ping is a signed POST with an empty/minimal payload (no uid).
+  // Accept it as OK so the UI test succeeds without writing a junk row.
+  if (!calUid) return j({ ok: true, note: "no_uid_skipped" });
 
   const attendee = Array.isArray(p.attendees) && p.attendees.length ? p.attendees[0] : {};
 
