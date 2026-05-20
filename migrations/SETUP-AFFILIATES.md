@@ -1,134 +1,128 @@
 # Klar Affiliate-Payout Setup
 
-Diese Notiz beschreibt was du pro App tun musst, damit `/admin` für sie
-Salden anzeigt und „Auszahlungen" über Wise abwickeln kann.
+Diese Doku erklärt wie du Wise + die 6 App-Edge-Functions in einem Rutsch
+aufsetzt. Das eigentliche Aussstellen läuft über das Skript
+`scripts/setup-affiliates.mjs`, du machst nur Pre-flight + Input.
 
-## Was bereits da ist
+## Was läuft schon
 
-- **Generisches Schema** ist via MCP-Migration `affiliates_v1_init` in alle
-  6 App-Supabases ausgerollt (Yarn-Stash, Trubel, MyLoo, Wavelength,
-  Kelva, Moto). Wavelength hatte vorher schon ein **richer** Schema, dort
-  wurde nur die kompatible `influencer_claimable` View nachgezogen.
-- **Klar `/admin`** (route.ts) liest pro App `influencers`,
-  `influencer_claimable`, `referral_revenue_events`,
-  `influencer_payout_batches`, `influencer_payout_items`. Apps ohne
-  Daten zeigen „nicht ausgerollt", brechen aber nichts.
-- **Zentrale Auszahlungs-View** `/admin?view=payouts` aggregiert alle
-  Batches aller verdrahteten Apps. „Alle vorbereiten"-Button ruft
-  `/admin/dispatch-all` → loop über jede App's `wise-dispatch`.
+- **Schema** ist via MCP-Migration in alle 6 App-Supabases ausgerollt
+  (Yarn-Stash / Trubel / MyLoo / Wavelength / Kelva / Moto). Tabellen:
+  `influencers`, `referral_revenue_events`, `influencer_payout_batches`,
+  `influencer_payout_items`. View: `influencer_claimable`.
+- **Klar /admin** liest die Tabellen, hat eine zentrale Auszahlungen-View
+  (`/admin?view=payouts`) und ein „Alle vorbereiten"-Button der über alle
+  Apps loopt.
+- **Edge Function Code** liegt in `supabase/functions/wise-dispatch/` und
+  `supabase/functions/wise-reconcile/` und ist deploy-ready.
 
-## Was du selbst noch tun musst
+## Was du selbst noch tun musst (3 Schritte)
 
-### 1. KLAR_ADMIN_APPS env in Vercel
+### Schritt 1 — Wise
 
-Setze für jede App, die im `/admin` sichtbar sein soll, einen Eintrag:
+1. Wise Business → Settings → API tokens → **Create new token** mit
+   **Full access**. Token sofort kopieren (wird einmalig angezeigt).
+2. Wise Business → Settings → Account details → **Business profile**.
+   Notiere die numerische ID.
 
-```json
-[
-  {
-    "slug": "yarn-stash",
-    "name": "Yarn-Stash",
-    "supabaseUrl": "https://zysmsgaordfkptzngntn.supabase.co",
-    "serviceKey": "<service-role key>",
-    "functionsBase": "https://zysmsgaordfkptzngntn.supabase.co/functions/v1",
-    "adminKey": "<random 32-byte secret, gleiches Secret in App-Supabase als KLAR_APP_ADMIN_KEY>"
-  },
-  …
-]
-```
+Die Werte gehen gleich in `affiliates-input.json` (lokal, gitignored).
 
-Supabase Project-IDs:
+### Schritt 2 — App-Service-Role-Keys einsammeln
 
-| slug         | project_id              |
-| ------------ | ----------------------- |
-| `yarn-stash` | `zysmsgaordfkptzngntn`  |
-| `trubel`     | `hinivxigapnkrytpcqdl`  |
-| `myloo`      | `jkgymggxshtsljjvketi`  |
-| `wavelength` | `yxhzwzgnbmpjztkvdudr`  |
-| `kelva`      | `absnjkjxbxeyekmcmpof`  |
-| `moto`       | `mpqapdnixzgolmfyckla`  |
+Für jede der 6 Apps brauchst du den `service_role`-Key (RLS-Bypass,
+server-only, niemals in Client-Code).
 
-### 2. Wise Business-Account + API-Token
+Pro App: Supabase Dashboard → das App-Projekt öffnen → **Settings** →
+**API** → unter „Project API keys" den **service_role**-Wert kopieren.
 
-- Erstelle (falls noch nicht) einen Wise-Business-Account.
-- Generiere ein **Personal Token** unter Settings → API → Tokens.
-- Notiere deine `WISE_PROFILE_ID` (Business Profile, integer).
+| App         | Project-ID              | Service-Role-Key holen aus               |
+| ----------- | ----------------------- | ---------------------------------------- |
+| yarn-stash  | `zysmsgaordfkptzngntn`  | Yarn-Stash Supabase Settings → API       |
+| trubel      | `hinivxigapnkrytpcqdl`  | Trubel Supabase Settings → API           |
+| myloo       | `jkgymggxshtsljjvketi`  | MyLoo Supabase Settings → API            |
+| wavelength  | `yxhzwzgnbmpjztkvdudr`  | Wavelength Supabase Settings → API       |
+| kelva       | `absnjkjxbxeyekmcmpof`  | Kelva Supabase Settings → API            |
+| moto        | `mpqapdnixzgolmfyckla`  | Moto Maintenance Supabase Settings → API |
 
-### 3. Edge Functions deployen (pro App)
+### Schritt 3 — Skript laufen lassen
 
-Templates liegen in `migrations/templates/`:
-
-- `wise-dispatch.ts` → wird `supabase/functions/wise-dispatch/index.ts`
-- `wise-reconcile.ts` → wird `supabase/functions/wise-reconcile/index.ts`
-
-Setup pro App-Supabase:
+**Pre-flight (einmalig):**
 
 ```bash
-# in der jeweiligen App-Codebase
-supabase functions deploy wise-dispatch
-supabase functions deploy wise-reconcile
+# Supabase CLI installieren (Windows)
+scoop install supabase
+# oder via npm (cross-platform)
+npm install -g supabase
 
-supabase secrets set \
-  WISE_API_TOKEN=<dein Wise-Token> \
-  WISE_PROFILE_ID=<deine Profile-ID> \
-  WISE_SOURCE_CURRENCY=EUR \
-  KLAR_APP_ADMIN_KEY=<gleiches Secret wie in KLAR_ADMIN_APPS.adminKey>
+# Supabase einloggen (öffnet Browser)
+supabase login
 ```
 
-### 4. Influencer-Onboarding (Multi-Domain, automatisch)
+**Input-Datei anlegen:**
 
-Sobald ein Influencer einen Code mintet (z. B. via getklar.org/affiliate
-oder über die App-Marketing-Seite), schreibt das System eine Row in
-`influencers` mit `handle`, `email`, `signup_domain`, `source_app`. Der
-`wise_recipient_id` wird beim ersten Auszahlungs-Schritt nachgefragt
-(Email-Link zur Wise-Account-Wahl) — das ist der Teil der noch in
-einem Folge-Sprint kommt.
-
-### 5. Conversion-Ingest (pro App)
-
-Damit Batches überhaupt Beträge bekommen, müssen `referral_revenue_events`
-befüllt werden. Pro App heißt das ein Webhook von:
-
-- **RevenueCat** → schreibt `event_at`, `gross_revenue_cents`,
-  `gross_currency` (USD/EUR/CHF…), `share_cents_eur` (50% in EUR),
-  `matured_at` (60 Tage später, nach Refund-Window).
-- **Awin** (für Knit Picks, Minerva etc.) → analog, source="awin".
-
-Wavelength hat das in ihrem Schema schon abstrahiert (`event_type`,
-`counts_for_payout`, `rc_subscriber_id`). Die anderen 5 Apps brauchen
-noch ihre App-spezifische `ingest-conversion`-Edge-Function — auch das
-ist Folge-Sprint.
-
-### 6. pg_cron-Batch-Builder
-
-Monatlicher Job in jeder App-Supabase, der alle gereiften, ungebatchten
-Events zu `influencer_payout_batches` + `influencer_payout_items` rollt
-und Status auf `awaiting_release` setzt. Cron-Skript ist app-spezifisch
-(Refund-Window, Mindestbetrag, etc.) — nicht im Template enthalten, weil
-Trubel/MyLoo/Wavelength/Yarn-Stash unterschiedliche Mindestbeträge haben
-können.
-
-## Verification-Checklist
-
-Nach dem Setup einer App:
-
-1. `/admin` → App-Tab klicken → sollte „nicht ausgerollt" durch echte
-   Salden ersetzen, sobald `influencers` befüllt ist.
-2. `/admin?view=payouts` → KPI-Cards zeigen „Offen gesamt" inkl. dieser App.
-3. Test-Batch manuell anlegen, „via Wise" klicken → Wise-Dashboard
-   sollte den Transfer als Draft sehen.
-4. Wise → Batch funden → 1-2h warten → „Status holen" → Item-Status flippt
-   auf `paid`, Batch-Status auf `paid`.
-
-## Quick-Sanity-SQL pro App
-
-```sql
--- in jedem App-Supabase ausführen, sollte 5 Zeilen ergeben
-select tablename from pg_tables
-where schemaname='public'
-  and tablename in ('influencers','referral_revenue_events',
-                    'influencer_payout_batches','influencer_payout_items')
-order by tablename;
-
-select count(*) from public.influencer_claimable;  -- View vorhanden = 0+ rows ohne Error
+```bash
+cd C:\Users\Alain Kessler\klar
+cp scripts/affiliates-input.example.json scripts/affiliates-input.json
+# affiliates-input.json öffnen und alle PASTE_* Felder ersetzen
 ```
+
+In `scripts/affiliates-input.json` füllst du:
+- `wise.api_token` → dein Wise-Token aus Schritt 1
+- `wise.profile_id` → deine Business Profile-ID aus Schritt 1
+- 6× `apps.<slug>.service_role_key` → die aus Schritt 2
+
+**Skript starten:**
+
+```bash
+npm run affiliates:setup
+```
+
+Das Skript wird pro App:
+1. Ein zufälliges 32-byte `KLAR_APP_ADMIN_KEY` erzeugen
+2. Alle 4 Wise-Secrets in der App-Supabase setzen
+3. `wise-dispatch` und `wise-reconcile` deployen
+4. Einen Smoke-Test gegen die deployed Function ausführen
+5. Resultate in `scripts/affiliates-output.json` schreiben (gitignored)
+
+Am Ende druckt es ein fertiges `KLAR_ADMIN_APPS`-JSON, das du in Vercel
+unter `klar` Project → Settings → Environment Variables einträgst.
+
+### Schritt 4 — Vercel env
+
+Im Vercel-Dashboard:
+1. `klar` Projekt → Settings → Environment Variables
+2. **New** → Key: `KLAR_ADMIN_APPS`, Value: das JSON vom Skript-Output,
+   Environment: **Production** (+ Preview falls du willst)
+3. **Save**, dann **Deployments** → letzten Deploy **Redeploy** klicken
+
+Nach dem Redeploy sind alle 6 Apps in `/admin` sichtbar und `/admin?view=payouts`
+kann Batches über alle Apps holen.
+
+## Wenn was schiefgeht
+
+Das Skript ist idempotent: bei einem zweiten Run werden bestehende
+`admin_key`-Werte aus `affiliates-output.json` wiederverwendet, sodass
+dein Vercel-env nicht jedes Mal neu paste-en musst. Du kannst also
+gefahrlos nochmal laufen lassen, falls eine App halb durch ist.
+
+Bei Smoke-Test-Failures:
+- `401 unauthorized` → admin_key kam nicht an, Secrets neu setzen
+- `500 wise_misconfigured` → Wise-Token oder Profile-ID fehlt
+- Timeout → Edge Function deploy noch nicht durch, 30s warten und erneut
+
+## Was noch fehlt (Folge-Sprint)
+
+Aufgesetzt ist die Auszahlungs-Pipeline. Was noch nicht da ist:
+
+1. **Per-App Conversion-Ingest** — RevenueCat- + Awin-Webhooks die in
+   `referral_revenue_events` schreiben. Wavelength hat das schon, die
+   anderen 5 brauchen analoge Edge Functions.
+2. **Onboarding-Flow** — wie kommt ein Influencer überhaupt mit
+   `wise_recipient_id` in die `influencers`-Tabelle. Aktuell muss man
+   das manuell setzen.
+3. **pg_cron-Batch-Builder** — der monatliche Job der gereifte Events zu
+   Batches rollt. Pro App eigener Cron-Job nötig (Refund-Window
+   unterscheidet sich).
+
+Ohne diese drei Dinge bleiben die Tabellen leer und `/admin?view=payouts`
+zeigt eine Empty-State. Setup-Skript bereitet aber den Boden vor.

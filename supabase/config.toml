@@ -1,0 +1,11 @@
+# Minimal supabase config so `supabase functions deploy --project-ref <ref>`
+# can find supabase/functions/* from the klar repo root. We never link this
+# directory to a single project; deploys always go through --project-ref so
+# the same function code can target all six app supabases.
+project_id = "klar"
+
+[functions.wise-dispatch]
+verify_jwt = false
+
+[functions.wise-reconcile]
+verify_jwt = false

@@ -47,3 +47,11 @@ next-env.d.ts
 /.screenshots/
 
 .vercel
+
+# affiliate setup secrets (Wise + service-role keys + admin keys)
+/scripts/affiliates-input.json
+/scripts/affiliates-output.json
+
+# supabase CLI local cache
+/supabase/.branches
+/supabase/.temp

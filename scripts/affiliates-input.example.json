@@ -1,0 +1,34 @@
+{
+  "_comment": "Copy this file to klar/scripts/affiliates-input.json (gitignored) and fill in the real values. Never commit the filled version.",
+  "wise": {
+    "api_token": "PASTE_YOUR_WISE_PERSONAL_TOKEN_HERE",
+    "profile_id": "PASTE_YOUR_WISE_BUSINESS_PROFILE_ID_HERE",
+    "source_currency": "EUR"
+  },
+  "apps": {
+    "yarn-stash": {
+      "project_ref": "zysmsgaordfkptzngntn",
+      "service_role_key": "PASTE_YARN_STASH_SERVICE_ROLE_KEY_HERE"
+    },
+    "trubel": {
+      "project_ref": "hinivxigapnkrytpcqdl",
+      "service_role_key": "PASTE_TRUBEL_SERVICE_ROLE_KEY_HERE"
+    },
+    "myloo": {
+      "project_ref": "jkgymggxshtsljjvketi",
+      "service_role_key": "PASTE_MYLOO_SERVICE_ROLE_KEY_HERE"
+    },
+    "wavelength": {
+      "project_ref": "yxhzwzgnbmpjztkvdudr",
+      "service_role_key": "PASTE_WAVELENGTH_SERVICE_ROLE_KEY_HERE"
+    },
+    "kelva": {
+      "project_ref": "absnjkjxbxeyekmcmpof",
+      "service_role_key": "PASTE_KELVA_SERVICE_ROLE_KEY_HERE"
+    },
+    "moto": {
+      "project_ref": "mpqapdnixzgolmfyckla",
+      "service_role_key": "PASTE_MOTO_SERVICE_ROLE_KEY_HERE"
+    }
+  }
+}
