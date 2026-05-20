@@ -12,6 +12,16 @@
 
 import { createSign } from "node:crypto";
 import { getApps, sbGet, type AdminApp } from "../../lib/adminApps";
+import {
+  STYLE,
+  ICON,
+  FONTS_LINK,
+  THEME_INIT_SCRIPT,
+  THEME_TOGGLE_SCRIPT,
+  ctEqual,
+  readCookie,
+  esc,
+} from "./_shared";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -47,159 +57,70 @@ interface Inquiry {
   brief?: string;
 }
 
-function ctEqual(a: string, b: string): boolean {
-  const x = new TextEncoder().encode(a), y = new TextEncoder().encode(b);
-  if (x.length !== y.length) return false;
-  let r = 0;
-  for (let i = 0; i < x.length; i++) r |= x[i] ^ y[i];
-  return r === 0;
+interface CalBooking {
+  cal_uid?: string;
+  trigger_event?: string;
+  event_type_slug?: string;
+  title?: string;
+  start_time?: string;
+  end_time?: string;
+  attendee_email?: string;
+  attendee_name?: string;
+  location?: string;
+  status?: string;
+  created_at?: string;
 }
-function readCookie(req: Request, name: string): string {
-  const raw = req.headers.get("cookie") ?? "";
-  for (const part of raw.split(";")) {
-    const [k, ...v] = part.trim().split("=");
-    if (k === name) return decodeURIComponent(v.join("="));
-  }
-  return "";
-}
-function esc(s: unknown): string {
-  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-}
+
 const eur = (c: number | null | undefined) =>
   (Number(c ?? 0) / 100).toLocaleString("de-CH", { style: "currency", currency: "EUR" });
 
-const STYLE = `
-:root{
- --bg:oklch(0.04 0.002 270);--bg-2:oklch(0.08 0.002 270);--bg-3:oklch(0.12 0.002 270);
- --fg:oklch(0.97 0.002 270);--fg-2:oklch(0.74 0.002 270);--fg-3:oklch(0.48 0.002 270);--fg-4:oklch(0.32 0.002 270);
- --line:oklch(0.18 0.002 270);--line-2:oklch(0.30 0.002 270);--line-strong:oklch(0.85 0.002 270);
- --silver:oklch(0.78 0.002 270);--accent:var(--silver);
- --font-display:'Syne',sans-serif;--font-editorial:'Fraunces',Georgia,serif;
- --font-body:'Manrope',system-ui,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;
-}
-*{box-sizing:border-box;border-color:var(--line)}
-html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;position:relative}
-body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:90;opacity:0.03;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-a{color:inherit;text-decoration:none}
-::selection{background:var(--fg);color:var(--bg)}
-.label{font-family:var(--font-mono);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--fg-3)}
-.layout{display:flex;min-height:100vh}
-.side{width:248px;flex-shrink:0;border-right:1px solid var(--line);padding:28px 18px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
-.brand{font-family:var(--font-display);font-weight:800;font-size:26px;letter-spacing:-0.035em;padding:0 10px;display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
-.brand .dot{color:var(--silver)}
-.brand small{font-family:var(--font-mono);color:var(--fg-3);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:0.22em}
-.navsec{font-family:var(--font-mono);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.18em;color:var(--fg-4);padding:0 11px;margin:24px 0 8px}
-.nav{display:flex;align-items:center;gap:9px;padding:9px 11px;color:var(--fg-3);font-family:var(--font-mono);font-size:11.5px;letter-spacing:0.12em;text-transform:uppercase;border:1px solid transparent;transition:color .15s,background .15s,border-color .15s}
-.nav:hover{color:var(--fg);background:var(--bg-2)}
-.nav.on{color:var(--fg);background:var(--bg-2);box-shadow:inset 2px 0 0 var(--fg)}
-.nav .d{font-size:8px;color:var(--fg-4)}
-.nav.on .d{color:var(--fg)}
-.spacer{flex:1;min-height:18px}
-.logout{color:var(--fg-4)}
-.logout:hover{color:var(--fg)}
-.main{flex:1;min-width:0;display:flex;flex-direction:column}
-.topbar{display:flex;align-items:center;gap:8px;padding:16px 44px;border-bottom:1px solid var(--line);font-family:var(--font-mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--fg-3);position:sticky;top:0;background:oklch(0.04 0.002 270 / 0.86);backdrop-filter:blur(8px);z-index:5}
-.crumb{color:var(--fg-4)}
-.crumb b{color:var(--fg);font-weight:500}
-.content{padding:44px;max-width:1140px;width:100%}
-h1{font-family:var(--font-display);font-weight:800;font-size:clamp(30px,4vw,42px);letter-spacing:-0.03em;line-height:1.04;margin:0 0 12px}
-.sub{font-family:var(--font-editorial);font-style:italic;font-size:20px;line-height:1.4;color:var(--fg-2);margin:0 0 32px;max-width:62ch}
-h2{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:var(--fg-3);margin:40px 0 14px;display:flex;align-items:center;gap:8px}
-h2::before{content:"//";color:var(--fg-4)}
-.flash{border:1px solid var(--line-strong);padding:13px 16px 13px 34px;margin-bottom:24px;font-size:13.5px;background:var(--bg-2);position:relative}
-.flash::before{content:"\\203A";position:absolute;left:15px;top:12px;font-family:var(--font-mono);color:var(--fg)}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--line);border:1px solid var(--line-strong);overflow:hidden;margin-bottom:32px}
-.card{padding:20px 22px;background:var(--bg-2)}
-.k{font-family:var(--font-mono);color:var(--fg-3);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.16em}
-.v{font-family:var(--font-display);font-weight:800;font-size:32px;margin-top:10px;line-height:1;letter-spacing:-0.03em;font-variant-numeric:tabular-nums}
-.s{font-family:var(--font-mono);color:var(--fg-3);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;margin-top:8px}
-table{width:100%;border-collapse:collapse;font-size:13.5px}
-th{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.16em;text-transform:uppercase;color:var(--fg-3);text-align:left;border-bottom:1px solid var(--line-strong);padding:11px 12px}
-td{padding:12px 12px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
-tr:hover td{background:var(--bg-2)}
-.r{text-align:right}.c{text-align:center}
-.pill{display:inline-block;padding:3px 9px;font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;border:1px solid var(--line-strong);color:var(--fg-2)}
-.pill.live{background:var(--fg);color:var(--bg);border-color:var(--fg)}
-.btn{display:inline-block;padding:12px 22px;border:1px solid var(--line-strong);background:transparent;color:var(--fg);font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.16em;text-transform:uppercase;cursor:pointer;transition:background .2s,color .2s}
-.btn:hover{background:var(--fg);color:var(--bg)}
-.btn.ghost{border-color:var(--line)}
-.btn.ghost:hover{background:var(--bg-2);color:var(--fg)}
-.batch{border:1px solid var(--line);padding:16px 18px;margin-top:14px;background:var(--bg-2)}
-.muted{color:var(--fg-3)}
-.warn{display:inline-block;color:var(--bg);background:var(--fg);padding:2px 8px;font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase}
-.applink{font-weight:600;border-bottom:1px solid var(--line-strong);padding-bottom:1px;transition:border-color .15s,color .15s}
-.applink:hover{border-color:var(--fg);color:var(--fg)}
-.chart{border:1px solid var(--line);background:var(--bg-2);padding:24px}
-.legend{font-family:var(--font-mono);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.14em;color:var(--fg-3);margin-top:14px;display:flex;gap:22px;flex-wrap:wrap}
-.legend i{display:inline-block;width:10px;height:10px;margin-right:7px;vertical-align:-1px}
-.iframewrap{border:1px solid var(--line-strong);background:#fff;overflow:hidden}
-iframe{width:100%;height:88vh;border:0;display:block}
-::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--line)}::-webkit-scrollbar-thumb:hover{background:var(--fg-3)}
-@view-transition{navigation:auto}
-::view-transition-old(root),::view-transition-new(root){animation-duration:130ms}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--fg)}
-.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.login-card{position:relative;width:100%;max-width:400px;text-align:center;border:1px solid var(--line-strong);background:var(--bg-2);padding:48px 40px}
-.login-badge{display:flex;align-items:center;justify-content:center;width:44px;height:44px;margin:0 auto 20px;border:1px solid var(--line-strong);background:var(--bg);color:var(--fg)}
-.login-mark{font-family:var(--font-display);font-weight:800;font-size:56px;letter-spacing:-0.04em;line-height:1}
-.login-tag{font-family:var(--font-editorial);font-style:italic;font-size:19px;color:var(--fg-2);margin:12px 0 0}
-.login-rule{height:1px;background:var(--line-strong);margin:26px 0 24px}
-.login-err{font-family:var(--font-mono);color:var(--fg);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;margin:0 0 14px}
-.login-input{width:100%;padding:14px 16px;border:1px solid var(--line-strong);background:var(--bg);color:var(--fg);font-size:15px;font-family:var(--font-mono);letter-spacing:0.05em;transition:border-color .15s}
-.login-input::placeholder{color:var(--fg-4)}
-.login-foot{font-family:var(--font-mono);color:var(--fg-4);font-size:10px;letter-spacing:.18em;text-transform:uppercase;margin-top:26px}
-@media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none};html{scroll-behavior:auto}}
-@media(max-width:820px){
- .layout{flex-direction:column}
- .side{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;gap:5px;border-right:0;border-bottom:1px solid var(--line);padding:14px 16px}
- .brand{width:100%;margin-bottom:4px}
- .navsec{display:none}.spacer{display:none}
- .topbar{padding:13px 20px}.content{padding:28px 20px}
- h1{font-size:30px}
-}
-`;
+// STYLE moved to ./_shared.ts so /admin/analytics can reuse it.
 
 function doc(inner: string): Response {
   return new Response(
     `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Klar Control</title>
+<script>${THEME_INIT_SCRIPT}</script>
 <link rel="icon" type="image/png" href="/logo/klar-192.png"><link rel="apple-touch-icon" href="/logo/klar-maskable-512.png">
 <link rel="manifest" href="/admin.webmanifest">
-<meta name="theme-color" content="#070709"><meta name="application-name" content="Klar Control"><meta name="apple-mobile-web-app-title" content="Klar Control">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#FAFAF7"><meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0A0A0A">
+<meta name="application-name" content="Klar Control"><meta name="apple-mobile-web-app-title" content="Klar Control">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Fraunces:ital@0;1&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="${FONTS_LINK}" rel="stylesheet">
 <script type="speculationrules">{"prerender":[{"where":{"and":[{"href_matches":"/admin*"},{"not":{"href_matches":"/admin/logout*"}}]},"eagerness":"moderate"}]}</script>
-<style>${STYLE}</style></head><body>${inner}<script>if("serviceWorker"in navigator){addEventListener("load",function(){navigator.serviceWorker.register("/admin-sw.js",{scope:"/admin"}).catch(function(){})})}</script></body></html>`,
+<style>${STYLE}</style></head><body>${inner}
+<script>
+${THEME_TOGGLE_SCRIPT}
+if("serviceWorker"in navigator){addEventListener("load",function(){navigator.serviceWorker.register("/admin-sw.js",{scope:"/admin"}).catch(function(){})})}
+</script></body></html>`,
     { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } },
   );
 }
 
+// ICON record is now exported from ./_shared.
+
 function loginPage(err?: string): Response {
   return doc(`<div class="login">
     <div class="login-card">
-      <div class="login-badge" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      </div>
-      <div class="login-mark">klar<span style="color:var(--accent)">.</span></div>
+      <div class="login-badge" aria-hidden="true" style="width:44px;height:44px">${ICON.lock}</div>
+      <div class="login-mark">klar<span class="dot">.</span></div>
       <p class="login-tag">Das Kontrollzentrum hinter dem Studio.</p>
       <div class="login-rule"></div>
       ${err ? `<p class="login-err">${esc(err)}</p>` : ""}
       <form method="GET" action="/admin">
         <input class="login-input" name="key" type="password" placeholder="Admin-Key" autofocus autocomplete="current-password"/>
-        <button class="btn" style="margin-top:12px;width:100%;padding:14px" type="submit">Anmelden</button>
+        <button class="btn" style="margin-top:14px;width:100%;padding:12px;justify-content:center" type="submit">Anmelden</button>
       </form>
       <p class="login-foot">Intern · getklar.org</p>
     </div></div>`);
 }
 
 function shell(view: string, apps: AdminApp[], flash: string | null, main: string): string {
-  const item = (v: string, label: string, dot = "○") =>
-    `<a class="nav ${view === v ? "on" : ""}" href="/admin?view=${encodeURIComponent(v)}"><span class="d">${dot}</span>${esc(label)}</a>`;
-  const appLinks = apps.map((a) => item(a.slug, a.name, "●")).join("");
+  const item = (v: string, label: string, icon: string, href?: string) =>
+    `<a class="nav ${view === v ? "on" : ""}" href="${href ?? `/admin?view=${encodeURIComponent(v)}`}"><span class="d">${icon}</span>${esc(label)}</a>`;
+  const appLinks = apps.map((a) => item(a.slug, a.name, ICON.app)).join("");
   const labels: Record<string, string> = {
-    overview: "Übersicht", inbox: "Inbox", revenue: "Einnahmen", outreach: "Outreach",
+    overview: "Übersicht", inbox: "Inbox", bookings: "Bookings", revenue: "Einnahmen", analytics: "Analytics", outreach: "Outreach",
   };
   const here =
     labels[view] ?? apps.find((a) => a.slug === view)?.name ?? "Übersicht";
@@ -207,18 +128,23 @@ function shell(view: string, apps: AdminApp[], flash: string | null, main: strin
     <aside class="side">
       <div class="brand">klar<span class="dot">.</span><small>Control</small></div>
       <div class="navsec">Studio</div>
-      ${item("overview", "Übersicht")}
-      ${item("inbox", "Inbox")}
+      ${item("overview", "Übersicht", ICON.overview)}
+      ${item("inbox", "Inbox", ICON.inbox)}
+      ${item("bookings", "Bookings", ICON.calendar)}
+      ${item("analytics", "Analytics", ICON.analytics, "/admin/analytics")}
       <div class="navsec">Affiliate</div>
-      ${item("revenue", "Einnahmen")}
-      ${appLinks || `<span class="nav muted">keine Apps</span>`}
+      ${item("revenue", "Einnahmen", ICON.revenue)}
+      ${appLinks || `<span class="nav muted"><span class="d">${ICON.app}</span>keine Apps</span>`}
       <div class="navsec">Extern</div>
-      ${item("outreach", "Outreach")}
+      ${item("outreach", "Outreach", ICON.outreach)}
       <div class="spacer"></div>
-      <a class="nav logout" href="/admin/logout"><span class="d">→</span>Logout</a>
+      <a class="nav logout" href="/admin/logout"><span class="d">${ICON.logout}</span>Logout</a>
     </aside>
     <main class="main">
-      <div class="topbar"><span class="crumb">Klar Control&nbsp; ·&nbsp; <b>${esc(here)}</b></span></div>
+      <div class="topbar">
+        <span class="crumb"><b>${esc(here)}</b>${ICON.chevron}<span>Klar Control</span></span>
+        <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
+      </div>
       <div class="content">
         ${flash ? `<div class="flash">${esc(flash)}</div>` : ""}
         ${main}
@@ -227,6 +153,7 @@ function shell(view: string, apps: AdminApp[], flash: string | null, main: strin
 }
 
 // Server-rendered SVG grouped bar chart. series: [{label, gross, payout}] in cents.
+// Colours reference --chart-* CSS vars so the chart adapts to light/dark theme.
 function barChart(series: { label: string; gross: number; payout: number }[]): string {
   if (series.length === 0)
     return `<div class="chart muted" style="font-size:13px">Noch keine Einnahmen-Daten.</div>`;
@@ -237,22 +164,22 @@ function barChart(series: { label: string; gross: number; payout: number }[]): s
   const y = (v: number) => padT + (H - padT - padB) * (1 - v / niceMax);
   const gridLines = [0, 0.25, 0.5, 0.75, 1].map((f) => {
     const val = niceMax * f, yy = y(val);
-    return `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="oklch(0.18 0.002 270)" stroke-width="1"/>
-      <text x="${padL - 8}" y="${yy + 3}" text-anchor="end" font-family="'JetBrains Mono',monospace" font-size="9" fill="oklch(0.48 0.002 270)">${(val / 100).toFixed(0)}</text>`;
+    return `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 3"/>
+      <text x="${padL - 8}" y="${yy + 3}" text-anchor="end" font-family="'JetBrains Mono',monospace" font-size="9" fill="var(--fg-3)">${(val / 100).toFixed(0)}</text>`;
   }).join("");
   const bars = series.map((d, i) => {
     const x0 = padL + i * cw;
-    const bw = Math.max(6, cw * 0.28);
+    const bw = Math.max(6, cw * 0.30);
     const gx = x0 + cw / 2 - bw - 3, px = x0 + cw / 2 + 3;
     const gy = y(Math.max(0, d.gross)), py = y(Math.max(0, d.payout));
     const base = y(0);
-    return `<rect x="${gx}" y="${gy}" width="${bw}" height="${Math.max(0, base - gy)}" fill="oklch(0.97 0.002 270)"/>
-      <rect x="${px}" y="${py}" width="${bw}" height="${Math.max(0, base - py)}" fill="oklch(0.48 0.002 270)"/>
-      <text x="${x0 + cw / 2}" y="${H - padB + 16}" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="oklch(0.48 0.002 270)">${esc(d.label)}</text>`;
+    return `<rect x="${gx}" y="${gy}" width="${bw}" height="${Math.max(0, base - gy)}" rx="2" fill="var(--chart-1)"/>
+      <rect x="${px}" y="${py}" width="${bw}" height="${Math.max(0, base - py)}" rx="2" fill="var(--chart-2)"/>
+      <text x="${x0 + cw / 2}" y="${H - padB + 16}" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="var(--fg-3)">${esc(d.label)}</text>`;
   }).join("");
   return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Einnahmen pro Monat">
-    ${gridLines}<line x1="${padL}" y1="${y(0)}" x2="${W - padR}" y2="${y(0)}" stroke="oklch(0.85 0.002 270)" stroke-width="1"/>${bars}</svg>
-    <div class="legend"><span><i style="background:oklch(0.97 0.002 270)"></i>Affiliate-Umsatz</span><span><i style="background:oklch(0.48 0.002 270)"></i>Auszahlung an Affiliates</span><span>EUR pro Monat</span></div></div>`;
+    ${gridLines}<line x1="${padL}" y1="${y(0)}" x2="${W - padR}" y2="${y(0)}" stroke="var(--line-strong)" stroke-width="1"/>${bars}</svg>
+    <div class="legend"><span><i style="background:var(--chart-1)"></i>Affiliate-Umsatz</span><span><i style="background:var(--chart-2)"></i>Auszahlung an Affiliates</span><span>EUR pro Monat</span></div></div>`;
 }
 
 async function overview(apps: AdminApp[]): Promise<string> {
@@ -625,6 +552,83 @@ async function inboxView(): Promise<string> {
     <table><thead><tr><th>Wann</th><th>Typ</th><th>Email</th><th>Details</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 
+async function bookingsView(): Promise<string> {
+  if (!KLAR_INBOX_KEY)
+    return `<h1>Bookings</h1><p class="sub muted">Fast fertig, es fehlt nur der Lese-Key. Setze <span class="warn">KLAR_INBOX_SERVICE_KEY</span> im klar-Vercel-Projekt (Wert: anime-vault &rarr; Settings &rarr; API &rarr; <em>service_role</em>). Cal.com-Webhook schreibt schon nach <code>cal_bookings</code>, nur die Anzeige hier braucht den Key.</p>`;
+
+  let rows: CalBooking[] = [];
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/cal_bookings?select=cal_uid,trigger_event,event_type_slug,title,start_time,end_time,attendee_email,attendee_name,location,status,created_at&order=start_time.desc&limit=200`,
+      {
+        headers: {
+          apikey: KLAR_INBOX_KEY,
+          Authorization: `Bearer ${KLAR_INBOX_KEY}`,
+          Accept: "application/json",
+        },
+        cache: "no-store",
+      },
+    );
+    if (!res.ok)
+      return `<h1>Bookings</h1><p class="sub muted">Bookings konnten nicht geladen werden (HTTP ${res.status}). Vermutlich stimmt der hinterlegte service_role-Key nicht, oder die Tabelle <code>cal_bookings</code> ist noch nicht migriert.</p>`;
+    const j = await res.json();
+    rows = Array.isArray(j) ? j : [];
+  } catch {
+    return `<h1>Bookings</h1><p class="sub muted">Netzwerkfehler beim Laden der Bookings.</p>`;
+  }
+
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const upcoming = rows.filter((r) => {
+    const t = r.start_time ? new Date(r.start_time).getTime() : NaN;
+    return !isNaN(t) && t >= now && r.status !== "CANCELLED";
+  });
+  const past7 = rows.filter((r) => {
+    const t = r.created_at ? new Date(r.created_at).getTime() : NaN;
+    return !isNaN(t) && now - t <= 7 * dayMs;
+  });
+  const cancelled = rows.filter((r) => r.status === "CANCELLED").length;
+
+  const cards = `<div class="cards">
+    <div class="card"><div class="k">Anstehend</div><div class="v">${upcoming.length}</div><div class="s">in der Zukunft</div></div>
+    <div class="card"><div class="k">Letzte 7 Tage</div><div class="v">${past7.length}</div><div class="s">neue Buchungen</div></div>
+    <div class="card"><div class="k">Storniert</div><div class="v">${cancelled}</div></div>
+    <div class="card"><div class="k">Gesamt</div><div class="v">${rows.length}</div><div class="s">letzte 200</div></div>
+  </div>`;
+
+  const fmt = (s: unknown) => {
+    const d = new Date(String(s));
+    return isNaN(d.getTime())
+      ? esc(s)
+      : d.toLocaleString("de-CH", { dateStyle: "medium", timeStyle: "short" });
+  };
+
+  const pillFor = (r: CalBooking): string => {
+    if (r.status === "CANCELLED") return `<span class="pill warn">storniert</span>`;
+    const t = r.start_time ? new Date(r.start_time).getTime() : NaN;
+    if (!isNaN(t) && t >= now) return `<span class="pill live">anstehend</span>`;
+    return `<span class="pill">vergangen</span>`;
+  };
+
+  const body = rows.length
+    ? rows
+        .map(
+          (r) => `<tr>
+        <td class="muted" style="white-space:nowrap">${fmt(r.start_time)}</td>
+        <td>${pillFor(r)}</td>
+        <td>${esc(r.attendee_name || "")} ${r.attendee_email ? `<a class="applink" href="mailto:${esc(r.attendee_email)}">${esc(r.attendee_email)}</a>` : ""}</td>
+        <td class="muted" style="font-size:12px;max-width:380px">${esc(r.title || r.event_type_slug || "")}</td>
+        <td class="muted" style="font-size:12px">${esc(r.location || "")}</td>
+      </tr>`,
+        )
+        .join("")
+    : `<tr><td colspan="5" class="muted">noch keine Buchungen. Cal-Webhook konfiguriert (Settings &rarr; Webhooks &rarr; <code>https://getklar.org/api/cal-webhook</code>)?</td></tr>`;
+
+  return `<h1>Bookings</h1><p class="sub">Cal.com-Buchungen auf <a class="applink" href="https://cal.getklar.org" target="_blank" rel="noopener">cal.getklar.org</a>, gespeichert per Webhook in Supabase. Anstehende oben.</p>
+    ${cards}
+    <table><thead><tr><th>Wann</th><th>Status</th><th>Gast</th><th>Event</th><th>Ort</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+
 export async function GET(req: Request): Promise<Response> {
   if (!KLAR_ADMIN_KEY) return doc(`<p style="color:#FF6B6B;padding:24px;font-family:'JetBrains Mono',monospace">Server misconfigured: KLAR_ADMIN_KEY not set.</p>`);
   const url = new URL(req.url);
@@ -640,6 +644,7 @@ export async function GET(req: Request): Promise<Response> {
   let main: string;
   if (view === "outreach") main = await outreachView();
   else if (view === "inbox") main = await inboxView();
+  else if (view === "bookings") main = await bookingsView();
   else if (view === "revenue") main = await revenueView(apps);
   else {
     const app = apps.find((a) => a.slug === view);

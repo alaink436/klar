@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Fraunces, Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import AnalyticsTracker from "./AnalyticsTracker";
 
 /* Display: Space Grotesk — clean, normally-proportioned geometric grotesque.
    Deliberately not an elongated/condensed face (Syne read as too stretched). */
@@ -52,11 +53,12 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${display.variable} ${editorial.variable} ${manrope.variable} ${jetbrains.variable} grain antialiased`}
       >
         {children}
+        <AnalyticsTracker />
       </body>
     </html>
   );
