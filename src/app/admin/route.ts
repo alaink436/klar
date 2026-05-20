@@ -12,6 +12,7 @@
 
 import { createSign } from "node:crypto";
 import { getApps, sbGet, type AdminApp } from "../../lib/adminApps";
+import { KLAR_APPS, type KlarAppMeta } from "../../lib/klarApps";
 import {
   STYLE,
   ICON,
@@ -182,9 +183,33 @@ function barChart(series: { label: string; gross: number; payout: number }[]): s
     <div class="legend"><span><i style="background:var(--chart-1)"></i>Affiliate-Umsatz</span><span><i style="background:var(--chart-2)"></i>Auszahlung an Affiliates</span><span>EUR pro Monat</span></div></div>`;
 }
 
+// Tab strip with all six Klar apps. Apps that are wired up in KLAR_ADMIN_APPS
+// link to /admin?view=<slug>; the rest are dimmed but still visible so the
+// studio always sees the full portfolio at a glance.
+function appTabStrip(connectedSlugs: Set<string>): string {
+  return `<div class="app-tabs">${KLAR_APPS.map((a: KlarAppMeta) => {
+    const connected = connectedSlugs.has(a.slug);
+    const badge = a.status === "LIVE"
+      ? `<span class="badge live">Live</span>`
+      : `<span class="badge">${esc(a.status)}</span>`;
+    const inner = `${badge}
+      <span class="app-icon"><img src="${esc(a.icon)}" alt="${esc(a.name)}" loading="lazy"/></span>
+      <span class="app-name">${esc(a.name)}</span>
+      <span class="app-meta">${connected ? "Affiliate" : "nicht verdrahtet"}</span>`;
+    return connected
+      ? `<a class="app-tab" href="/admin?view=${esc(a.slug)}">${inner}</a>`
+      : `<span class="app-tab dim" title="Affiliate-Schema noch nicht verdrahtet">${inner}</span>`;
+  }).join("")}</div>`;
+}
+
 async function overview(apps: AdminApp[]): Promise<string> {
-  if (apps.length === 0)
-    return `<h1>Übersicht</h1><p class="sub">Noch keine Apps verbunden. Sobald KLAR_ADMIN_APPS im klar-Vercel-Projekt gesetzt ist, tauchen sie hier auf.</p>`;
+  const connected = new Set(apps.map((a) => a.slug));
+  const tabs = appTabStrip(connected);
+
+  if (apps.length === 0) {
+    return `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick. Klick eine verdrahtete App fürs Affiliate-Detail; die anderen tauchen auf, sobald sie ein Schema in <code>KLAR_ADMIN_APPS</code> bekommen.</p>${tabs}`;
+  }
+
   const rows = await Promise.all(apps.map(async (app) => {
     const [inf, claim] = await Promise.all([
       sbGet(app, "influencers?select=status"),
@@ -199,7 +224,7 @@ async function overview(apps: AdminApp[]): Promise<string> {
   const totalOpen = rows.reduce((s, r) => s + r.open, 0);
   const totalAff = rows.reduce((s, r) => s + r.total, 0);
   const cards = `<div class="cards">
-    <div class="card"><div class="k">Apps verbunden</div><div class="v">${rows.length}</div><div class="s">${rows.filter(r=>r.onboarded).length} mit Daten</div></div>
+    <div class="card"><div class="k">Apps verdrahtet</div><div class="v">${rows.length}/${KLAR_APPS.length}</div><div class="s">${rows.filter(r=>r.onboarded).length} mit Daten</div></div>
     <div class="card"><div class="k">Affiliates gesamt</div><div class="v">${totalAff}</div></div>
     <div class="card"><div class="k">Offen gesamt</div><div class="v">${eur(totalOpen)}</div><div class="s">netto, gereift</div></div>
   </div>`;
@@ -212,7 +237,7 @@ async function overview(apps: AdminApp[]): Promise<string> {
       <td class="r"><a class="pill" href="/admin?view=${esc(r.app.slug)}">öffnen</a></td>
     </tr>`).join("")}
   </tbody></table>`;
-  return `<h1>Übersicht</h1><p class="sub">Alle verbundenen Apps auf einen Blick. Wähl eine App für Salden, Details und Auszahlungen.</p>${cards}${tbl}`;
+  return `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick. Wähl eine verdrahtete App fürs Affiliate-Detail.</p>${tabs}<h2>Affiliate-Stand</h2>${cards}${tbl}`;
 }
 
 async function revenueView(apps: AdminApp[]): Promise<string> {

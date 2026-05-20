@@ -8,6 +8,7 @@ import Zeitraffer from "./components/Zeitraffer";
 import BrainGraph from "./components/BrainGraph";
 import HashAccordion from "./components/HashAccordion";
 import { AffiliateForm, ConsultingForm, CoachingForm } from "./components/Forms";
+import CalEmbed from "./components/CalEmbed";
 import codebase from "./data/codebase.json";
 
 const CB_TOTALS = codebase.totals;
@@ -376,6 +377,7 @@ export default function Home() {
                     to jam if the brief is sharp.
                   </p>
                   <ConsultingForm />
+                  <CalEmbed slug="consulting" label="Oder direkt einen 30-Min-Call picken" />
                 </div>
                 <div id="coaching" className="scroll-mt-16">
                   <p className="label mb-2">coaching · you build it</p>
@@ -389,6 +391,7 @@ export default function Home() {
                     the messy 0 → 1 part. Honest take first.
                   </p>
                   <CoachingForm />
+                  <CalEmbed slug="coaching" label="Oder direkt einen 30-Min-Call picken" />
                 </div>
               </div>
             </div>

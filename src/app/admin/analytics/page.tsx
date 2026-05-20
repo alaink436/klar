@@ -20,7 +20,11 @@ import {
   esc,
 } from "../_shared";
 import { getApps, sbGet } from "../../../lib/adminApps";
+import { KLAR_APPS, findKlarApp } from "../../../lib/klarApps";
 import AnalyticsClient, { type AnalyticsPayload, type Period } from "./AnalyticsClient";
+
+void sbGet;
+void KLAR_APPS;
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -128,16 +132,58 @@ function timeline(
     }));
 }
 
+// Affiliate-Landings live at /i/<slug>/<code>. Tracking writes the path
+// verbatim into klar_pageviews; we just regex-split it back out here. Slug
+// is matched against KLAR_APPS so renamed paths and typos drop out.
+function parseAffiliatePath(path: string): { slug: string; code: string } | null {
+  const m = /^\/i\/([a-z0-9-]+)\/([^/?#]+)/i.exec(path);
+  if (!m) return null;
+  return { slug: m[1].toLowerCase(), code: m[2] };
+}
+
+function aggregateAffiliates(rows: RawPageview[]): AnalyticsPayload["affiliates"] {
+  const perAppHits = new Map<string, number>();
+  const codeHits = new Map<string, number>();
+  for (const r of rows) {
+    const a = parseAffiliatePath(r.path);
+    if (!a) continue;
+    perAppHits.set(a.slug, (perAppHits.get(a.slug) ?? 0) + 1);
+    const key = `${a.slug}/${a.code}`;
+    codeHits.set(key, (codeHits.get(key) ?? 0) + 1);
+  }
+  const perApp = [...perAppHits.entries()]
+    .map(([slug, hits]) => {
+      const meta = findKlarApp(slug);
+      return { slug, name: meta?.name ?? slug, hits };
+    })
+    .sort((a, b) => b.hits - a.hits);
+  const topCodes = [...codeHits.entries()]
+    .map(([k, hits]) => {
+      const [slug, code] = k.split("/");
+      return { slug, code, hits };
+    })
+    .sort((a, b) => b.hits - a.hits)
+    .slice(0, 8);
+  const totalHits = perApp.reduce((s, a) => s + a.hits, 0);
+  return { totalHits, uniqueCodes: codeHits.size, perApp, topCodes };
+}
+
 function aggregate(rows: RawPageview[], period: Period, since: string): AnalyticsPayload {
+  void period;
   const { bucket } = periodWindow(period);
   const totalVisits = rows.length;
   const uniqueSessions = new Set(rows.map((r) => r.session_hash)).size;
   const series = timeline(rows, bucket, since);
 
-  const pages = topCounts(rows.map((r) => r.path));
+  // For "Top pages" we strip affiliate landing paths so the list doesn't get
+  // dominated by every individual /i/<slug>/<code>. They show up in the
+  // dedicated Affiliate-Landings section instead.
+  const nonAffiliate = rows.filter((r) => !parseAffiliatePath(r.path));
+  const pages = topCounts(nonAffiliate.map((r) => r.path));
   const referrers = topCounts(rows.map((r) => hostOf(r.referrer)));
   const countries = topCounts(rows.map((r) => r.country ?? "??"));
   const browsers = topCounts(rows.map((r) => (r.ua_family ?? "").split(" / ")[0] || "Other"));
+  const affiliates = aggregateAffiliates(rows);
 
   return {
     totalVisits,
@@ -149,6 +195,7 @@ function aggregate(rows: RawPageview[], period: Period, since: string): Analytic
     referrers,
     countries,
     browsers,
+    affiliates,
   };
 }
 

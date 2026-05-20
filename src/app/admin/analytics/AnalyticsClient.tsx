@@ -29,6 +29,13 @@ export interface AnalyticsPayload {
   referrers: { label: string; count: number }[];
   countries: { label: string; count: number }[];
   browsers: { label: string; count: number }[];
+  // Affiliate-Landings: hits on /i/<slug>/<code> aggregated by app slug.
+  affiliates: {
+    totalHits: number;
+    uniqueCodes: number;
+    perApp: { slug: string; name: string; hits: number }[];
+    topCodes: { slug: string; code: string; hits: number }[];
+  };
 }
 
 const PERIODS: { id: Period; label: string }[] = [
@@ -334,6 +341,115 @@ export default function AnalyticsClient({
         </ChartCard>
         <ChartCard title="Browser">
           <HBar data={data.browsers} />
+        </ChartCard>
+      </div>
+
+      <h2>Affiliate-Landings</h2>
+      <div className="cards">
+        <StatRow
+          label="Klicks gesamt"
+          value={data.affiliates.totalHits}
+          sub="auf /i/<slug>/<code>"
+        />
+        <StatRow
+          label="Aktive Codes"
+          value={data.affiliates.uniqueCodes}
+          sub="einzigartig"
+        />
+        <StatRow
+          label="Apps mit Klicks"
+          value={data.affiliates.perApp.length}
+          sub="von 6 Klar-Apps"
+        />
+      </div>
+      <div className="chart-grid">
+        <ChartCard title="Klicks pro App">
+          {data.affiliates.perApp.length > 0 ? (
+            <div style={{ height: 220 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={data.affiliates.perApp.map((a) => ({ label: a.name, count: a.hits }))}
+                  margin={{ top: 4, right: 8, left: -16, bottom: 0 }}
+                >
+                  <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 10, fill: "var(--fg-3)", fontFamily: "var(--font-mono)" }}
+                    axisLine={{ stroke: "var(--line)" }}
+                    tickLine={false}
+                    interval={0}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: "var(--fg-3)", fontFamily: "var(--font-mono)" }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                    width={36}
+                  />
+                  <Tooltip content={<TipBox />} />
+                  <Bar dataKey="count" name="Klicks" radius={[3, 3, 0, 0]}>
+                    {data.affiliates.perApp.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={i === 0 ? "var(--chart-1)" : i < 3 ? "var(--chart-2)" : "var(--chart-3)"}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <p className="muted" style={{ fontSize: 13, margin: "12px 0 0" }}>
+              Noch keine Klicks auf Affiliate-Landings.
+            </p>
+          )}
+        </ChartCard>
+        <ChartCard title="Top-Codes">
+          {data.affiliates.topCodes.length > 0 ? (
+            <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0, display: "grid", gap: 8 }}>
+              {data.affiliates.topCodes.map((c) => (
+                <li
+                  key={`${c.slug}/${c.code}`}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "minmax(0, 1fr) 38px",
+                    gap: 10,
+                    alignItems: "baseline",
+                    fontSize: 13,
+                  }}
+                >
+                  <span
+                    style={{
+                      color: "var(--fg)",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 12,
+                    }}
+                    title={`/i/${c.slug}/${c.code}`}
+                  >
+                    <span style={{ color: "var(--fg-3)" }}>{c.slug}/</span>
+                    {c.code}
+                  </span>
+                  <span
+                    style={{
+                      fontVariantNumeric: "tabular-nums",
+                      color: "var(--fg-2)",
+                      textAlign: "right",
+                      fontSize: 12,
+                    }}
+                  >
+                    {c.hits}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted" style={{ fontSize: 13, margin: "12px 0 0" }}>
+              Noch keine Code-Klicks.
+            </p>
+          )}
         </ChartCard>
       </div>
     </>

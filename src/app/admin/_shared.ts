@@ -128,9 +128,10 @@ a{color:inherit;text-decoration:none}
 
 .nav{display:flex;align-items:center;gap:10px;padding:7px 11px;color:var(--fg-3);font-family:var(--font-body);font-size:13px;font-weight:500;border-radius:var(--radius-sm);transition:color .15s,background .15s;margin:1px 0}
 .nav .d{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;color:var(--fg-4);flex-shrink:0;transition:color .15s}
-.nav .d svg{width:14px;height:14px;stroke-width:1.8}
+.nav .d svg{width:14px;height:14px;stroke-width:1.8;transition:transform .2s ease}
 .nav:hover{color:var(--fg);background:var(--surface-2)}
 .nav:hover .d{color:var(--fg-2)}
+.nav:hover .d svg{transform:rotate(-6deg)}
 .nav.on{color:var(--fg);background:var(--surface-2);font-weight:600}
 .nav.on .d{color:var(--fg)}
 .nav.muted{color:var(--fg-4)}
@@ -155,7 +156,7 @@ a{color:inherit;text-decoration:none}
 :root:not([data-theme]) .tbtn .moon-icon{display:block}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .tbtn .moon-icon{display:none}:root:not([data-theme="light"]) .tbtn .sun-icon{display:block}}
 
-.content{padding:36px;max-width:1180px;width:100%}
+.content{padding:36px;max-width:1180px;width:100%;margin:0 auto}
 
 h1{font-family:var(--font-display);font-weight:700;font-size:clamp(26px,3.4vw,34px);letter-spacing:-.025em;line-height:1.05;margin:0 0 8px;color:var(--fg)}
 .sub{font-family:var(--font-editorial);font-style:italic;font-size:17px;line-height:1.45;color:var(--fg-3);margin:0 0 28px;max-width:62ch}
@@ -215,6 +216,22 @@ iframe{width:100%;height:88vh;border:0;display:block}
 .seg a:last-child{border-right:0}
 .seg a:hover{background:var(--surface-2);color:var(--fg-2)}
 .seg a.on{background:var(--fg);color:var(--accent-fg)}
+
+/* App tab strip: horizontal scroller, one tab per Klar app. Icon on top,
+   name underneath, status pill in the corner. Hover rotates the icon
+   slightly and lifts the tile. */
+.app-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:0 0 28px}
+.app-tab{display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);text-align:center;position:relative;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.app-tab:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--line-strong)}
+.app-tab .app-icon{width:56px;height:56px;border-radius:14px;background:var(--surface-2);overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);transition:transform .25s ease,box-shadow .25s ease,border-color .2s ease}
+.app-tab .app-icon img{width:100%;height:100%;object-fit:cover;display:block}
+.app-tab:hover .app-icon{transform:rotate(-5deg) scale(1.04);box-shadow:var(--shadow);border-color:var(--line-strong)}
+.app-tab .app-name{font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--fg);line-height:1.2;margin:0}
+.app-tab .app-meta{font-family:var(--font-mono);font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-4)}
+.app-tab.dim{opacity:.78}
+.app-tab.dim .app-icon{filter:grayscale(.45)}
+.app-tab .badge{position:absolute;top:8px;right:8px;font-family:var(--font-mono);font-size:8.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:999px;background:var(--surface-2);color:var(--fg-3);border:1px solid var(--line)}
+.app-tab .badge.live{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-track{background:transparent}
