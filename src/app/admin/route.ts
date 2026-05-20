@@ -594,42 +594,55 @@ async function inboxView(): Promise<string> {
     .map((a) => `<option value="${esc(a.slug)}">${esc(a.name)}</option>`)
     .join("");
 
-  // Random code suggestion — 6 uppercase chars, no ambiguous 0/O/1/I/L.
-  const suggestCode = (handle: string): string => {
-    const seed = (handle || "X").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3) || "REF";
-    const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-    let tail = "";
-    for (let i = 0; i < 3; i++) tail += chars[Math.floor(Math.random() * chars.length)];
-    return `${seed}${tail}`.slice(0, 6);
+  // Map app-slug → onboarding-host. Mirrors lib/adminApps.setupLandingUrl()
+  // so the admin can copy/paste the live link without a round-trip.
+  const setupHostFor = (slug: string): string => {
+    const envHost = process.env[`KLAR_APP_HOST_${slug.toUpperCase().replace(/-/g, "_")}`];
+    if (envHost) return envHost;
+    const fallback: Record<string, string> = {
+      trubel: "https://trubel.space",
+      myloo: "https://myloo.app",
+      wavelength: "https://onwavelength.space",
+      kelva: "https://kelva.space",
+      "yarn-stash": "https://getklar.org/i/yarnstash-setup",
+      moto: "https://getklar.org/i/throttleup-setup",
+    };
+    return fallback[slug] ?? "https://getklar.org";
+  };
+  const setupLinkFor = (slug: string, token: string): string => {
+    const host = setupHostFor(slug);
+    if (host.includes("/i/") || host.endsWith("-setup")) return `${host}/${token}`;
+    return `${host}/affiliate/${token}`;
   };
 
   const approveForm = (r: Inquiry): string => {
     if (r.type !== "affiliate") return "";
-    if (r.status === "approved" && r.approved_app && r.approved_code) {
-      const landing = `https://getklar.org/i/${esc(r.approved_app)}/${esc(r.approved_code)}`;
-      return `<tr class="approved-row"><td colspan="5" style="padding:8px 14px;background:var(--surface-2);border-top:1px solid var(--line)">
-        <span class="pill" style="background:var(--ok-soft,#dcfce7);color:#166534;border:1px solid #bbf7d0;font-weight:600">approved → ${esc(r.approved_app)}</span>
-        <span class="mono" style="margin-left:10px">${esc(r.approved_code)}</span>
-        <a class="applink" style="margin-left:10px" href="${landing}" target="_blank" rel="noopener">${landing} ↗</a>
+
+    // Already invited (or active): show the setup-link so the admin can
+    // re-copy it and send it again if needed.
+    if ((r.status === "invited" || r.status === "approved" || r.status === "active") && r.approved_app && r.approved_code) {
+      const link = setupLinkFor(r.approved_app, r.approved_code);
+      const isLive = r.status === "active";
+      return `<tr class="approved-row"><td colspan="5" style="padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--line)">
+        <span class="pill" style="background:${isLive ? "#dcfce7" : "#dbeafe"};color:${isLive ? "#166534" : "#1e40af"};border:1px solid ${isLive ? "#bbf7d0" : "#bfdbfe"};font-weight:600">${isLive ? "✓ active" : "→ invited"} · ${esc(r.approved_app)}</span>
+        <a class="applink" style="margin-left:10px;font-family:ui-monospace,monospace;font-size:12px" href="${link}" target="_blank" rel="noopener">${link} ↗</a>
+        <button type="button" class="btn" style="margin-left:8px;padding:4px 10px;font-size:11px" onclick="navigator.clipboard.writeText('${link}').then(()=>this.textContent='✓ copied').catch(()=>this.textContent='copy failed')">Copy link</button>
         ${r.approved_at ? `<span class="muted" style="margin-left:10px;font-size:12px">${fmt(r.approved_at)}</span>` : ""}
       </td></tr>`;
     }
+
     if (!r.id) return "";
-    const code = suggestCode(r.handle ?? "");
     const displayName = r.handle || (r.email ?? "").split("@")[0] || "";
     return `<tr class="approve-row"><td colspan="5" style="padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--line)">
       <form method="POST" action="/api/affiliate/approve" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
         <input type="hidden" name="inquiry_id" value="${esc(r.id)}"/>
+        <input type="hidden" name="email" value="${esc(r.email ?? "")}"/>
         <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">
           App
           <select name="app" required style="margin-top:3px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:13px">
             <option value="" disabled selected>— wählen —</option>
             ${wiredApps}
           </select>
-        </label>
-        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">
-          Code
-          <input type="text" name="code" required pattern="[A-Z0-9_.\\-]{3,32}" maxlength="32" value="${esc(code)}" style="margin-top:3px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:13px;font-family:ui-monospace,monospace;width:120px;text-transform:uppercase"/>
         </label>
         <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">
           Handle
@@ -640,10 +653,24 @@ async function inboxView(): Promise<string> {
           <input type="text" name="display_name" maxlength="64" value="${esc(displayName)}" style="margin-top:3px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:13px;width:160px"/>
         </label>
         <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">
-          Commission
-          <input type="number" name="commission_pct" min="0.01" max="1" step="0.01" value="0.5" style="margin-top:3px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:13px;width:80px"/>
+          Lang
+          <select name="language" required style="margin-top:3px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:13px;width:70px">
+            <option value="de" selected>DE</option>
+            <option value="en">EN</option>
+            <option value="fr">FR</option>
+            <option value="es">ES</option>
+            <option value="it">IT</option>
+          </select>
         </label>
-        <button type="submit" class="btn" style="padding:8px 16px;font-size:13px">Approve →</button>
+        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">
+          Share %
+          <input type="number" name="share_pct" min="1" max="100" step="1" value="50" style="margin-top:3px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:13px;width:70px"/>
+        </label>
+        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">
+          Months
+          <input type="number" name="share_months" min="1" max="60" step="1" value="24" style="margin-top:3px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:13px;width:70px"/>
+        </label>
+        <button type="submit" class="btn" style="padding:8px 16px;font-size:13px">Generate onboarding link →</button>
       </form>
     </td></tr>`;
   };
@@ -651,9 +678,12 @@ async function inboxView(): Promise<string> {
   const body = rows.length
     ? rows
         .map((r) => {
-          const isApproved = r.status === "approved";
-          const statusPill = isApproved
-            ? `<span class="pill" style="background:var(--ok-soft,#dcfce7);color:#166534;border:1px solid #bbf7d0;font-weight:600">approved</span>`
+          const isLive = r.status === "active";
+          const isInvited = r.status === "invited" || r.status === "approved";
+          const statusPill = isLive
+            ? `<span class="pill" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-weight:600">active</span>`
+            : isInvited
+            ? `<span class="pill" style="background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;font-weight:600">invited</span>`
             : `<span class="pill ${r.status === "new" ? "live" : ""}">${esc(r.status ?? "")}</span>`;
           return `<tr>
         <td class="muted" style="white-space:nowrap">${fmt(r.created_at)}</td>
@@ -666,7 +696,7 @@ async function inboxView(): Promise<string> {
         .join("")
     : `<tr><td colspan="5" class="muted">noch keine Anfragen</td></tr>`;
 
-  return `<h1>Inbox</h1><p class="sub">Affiliate- und Consulting-Anfragen von getklar.org. Affiliate-Zeilen ohne Approve haben darunter ein Formular: App wählen, Code akzeptieren oder ändern, Approve klicken — mintet den Code in der App-Supabase und markiert die Anfrage als <em>approved</em>.</p>
+  return `<h1>Inbox</h1><p class="sub">Affiliate- und Consulting-Anfragen von getklar.org. Affiliate-Zeilen ohne Onboarding-Link haben darunter ein Formular: App wählen, Handle/Sprache prüfen, <em>Generate onboarding link</em> klicken — generiert einen 7-Tage-Setup-Token im App-Supabase und zeigt dir den Link zum Versenden an den Influencer.</p>
     ${cards}
     <table><thead><tr><th>Wann</th><th>Typ</th><th>Email</th><th>Details</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>`;
 }

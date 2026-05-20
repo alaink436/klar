@@ -1,21 +1,23 @@
-// Admin-only approval endpoint for affiliate applications submitted via the
-// public `<AffiliateForm>`. Authed with the same KLAR_ADMIN_KEY cookie that
+// Admin-only onboarding endpoint for affiliate applications submitted via
+// the public `<AffiliateForm>`. Authed with the KLAR_ADMIN_KEY cookie that
 // /admin uses.
 //
-// Flow:
-//   1. Validate inputs (handle / code / commission charset + length)
-//   2. Mint the influencer code in the chosen app's Supabase via
-//      `admin_create_influencer_code` RPC (see migrations 0001 / 0002).
-//   3. PATCH the originating `klar_inquiries` row in the anime-vault Supabase
-//      with approved_app / approved_code / approved_at + status='approved'.
-//   4. Redirect back to /admin?view=inbox so the row is visibly resolved.
+// New flow (post-`influencer_onboarding_v1`):
+//   1. Validate inputs (handle / app / email)
+//   2. Call `create_influencer_setup` in the chosen app's Supabase. RPC
+//      seeds an influencers row in `pending` status with a 7-day setup_token.
+//   3. PATCH the originating `klar_inquiries` row with approved_app +
+//      setup_token + status='invited' so /admin can re-find the link.
+//   4. Return the onboarding link `<app-host>/affiliate/<token>`. Admin
+//      copies + sends manually (auto-mail comes later).
 //
-// On failure (RPC reject, schema mismatch, network) the row is NOT touched —
-// the admin sees the error and can retry. We never partial-commit.
+// Returns JSON when Accept includes application/json (used by an inline
+// progressive form). Otherwise redirects back to /admin?view=inbox so the
+// row shows the new "invited" status.
 
 import { NextResponse, type NextRequest } from "next/server";
 import { ctEqual, readCookie } from "@/app/admin/_shared";
-import { getApp, mintInfluencerCode } from "@/lib/adminApps";
+import { getApp, createInfluencerSetup, setupLandingUrl } from "@/lib/adminApps";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,17 +26,12 @@ const KLAR_INBOX_URL =
   process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
 const KLAR_INBOX_KEY = process.env.KLAR_INBOX_SERVICE_KEY ?? "";
 
-const CODE_RE = /^[A-Z0-9_.-]{3,32}$/;
 const HANDLE_RE = /^[A-Za-z0-9_.-]{1,64}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const LANG_RE = /^(de|en|fr|es|it|nl|pt|pl)$/;
 
 function bad(message: string, status = 400): Response {
   return NextResponse.json({ ok: false, error: message }, { status });
-}
-
-function clampPct(raw: string): number {
-  const n = parseFloat(raw);
-  if (!isFinite(n) || n <= 0 || n > 1) return 0.5;
-  return Math.round(n * 100) / 100;
 }
 
 async function patchInquiry(
@@ -62,8 +59,6 @@ async function patchInquiry(
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
-  // Auth: same cookie /admin issues. No query-string fallback here — this is
-  // a state-changing endpoint, the cookie is the canonical proof.
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
   if (!KEY) return bad("admin not configured", 503);
   if (!ctEqual(readCookie(req, "klar_admin"), KEY)) {
@@ -79,67 +74,80 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   const inquiryId = String(form.get("inquiry_id") ?? "").trim();
   const appSlug = String(form.get("app") ?? "").trim();
-  const code = String(form.get("code") ?? "").trim().toUpperCase();
-  const handle = String(form.get("handle") ?? "").trim();
+  const rawHandle = String(form.get("handle") ?? "").trim();
+  const handle = rawHandle.replace(/^@/, "").toLowerCase();
+  const email = String(form.get("email") ?? "").trim().toLowerCase();
   const displayName = String(form.get("display_name") ?? "").trim();
-  const commissionPct = clampPct(String(form.get("commission_pct") ?? "0.5"));
+  const language = String(form.get("language") ?? "de").trim().toLowerCase();
+  const sharePct = Math.round(Number(form.get("share_pct") ?? 50));
+  const shareMonths = Math.round(Number(form.get("share_months") ?? 24));
 
   if (!inquiryId) return bad("missing inquiry_id");
-  if (!CODE_RE.test(code)) return bad("code must match /^[A-Z0-9_.-]{3,32}$/");
   if (!HANDLE_RE.test(handle)) return bad("handle invalid");
+  if (!EMAIL_RE.test(email)) return bad("email invalid");
+  if (!LANG_RE.test(language)) return bad("language invalid");
+  if (!isFinite(sharePct) || sharePct <= 0 || sharePct > 100) {
+    return bad("share_pct out of range");
+  }
+  if (!isFinite(shareMonths) || shareMonths <= 0 || shareMonths > 60) {
+    return bad("share_months out of range");
+  }
 
   const app = getApp(appSlug);
   if (!app) return bad(`unknown app: ${appSlug}`);
 
-  // 1) Mint in the app's Supabase. If this throws we abort BEFORE touching
-  // the inbox row — keeps the flow re-runnable.
+  // 1) Generate setup token in the app's Supabase. Throws if RPC missing or
+  // permission denied — abort cleanly before touching the inbox row.
+  let setup;
   try {
-    await mintInfluencerCode(app, {
-      code,
+    setup = await createInfluencerSetup(app, {
+      email,
       handle,
       displayName: displayName || handle,
-      commissionPct,
+      language,
+      appSlug,
+      sharePct,
+      shareMonths,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    return bad(`mint failed: ${msg}`, 502);
+    return bad(`create_influencer_setup failed: ${msg}`, 502);
   }
 
-  // 2) Mark the inquiry as approved.
+  const landingUrl = setupLandingUrl(appSlug, setup.setup_token);
+
+  // 2) Mark the inquiry as invited.
   try {
     await patchInquiry(inquiryId, {
-      status: "approved",
+      status: "invited",
       approved_app: appSlug,
-      approved_code: code,
+      approved_code: setup.setup_token,
       approved_at: new Date().toISOString(),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    // The mint already happened — surface the error so the admin can
-    // manually update the row, but don't pretend nothing happened.
     return NextResponse.json(
       {
         ok: false,
         partial: true,
-        error: `mint succeeded but inquiry PATCH failed: ${msg}`,
+        error: `setup created but inquiry PATCH failed: ${msg}`,
         app: appSlug,
-        code,
+        token: setup.setup_token,
+        landing_url: landingUrl,
       },
       { status: 502 },
     );
   }
 
-  // Redirect back to inbox so the row's new status is immediately visible.
-  // Accept can override (so XHR clients can stay on a JSON path if needed).
   const accept = req.headers.get("accept") ?? "";
   if (accept.includes("application/json")) {
     return NextResponse.json({
       ok: true,
       app: appSlug,
-      code,
-      handle,
-      commission_pct: commissionPct,
-      landing_url: `https://getklar.org/i/${appSlug}/${code}`,
+      token: setup.setup_token,
+      handle: setup.handle,
+      expires_at: setup.setup_token_expires_at,
+      landing_url: landingUrl,
     });
   }
   return NextResponse.redirect(new URL("/admin?view=inbox", req.url), 303);

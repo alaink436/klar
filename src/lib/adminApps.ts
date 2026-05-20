@@ -112,3 +112,69 @@ export async function mintInfluencerCode(
     p_commission_pct: args.commissionPct ?? 0.5,
   });
 }
+
+// Create a one-shot onboarding setup token for an influencer. The token is
+// a URL-safe 32-char string with a 7-day TTL; the influencer lands on
+// `<app-domain>/affiliate/<token>` and completes their payout-setup. Each
+// app's Supabase has the same `create_influencer_setup` RPC (migration
+// `influencer_onboarding_v1`).
+export interface InfluencerSetupRow {
+  id: string;
+  handle: string;
+  display_name: string | null;
+  contact_email: string | null;
+  language: string;
+  setup_token: string;
+  setup_token_expires_at: string;
+  share_pct: number;
+  share_months: number;
+  status: string;
+  app: string | null;
+}
+
+export async function createInfluencerSetup(
+  app: AdminApp,
+  args: {
+    email: string;
+    handle: string;
+    displayName?: string;
+    language?: string;
+    appSlug?: string;
+    sharePct?: number;
+    shareMonths?: number;
+  },
+): Promise<InfluencerSetupRow> {
+  return await sbRpc<InfluencerSetupRow>(app, "create_influencer_setup", {
+    p_email: args.email,
+    p_handle: args.handle,
+    p_display_name: args.displayName ?? null,
+    p_language: args.language ?? "de",
+    p_app: args.appSlug ?? null,
+    p_share_pct: args.sharePct ?? 50,
+    p_share_months: args.shareMonths ?? 24,
+  });
+}
+
+// Canonical landing-page-host per app for the setup-token link. The form is
+// `<host>/affiliate/<token>`. Domains are read from env so they can be
+// switched (e.g. when trubel.space → trubel.app or before Apple-approval).
+const FALLBACK_HOSTS: Record<string, string> = {
+  trubel: "https://trubel.space",
+  myloo: "https://myloo.app",
+  wavelength: "https://onwavelength.space",
+  kelva: "https://kelva.space",
+  "yarn-stash": "https://getklar.org/i/yarnstash-setup",
+  moto: "https://getklar.org/i/throttleup-setup",
+};
+
+export function setupLandingUrl(appSlug: string, token: string): string {
+  const envHost = process.env[`KLAR_APP_HOST_${appSlug.toUpperCase().replace(/-/g, "_")}`];
+  const host = envHost || FALLBACK_HOSTS[appSlug] || "https://getklar.org";
+  // For per-app domain hosts (trubel/myloo/etc.) use /affiliate/<token>.
+  // For the klar-fallback hosts (yarn-stash, moto) the host already encodes
+  // the path prefix and we append the token directly.
+  if (host.includes("/i/") || host.endsWith("-setup")) {
+    return `${host}/${encodeURIComponent(token)}`;
+  }
+  return `${host}/affiliate/${encodeURIComponent(token)}`;
+}
