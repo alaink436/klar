@@ -34,7 +34,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const WISE_TOKEN = Deno.env.get("WISE_API_TOKEN") ?? "";
 const WISE_PROFILE = Deno.env.get("WISE_PROFILE_ID") ?? "";
-const WISE_SOURCE_CCY = Deno.env.get("WISE_SOURCE_CURRENCY") ?? "EUR";
+const WISE_SOURCE_CCY = Deno.env.get("WISE_SOURCE_CURRENCY") ?? "CHF";
 const ADMIN_KEY = Deno.env.get("KLAR_APP_ADMIN_KEY") ?? "";
 const WISE_BASE = "https://api.wise.com";
 

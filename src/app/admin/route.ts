@@ -74,8 +74,18 @@ interface CalBooking {
   created_at?: string;
 }
 
-const eur = (c: number | null | undefined) =>
-  (Number(c ?? 0) / 100).toLocaleString("de-CH", { style: "currency", currency: "EUR" });
+// Klar Studio is CH-based, payouts run through Wise from a CHF balance.
+// DB columns are still named `*_eur_cents` for historical reasons (Wavelength's
+// richer schema established the name first); semantically they hold the
+// reporting currency configured below.
+const REPORTING_CURRENCY = process.env.KLAR_REPORTING_CURRENCY ?? "CHF";
+const money = (c: number | null | undefined) =>
+  (Number(c ?? 0) / 100).toLocaleString("de-CH", {
+    style: "currency",
+    currency: REPORTING_CURRENCY,
+  });
+// Back-compat alias so existing eur() callsites stay valid.
+const eur = money;
 
 // STYLE moved to ./_shared.ts so /admin/analytics can reuse it.
 
@@ -193,7 +203,7 @@ function barChart(series: { label: string; gross: number; payout: number }[]): s
   }).join("");
   return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Einnahmen pro Monat">
     ${gridLines}<line x1="${padL}" y1="${y(0)}" x2="${W - padR}" y2="${y(0)}" stroke="var(--line-strong)" stroke-width="1"/>${bars}</svg>
-    <div class="legend"><span><i style="background:var(--chart-1)"></i>Affiliate-Umsatz</span><span><i style="background:var(--chart-2)"></i>Auszahlung an Affiliates</span><span>EUR pro Monat</span></div></div>`;
+    <div class="legend"><span><i style="background:var(--chart-1)"></i>Affiliate-Umsatz</span><span><i style="background:var(--chart-2)"></i>Auszahlung an Affiliates</span><span>${esc(REPORTING_CURRENCY)} pro Monat</span></div></div>`;
 }
 
 // Tab strip with all six Klar apps. Apps that are wired up in KLAR_ADMIN_APPS
@@ -241,7 +251,7 @@ async function overview(apps: AdminApp[]): Promise<string> {
     <div class="card"><div class="k">Affiliates gesamt</div><div class="v">${totalAff}</div></div>
     <div class="card"><div class="k">Offen gesamt</div><div class="v">${eur(totalOpen)}</div><div class="s">netto, gereift</div></div>
   </div>`;
-  const tbl = `<table><thead><tr><th>App</th><th class="r">Affiliates</th><th class="r">Aktiv</th><th class="r">Offen (EUR)</th><th class="c">FX</th><th></th></tr></thead><tbody>
+  const tbl = `<table><thead><tr><th>App</th><th class="r">Affiliates</th><th class="r">Aktiv</th><th class="r">Offen (${esc(REPORTING_CURRENCY)})</th><th class="c">FX</th><th></th></tr></thead><tbody>
     ${rows.map((r) => `<tr>
       <td><a class="applink" href="/admin?view=${esc(r.app.slug)}">${esc(r.app.name)}</a> ${r.onboarded ? "" : `<span class="pill">nicht ausgerollt</span>`}</td>
       <td class="r">${r.total}</td><td class="r">${r.active}</td>
@@ -674,7 +684,7 @@ async function bookingsView(): Promise<string> {
 
 // ============================================================
 // Central Payouts View — aggregates batches across every wired-up app.
-// Top: KPIs (open EUR, ready batches, FX pending, last paid). Then a
+// Top: KPIs (open in REPORTING_CURRENCY, ready batches, FX pending, last paid). Then a
 // "Alle vorbereiten" form that POSTs to /admin/dispatch-all. Then two
 // tables: open/ready batches (with per-row Wise-prepare button) and the
 // historic batches (paid/failed/cancelled).

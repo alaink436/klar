@@ -225,7 +225,7 @@ async function main() {
     const secrets = {
       WISE_API_TOKEN: input.wise.api_token,
       WISE_PROFILE_ID: String(input.wise.profile_id),
-      WISE_SOURCE_CURRENCY: input.wise.source_currency || "EUR",
+      WISE_SOURCE_CURRENCY: input.wise.source_currency || "CHF",
       KLAR_APP_ADMIN_KEY: adminKey,
     };
     if (setSecrets(slug, app.project_ref, secrets)) {

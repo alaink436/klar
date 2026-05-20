@@ -3,7 +3,7 @@
   "wise": {
     "api_token": "PASTE_YOUR_WISE_PERSONAL_TOKEN_HERE",
     "profile_id": "PASTE_YOUR_WISE_BUSINESS_PROFILE_ID_HERE",
-    "source_currency": "EUR"
+    "source_currency": "CHF"
   },
   "apps": {
     "yarn-stash": {

@@ -204,7 +204,7 @@ revoke all on public.influencer_claimable     from public, anon, authenticated;
 revoke all on function public._touch_updated_at() from public, anon, authenticated;
 
 comment on table public.influencers is 'Klar Affiliate registry. Service-role only, RLS-locked.';
-comment on table public.referral_revenue_events is 'Append-only ledger of attributed conversions, EUR-normalized.';
+comment on table public.referral_revenue_events is 'Append-only ledger of attributed conversions, normalized to Klar reporting currency (CHF by default; column names keep the *_eur_cents suffix for historical reasons).';
 comment on table public.influencer_payout_batches is 'Monthly batch headers. Status drives the Wise-dispatch workflow.';
 comment on table public.influencer_payout_items is 'Per-influencer line items inside a batch, with Wise transfer refs.';
 comment on view public.influencer_claimable is 'Per-influencer aggregate read by /admin appView.';
