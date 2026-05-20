@@ -226,13 +226,13 @@ iframe{width:100%;height:88vh;border:0;display:block}
 /* App tab strip: horizontal scroller, one tab per Klar app. Icon on top,
    name underneath, status pill in the corner. Hover rotates the icon
    slightly and lifts the tile. */
-.app-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:0 0 28px}
-.app-tab{display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);text-align:center;position:relative;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.app-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 28px}
+.app-tab{display:flex;flex-direction:column;align-items:center;gap:14px;padding:24px 14px 18px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);text-align:center;position:relative;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
 .app-tab:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--line-strong)}
-.app-tab .app-icon{width:56px;height:56px;border-radius:14px;background:var(--surface-2);overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);transition:transform .25s ease,box-shadow .25s ease,border-color .2s ease}
+.app-tab .app-icon{width:80px;height:80px;border-radius:18px;background:var(--surface-2);overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);transition:transform .25s ease,box-shadow .25s ease,border-color .2s ease}
 .app-tab .app-icon img{width:100%;height:100%;object-fit:cover;display:block}
-.app-tab:hover .app-icon{transform:rotate(-5deg) scale(1.04);box-shadow:var(--shadow);border-color:var(--line-strong)}
-.app-tab .app-name{font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--fg);line-height:1.2;margin:0}
+.app-tab:hover .app-icon{transform:rotate(-5deg) scale(1.05);box-shadow:var(--shadow);border-color:var(--line-strong)}
+.app-tab .app-name{font-family:var(--font-body);font-size:14px;font-weight:600;color:var(--fg);line-height:1.2;margin:0}
 .app-tab .app-meta{font-family:var(--font-mono);font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-4)}
 .app-tab.dim{opacity:.78}
 .app-tab.dim .app-icon{filter:grayscale(.45)}
@@ -264,9 +264,8 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 /* Smoke canvas: full-viewport, fixed behind everything, fades to 0 in light mode */
 #klar-smoke-bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-2;display:block;opacity:0;transition:opacity .6s ease;pointer-events:none}
 [data-theme="dark"] #klar-smoke-bg{opacity:.55}
-/* Aurora wash on top of smoke (subtle ink-tone wash, monochrome to match VS) */
-.klar-aurora{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:0;transition:opacity .6s ease;background:radial-gradient(ellipse 1400px 900px at 15% -10%,rgba(255,255,255,.06),transparent 60%),radial-gradient(ellipse 900px 700px at 85% 110%,rgba(255,255,255,.04),transparent 60%)}
-[data-theme="dark"] .klar-aurora{opacity:1}
+/* Aurora wash disabled — pure greyscale stack on top of smoke */
+.klar-aurora{display:none}
 /* Dark theme: VS Ink & Steel — monochrome charcoal, glass cards over smoke */
 [data-theme="dark"]{
   --bg:#0A0A0A;
@@ -372,8 +371,8 @@ export const SMOKE_BG_SCRIPT = String.raw`(function(){
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,1,-1,-1,1,1,1,-1]), gl.STATIC_DRAW);
   var pos = gl.getAttribLocation(prog, 'position'); gl.enableVertexAttribArray(pos); gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
   var uRes = gl.getUniformLocation(prog, 'resolution'), uTime = gl.getUniformLocation(prog, 'time'), uColor = gl.getUniformLocation(prog, 'u_color');
-  // Smoke colour: VS default neutral grey (#808080 rgb 0.5,0.5,0.5)
-  var color = [0.5, 0.5, 0.5];
+  // Smoke colour: pure neutral grey, no hue cast
+  var color = [0.45, 0.45, 0.45];
   function resize(){ var dpr = Math.max(0.5, (window.devicePixelRatio || 1) * 0.5); c.width = Math.floor(window.innerWidth * dpr); c.height = Math.floor(window.innerHeight * dpr); gl.viewport(0, 0, c.width, c.height); }
   resize(); window.addEventListener('resize', resize, { passive: true });
   var raf, last = 0, interval = 1000 / 30; // 30 fps target
