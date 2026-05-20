@@ -46,6 +46,7 @@ const KLAR_INBOX_URL =
 const KLAR_INBOX_KEY = process.env.KLAR_INBOX_SERVICE_KEY ?? "";
 
 interface Inquiry {
+  id?: string;
   created_at?: string;
   type?: string;
   email?: string;
@@ -58,6 +59,10 @@ interface Inquiry {
   project?: string;
   budget?: string;
   brief?: string;
+  // Approval columns added 2026-05-20 via klar_inquiries_approval_columns:
+  approved_app?: string;
+  approved_code?: string;
+  approved_at?: string;
 }
 
 interface CalBooking {
@@ -581,21 +586,87 @@ async function inboxView(): Promise<string> {
       .filter(Boolean)
       .join(" · ");
 
+  // Apps that are wired up (KLAR_ADMIN_APPS env). Used to populate the
+  // approve-form select. If KLAR_ADMIN_APPS is empty, the dropdown still
+  // shows but submitting will return "unknown app" — that's the cue to add
+  // the app's slug+serviceKey to the env first.
+  const wiredApps = getApps()
+    .map((a) => `<option value="${esc(a.slug)}">${esc(a.name)}</option>`)
+    .join("");
+
+  // Random code suggestion — 6 uppercase chars, no ambiguous 0/O/1/I/L.
+  const suggestCode = (handle: string): string => {
+    const seed = (handle || "X").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3) || "REF";
+    const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+    let tail = "";
+    for (let i = 0; i < 3; i++) tail += chars[Math.floor(Math.random() * chars.length)];
+    return `${seed}${tail}`.slice(0, 6);
+  };
+
+  const approveForm = (r: Inquiry): string => {
+    if (r.type !== "affiliate") return "";
+    if (r.status === "approved" && r.approved_app && r.approved_code) {
+      const landing = `https://getklar.org/i/${esc(r.approved_app)}/${esc(r.approved_code)}`;
+      return `<tr class="approved-row"><td colspan="5" style="padding:8px 14px;background:var(--surface-2);border-top:1px solid var(--line)">
+        <span class="pill" style="background:var(--ok-soft,#dcfce7);color:#166534;border:1px solid #bbf7d0;font-weight:600">approved → ${esc(r.approved_app)}</span>
+        <span class="mono" style="margin-left:10px">${esc(r.approved_code)}</span>
+        <a class="applink" style="margin-left:10px" href="${landing}" target="_blank" rel="noopener">${landing} ↗</a>
+        ${r.approved_at ? `<span class="muted" style="margin-left:10px;font-size:12px">${fmt(r.approved_at)}</span>` : ""}
+      </td></tr>`;
+    }
+    if (!r.id) return "";
+    const code = suggestCode(r.handle ?? "");
+    const displayName = r.handle || (r.email ?? "").split("@")[0] || "";
+    return `<tr class="approve-row"><td colspan="5" style="padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--line)">
+      <form method="POST" action="/api/affiliate/approve" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
+        <input type="hidden" name="inquiry_id" value="${esc(r.id)}"/>
+        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">
+          App
+          <select name="app" required style="margin-top:3px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:13px">
+            <option value="" disabled selected>— wählen —</option>
+            ${wiredApps}
+          </select>
+        </label>
+        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">
+          Code
+          <input type="text" name="code" required pattern="[A-Z0-9_.\\-]{3,32}" maxlength="32" value="${esc(code)}" style="margin-top:3px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:13px;font-family:ui-monospace,monospace;width:120px;text-transform:uppercase"/>
+        </label>
+        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">
+          Handle
+          <input type="text" name="handle" required maxlength="64" value="${esc((r.handle ?? "").replace(/^@/, ""))}" style="margin-top:3px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:13px;width:140px"/>
+        </label>
+        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">
+          Display
+          <input type="text" name="display_name" maxlength="64" value="${esc(displayName)}" style="margin-top:3px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:13px;width:160px"/>
+        </label>
+        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">
+          Commission
+          <input type="number" name="commission_pct" min="0.01" max="1" step="0.01" value="0.5" style="margin-top:3px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:13px;width:80px"/>
+        </label>
+        <button type="submit" class="btn" style="padding:8px 16px;font-size:13px">Approve →</button>
+      </form>
+    </td></tr>`;
+  };
+
   const body = rows.length
     ? rows
-        .map(
-          (r) => `<tr>
+        .map((r) => {
+          const isApproved = r.status === "approved";
+          const statusPill = isApproved
+            ? `<span class="pill" style="background:var(--ok-soft,#dcfce7);color:#166534;border:1px solid #bbf7d0;font-weight:600">approved</span>`
+            : `<span class="pill ${r.status === "new" ? "live" : ""}">${esc(r.status ?? "")}</span>`;
+          return `<tr>
         <td class="muted" style="white-space:nowrap">${fmt(r.created_at)}</td>
-        <td><span class="pill ${r.status === "new" ? "live" : ""}">${esc(r.type)}</span></td>
+        <td><span class="pill ${r.status === "new" && r.type === "affiliate" ? "live" : ""}">${esc(r.type)}</span></td>
         <td><a class="applink" href="mailto:${esc(r.email)}">${esc(r.email)}</a></td>
         <td class="muted" style="font-size:12px;max-width:520px">${esc(detail(r))}</td>
-        <td>${esc(r.status)}</td>
-      </tr>`,
-        )
+        <td>${statusPill}</td>
+      </tr>${approveForm(r)}`;
+        })
         .join("")
     : `<tr><td colspan="5" class="muted">noch keine Anfragen</td></tr>`;
 
-  return `<h1>Inbox</h1><p class="sub">Affiliate- und Consulting-Anfragen von getklar.org. Dauerhaft in Supabase gespeichert, neueste zuerst. Klick eine Email zum direkten Antworten.</p>
+  return `<h1>Inbox</h1><p class="sub">Affiliate- und Consulting-Anfragen von getklar.org. Affiliate-Zeilen ohne Approve haben darunter ein Formular: App wählen, Code akzeptieren oder ändern, Approve klicken — mintet den Code in der App-Supabase und markiert die Anfrage als <em>approved</em>.</p>
     ${cards}
     <table><thead><tr><th>Wann</th><th>Typ</th><th>Email</th><th>Details</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>`;
 }
