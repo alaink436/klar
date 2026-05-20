@@ -121,7 +121,7 @@ function shell(view: string, apps: AdminApp[], flash: string | null, main: strin
     `<a class="nav ${view === v ? "on" : ""}" href="${href ?? `/admin?view=${encodeURIComponent(v)}`}"><span class="d">${icon}</span>${esc(label)}</a>`;
   const appLinks = apps.map((a) => item(a.slug, a.name, ICON.app)).join("");
   const labels: Record<string, string> = {
-    overview: "Übersicht", inbox: "Inbox", bookings: "Bookings", revenue: "Einnahmen", payouts: "Auszahlungen", analytics: "Analytics", outreach: "Outreach",
+    overview: "Übersicht", inbox: "Inbox", bookings: "Bookings", cal: "Cal Admin", revenue: "Einnahmen", payouts: "Auszahlungen", analytics: "Analytics", outreach: "Outreach",
   };
   const here =
     labels[view] ?? apps.find((a) => a.slug === view)?.name ?? "Übersicht";
@@ -132,6 +132,7 @@ function shell(view: string, apps: AdminApp[], flash: string | null, main: strin
       ${item("overview", "Übersicht", ICON.overview)}
       ${item("inbox", "Inbox", ICON.inbox)}
       ${item("bookings", "Bookings", ICON.calendar)}
+      ${item("cal", "Cal Admin", ICON.calendar)}
       ${item("analytics", "Analytics", ICON.analytics, "/admin/analytics")}
       <div class="navsec">Affiliate</div>
       ${item("revenue", "Einnahmen", ICON.revenue)}
@@ -139,7 +140,7 @@ function shell(view: string, apps: AdminApp[], flash: string | null, main: strin
       ${appLinks || `<span class="nav muted"><span class="d">${ICON.app}</span>keine Apps</span>`}
       <div class="navsec">Extern</div>
       ${item("outreach", "Outreach", ICON.outreach)}
-      <a class="nav" href="https://cal.getklar.org" target="_blank" rel="noopener"><span class="d">${ICON.calendar}</span>Cal Admin <span style="margin-left:auto;font-size:10px;opacity:.6">↗</span></a>
+      <a class="nav" href="https://cal.getklar.org" target="_blank" rel="noopener"><span class="d">${ICON.calendar}</span>Cal in neuem Tab <span style="margin-left:auto;font-size:10px;opacity:.6">↗</span></a>
       <div class="spacer"></div>
       <a class="nav logout" href="/admin/logout"><span class="d">${ICON.logout}</span>Logout</a>
     </aside>
@@ -790,6 +791,23 @@ async function payoutsView(apps: AdminApp[]): Promise<string> {
     ${historyTbl}`;
 }
 
+function calView(): string {
+  // Full-bleed iframe of cal.getklar.org. Nginx is configured to send
+  // Content-Security-Policy: frame-ancestors 'self' https://getklar.org so
+  // the embed is permitted. User must sign in once inside the iframe; the
+  // session cookie persists on the cal.getklar.org domain afterwards.
+  return `<div style="margin:-24px -28px -28px -28px;height:calc(100vh - 56px);position:relative">
+    <iframe
+      src="https://cal.getklar.org"
+      title="Cal Admin"
+      style="width:100%;height:100%;border:0;display:block;background:var(--surface)"
+      sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads allow-storage-access-by-user-activation"
+      allow="clipboard-read; clipboard-write; camera; microphone"
+      referrerpolicy="origin"
+    ></iframe>
+  </div>`;
+}
+
 export async function GET(req: Request): Promise<Response> {
   if (!KLAR_ADMIN_KEY) return doc(`<p style="color:#FF6B6B;padding:24px;font-family:'JetBrains Mono',monospace">Server misconfigured: KLAR_ADMIN_KEY not set.</p>`);
   const url = new URL(req.url);
@@ -806,6 +824,7 @@ export async function GET(req: Request): Promise<Response> {
   if (view === "outreach") main = await outreachView();
   else if (view === "inbox") main = await inboxView();
   else if (view === "bookings") main = await bookingsView();
+  else if (view === "cal") main = calView();
   else if (view === "revenue") main = await revenueView(apps);
   else if (view === "payouts") main = await payoutsView(apps);
   else {
