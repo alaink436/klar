@@ -179,7 +179,7 @@ create or replace view public.influencer_claimable as
       where p.influencer_id = i.id and p.status = 'paid'
     ), 0)::bigint                     as claimable_eur_cents,
     coalesce(sum(
-      case when e.share_cents_eur is null then 1 else 0 end
+      case when e.id is not null and e.share_cents_eur is null then 1 else 0 end
     ), 0)::bigint                     as unnormalized_events
   from public.influencers i
   left join public.referral_revenue_events e on e.influencer_id = i.id
