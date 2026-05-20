@@ -256,7 +256,48 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 .login-input::placeholder{color:var(--fg-4)}
 .login-foot{font-family:var(--font-mono);color:var(--fg-4);font-size:10px;letter-spacing:.18em;text-transform:uppercase;margin-top:24px}
 
-@media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none}html{scroll-behavior:auto}.card{transition:none}}
+/* ===== Liquid Glass Layer (dark-mode only, smoke-bg behind glass cards) ===== */
+/* Smoke canvas: full-viewport, fixed behind everything, fades to 0 in light mode */
+#klar-smoke-bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-2;display:block;opacity:0;transition:opacity .6s ease;pointer-events:none}
+[data-theme="dark"] #klar-smoke-bg{opacity:.55}
+/* Aurora wash on top of smoke, adds violet/cyan gradient bloom */
+.klar-aurora{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:0;transition:opacity .6s ease;background:radial-gradient(ellipse 1200px 800px at 15% -10%,rgba(139,92,246,.22),transparent 60%),radial-gradient(ellipse 900px 700px at 85% 110%,rgba(6,182,212,.18),transparent 60%),radial-gradient(ellipse 700px 500px at 50% 50%,rgba(236,72,153,.08),transparent 70%)}
+[data-theme="dark"] .klar-aurora{opacity:1}
+/* Dark theme: pull surfaces to transparent-glass so smoke shines through */
+[data-theme="dark"]{
+  --bg:#06060A;
+  --surface:rgba(20,18,28,.62);
+  --surface-2:rgba(28,26,38,.55);
+  --surface-3:rgba(38,36,50,.50);
+  --line:rgba(255,255,255,.07);
+  --line-strong:rgba(255,255,255,.14);
+  --accent:#E5E7EB;--accent-fg:#0A0A0F;
+  --chart-1:#E5E7EB;--chart-2:#A78BFA;--chart-3:#22D3EE;--chart-4:#F472B6;--chart-fill:rgba(167,139,250,.22);
+}
+[data-theme="dark"] body{background:#06060A}
+/* Side rail in dark: subtle frosted vertical stripe */
+[data-theme="dark"] .side{background:linear-gradient(180deg,rgba(20,18,28,.78) 0%,rgba(10,10,16,.62) 100%);backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);border-right:1px solid rgba(255,255,255,.08)}
+/* Topbar in dark: thin frosted slab */
+[data-theme="dark"] .topbar{background:linear-gradient(180deg,rgba(10,10,16,.55),rgba(10,10,16,.25));backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);border-bottom:1px solid rgba(255,255,255,.06)}
+/* Cards in dark: liquid glass surface */
+[data-theme="dark"] .card,[data-theme="dark"] .chart,[data-theme="dark"] .batch,[data-theme="dark"] .app-tab{backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);border:1px solid rgba(255,255,255,.10);box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 24px 60px -28px rgba(0,0,0,.6),0 8px 22px -16px rgba(139,92,246,.18)}
+[data-theme="dark"] .card:hover,[data-theme="dark"] .app-tab:hover{border-color:rgba(167,139,250,.34);box-shadow:0 1px 0 rgba(255,255,255,.10) inset,0 30px 80px -28px rgba(0,0,0,.7),0 14px 36px -20px rgba(167,139,250,.30)}
+/* Tables in dark: glass surface, soft borders */
+[data-theme="dark"] table{backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);border:1px solid rgba(255,255,255,.08)}
+[data-theme="dark"] th{background:rgba(20,18,28,.65)}
+[data-theme="dark"] tbody tr:hover td{background:rgba(167,139,250,.06)}
+/* Pills + buttons in dark: refined glass-on-glass */
+[data-theme="dark"] .pill{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10);color:var(--fg-2)}
+[data-theme="dark"] .pill.live{background:linear-gradient(135deg,#A78BFA,#22D3EE);color:#0A0A0F;border-color:transparent;box-shadow:0 4px 14px -4px rgba(167,139,250,.5)}
+[data-theme="dark"] .btn{background:linear-gradient(135deg,rgba(229,231,235,.94),rgba(229,231,235,.86));color:#0A0A0F;border:1px solid rgba(255,255,255,.18);box-shadow:0 4px 14px -4px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.4) inset;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+[data-theme="dark"] .btn:hover{box-shadow:0 8px 22px -6px rgba(167,139,250,.4),0 1px 0 rgba(255,255,255,.5) inset;transform:translateY(-1px)}
+/* Login card glass in dark */
+[data-theme="dark"] .login{background:radial-gradient(800px 600px at 50% -20%,rgba(167,139,250,.22),transparent),radial-gradient(700px 500px at 50% 120%,rgba(34,211,238,.18),transparent),#06060A}
+[data-theme="dark"] .login-card{backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);background:rgba(20,18,28,.55);border:1px solid rgba(255,255,255,.10);box-shadow:0 1px 0 rgba(255,255,255,.10) inset,0 40px 80px -20px rgba(0,0,0,.7),0 16px 40px -16px rgba(167,139,250,.25)}
+/* Iframe-wrap in dark: glassy frame */
+[data-theme="dark"] .iframewrap{background:rgba(20,18,28,.62);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+
+@media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none}html{scroll-behavior:auto}.card{transition:none}#klar-smoke-bg{display:none}.klar-aurora{display:none}}
 @media(max-width:820px){
  .layout{flex-direction:column}
  .side{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px;border-right:0;border-bottom:1px solid var(--line);padding:12px 14px;background:var(--surface)}
@@ -270,8 +311,68 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 export const FONTS_LINK =
   `https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Fraunces:ital@0;1&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap`;
 
+// Admin defaults to dark theme. Light is opt-in via toggle (persisted).
 export const THEME_INIT_SCRIPT =
-  `try{var t=localStorage.getItem("klar-admin-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
+  `try{var t=localStorage.getItem("klar-admin-theme");document.documentElement.dataset.theme=(t==="light"||t==="dark")?t:"dark"}catch(e){document.documentElement.dataset.theme="dark"}`;
 
 export const THEME_TOGGLE_SCRIPT =
-  `function klarToggleTheme(){var d=document.documentElement,c=d.dataset.theme,p=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light",n=(c||p)==="dark"?"light":"dark";d.dataset.theme=n;try{localStorage.setItem("klar-admin-theme",n)}catch(e){}}`;
+  `function klarToggleTheme(){var d=document.documentElement,c=d.dataset.theme||"dark",n=c==="dark"?"light":"dark";d.dataset.theme=n;try{localStorage.setItem("klar-admin-theme",n)}catch(e){}}`;
+
+// Inline SVG defs for liquid-glass filters. Mounted once in <body>.
+// Ported from Vertical-Scheduling glass-panel.tsx (glass-soft + glass-strong)
+// and liquid-glass-button.tsx (container-glass).
+export const GLASS_SVG_DEFS = `<svg class="klar-glass-defs" aria-hidden="true" width="0" height="0" style="position:absolute;width:0;height:0;overflow:hidden">
+  <defs>
+    <filter id="klar-glass-soft" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.014 0.014" numOctaves="2" seed="5" result="t"/>
+      <feGaussianBlur in="t" stdDeviation="2" result="bn"/>
+      <feDisplacementMap in="SourceGraphic" in2="bn" scale="18" xChannelSelector="R" yChannelSelector="B" result="d"/>
+      <feGaussianBlur in="d" stdDeviation="1.2" result="fb"/>
+      <feComposite in="fb" in2="fb" operator="over"/>
+    </filter>
+    <filter id="klar-glass-strong" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.012" numOctaves="2" seed="3" result="t"/>
+      <feGaussianBlur in="t" stdDeviation="2" result="bn"/>
+      <feDisplacementMap in="SourceGraphic" in2="bn" scale="36" xChannelSelector="R" yChannelSelector="B" result="d"/>
+      <feGaussianBlur in="d" stdDeviation="2" result="fb"/>
+      <feComposite in="fb" in2="fb" operator="over"/>
+    </filter>
+    <filter id="klar-button-glass" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.05 0.05" numOctaves="1" seed="1" result="t"/>
+      <feGaussianBlur in="t" stdDeviation="2" result="bn"/>
+      <feDisplacementMap in="SourceGraphic" in2="bn" scale="70" xChannelSelector="R" yChannelSelector="B" result="d"/>
+      <feGaussianBlur in="d" stdDeviation="4" result="fb"/>
+      <feComposite in="fb" in2="fb" operator="over"/>
+    </filter>
+  </defs>
+</svg>`;
+
+// Vanilla WebGL2 smoke animation, ported from VS spooky-smoke-animation.tsx.
+// Renders only when theme=dark, pauses on tab-hidden, dpr*0.5 for GPU savings.
+// Smoke color in violet-cyan range (Klar brand-ish), opacity moderate.
+export const SMOKE_BG_SCRIPT = String.raw`(function(){
+  if (typeof window === 'undefined' || !window.WebGL2RenderingContext) return;
+  var c = document.getElementById('klar-smoke-bg');
+  if (!c) return;
+  var gl = c.getContext('webgl2', { antialias: false, preserveDrawingBuffer: false });
+  if (!gl) { c.style.display = 'none'; return; }
+  var VS = '#version 300 es\nprecision highp float;\nin vec4 position;\nvoid main(){gl_Position=position;}';
+  var FS = '#version 300 es\nprecision highp float;\nout vec4 O;\nuniform float time;\nuniform vec2 resolution;\nuniform vec3 u_color;\n#define FC gl_FragCoord.xy\n#define R resolution\n#define T (time+660.)\nfloat rnd(vec2 p){p=fract(p*vec2(12.9898,78.233));p+=dot(p,p+34.56);return fract(p.x*p.y);}\nfloat noise(vec2 p){vec2 i=floor(p),f=fract(p),u=f*f*(3.-2.*f);return mix(mix(rnd(i),rnd(i+vec2(1,0)),u.x),mix(rnd(i+vec2(0,1)),rnd(i+1.),u.x),u.y);}\nfloat fbm(vec2 p){float t=.0,a=1.;for(int i=0;i<5;i++){t+=a*noise(p);p*=mat2(1,-1.2,.2,1.2)*2.;a*=.5;}return t;}\nvoid main(){vec2 uv=(FC-.5*R)/R.y;vec3 col=vec3(1);uv.x+=.25;uv*=vec2(2,1);float n=fbm(uv*.28-vec2(T*.01,0));n=noise(uv*3.+n*2.);col.r-=fbm(uv+vec2(0,T*.015)+n);col.g-=fbm(uv*1.003+vec2(0,T*.015)+n+.003);col.b-=fbm(uv*1.006+vec2(0,T*.015)+n+.006);col=mix(col,u_color,dot(col,vec3(.21,.71,.07)));col=mix(vec3(.04),col,min(time*.1,1.));col=clamp(col,.04,1.);O=vec4(col,1);}';
+  function compile(type, src){ var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.warn('smoke shader:', gl.getShaderInfoLog(s)); return null; } return s; }
+  var vs = compile(gl.VERTEX_SHADER, VS), fs = compile(gl.FRAGMENT_SHADER, FS);
+  if (!vs || !fs) return;
+  var prog = gl.createProgram(); gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.warn('smoke link:', gl.getProgramInfoLog(prog)); return; }
+  var buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,1,-1,-1,1,1,1,-1]), gl.STATIC_DRAW);
+  var pos = gl.getAttribLocation(prog, 'position'); gl.enableVertexAttribArray(pos); gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+  var uRes = gl.getUniformLocation(prog, 'resolution'), uTime = gl.getUniformLocation(prog, 'time'), uColor = gl.getUniformLocation(prog, 'u_color');
+  // Smoke colour: muted violet-cyan, sits well behind glass cards
+  var color = [0.42, 0.38, 0.56];
+  function resize(){ var dpr = Math.max(0.5, (window.devicePixelRatio || 1) * 0.5); c.width = Math.floor(window.innerWidth * dpr); c.height = Math.floor(window.innerHeight * dpr); gl.viewport(0, 0, c.width, c.height); }
+  resize(); window.addEventListener('resize', resize, { passive: true });
+  var raf, last = 0, interval = 1000 / 30; // 30 fps target
+  function loop(now){ raf = requestAnimationFrame(loop); if (document.hidden) return; if (now - last < interval) return; last = now; gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT); gl.useProgram(prog); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.uniform2f(uRes, c.width, c.height); gl.uniform1f(uTime, now * 0.001); gl.uniform3fv(uColor, color); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
+  raf = requestAnimationFrame(loop);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) last = 0; });
+})();`;

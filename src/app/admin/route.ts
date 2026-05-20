@@ -19,6 +19,8 @@ import {
   FONTS_LINK,
   THEME_INIT_SCRIPT,
   THEME_TOGGLE_SCRIPT,
+  GLASS_SVG_DEFS,
+  SMOKE_BG_SCRIPT,
   ctEqual,
   readCookie,
   esc,
@@ -89,9 +91,14 @@ function doc(inner: string): Response {
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="${FONTS_LINK}" rel="stylesheet">
 <script type="speculationrules">{"prerender":[{"where":{"and":[{"href_matches":"/admin*"},{"not":{"href_matches":"/admin/logout*"}}]},"eagerness":"moderate"}]}</script>
-<style>${STYLE}</style></head><body>${inner}
+<style>${STYLE}</style></head><body>
+<canvas id="klar-smoke-bg" aria-hidden="true"></canvas>
+<div class="klar-aurora" aria-hidden="true"></div>
+${GLASS_SVG_DEFS}
+${inner}
 <script>
 ${THEME_TOGGLE_SCRIPT}
+${SMOKE_BG_SCRIPT}
 if("serviceWorker"in navigator){addEventListener("load",function(){navigator.serviceWorker.register("/admin-sw.js",{scope:"/admin"}).catch(function(){})})}
 </script></body></html>`,
     { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } },
