@@ -604,14 +604,14 @@ async function inboxView(): Promise<string> {
       myloo: "https://myloo.app",
       wavelength: "https://onwavelength.space",
       kelva: "https://kelva.space",
-      "yarn-stash": "https://getklar.org/i/yarnstash-setup",
-      moto: "https://getklar.org/i/throttleup-setup",
+      "yarn-stash": "https://getklar.org/affiliate/yarnstash",
+      moto: "https://getklar.org/affiliate/throttleup",
     };
     return fallback[slug] ?? "https://getklar.org";
   };
   const setupLinkFor = (slug: string, token: string): string => {
     const host = setupHostFor(slug);
-    if (host.includes("/i/") || host.endsWith("-setup")) return `${host}/${token}`;
+    if (host.startsWith("https://getklar.org/affiliate/")) return `${host}/${token}`;
     return `${host}/affiliate/${token}`;
   };
 

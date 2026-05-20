@@ -155,25 +155,26 @@ export async function createInfluencerSetup(
   });
 }
 
-// Canonical landing-page-host per app for the setup-token link. The form is
-// `<host>/affiliate/<token>`. Domains are read from env so they can be
-// switched (e.g. when trubel.space → trubel.app or before Apple-approval).
+// Canonical landing-page-host per app for the setup-token link. Apps with
+// their own sister-web-repo + domain use `<domain>/affiliate/<token>`.
+// Apps without a dedicated web-repo (Yarn-Stash, ThrottleUp) get a Klar
+// fallback under `getklar.org/affiliate/<slug>/<token>`.
 const FALLBACK_HOSTS: Record<string, string> = {
   trubel: "https://trubel.space",
   myloo: "https://myloo.app",
   wavelength: "https://onwavelength.space",
   kelva: "https://kelva.space",
-  "yarn-stash": "https://getklar.org/i/yarnstash-setup",
-  moto: "https://getklar.org/i/throttleup-setup",
+  "yarn-stash": "https://getklar.org/affiliate/yarnstash",
+  moto: "https://getklar.org/affiliate/throttleup",
 };
 
 export function setupLandingUrl(appSlug: string, token: string): string {
   const envHost = process.env[`KLAR_APP_HOST_${appSlug.toUpperCase().replace(/-/g, "_")}`];
   const host = envHost || FALLBACK_HOSTS[appSlug] || "https://getklar.org";
   // For per-app domain hosts (trubel/myloo/etc.) use /affiliate/<token>.
-  // For the klar-fallback hosts (yarn-stash, moto) the host already encodes
-  // the path prefix and we append the token directly.
-  if (host.includes("/i/") || host.endsWith("-setup")) {
+  // For the klar-fallback hosts the host already encodes the per-app
+  // subpath, just append the token.
+  if (host.startsWith("https://getklar.org/affiliate/")) {
     return `${host}/${encodeURIComponent(token)}`;
   }
   return `${host}/affiliate/${encodeURIComponent(token)}`;
