@@ -253,28 +253,43 @@ async function fetchAppInstallsAndPremiums(
   app: AdminApp,
   since: string,
 ): Promise<{ installs: number; premiums: number; ok: boolean }> {
-  // Wavelength-shape first: referrals (any status) + referral_conversions
+  // ---- Wavelength richer schema ----
+  // Installs = distinct user_ids in `referrals` (clipboard/uni-link attribution).
+  // Premiums = paid "initial_purchase" or "trial_conversion" events in
+  // `referral_revenue_events` that actually count_for_payout (excludes
+  // sandbox / self-referral / beyond-cap / paused / terminated).
+  //
+  // We try this shape first because it's the source-of-truth schema; if the
+  // tables aren't there yet (PostgREST 404) sbGet returns [] and we fall
+  // through to the generic shape below.
   try {
-    const [refs, convs] = await Promise.all([
+    const [refs, paidEvents] = await Promise.all([
       sbGet(
         app,
-        `referrals?select=id&created_at=gte.${encodeURIComponent(since)}&limit=10000`,
+        `referrals?select=id,user_id&created_at=gte.${encodeURIComponent(since)}&limit=10000`,
       ),
+      // Premium = paid revenue events that survived the guards. We filter
+      // event_type in (initial_purchase, trial_conversion) so renewals don't
+      // double-count the same user.
       sbGet(
         app,
-        `referral_conversions?select=id&created_at=gte.${encodeURIComponent(since)}&limit=10000`,
+        `referral_revenue_events?select=user_id&event_type=in.(initial_purchase,trial_conversion)&counts_for_payout=eq.true&event_at=gte.${encodeURIComponent(since)}&limit=10000`,
       ),
     ]);
-    if (refs.length > 0 || convs.length > 0) {
-      return { installs: refs.length, premiums: convs.length, ok: true };
+    if (refs.length > 0 || paidEvents.length > 0) {
+      const installs = new Set(refs.map((r) => r.user_id).filter(Boolean)).size || refs.length;
+      const premiums = new Set(paidEvents.map((r) => r.user_id).filter(Boolean)).size || paidEvents.length;
+      return { installs, premiums, ok: true };
     }
   } catch {
     /* fallthrough */
   }
-  // Yarn-Stash shape: profiles.referred_by_code_id (install attribution)
-  // + awin_conversions (premium event, approved=true)
+  // ---- Yarn-Stash dual-path shape ----
+  // Installs = profiles with referred_by_code_id set.
+  // Premiums = approved awin_conversions OR paid referral_revenue_events if
+  // both rails exist. We sum what's there.
   try {
-    const [profiles, awin] = await Promise.all([
+    const [profiles, awin, paidEventsYs] = await Promise.all([
       sbGet(
         app,
         `profiles?select=id&referred_by_code_id=not.is.null&created_at=gte.${encodeURIComponent(since)}&limit=10000`,
@@ -283,8 +298,14 @@ async function fetchAppInstallsAndPremiums(
         app,
         `awin_conversions?select=id&created_at=gte.${encodeURIComponent(since)}&limit=10000`,
       ),
+      sbGet(
+        app,
+        `referral_revenue_events?select=id&event_type=in.(initial_purchase,trial_conversion)&counts_for_payout=eq.true&event_at=gte.${encodeURIComponent(since)}&limit=10000`,
+      ),
     ]);
-    return { installs: profiles.length, premiums: awin.length, ok: profiles.length > 0 || awin.length > 0 };
+    const installs = profiles.length;
+    const premiums = awin.length + paidEventsYs.length;
+    return { installs, premiums, ok: installs > 0 || premiums > 0 };
   } catch {
     return { installs: 0, premiums: 0, ok: false };
   }
