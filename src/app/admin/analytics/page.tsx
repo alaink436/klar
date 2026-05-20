@@ -16,14 +16,20 @@ import {
   FONTS_LINK,
   THEME_INIT_SCRIPT,
   THEME_TOGGLE_SCRIPT,
+  GLASS_SVG_DEFS,
+  SMOKE_BG_SCRIPT,
   ctEqual,
   esc,
 } from "../_shared";
-import { getApps, sbGet } from "../../../lib/adminApps";
+import { getApps, sbGet, type AdminApp } from "../../../lib/adminApps";
 import { KLAR_APPS, findKlarApp } from "../../../lib/klarApps";
-import AnalyticsClient, { type AnalyticsPayload, type Period } from "./AnalyticsClient";
+import AnalyticsClient, {
+  type AnalyticsPayload,
+  type Period,
+  type FunnelPayload,
+  type AnalyticsTab,
+} from "./AnalyticsClient";
 
-void sbGet;
 void KLAR_APPS;
 
 export const dynamic = "force-dynamic";
@@ -208,14 +214,145 @@ function appLinks(): string {
     .join("");
 }
 
+// ===== Funnel data (Stage A) =====
+//
+// For each KLAR_APP (full marketing roster), we want:
+//   1) Landing-clicks  -> from anime-vault klar_pageviews /i/<slug>/<code>
+//   2) Install-refs    -> from that app's Supabase (sbGet)
+//   3) Premium subs    -> from that app's Supabase (sbGet)
+//
+// Only apps registered in KLAR_ADMIN_APPS env have a connected Supabase.
+// Others get hasBackend=false and the UI will surface "Backend pending".
+//
+// Wavelength: referrals (status counts) + referral_conversions (paid count).
+// Yarn-Stash: uses Awin path — profiles.referred_by_code_id (install count)
+//             + awin_conversions (premium count). We try both shapes by
+//             attempting the WL shape first then YS shape per app.
+
+interface AppFunnel {
+  slug: string;
+  name: string;
+  hasBackend: boolean;
+  clicks: number;
+  installs: number;
+  premiums: number;
+  installRate: number; // installs / clicks
+  premiumRate: number; // premiums / installs
+}
+
+function clickCountFor(slug: string, rows: RawPageview[]): number {
+  let n = 0;
+  for (const r of rows) {
+    const a = parseAffiliatePath(r.path);
+    if (a && a.slug === slug) n++;
+  }
+  return n;
+}
+
+async function fetchAppInstallsAndPremiums(
+  app: AdminApp,
+  since: string,
+): Promise<{ installs: number; premiums: number; ok: boolean }> {
+  // Wavelength-shape first: referrals (any status) + referral_conversions
+  try {
+    const [refs, convs] = await Promise.all([
+      sbGet(
+        app,
+        `referrals?select=id&created_at=gte.${encodeURIComponent(since)}&limit=10000`,
+      ),
+      sbGet(
+        app,
+        `referral_conversions?select=id&created_at=gte.${encodeURIComponent(since)}&limit=10000`,
+      ),
+    ]);
+    if (refs.length > 0 || convs.length > 0) {
+      return { installs: refs.length, premiums: convs.length, ok: true };
+    }
+  } catch {
+    /* fallthrough */
+  }
+  // Yarn-Stash shape: profiles.referred_by_code_id (install attribution)
+  // + awin_conversions (premium event, approved=true)
+  try {
+    const [profiles, awin] = await Promise.all([
+      sbGet(
+        app,
+        `profiles?select=id&referred_by_code_id=not.is.null&created_at=gte.${encodeURIComponent(since)}&limit=10000`,
+      ),
+      sbGet(
+        app,
+        `awin_conversions?select=id&created_at=gte.${encodeURIComponent(since)}&limit=10000`,
+      ),
+    ]);
+    return { installs: profiles.length, premiums: awin.length, ok: profiles.length > 0 || awin.length > 0 };
+  } catch {
+    return { installs: 0, premiums: 0, ok: false };
+  }
+}
+
+async function buildFunnel(
+  rows: RawPageview[],
+  since: string,
+): Promise<FunnelPayload> {
+  const klarApps = KLAR_APPS;
+  const backendApps = getApps();
+  const bySlug = new Map(backendApps.map((a) => [a.slug, a]));
+  const perApp: AppFunnel[] = await Promise.all(
+    klarApps.map(async (meta) => {
+      const slug = meta.slug;
+      const clicks = clickCountFor(slug, rows);
+      const backend = bySlug.get(slug);
+      if (!backend) {
+        return {
+          slug,
+          name: meta.name,
+          hasBackend: false,
+          clicks,
+          installs: 0,
+          premiums: 0,
+          installRate: 0,
+          premiumRate: 0,
+        };
+      }
+      const r = await fetchAppInstallsAndPremiums(backend, since);
+      const installRate = clicks > 0 ? r.installs / clicks : 0;
+      const premiumRate = r.installs > 0 ? r.premiums / r.installs : 0;
+      return {
+        slug,
+        name: meta.name,
+        hasBackend: true,
+        clicks,
+        installs: r.installs,
+        premiums: r.premiums,
+        installRate,
+        premiumRate,
+      };
+    }),
+  );
+  const totalClicks = perApp.reduce((s, a) => s + a.clicks, 0);
+  const totalInstalls = perApp.reduce((s, a) => s + a.installs, 0);
+  const totalPremiums = perApp.reduce((s, a) => s + a.premiums, 0);
+  return { perApp, totalClicks, totalInstalls, totalPremiums };
+}
+
 function navItem(v: string, label: string, icon: string, on: boolean, href?: string): string {
   return `<a class="nav ${on ? "on" : ""}" href="${href ?? `/admin?view=${encodeURIComponent(v)}`}"><span class="d">${icon}</span>${esc(label)}</a>`;
+}
+
+function parseTab(t: string | undefined): AnalyticsTab {
+  if (t === "affiliate" || t === "funnel") return t;
+  return "public";
+}
+
+function parsePeriod(p: string | undefined): Period {
+  if (p === "year" || p === "week") return p;
+  return "month";
 }
 
 export default async function AnalyticsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ key?: string; p?: string }>;
+  searchParams: Promise<{ key?: string; p?: string; tab?: string; p_pub?: string; p_aff?: string; p_fun?: string }>;
 }) {
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
   if (!KEY) {
@@ -234,24 +371,35 @@ export default async function AnalyticsPage({
     redirect(queryKey ? "/admin" : "/admin?msg=Bitte%20anmelden");
   }
 
-  const period: Period = sp.p === "year" ? "year" : sp.p === "week" ? "week" : "month";
-  const { since } = periodWindow(period);
+  const tab = parseTab(sp.tab);
+  // Per-tab period (with legacy `p` fallback so old links still work)
+  const pubP = parsePeriod(sp.p_pub ?? sp.p);
+  const affP = parsePeriod(sp.p_aff ?? sp.p);
+  const funP = parsePeriod(sp.p_fun ?? sp.p);
+  const activePeriod: Period = tab === "affiliate" ? affP : tab === "funnel" ? funP : pubP;
+  const { since } = periodWindow(activePeriod);
+
   const rows = await fetchPageviews(since);
-  const data = aggregate(rows, period, since);
-  const apps = getApps();
-  void apps;
+  const data = aggregate(rows, activePeriod, since);
+  const funnel = await buildFunnel(rows, since);
 
   const sidebar = `
-    <div class="brand">klar<span class="dot">.</span><small>Control</small></div>
+    <a class="brand" href="/admin?view=overview" aria-label="Klar Control Home">
+      <span class="brand-mark"><img src="/logo/klar-symbol.png" alt="" width="40" height="40"/></span>
+      <span class="brand-text"><span class="brand-name">Klar</span><span class="brand-sub">Control</span></span>
+    </a>
     <div class="navsec">Studio</div>
     ${navItem("overview", "Übersicht", ICON.overview, false)}
     ${navItem("inbox", "Inbox", ICON.inbox, false)}
+    ${navItem("bookings", "Bookings", ICON.calendar, false)}
+    ${navItem("cal", "Cal Admin", ICON.calendar, false)}
     ${navItem("analytics", "Analytics", ICON.analytics, true, "/admin/analytics")}
     <div class="navsec">Affiliate</div>
     ${navItem("revenue", "Einnahmen", ICON.revenue, false)}
     ${appLinks() || `<span class="nav muted"><span class="d">${ICON.app}</span>keine Apps</span>`}
     <div class="navsec">Extern</div>
     ${navItem("outreach", "Outreach", ICON.outreach, false)}
+    <a class="nav" href="https://cal.getklar.org" target="_blank" rel="noopener"><span class="d">${ICON.calendar}</span>Cal in neuem Tab <span style="margin-left:auto;font-size:10px;opacity:.6">↗</span></a>
     <div class="spacer"></div>
     <a class="nav logout" href="/admin/logout"><span class="d">${ICON.logout}</span>Logout</a>
   `;
@@ -274,6 +422,10 @@ export default async function AnalyticsPage({
       <style dangerouslySetInnerHTML={{ __html: STYLE }} />
       <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       <script dangerouslySetInnerHTML={{ __html: THEME_TOGGLE_SCRIPT }} />
+      {/* Smoke + Glass embeds (same as /admin route) */}
+      <canvas id="klar-smoke-bg" aria-hidden="true" />
+      <div className="klar-aurora" aria-hidden="true" />
+      <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <div className="layout">
         <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
         <main className="main">
@@ -281,13 +433,22 @@ export default async function AnalyticsPage({
           <div className="content">
             <h1>Analytics</h1>
             <p className="sub">
-              Besucher auf getklar.org. Privacy-friendly, keine Cookies, kein Tracking-Pixel.
-              Session = täglich rotierender Hash aus IP plus User-Agent.
+              Besucher, Affiliate-Landings und Conversion-Funnel. Privacy-friendly,
+              keine Cookies, kein Tracking-Pixel. Session = täglich rotierender Hash
+              aus IP plus User-Agent.
             </p>
-            <AnalyticsClient data={data} period={period} />
+            <AnalyticsClient
+              data={data}
+              funnel={funnel}
+              tab={tab}
+              periodPublic={pubP}
+              periodAffiliate={affP}
+              periodFunnel={funP}
+            />
           </div>
         </main>
       </div>
+      <script dangerouslySetInnerHTML={{ __html: SMOKE_BG_SCRIPT }} />
     </>
   );
 }

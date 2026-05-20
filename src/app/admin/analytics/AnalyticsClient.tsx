@@ -18,6 +18,25 @@ import {
 } from "recharts";
 
 export type Period = "week" | "month" | "year";
+export type AnalyticsTab = "public" | "affiliate" | "funnel";
+
+export interface AppFunnelRow {
+  slug: string;
+  name: string;
+  hasBackend: boolean;
+  clicks: number;
+  installs: number;
+  premiums: number;
+  installRate: number;
+  premiumRate: number;
+}
+
+export interface FunnelPayload {
+  perApp: AppFunnelRow[];
+  totalClicks: number;
+  totalInstalls: number;
+  totalPremiums: number;
+}
 
 export interface AnalyticsPayload {
   totalVisits: number;
@@ -70,13 +89,72 @@ function TipBox({ active, payload, label }: any) {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-function PeriodSelector({ active }: { active: Period }) {
+const TABS: { id: AnalyticsTab; label: string; periodParam: "p_pub" | "p_aff" | "p_fun" }[] = [
+  { id: "public", label: "Public", periodParam: "p_pub" },
+  { id: "affiliate", label: "Affiliate-Landings", periodParam: "p_aff" },
+  { id: "funnel", label: "Funnel", periodParam: "p_fun" },
+];
+
+function TabSelector({
+  active,
+  pubP,
+  affP,
+  funP,
+}: {
+  active: AnalyticsTab;
+  pubP: Period;
+  affP: Period;
+  funP: Period;
+}) {
+  const hrefFor = (id: AnalyticsTab) => {
+    const params = new URLSearchParams({ tab: id, p_pub: pubP, p_aff: affP, p_fun: funP });
+    return `/admin/analytics?${params.toString()}`;
+  };
+  return (
+    <div className="seg" role="tablist" aria-label="Analytics Tab" style={{ marginBottom: 18 }}>
+      {TABS.map((t) => (
+        <a
+          key={t.id}
+          href={hrefFor(t.id)}
+          className={active === t.id ? "on" : ""}
+          role="tab"
+          aria-selected={active === t.id}
+        >
+          {t.label}
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function PeriodSelector({
+  active,
+  tab,
+  pubP,
+  affP,
+  funP,
+}: {
+  active: Period;
+  tab: AnalyticsTab;
+  pubP: Period;
+  affP: Period;
+  funP: Period;
+}) {
+  const hrefFor = (p: Period) => {
+    const params = new URLSearchParams({
+      tab,
+      p_pub: tab === "public" ? p : pubP,
+      p_aff: tab === "affiliate" ? p : affP,
+      p_fun: tab === "funnel" ? p : funP,
+    });
+    return `/admin/analytics?${params.toString()}`;
+  };
   return (
     <div className="seg" role="tablist" aria-label="Zeitraum">
       {PERIODS.map((p) => (
         <a
           key={p.id}
-          href={`/admin/analytics?p=${p.id}`}
+          href={hrefFor(p.id)}
           className={active === p.id ? "on" : ""}
           role="tab"
           aria-selected={active === p.id}
@@ -180,17 +258,209 @@ function HBar({ data, max }: { data: { label: string; count: number }[]; max?: n
   );
 }
 
+function FunnelBar({ value, max, color }: { value: number; max: number; color: string }) {
+  const pct = max > 0 ? Math.max(2, (value / max) * 100) : 0;
+  return (
+    <span
+      aria-hidden
+      style={{
+        display: "block",
+        height: 10,
+        borderRadius: 5,
+        background: "var(--surface-2)",
+        overflow: "hidden",
+        position: "relative",
+      }}
+    >
+      <span
+        style={{
+          display: "block",
+          height: "100%",
+          width: `${pct}%`,
+          background: color,
+          borderRadius: 5,
+          transition: "width .25s ease",
+        }}
+      />
+    </span>
+  );
+}
+
+function pct(n: number): string {
+  if (!isFinite(n) || n <= 0) return "—";
+  return `${(n * 100).toFixed(n >= 0.1 ? 1 : 2)}%`;
+}
+
+function AppFunnelCard({ row }: { row: AppFunnelRow }) {
+  const max = Math.max(row.clicks, row.installs, row.premiums, 1);
+  return (
+    <div className="card" style={{ padding: 22 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 12,
+          marginBottom: 14,
+        }}
+      >
+        <h3
+          style={{
+            margin: 0,
+            fontFamily: "var(--font-display)",
+            fontWeight: 700,
+            fontSize: 18,
+            letterSpacing: "-.01em",
+            color: "var(--fg)",
+          }}
+        >
+          {row.name}
+        </h3>
+        <span
+          className={`pill${row.hasBackend ? " live" : ""}`}
+          style={{ fontSize: 9 }}
+        >
+          {row.hasBackend ? "live" : "Backend pending"}
+        </span>
+      </div>
+      <div style={{ display: "grid", gap: 14 }}>
+        <div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: 12,
+              fontFamily: "var(--font-mono)",
+              color: "var(--fg-3)",
+              textTransform: "uppercase",
+              letterSpacing: ".1em",
+              marginBottom: 4,
+            }}
+          >
+            <span>Landing-Klicks</span>
+            <span style={{ color: "var(--fg)", fontWeight: 600 }}>{row.clicks}</span>
+          </div>
+          <FunnelBar value={row.clicks} max={max} color="var(--chart-1)" />
+        </div>
+        <div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: 12,
+              fontFamily: "var(--font-mono)",
+              color: "var(--fg-3)",
+              textTransform: "uppercase",
+              letterSpacing: ".1em",
+              marginBottom: 4,
+            }}
+          >
+            <span>Installs · Referrals</span>
+            <span style={{ color: "var(--fg)", fontWeight: 600 }}>
+              {row.hasBackend ? row.installs : "—"}
+              {row.hasBackend && row.clicks > 0 ? (
+                <span style={{ color: "var(--fg-3)", marginLeft: 6, fontWeight: 400 }}>
+                  ({pct(row.installRate)})
+                </span>
+              ) : null}
+            </span>
+          </div>
+          <FunnelBar value={row.installs} max={max} color="var(--chart-2)" />
+        </div>
+        <div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: 12,
+              fontFamily: "var(--font-mono)",
+              color: "var(--fg-3)",
+              textTransform: "uppercase",
+              letterSpacing: ".1em",
+              marginBottom: 4,
+            }}
+          >
+            <span>Premium · Paid</span>
+            <span style={{ color: "var(--fg)", fontWeight: 600 }}>
+              {row.hasBackend ? row.premiums : "—"}
+              {row.hasBackend && row.installs > 0 ? (
+                <span style={{ color: "var(--fg-3)", marginLeft: 6, fontWeight: 400 }}>
+                  ({pct(row.premiumRate)})
+                </span>
+              ) : null}
+            </span>
+          </div>
+          <FunnelBar value={row.premiums} max={max} color="var(--chart-3)" />
+        </div>
+      </div>
+      {!row.hasBackend ? (
+        <p className="muted" style={{ fontSize: 12, margin: "14px 0 0" }}>
+          Affiliate-Backend für {row.name} noch nicht ausgerollt. Nur Landing-Klicks
+          werden via klar_pageviews getrackt. Stage-B-Rollout startet aus dem Chat.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function FunnelView({ funnel }: { funnel: FunnelPayload }) {
+  const overallInstallRate = funnel.totalClicks > 0 ? funnel.totalInstalls / funnel.totalClicks : 0;
+  const overallPremiumRate = funnel.totalInstalls > 0 ? funnel.totalPremiums / funnel.totalInstalls : 0;
+  return (
+    <>
+      <div className="cards">
+        <StatRow label="Klicks gesamt" value={funnel.totalClicks} sub="alle Affiliate-Landings" />
+        <StatRow label="Installs · Referrals" value={funnel.totalInstalls} sub={`Conv-Rate ${pct(overallInstallRate)}`} />
+        <StatRow label="Premium · Paid" value={funnel.totalPremiums} sub={`Conv-Rate ${pct(overallPremiumRate)}`} />
+        <StatRow
+          label="Apps mit Backend"
+          value={funnel.perApp.filter((a) => a.hasBackend).length}
+          sub={`von ${funnel.perApp.length} insgesamt`}
+        />
+      </div>
+      <h2>Pro App</h2>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gap: 14,
+        }}
+      >
+        {funnel.perApp.map((row) => (
+          <AppFunnelCard key={row.slug} row={row} />
+        ))}
+      </div>
+    </>
+  );
+}
+
 export default function AnalyticsClient({
   data,
-  period,
+  funnel,
+  tab,
+  periodPublic,
+  periodAffiliate,
+  periodFunnel,
 }: {
   data: AnalyticsPayload;
-  period: Period;
+  funnel: FunnelPayload;
+  tab: AnalyticsTab;
+  periodPublic: Period;
+  periodAffiliate: Period;
+  periodFunnel: Period;
 }) {
-  const isEmpty = data.totalVisits === 0;
+  const period: Period =
+    tab === "affiliate" ? periodAffiliate : tab === "funnel" ? periodFunnel : periodPublic;
+  const isEmpty = data.totalVisits === 0 && funnel.totalClicks === 0;
 
   return (
     <>
+      <TabSelector
+        active={tab}
+        pubP={periodPublic}
+        affP={periodAffiliate}
+        funP={periodFunnel}
+      />
       <div
         style={{
           display: "flex",
@@ -201,7 +471,13 @@ export default function AnalyticsClient({
           gap: 12,
         }}
       >
-        <PeriodSelector active={period} />
+        <PeriodSelector
+          active={period}
+          tab={tab}
+          pubP={periodPublic}
+          affP={periodAffiliate}
+          funP={periodFunnel}
+        />
         {isEmpty ? (
           <span
             style={{
@@ -212,11 +488,20 @@ export default function AnalyticsClient({
               textTransform: "uppercase",
             }}
           >
-            Wartet auf erste Besucher
+            Wartet auf erste Daten
           </span>
         ) : null}
       </div>
+      {tab === "funnel" ? <FunnelView funnel={funnel} /> : null}
+      {tab === "affiliate" ? <AffiliateLandingsView data={data} /> : null}
+      {tab === "public" ? <PublicView data={data} period={period} /> : null}
+    </>
+  );
+}
 
+function PublicView({ data, period }: { data: AnalyticsPayload; period: Period }) {
+  return (
+    <>
       <div className="cards">
         <StatRow
           label="Visits"
@@ -343,8 +628,13 @@ export default function AnalyticsClient({
           <HBar data={data.browsers} />
         </ChartCard>
       </div>
+    </>
+  );
+}
 
-      <h2>Affiliate-Landings</h2>
+function AffiliateLandingsView({ data }: { data: AnalyticsPayload }) {
+  return (
+    <>
       <div className="cards">
         <StatRow
           label="Klicks gesamt"
