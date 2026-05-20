@@ -139,6 +139,7 @@ function shell(view: string, apps: AdminApp[], flash: string | null, main: strin
       ${appLinks || `<span class="nav muted"><span class="d">${ICON.app}</span>keine Apps</span>`}
       <div class="navsec">Extern</div>
       ${item("outreach", "Outreach", ICON.outreach)}
+      <a class="nav" href="https://cal.getklar.org" target="_blank" rel="noopener"><span class="d">${ICON.calendar}</span>Cal Admin <span style="margin-left:auto;font-size:10px;opacity:.6">↗</span></a>
       <div class="spacer"></div>
       <a class="nav logout" href="/admin/logout"><span class="d">${ICON.logout}</span>Logout</a>
     </aside>
@@ -650,7 +651,12 @@ async function bookingsView(): Promise<string> {
         .join("")
     : `<tr><td colspan="5" class="muted">noch keine Buchungen. Cal-Webhook konfiguriert (Settings &rarr; Webhooks &rarr; <code>https://getklar.org/api/cal-webhook</code>)?</td></tr>`;
 
-  return `<h1>Bookings</h1><p class="sub">Cal.com-Buchungen auf <a class="applink" href="https://cal.getklar.org" target="_blank" rel="noopener">cal.getklar.org</a>, gespeichert per Webhook in Supabase. Anstehende oben.</p>
+  return `<h1>Bookings</h1><p class="sub">Cal.com-Buchungen, per Webhook live in Supabase. Anstehende oben.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px 0">
+      <a class="btn" href="https://cal.getklar.org/event-types" target="_blank" rel="noopener">Cal Admin öffnen ↗</a>
+      <a class="btn" style="background:transparent;border:1px solid var(--line-strong);color:var(--fg)" href="https://cal.getklar.org/klar/affiliate-intro" target="_blank" rel="noopener">Booking-Seite ansehen ↗</a>
+      <a class="btn" style="background:transparent;border:1px solid var(--line-strong);color:var(--fg)" href="https://cal.getklar.org/bookings/upcoming" target="_blank" rel="noopener">In Cal verwalten ↗</a>
+    </div>
     ${cards}
     <table><thead><tr><th>Wann</th><th>Status</th><th>Gast</th><th>Event</th><th>Ort</th></tr></thead><tbody>${body}</tbody></table>`;
 }
