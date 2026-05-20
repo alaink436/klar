@@ -55,12 +55,24 @@ function die(msg) {
 }
 
 // 1. Pre-flight
-function checkCli(name) {
-  const r = spawnSync(name, ["--version"], { stdio: "pipe", shell: process.platform === "win32" });
+//
+// supabase CLI lives as a devDependency in klar/package.json, so we always
+// invoke it via `npx --no-install supabase ...` — no global install needed
+// and the version is pinned alongside the rest of the project.
+const SUPABASE_CMD = "npx";
+const SUPABASE_ARGS_PREFIX = ["--no-install", "supabase"];
+
+function checkCli() {
+  const r = spawnSync(SUPABASE_CMD, [...SUPABASE_ARGS_PREFIX, "--version"], {
+    stdio: "pipe",
+    shell: process.platform === "win32",
+    cwd: REPO_ROOT,
+  });
   if (r.status !== 0) {
     die(
-      `${name} CLI nicht gefunden oder nicht ausführbar. ` +
-        `Installiere via 'npm install -g supabase' oder 'scoop install supabase'.`,
+      `supabase CLI nicht erreichbar. Renn 'npm install' im klar repo ` +
+        `damit die devDependency 'supabase' lokal verfügbar ist.\n` +
+        String(r.stderr || r.stdout),
     );
   }
   return String(r.stdout || r.stderr).trim();
@@ -100,6 +112,14 @@ function readInput() {
 }
 
 // 2. Per-app actions
+function runSupabase(args) {
+  return spawnSync(SUPABASE_CMD, [...SUPABASE_ARGS_PREFIX, ...args], {
+    stdio: ["ignore", "pipe", "pipe"],
+    shell: process.platform === "win32",
+    cwd: REPO_ROOT,
+  });
+}
+
 function setSecrets(slug, projectRef, secrets) {
   // supabase secrets set KEY=VALUE KEY=VALUE ... --project-ref <ref>
   const args = [
@@ -109,11 +129,7 @@ function setSecrets(slug, projectRef, secrets) {
     "--project-ref",
     projectRef,
   ];
-  const r = spawnSync("supabase", args, {
-    stdio: ["ignore", "pipe", "pipe"],
-    shell: process.platform === "win32",
-    cwd: REPO_ROOT,
-  });
+  const r = runSupabase(args);
   if (r.status !== 0) {
     log.err(`secrets set für ${slug} fehlgeschlagen`);
     log.dim(String(r.stderr || r.stdout));
@@ -123,12 +139,14 @@ function setSecrets(slug, projectRef, secrets) {
 }
 
 function deployFunction(slug, projectRef, name) {
-  const args = ["functions", "deploy", name, "--project-ref", projectRef, "--no-verify-jwt"];
-  const r = spawnSync("supabase", args, {
-    stdio: ["ignore", "pipe", "pipe"],
-    shell: process.platform === "win32",
-    cwd: REPO_ROOT,
-  });
+  const r = runSupabase([
+    "functions",
+    "deploy",
+    name,
+    "--project-ref",
+    projectRef,
+    "--no-verify-jwt",
+  ]);
   if (r.status !== 0) {
     log.err(`deploy ${name} für ${slug} fehlgeschlagen`);
     log.dim(String(r.stderr || r.stdout));
@@ -178,8 +196,8 @@ async function main() {
   console.log(`${COLORS.dim}Repo: ${REPO_ROOT}${COLORS.reset}\n`);
 
   log.step(1, "Pre-flight Checks");
-  const v = checkCli("supabase");
-  log.ok(`supabase CLI: ${v.split("\n")[0]}`);
+  const v = checkCli();
+  log.ok(`supabase CLI: ${v.split("\n").pop()}`);
   const input = readInput();
   const apps = Object.entries(input.apps);
   log.ok(`Input geladen: ${apps.length} Apps konfiguriert.`);

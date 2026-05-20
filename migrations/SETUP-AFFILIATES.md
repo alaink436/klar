@@ -48,14 +48,13 @@ Pro App: Supabase Dashboard → das App-Projekt öffnen → **Settings** →
 
 **Pre-flight (einmalig):**
 
-```bash
-# Supabase CLI installieren (Windows)
-scoop install supabase
-# oder via npm (cross-platform)
-npm install -g supabase
+Supabase CLI ist als devDep in `klar/package.json` gepinnt, kein globaler
+Install nötig. `npm install` im klar repo reicht. Nur Login muss einmal:
 
-# Supabase einloggen (öffnet Browser)
-supabase login
+```powershell
+cd "C:\Users\Alain Kessler\klar"
+npm install
+npx supabase login   # öffnet Browser für Wise-unabhängige Supabase-Auth
 ```
 
 **Input-Datei anlegen:**
