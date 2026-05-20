@@ -1,22 +1,20 @@
 "use client";
 
-// Yarn-Stash influencer invite + clipboard deferred-deeplink.
+// Yarn-Stash influencer landing + clipboard deferred-deeplink.
 //
 // iOS clipboard writes only work inside a user gesture, so cold-install
 // attribution hinges on the user tapping the button: the tap writes
 // `ysref:<CODE>:v1` to the clipboard, then redirects to the App Store.
 // A best-effort write on mount covers Android/desktop (no gesture needed).
 //
-// APP-SIDE CONTRACT (not yet implemented in the app): on first launch the
-// Yarn-Stash app must read the clipboard, match /^ysref:(.+):v1$/, and pass
-// the captured code through capturePendingReferral() (services/referral.ts).
-// Today the app only reads `?ref=` via expo-linking (warm/universal-link
-// path), so this token is forward-compatible: harmless now, live the moment
-// the clipboard read ships in an app build.
+// Visual identity = the "Atelier" design system from the Yarn-Stash app
+// (constants/theme.ts), with the official app icon (/icons/yarnstash.png)
+// as the brand anchor and a warm bone surface that mirrors the in-app feel.
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 
-// Atelier light palette (constants/theme.ts, verbatim from the handoff).
+// Atelier palette — verbatim from Yarn-Stash app constants/theme.ts.
 const T = {
   bone: "#FAF6F0",
   paper: "#FFFFFF",
@@ -27,13 +25,15 @@ const T = {
   rose: "#B84A5C",
   roseSoft: "#F2DCD8",
   roseInk: "#7E2A38",
+  sand: "#EBE0CE",
   chip: "#F2EDE5",
 };
 
-// Yarn-Stash is iOS-only today (no Play listing — Android RC key missing).
-// Everyone goes to the App Store; revisit when Android ships.
+// Yarn-Stash iOS App Store ID (live since 2026-05-19).
 const APP_STORE_URL = "https://apps.apple.com/app/id6761712550";
-const AUTO_REDIRECT_MS = 6000;
+// Faster fallback: clipboard is best-effort on mount and inside the button
+// gesture; we don't need 6 seconds of "stare at the page" time.
+const AUTO_REDIRECT_MS = 2500;
 
 function storeUrl(code: string): string {
   return code
@@ -48,16 +48,12 @@ export function InstallClient({ code }: { code: string }) {
   const token = `ysref:${code}:v1`;
 
   useEffect(() => {
-    // Cookie (warm-path / web continuity) is best effort.
     try {
       document.cookie = `ys_ref=${code}; max-age=${60 * 60 * 24 * 30}; path=/; SameSite=Lax`;
     } catch {
       /* ignore */
     }
-    // Android/desktop usually allow clipboard without a gesture.
-    void writeClipboard();
-    // Safety redirect for users who never tap (they lose the clipboard
-    // attribution but still land on the App Store).
+    if (code) void writeClipboard();
     const t = setTimeout(() => go(), AUTO_REDIRECT_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -82,7 +78,6 @@ export function InstallClient({ code }: { code: string }) {
   }
 
   async function onOpen(): Promise<void> {
-    // Inside the user gesture: this is the clipboard write that works on iOS.
     await writeClipboard();
     go();
   }
@@ -94,98 +89,138 @@ export function InstallClient({ code }: { code: string }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: T.bone,
+        background:
+          `radial-gradient(circle at 80% 0%, ${T.roseSoft} 0%, transparent 50%), ` +
+          `radial-gradient(circle at 0% 100%, ${T.sand} 0%, transparent 55%), ${T.bone}`,
         color: T.ink,
-        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
         padding: 24,
+        position: "relative",
       }}
     >
       <div
         style={{
-          maxWidth: 420,
+          maxWidth: 440,
           width: "100%",
           textAlign: "center",
           background: T.paper,
           border: `1px solid ${T.hair}`,
-          borderRadius: 28,
-          padding: "44px 32px",
-          boxShadow: "0 8px 40px rgba(40,30,24,0.06)",
+          borderRadius: 32,
+          padding: "44px 32px 32px",
+          boxShadow:
+            "0 1px 0 rgba(255,255,255,0.6) inset, 0 24px 60px -20px rgba(40,30,24,0.12)",
         }}
       >
         <div
           style={{
-            width: 76,
-            height: 76,
-            margin: "0 auto 26px",
+            width: 92,
+            height: 92,
+            margin: "0 auto 16px",
             borderRadius: 22,
-            background: `linear-gradient(150deg, ${T.roseInk}, ${T.rose})`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: `0 10px 28px ${T.rose}33`,
+            overflow: "hidden",
+            boxShadow: `0 14px 36px -10px rgba(184, 74, 92, 0.45), 0 0 0 1px ${T.hair}`,
+            position: "relative",
           }}
         >
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-            <circle
-              cx="20"
-              cy="20"
-              r="13"
-              stroke="white"
-              strokeWidth="2.4"
-              opacity="0.95"
-            />
-            <path
-              d="M11 16c5 3.2 13 3.2 18 0M9.5 22c6 4 15 4 21 0M13 28c4 2.2 10 2.2 14 0"
-              stroke="white"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              opacity="0.9"
-            />
-            <path
-              d="M27 28c3.4 1.8 3.4 6 0 8"
-              stroke="white"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              opacity="0.9"
-            />
-          </svg>
+          <Image
+            src="/icons/yarnstash.png"
+            alt="My Yarn Stash"
+            fill
+            sizes="92px"
+            style={{ objectFit: "cover" }}
+            priority
+          />
         </div>
 
-        <p
-          style={{
-            fontFamily: "var(--ys-editorial), Georgia, serif",
-            fontStyle: "italic",
-            fontSize: 16,
-            color: T.rose,
-            margin: "0 0 10px",
-            letterSpacing: 0.2,
-          }}
-        >
-          Empfehlung
-        </p>
+        {code && (
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              padding: "5px 12px",
+              borderRadius: 999,
+              background: T.roseSoft,
+              color: T.roseInk,
+              fontSize: 10.5,
+              fontWeight: 700,
+              letterSpacing: 1.4,
+              textTransform: "uppercase",
+              margin: "0 0 14px",
+              fontFamily:
+                "var(--ys-display), 'Gloock', Georgia, serif",
+            }}
+          >
+            <span style={{ width: 5, height: 5, borderRadius: 5, background: T.rose }} />
+            Empfehlung · {code}
+          </div>
+        )}
+
         <h1
           style={{
-            fontFamily: "var(--ys-display), Georgia, serif",
-            fontSize: 34,
+            fontFamily: "var(--ys-display), 'Gloock', Georgia, serif",
+            fontSize: 36,
             fontWeight: 400,
-            margin: "0 0 14px",
+            margin: "0 0 8px",
             letterSpacing: -0.4,
             color: T.ink,
+            lineHeight: 1.05,
           }}
         >
           My Yarn Stash
         </h1>
         <p
           style={{
-            fontSize: 15,
-            color: T.mute,
-            margin: "0 0 30px",
-            lineHeight: 1.6,
+            fontFamily: "var(--ys-editorial), 'Newsreader', Georgia, serif",
+            fontStyle: "italic",
+            fontSize: 17,
+            color: T.rose,
+            margin: "0 0 16px",
+            letterSpacing: 0.1,
           }}
         >
-          Dein Garn-Stash, deine Projekte und passende Anleitungen. Ruhig,
-          übersichtlich, an einem Ort.
+          stash. match. knit.
         </p>
+        <p
+          style={{
+            fontSize: 14.5,
+            color: T.mute,
+            margin: "0 0 26px",
+            lineHeight: 1.55,
+            maxWidth: 320,
+            marginLeft: "auto",
+            marginRight: "auto",
+          }}
+        >
+          Dein Garn-Stash, deine Projekte und passende Anleitungen. Scan das
+          Etikett, Vision-AI macht den Rest.
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            flexWrap: "wrap",
+            gap: 6,
+            marginBottom: 26,
+          }}
+        >
+          {["Ravelry-Match", "Wrapper-Scan", "Foto-First"].map((feat) => (
+            <span
+              key={feat}
+              style={{
+                fontSize: 11,
+                color: T.mute,
+                background: T.chip,
+                border: `1px solid ${T.hair}`,
+                padding: "5px 10px",
+                borderRadius: 999,
+                fontWeight: 500,
+              }}
+            >
+              {feat}
+            </span>
+          ))}
+        </div>
 
         <button
           type="button"
@@ -194,7 +229,9 @@ export function InstallClient({ code }: { code: string }) {
           style={{
             width: "100%",
             padding: "16px 24px",
-            background: redirecting ? T.roseInk : T.rose,
+            background: redirecting
+              ? T.roseInk
+              : `linear-gradient(135deg, ${T.rose} 0%, ${T.roseInk} 100%)`,
             color: "white",
             border: "none",
             borderRadius: 16,
@@ -204,22 +241,25 @@ export function InstallClient({ code }: { code: string }) {
             letterSpacing: 0.2,
             cursor: redirecting ? "wait" : "pointer",
             transition: "background 160ms ease",
+            boxShadow: `0 14px 28px -10px ${T.rose}`,
           }}
         >
-          {redirecting ? "Weiterleiten" : "Im App Store öffnen"}
+          {redirecting ? "App Store wird geöffnet…" : "Im App Store öffnen"}
         </button>
 
-        <p
-          style={{
-            fontSize: 12.5,
-            color: T.faint,
-            margin: "16px 0 0",
-            lineHeight: 1.55,
-          }}
-        >
-          Tippe auf öffnen, dann wird deine Empfehlung der Installation
-          automatisch zugeordnet.
-        </p>
+        {code && (
+          <p
+            style={{
+              fontSize: 12.5,
+              color: T.faint,
+              margin: "16px 0 0",
+              lineHeight: 1.55,
+            }}
+          >
+            Tippe auf öffnen, dann wird deine Empfehlung der Installation
+            automatisch zugeordnet.
+          </p>
+        )}
 
         <p
           style={{
@@ -229,6 +269,9 @@ export function InstallClient({ code }: { code: string }) {
             fontWeight: 600,
             letterSpacing: 1,
             textTransform: "uppercase",
+            fontFamily:
+              "var(--ys-editorial), 'Newsreader', Georgia, serif",
+            fontStyle: "italic",
           }}
         >
           Für iPhone und iPad
