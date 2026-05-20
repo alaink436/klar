@@ -1,154 +1,204 @@
-# Ingest-Conversion Template
+# Ingest-Conversion · Per-App Rollout Guide
 
-> How to add the **conversion ingest** (RevenueCat webhook → `referral_revenue_events`)
-> to one of the 5 apps that don't have it yet (Yarn-Stash / Trubel / MyLoo /
-> Kelva / Moto). Wavelength already has it as `revenuecat-webhook` v8 — that
-> function is the reference.
+> **Goal:** every Klar app's paid revenue ends up in `referral_revenue_events`
+> attributed to an influencer, so the existing Wise payout pipeline can
+> pay out monthly.
+>
+> Two ingest functions exist:
+> - **`revenuecat-webhook`** (Wavelength only, richer schema, already live)
+> - **`affiliate-ingest`** (generic, for the other 5 apps, template in
+>   `klar/migrations/templates/affiliate-ingest.ts`)
 
-## What it does
+## Per-app status
 
-Receives a RevenueCat webhook on every paid event (`INITIAL_PURCHASE`,
-`RENEWAL`, `TRIAL_CONVERSION`, `REFUND`, `CHARGEBACK`, etc), maps the buying
-user to the influencer who referred them, calculates the influencer's share
-(default 50% of NET, capped at 24 months from first sub), and writes a
-`referral_revenue_events` row that the payout pipeline picks up.
+| App | Project ID | Schema | Attribution-Path | RC-Webhook deployed | affiliate-ingest deployed |
+|---|---|---|---|---|---|
+| Wavelength | `yxhzwzgnbmpjztkvdudr` | richer | `referrals` (Shape A) | ✅ v8 | n/a (uses revenuecat-webhook) |
+| Yarn-Stash | `zysmsgaordfkptzngntn` | generic | `profiles + influencer_codes` (Shape B) | ✅ v7 (entitlement only) | ❌ pending |
+| Trubel | `hinivxigapnkrytpcqdl` | generic | `referrals` (Shape A) | ✅ v10 (entitlement only) | ❌ pending |
+| MyLoo | `jkgymggxshtsljjvketi` | generic | `referrals` (Shape A) | ✅ v3 (entitlement only) | ❌ pending |
+| Kelva | `absnjkjxbxeyekmcmpof` | generic | **❌ none** | ✅ v4 (entitlement only) | blocked on migration `0002` |
+| Moto | `mpqapdnixzgolmfyckla` | generic | **❌ none** | ❌ none | blocked on migration `0002` |
 
-Guard rails (each adds a `note` and sets `counts_for_payout=false` instead of
-silently dropping the event, so the audit trail stays complete):
+"Entitlement only" means the existing `revenuecat-webhook` only flips
+`user_entitlements.is_premium` and does NOT touch `referral_revenue_events`.
+We keep it untouched; the new `affiliate-ingest` runs as a second RC webhook
+destination so both concerns stay separated.
 
-- `sandbox` — RC test mode events
-- `self_referral` — buyer's email matches the influencer's `contact_email`
-- `influencer_paused` / `influencer_terminated`
-- `beyond_cap` — event_at > first_subscribe_at + share_months
-- `takehome_defaulted_0.7` — RC didn't send takehome_percentage, assumed 70%
-- `fx_failed` / `fx_no_rate` / `fx_http_<code>` — Frankfurter API failed for
-  the day, `share_cents_eur` stays NULL until backfilled (never mispaid)
+## Two schemas: Wavelength richer vs generic affiliates_v1_init
 
-## Two schema shapes
-
-### Shape A: Wavelength-rich (referrals lookup)
-
-`referrals(user_id, app, influencer_handle)` exists and is populated by the
-clipboard / universal-link attribution flow at install time. The webhook
-looks up the row by RC `app_user_id` (a UUID matching the auth user_id).
-
-This is what `revenuecat-webhook` v8 does. Reference:
-`yxhzwzgnbmpjztkvdudr` → Edge Functions → `revenuecat-webhook` → `index.ts`.
-
-### Shape B: Code-based (Yarn-Stash, generic)
-
-No `referrals` table. Instead, install attribution writes
-`profiles.referred_by_code_id` → FK into `influencer_codes(id, code, influencer_handle)`.
-
-The webhook needs an extra JOIN:
-
-```ts
-// Instead of:
-//   from('referrals').select('user_id, influencer_handle').in('user_id', uuids)
-// do:
-const { data: prof } = await sb
-  .from('profiles')
-  .select('id, referred_by_code_id')
-  .in('id', uuidCandidates)
-  .not('referred_by_code_id', 'is', null)
-  .limit(1);
-if (!prof?.length) return j(200, { ok: true, skipped: 'not_referred' });
-
-const { data: code } = await sb
-  .from('influencer_codes')
-  .select('influencer_handle')
-  .eq('id', prof[0].referred_by_code_id)
-  .maybeSingle();
-if (!code?.influencer_handle) return j(200, { ok: true, skipped: 'orphan_code' });
-
-const handle = code.influencer_handle;
-const userId = prof[0].id;
-// continue identical to Wavelength webhook from here
+**Wavelength `referral_revenue_events` columns:**
+```
+rc_event_id (unique), user_id, influencer_handle, influencer_id,
+app, rc_subscriber_id, product_id, event_type, event_at,
+gross_revenue_cents, currency, share_cents, share_cents_eur,
+counts_for_payout, note
 ```
 
-## Yarn-Stash dual-path special
+**Generic `referral_revenue_events` columns (the 5 other apps):**
+```
+id, influencer_id, influencer_handle, event_at,
+source, source_ref, gross_revenue_cents, gross_currency,
+share_cents_eur, matured_at, refunded, raw_payload, created_at
+```
 
-Yarn-Stash earns from **two** sources for the same affiliate:
+The generic schema is leaner: no `event_type` column (the type goes into
+`raw_payload`), no `counts_for_payout` boolean (we set `refunded=true` for
+events that don't count), and `share_cents_eur` is the final EUR-normalized
+share (no separate native-currency `share_cents` column).
 
-1. **Premium Subs (RC):** standard ingest as above (Shape B)
-2. **Shop Provisions (Awin):** Knit Picks (mid 89047) + Minerva (mid 5270),
-   tracked via `clickref=u_<userId>` on the Awin deeplink, paid via
-   Awin-Postback to a separate endpoint.
+## Three attribution shapes
 
-For now `awin_conversions` is its own table fed by the (still-to-be-built)
-`awin-postback` Edge Function. Funnel already merges both: see
-`fetchAppInstallsAndPremiums` in `klar/src/app/admin/analytics/page.tsx`.
+**Shape A — `referrals` table lookup**
+```ts
+const { data: refs } = await sb.from("referrals")
+  .select("user_id, influencer_handle")
+  .in("user_id", userCandidates).limit(1);
+const handle = refs[0].influencer_handle;
+```
+Used by Wavelength, Trubel, MyLoo. Requires the app to write `referrals`
+rows server-side at sign-up.
 
-To unify both rails into `referral_revenue_events` later: write the Awin
-postback into the same table with `event_type='awin_provision'` (add to the
-enum) so the same payout pipeline handles it. Don't do this until Awin
-Postback E2E is bewiesen with a test purchase, per Yarn-Stash PROGRESS.
+**Shape B — `profiles.referred_by_code_id → influencer_codes` lookup**
+```ts
+const { data: prof } = await sb.from("profiles")
+  .select("id, referred_by_code_id")
+  .in("id", userCandidates)
+  .not("referred_by_code_id", "is", null).limit(1);
+const { data: code } = await sb.from("influencer_codes")
+  .select("handle").eq("id", prof[0].referred_by_code_id).maybeSingle();
+const handle = code.handle;
+```
+Used by Yarn-Stash. App writes the `referred_by_code_id` FK at first
+cold-start via `capture_referral(code)` RPC.
+
+**Shape C — no attribution path**
+Kelva + Moto. Blocks ingest; apply `migrations/0002_attribution_for_kelva_moto.sql`
+first (adds Shape-B path), then deploy ingest with `SHAPE="B"`.
 
 ## Per-app deploy checklist
 
-For each of the 5 remaining apps, this is the **once-per-app** sequence:
+For each app, the once-only sequence:
 
-1. **Pick schema shape**
-   - Shape A if `referrals` table exists
-   - Shape B otherwise
+### 1) Schema migration (Kelva + Moto only)
+```sql
+-- Via Supabase MCP apply_migration with name "kelva_attribution_v1"
+-- (or "moto_attribution_v1"):
+-- Copy entire content of migrations/0002_attribution_for_kelva_moto.sql
+```
 
-2. **Copy `revenuecat-webhook` source** from Wavelength as starting point
-   - Change `const APP = "wavelength"` → app slug
-   - If Shape B: swap the `referrals` lookup for the `profiles +
-     influencer_codes` JOIN (see snippet above)
-   - Keep everything else byte-identical (guards, FX, dedup, summary update)
+### 2) Pick SHAPE + edit template
+```
+cp klar/migrations/templates/affiliate-ingest.ts /tmp/affiliate-ingest-yarnstash.ts
+# In the file, edit the CONFIG block at the top:
+const APP = "yarn-stash";   // or trubel / myloo / kelva / moto
+const SHAPE = "B";          // A for Trubel/MyLoo, B for Yarn-Stash/Kelva/Moto
+```
 
-3. **Set Supabase secrets** in the app's project (Supabase Dashboard →
-   Settings → Edge Functions → Secrets):
-   - `RC_WEBHOOK_SECRET` = a fresh `openssl rand -base64 32` per app, never
-     reused across apps
-   - `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` are injected by the runtime,
-     do NOT set them
+### 3) Set Supabase secret (per app)
+Per-app secrets were generated 2026-05-20 and stored on the VPS at
+`root@5.75.147.188:/root/affiliate-ingest-secrets.txt` (chmod 600).
+SSH in, read the line for your app, then in the Supabase Dashboard for the
+app's project:
 
-4. **Deploy the function** (locally from `klar` repo):
-   ```
-   cd /path/to/app   # NOT the klar repo
-   npx supabase functions deploy revenuecat-webhook --project-ref <app_project_ref>
-   ```
-   Or via Supabase MCP `deploy_edge_function` from Klar admin.
+```
+Project Settings → Edge Functions → Secrets → Add new
+Name:  RC_WEBHOOK_SECRET
+Value: <paste the line from /root/affiliate-ingest-secrets.txt>
+```
 
-5. **Configure RC webhook** in RevenueCat dashboard for the app's RC project:
-   - URL: `https://<app_project_ref>.supabase.co/functions/v1/revenuecat-webhook`
-   - Authorization header: paste the same `RC_WEBHOOK_SECRET` value verbatim
-     (the function does a `timingSafeEqual` against the full header value)
-   - Events: enable all (INITIAL_PURCHASE / RENEWAL / TRIAL_CONVERSION /
-     PRODUCT_CHANGE / NON_RENEWING_PURCHASE / REFUND / CHARGEBACK /
-     CANCELLATION / UNCANCELLATION / EXPIRATION)
+**Important:** never reuse a secret across apps (limits blast radius if one
+leaks). Treat each as a credential.
 
-6. **Smoke test** in RC dashboard: "Send test event" → Function should return
-   `{"ok":true,"test":true}`. A real test purchase (sandbox) should return
-   `{"ok":true,"processed":"initial_purchase","counts_for_payout":false,...}`
-   (false because sandbox is excluded; check `referral_revenue_events` table,
-   the row should be there with `note='sandbox'`).
+### 4) Deploy the function
 
-7. **Wire into Funnel view**: nothing to do — the Funnel in
-   `/admin/analytics?tab=funnel` already reads `referral_revenue_events` and
-   will pick up the new app as soon as the first real event lands.
+Via Supabase MCP `deploy_edge_function` with `verify_jwt: false`:
+```json
+{
+  "project_id": "<app's project_id>",
+  "name": "affiliate-ingest",
+  "entrypoint_path": "index.ts",
+  "verify_jwt": false,
+  "files": [{"name": "index.ts", "content": "<paste the edited template>"}]
+}
+```
 
-## Roll-out priority recommendation
+Or locally (if `supabase` CLI is in the app's repo):
+```
+supabase functions deploy affiliate-ingest --project-ref <ref> --no-verify-jwt
+```
 
-1. **Yarn-Stash** — App Store live, real users, dual-rail (RC + Awin). Most
-   urgent because outreach uses YS-affiliate codes already.
-2. **Moto / ThrottleUp** — App Store submitted, traffic when Apple approves.
-3. **MyLoo** — iOS submitted, Android blocked on Google org-policy.
-4. **Kelva** — Live, RC premium pivot fresh (revenuecat-webhook deployed at
-   Kelva already, may need only minor adapt).
-5. **Trubel** — Reject-round 2 fixes pending; deprioritize until live.
+### 5) Configure RC webhook for the app
 
-Each is its own session (~1-2h with the template above, more if RC dashboard
-config trips up — that's the slowest step, not the code).
+In RevenueCat dashboard → app's project → Integrations → Webhooks → Add:
+- URL: `https://<app_project_ref>.supabase.co/functions/v1/affiliate-ingest`
+- Authorization header: paste the same `RC_WEBHOOK_SECRET` value (no `Bearer ` prefix)
+- Events: enable all (INITIAL_PURCHASE / RENEWAL / TRIAL_CONVERSION /
+  PRODUCT_CHANGE / NON_RENEWING_PURCHASE / REFUND / CHARGEBACK /
+  CANCELLATION / UNCANCELLATION / EXPIRATION)
 
-## Open gaps after ingest is everywhere
+This is a SECOND webhook alongside the existing `revenuecat-webhook` (which
+toggles entitlement). Both fire on every event, decoupled concerns.
 
-- `awin-postback` Edge Function (Yarn-Stash dual-rail)
-- Onboarding-flow on getklar.org `/affiliate/apply` + admin-approve button
-  → mint `influencers` row + `influencer_codes` (Shape B) or `referrals` seed (Shape A)
-- pg_cron monthly batch-builder (per app) — gather matured events ≥ MIN_PAYOUT
-  into `influencer_payout_items`, then `/admin/dispatch-all` triggers Wise
+### 6) Smoke test
 
-These are Stage 2 + Stage 3 of the original 3-stage plan. Ingest is Stage 1.
+In RC dashboard click "Send test event" → function should return
+`{"ok":true,"test":true}`. A sandbox purchase by a referred user → row in
+`referral_revenue_events` with `refunded=true` (sandbox excluded) and
+`raw_payload` containing the RC event.
+
+### 7) Verify in Funnel
+
+Open `getklar.org/admin/analytics?tab=funnel` → the app's card should now
+show the test event under "Premium · Paid" if any non-sandbox events have
+landed (sandbox events are stored but don't increment the counter because
+they have `refunded=true`).
+
+## Yarn-Stash dual-rail special
+
+Yarn-Stash earns on TWO sources for the same affiliate:
+1. **Premium subs (RC)** — via `affiliate-ingest` above (Shape B)
+2. **Yarn-shop provisions (Awin)** — Knit Picks mid 89047 + Minerva mid 5270,
+   tracked via `clickref=u_<userId>` on Awin deeplinks. Awin's
+   `awin-postback` Edge Function (already deployed at Yarn-Stash) writes to
+   `awin_conversions`.
+
+Both rails are unified in the Klar Funnel view: it reads `referral_revenue_events`
+(RC) + `awin_conversions` (Awin) and sums them as "Premium · Paid". No
+schema change needed.
+
+If you want one unified ledger later: add `event_type='awin_provision'` to
+the generic events table and rewrite `awin-postback` to insert there (with
+`source='awin'`). Stage 3-ish, not urgent.
+
+## Roll-out priority
+
+1. **Yarn-Stash** — App Store live, real users, real revenue → highest urgency
+2. **Moto / ThrottleUp** — submit pending, traffic when Apple approves; apply 0002 first
+3. **MyLoo** — iOS live, Android blocked on Google org policy
+4. **Kelva** — Premium pivot fresh, apply 0002 first
+5. **Trubel** — Reject-round 2 fix pending; deprioritize until live
+
+Each is its own session, ~30 min:
+- 5 min schema migration (only Kelva/Moto)
+- 5 min edit + deploy ingest function
+- 5 min secret + RC webhook config
+- 5 min smoke test in RC dashboard
+- 10 min buffer for surprises
+
+## What's still missing after ALL ingest functions are live
+
+- **Onboarding flow** (`/affiliate/apply` form on getklar.org +
+  per-app domains, admin-approve button in `/admin/inbox`, auto-mint
+  `influencer_codes` or `referrals` row) — Stage 2
+- **App-side clipboard capture** in apps that don't have it yet
+  (currently only Wavelength + Yarn-Stash) — per-app code change, separate
+  PR per app repo
+- **pg_cron monthly batch builder** per app — Stage 3
+- **getklar.org landing pages** `/i/<app>/<code>` for apps that don't
+  have them (currently only Yarn-Stash)
+
+Per the affiliate-pipeline overview, ingest is **bauteil 4 of 5**. After
+all 5 ingest functions are live, you still need bauteile 1, 2, 3 (onboarding,
+landing, attribution in-app) before any affiliate can actually generate
+events that hit ingest.
