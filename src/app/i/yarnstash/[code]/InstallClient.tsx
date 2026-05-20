@@ -31,9 +31,11 @@ const T = {
 
 // Yarn-Stash iOS App Store ID (live since 2026-05-19).
 const APP_STORE_URL = "https://apps.apple.com/app/id6761712550";
-// Faster fallback: clipboard is best-effort on mount and inside the button
-// gesture; we don't need 6 seconds of "stare at the page" time.
-const AUTO_REDIRECT_MS = 2500;
+// Hard fallback in case the clipboard promise never settles (shouldn't ever
+// happen — iOS without gesture rejects fast, Android/desktop resolves in
+// 50-200ms). Auto-redirect normally fires right after the clipboard write
+// completes, not on this timer.
+const FORCE_REDIRECT_MS = 2000;
 
 function storeUrl(code: string): string {
   return code
@@ -53,8 +55,14 @@ export function InstallClient({ code }: { code: string }) {
     } catch {
       /* ignore */
     }
-    if (code) void writeClipboard();
-    const t = setTimeout(() => go(), AUTO_REDIRECT_MS);
+    // Redirect IMMEDIATELY after the clipboard write settles — that's the
+    // fastest path that still guarantees the code lands on the device.
+    // iOS without gesture rejects instantly (~10ms), Android/desktop resolves
+    // in 50-200ms, so the user perceives a near-instant App Store handoff.
+    const clipboardP = code ? writeClipboard().catch(() => undefined) : Promise.resolve();
+    void clipboardP.then(() => go());
+    // Hard fallback in the impossible case the promise never settles.
+    const t = setTimeout(() => go(), FORCE_REDIRECT_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
