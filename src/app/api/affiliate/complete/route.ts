@@ -228,11 +228,48 @@ export async function POST(req: NextRequest): Promise<Response> {
   const ip = clientIp(req);
   const ua = req.headers.get("user-agent");
   const handle = row.handle ?? displayName.split(/\s+/)[0]?.toLowerCase() ?? "creator";
-  const finalPromo = row.promo_code ?? promoCode ?? null;
+  let finalPromo = row.promo_code ?? promoCode ?? "";
   const meta = KLAR_DOMAIN_BY_APP[appSlug];
   // Prefer the contact_email that was set at create_influencer_setup time
   // (token mint), fall back to the payout email the user just entered.
   const sendEmail = row.contact_email ?? contactEmail;
+
+  // Auto-mint an internal influencer_codes row from the handle when the
+  // onboarding finished without a promo_code. This keeps the App-side
+  // referral capture (yarn-stash + moto match on influencer_codes.code)
+  // working without surfacing the code anywhere user-facing — the Affiliate
+  // only ever sees the tracking link, the code is just an internal slug.
+  // Trubel matches on referrals.influencer_handle directly, so it doesn't
+  // need this. The other apps (wavelength, kelva, myloo) are skipped until
+  // their app-side capture is wired up.
+  if (!finalPromo && (appSlug === "yarn-stash" || appSlug === "moto")) {
+    const autoCode = handle
+      .toUpperCase()
+      .replace(/[^A-Z0-9_.-]/g, "")
+      .slice(0, 32);
+    if (autoCode) {
+      try {
+        await sbRpc(app, "admin_create_influencer_code", {
+          p_code: autoCode,
+          p_display_name: displayName,
+          p_handle: handle,
+          p_commission_pct: meta?.commissionPct ?? 50,
+        });
+        finalPromo = autoCode;
+      } catch (e) {
+        // Idempotent: if the code already exists (unique violation), reuse it
+        // — the row is there, the App-side lookup will find it. Anything else
+        // we just log; the affiliate still gets the link, just may miss
+        // attribution on cold-install if the code wasn't actually persisted.
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg.includes("duplicate") || msg.includes("unique") || msg.includes("23505")) {
+          finalPromo = autoCode;
+        } else {
+          console.warn("[affiliate/complete] auto-mint code failed", msg);
+        }
+      }
+    }
+  }
 
   const agreement = await logAgreement({
     appSlug,
@@ -244,12 +281,11 @@ export async function POST(req: NextRequest): Promise<Response> {
   });
 
   if (sendEmail && meta) {
-    // Tracking URL still uses the per-influencer code as path segment (the
+    // Tracking URL uses the per-influencer code as path segment (the
     // /i/<host>/<code> route validates against the app's influencer_codes
-    // table), but it's an internal identifier. The Affiliate never sees it
-    // as a "promo code" anymore in mail/PDF/UI — it's just part of the link.
-    // Fallback to handle if no code is set, to handle future promo-less
-    // setups; that branch needs the app-side capture to also accept handle.
+    // table for yarn-stash + moto; trubel matches on the handle directly).
+    // It's an internal identifier — the Affiliate never sees it as a "promo
+    // code" anymore in mail/PDF/UI, it's just part of the link.
     const trackingSlug = finalPromo || handle || row.id || "creator";
     const trackingUrl = `https://getklar.org/i/${meta.host}/${trackingSlug}`;
     const language: "de" | "en" = row.language === "en" ? "en" : "de";
@@ -269,7 +305,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     }).catch(() => { /* already logged */ });
   }
 
-  return NextResponse.json({ ok: true, promo_code: finalPromo, handle: row.handle ?? null }, {
+  return NextResponse.json({ ok: true, promo_code: finalPromo || null, handle: row.handle ?? null }, {
     headers: corsHeaders(req.headers.get("origin")),
   });
 }
