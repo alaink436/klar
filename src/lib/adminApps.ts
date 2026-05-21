@@ -161,7 +161,7 @@ export async function createInfluencerSetup(
 // fallback under `getklar.org/affiliate/<slug>/<token>`.
 const FALLBACK_HOSTS: Record<string, string> = {
   trubel: "https://trubel.space",
-  myloo: "https://myloo.app",
+  myloo: "https://myloo.org",
   wavelength: "https://onwavelength.space",
   kelva: "https://kelva.space",
   "yarn-stash": "https://getklar.org/affiliate/yarnstash",

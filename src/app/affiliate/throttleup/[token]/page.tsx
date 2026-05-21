@@ -4,6 +4,7 @@
 import { use } from "react";
 import { getApp, sbGet } from "@/lib/adminApps";
 import { SetupClient } from "./SetupClient";
+import { t, isLang, type Lang } from "./translations";
 
 export const dynamic = "force-dynamic";
 
@@ -33,14 +34,18 @@ async function loadInfluencer(token: string): Promise<Influencer | null> {
 
 export default function ThrottleUpSetupPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }) {
   const { token } = use(params);
+  const sp = use(searchParams);
   const data = use(loadInfluencer(token));
+  const lang: Lang = isLang(sp.lang) ? sp.lang : isLang(data?.language) ? (data!.language as Lang) : "de";
 
-  if (!data) return <Status expired />;
-  if (data.status === "active") return <Status alreadyDoneHandle={data.handle} />;
+  if (!data) return <Status lang={lang} expired />;
+  if (data.status === "active") return <Status lang={lang} alreadyDoneHandle={data.handle} />;
 
   return (
     <SetupClient
@@ -49,11 +54,13 @@ export default function ThrottleUpSetupPage({
       displayName={data.display_name ?? ""}
       sharePct={data.share_pct}
       shareMonths={data.share_months}
+      lang={lang}
     />
   );
 }
 
-function Status({ alreadyDoneHandle, expired }: { alreadyDoneHandle?: string; expired?: boolean }) {
+function Status({ lang, alreadyDoneHandle, expired }: { lang: Lang; alreadyDoneHandle?: string; expired?: boolean }) {
+  const tt = t(lang);
   return (
     <main
       style={{
@@ -87,14 +94,10 @@ function Status({ alreadyDoneHandle, expired }: { alreadyDoneHandle?: string; ex
             color: "#F5EFE3",
           }}
         >
-          {alreadyDoneHandle ? `@${alreadyDoneHandle} ✓` : expired ? "Link abgelaufen" : "ThrottleUp"}
+          {alreadyDoneHandle ? `@${alreadyDoneHandle} ✓` : expired ? tt.expired_title : "ThrottleUp"}
         </h1>
         <p style={{ fontSize: 15, color: "rgba(245, 239, 227, 0.65)", lineHeight: 1.55 }}>
-          {alreadyDoneHandle
-            ? "Du bist bereits als Affiliate eingerichtet. Bei Fragen: alain@getklar.org"
-            : expired
-            ? "Dein Onboarding-Link ist abgelaufen oder ungültig. Schreib uns kurz an alain@getklar.org, wir erneuern ihn."
-            : "Lade noch …"}
+          {alreadyDoneHandle ? tt.already_done_body : expired ? tt.expired_body : tt.loading}
         </p>
       </div>
     </main>

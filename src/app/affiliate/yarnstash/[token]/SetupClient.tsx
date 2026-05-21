@@ -5,6 +5,7 @@
 // Visual: Atelier palette mirrors the in-app design system.
 
 import { useState } from "react";
+import { t, fill, type Lang } from "./translations";
 
 const T = {
   bone: "#FAF6F0",
@@ -33,7 +34,6 @@ const COUNTRIES = [
   { code: "US", label: "USA" },
   { code: "CA", label: "Canada" },
   { code: "AU", label: "Australia" },
-  { code: "OTHER", label: "Other / Anderes Land" },
 ];
 
 type Method = "wise" | "paypal" | "sepa";
@@ -45,13 +45,16 @@ export function SetupClient({
   displayName,
   sharePct,
   shareMonths,
+  lang,
 }: {
   token: string;
   handle: string;
   displayName: string;
   sharePct: number;
   shareMonths: number;
+  lang: Lang;
 }) {
+  const tt = t(lang);
   const [name, setName] = useState(displayName);
   const [country, setCountry] = useState("DE");
   const [method, setMethod] = useState<Method>("paypal");
@@ -67,10 +70,10 @@ export function SetupClient({
 
   async function submit() {
     setError(null);
-    if (!name.trim()) return setError("Bitte deinen Anzeigenamen angeben.");
-    if (method === "sepa" && !iban.trim()) return setError("IBAN fehlt.");
+    if (!name.trim()) return setError(tt.err_name_required);
+    if (method === "sepa" && !iban.trim()) return setError(tt.err_iban_required);
     if ((method === "paypal" || method === "wise") && !email.trim()) {
-      return setError("Payout-Email fehlt.");
+      return setError(tt.err_email_required);
     }
     setBusy(true);
     try {
@@ -95,7 +98,7 @@ export function SetupClient({
       if (!res.ok || !j?.ok) throw new Error(j?.error || `HTTP ${res.status}`);
       setDone({ promoCode: j.promo_code || promoCode });
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(e instanceof Error ? e.message : tt.err_generic);
     } finally {
       setBusy(false);
     }
@@ -105,10 +108,8 @@ export function SetupClient({
     return (
       <Page>
         <Card>
-          <h1 style={h1()}>Du bist live ✓</h1>
-          <p style={{ fontSize: 15, color: T.mute, lineHeight: 1.55, marginTop: 8 }}>
-            Wir haben deinen Affiliate-Account eingerichtet. Dein persönlicher Code:
-          </p>
+          <h1 style={h1()}>{tt.done_title}</h1>
+          <p style={{ fontSize: 15, color: T.mute, lineHeight: 1.55, marginTop: 8 }}>{tt.done_body}</p>
           <div
             style={{
               marginTop: 14,
@@ -126,10 +127,10 @@ export function SetupClient({
             {done.promoCode}
           </div>
           <p style={{ fontSize: 13, color: T.faint, marginTop: 14, lineHeight: 1.6 }}>
-            {sharePct}% Revenue-Share für {shareMonths} Monate ab erstem Sub. Auszahlung monatlich via Wise/PayPal/SEPA, 30 Tage Refund-Holdback.
+            {fill(tt.done_share_explainer, { sharePct, shareMonths })}
           </p>
           <p style={{ fontSize: 13, color: T.faint, marginTop: 18 }}>
-            Dein Sharing-Link:
+            {tt.done_tracking_label}
             <br />
             <code
               style={{
@@ -155,25 +156,24 @@ export function SetupClient({
   return (
     <Page>
       <Card>
-        <Tag>Yarn-Stash · Onboarding</Tag>
-        <h1 style={h1()}>Hi @{handle},</h1>
-        <p style={{ fontSize: 15, color: T.mute, lineHeight: 1.55, margin: "8px 0 24px" }}>
-          Letzter Schritt: Auszahlungs-Setup. 2-3 Minuten, dann ist dein persönlicher Link live.
-        </p>
+        <Tag>{tt.tag}</Tag>
+        <h1 style={h1()}>{fill(tt.welcome_title, { handle })}</h1>
+        <p style={{ fontSize: 15, color: T.mute, lineHeight: 1.55, margin: "8px 0 24px" }}>{tt.welcome_body}</p>
 
-        <Field label="Anzeigename">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Wie wir dich nennen" style={inp()} />
+        <Field label={tt.field_name_label}>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tt.field_name_placeholder} style={inp()} />
         </Field>
 
-        <Field label="Land (für Steuer)">
+        <Field label={tt.field_country_label}>
           <select value={country} onChange={(e) => setCountry(e.target.value)} style={inp()}>
             {COUNTRIES.map((c) => (
               <option key={c.code} value={c.code}>{c.label}</option>
             ))}
+            <option value="OTHER">{tt.country_other}</option>
           </select>
         </Field>
 
-        <Field label="Auszahlungsmethode">
+        <Field label={tt.field_payout_method_label}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
             {(["paypal", "wise", "sepa"] as const).map((m) => (
               <button
@@ -199,27 +199,27 @@ export function SetupClient({
         </Field>
 
         {method === "sepa" ? (
-          <Field label="IBAN">
+          <Field label={tt.field_iban_label}>
             <input value={iban} onChange={(e) => setIban(e.target.value.toUpperCase())} placeholder="DE89 …" style={inp()} />
           </Field>
         ) : (
-          <Field label={method === "paypal" ? "PayPal-Email" : "Wise-Email"}>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="du@example.com" style={inp()} />
+          <Field label={method === "paypal" ? tt.field_email_label_paypal : tt.field_email_label_wise}>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={tt.field_email_placeholder} style={inp()} />
           </Field>
         )}
 
         {!isForeign && (
-          <Field label="Steuerstatus (DACH)">
+          <Field label={tt.field_tax_label}>
             <select value={tax} onChange={(e) => setTax(e.target.value as Tax)} style={inp()}>
-              <option value="kleinunternehmer">Kleinunternehmer / nicht USt-pflichtig</option>
-              <option value="regelbesteuert">Regelbesteuert / USt-pflichtig</option>
+              <option value="kleinunternehmer">{tt.tax_kleinunternehmer}</option>
+              <option value="regelbesteuert">{tt.tax_regelbesteuert}</option>
             </select>
           </Field>
         )}
 
         <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6, marginBottom: 24, cursor: "pointer", color: T.mute, fontSize: 14 }}>
           <input type="checkbox" checked={invoice} onChange={(e) => setInvoice(e.target.checked)} style={{ width: 18, height: 18, accentColor: T.rose }} />
-          Ich kann eine korrekte Rechnung mit MwSt ausstellen
+          {tt.checkbox_invoice_capable}
         </label>
 
         {error && (
@@ -246,12 +246,11 @@ export function SetupClient({
             boxShadow: `0 14px 28px -10px ${T.rose}`,
           }}
         >
-          {busy ? "Wird eingerichtet …" : "Affiliate-Setup abschließen"}
+          {busy ? tt.submit_busy : tt.submit_idle}
         </button>
 
         <p style={{ fontSize: 11, color: T.faint, textAlign: "center", marginTop: 14, lineHeight: 1.5 }}>
-          Mit dem Klick bestätige ich {sharePct}% Revenue-Share über {shareMonths} Monate als
-          Direkt-Vereinbarung mit Alain Kessler (CH, Einzelfirma).
+          {fill(tt.consent, { sharePct, shareMonths })}
         </p>
       </Card>
     </Page>
