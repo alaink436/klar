@@ -47,7 +47,6 @@ export interface Brand {
   glyph: { letter: string; italic: boolean };
   pdfTitle: string;
   pdfHint: string;
-  promoCode: string;
   domain: string;
   handTagline: string;
   secondStream?: SecondStream;
@@ -76,7 +75,6 @@ export const BRANDS: Record<BrandKey, Brand> = {
     glyph: { letter: "Y", italic: false },
     pdfTitle: "Strategie-Playbook",
     pdfHint: "Hook-Formate, Reels-Skripte, 30-Tage-Kalender",
-    promoCode: "MOLLY22",
     domain: "yarn-stash.app",
     handTagline: "willkommen ✿",
     secondStream: {
@@ -113,7 +111,6 @@ export const BRANDS: Record<BrandKey, Brand> = {
     glyph: { letter: "TU", italic: false },
     pdfTitle: "Creator Playbook",
     pdfHint: "Build-Story Hooks, Garage-B-Roll, Spec-Drop-Framework",
-    promoCode: "DAX25",
     domain: "throttleup.app",
     handTagline: "let it rip",
   },
@@ -135,7 +132,6 @@ export const BRANDS: Record<BrandKey, Brand> = {
     glyph: { letter: "W", italic: false },
     pdfTitle: "Creator Brief",
     pdfHint: "Productivity hooks, before/after carousels, weekly retro template",
-    promoCode: "NINA30",
     domain: "wavelength.so",
     handTagline: "stay in flow",
   },
@@ -157,7 +153,6 @@ export const BRANDS: Record<BrandKey, Brand> = {
     glyph: { letter: "K", italic: true },
     pdfTitle: "Editorial Brief",
     pdfHint: "Long-form caption frames, soft-launch script, science-backed angles",
-    promoCode: "ARIA28",
     domain: "kelva.app",
     handTagline: "a gentler signal",
   },
@@ -179,7 +174,6 @@ export const BRANDS: Record<BrandKey, Brand> = {
     glyph: { letter: "TR", italic: false },
     pdfTitle: "Sticker Pack & Brief",
     pdfHint: "Stitch hooks, screenshot-meme frames, in-app cap captures",
-    promoCode: "LOU50",
     domain: "trubel.club",
     handTagline: "lets gooo",
     secondStream: {
@@ -216,7 +210,6 @@ export const BRANDS: Record<BrandKey, Brand> = {
     glyph: { letter: "M", italic: true },
     pdfTitle: "Quiet Creator Brief",
     pdfHint: "Sensitive-topic framing, day-in-life scripts, privacy claims sheet",
-    promoCode: "ELIF26",
     domain: "myloo.health",
     handTagline: "with care",
   },

@@ -118,13 +118,13 @@ async function fireConfirmationEmail(payload: {
   handle: string;
   display_name: string;
   contact_email: string;
-  promo_code: string;
   tracking_url: string;
   commission_pct: number;
   attribution_months: number;
   assets_drive_url: string | null;
   agreement_version: string;
   signed_at: string;
+  language: "de" | "en";
 }): Promise<void> {
   // Same fallback pattern as logAgreement — anime-vault host is hardcoded so only the
   // admin-key needs to be set explicitly for the confirmation email to fire.
@@ -205,9 +205,9 @@ export async function POST(req: NextRequest): Promise<Response> {
   const app = getApp(appSlug);
   if (!app) return bad(req, `unknown app: ${appSlug}`);
 
-  let row: { promo_code?: string; handle?: string; id?: string; contact_email?: string };
+  let row: { promo_code?: string; handle?: string; id?: string; contact_email?: string; language?: string };
   try {
-    row = await sbRpc<{ promo_code?: string; handle?: string; id?: string; contact_email?: string }>(app, "complete_influencer_setup", {
+    row = await sbRpc<{ promo_code?: string; handle?: string; id?: string; contact_email?: string; language?: string }>(app, "complete_influencer_setup", {
       p_token: token,
       p_display_name: displayName,
       p_country: country,
@@ -243,21 +243,29 @@ export async function POST(req: NextRequest): Promise<Response> {
     userAgent: ua,
   });
 
-  if (sendEmail && finalPromo && meta) {
-    const trackingUrl = `https://getklar.org/i/${meta.host}/${finalPromo}`;
+  if (sendEmail && meta) {
+    // Tracking URL still uses the per-influencer code as path segment (the
+    // /i/<host>/<code> route validates against the app's influencer_codes
+    // table), but it's an internal identifier. The Affiliate never sees it
+    // as a "promo code" anymore in mail/PDF/UI — it's just part of the link.
+    // Fallback to handle if no code is set, to handle future promo-less
+    // setups; that branch needs the app-side capture to also accept handle.
+    const trackingSlug = finalPromo || handle || row.id || "creator";
+    const trackingUrl = `https://getklar.org/i/${meta.host}/${trackingSlug}`;
+    const language: "de" | "en" = row.language === "en" ? "en" : "de";
     fireConfirmationEmail({
       app_slug: appSlug,
       app_name: meta.appName,
       handle,
       display_name: displayName,
       contact_email: sendEmail,
-      promo_code: finalPromo,
       tracking_url: trackingUrl,
       commission_pct: meta.commissionPct,
       attribution_months: meta.attributionMonths,
       assets_drive_url: assetsDriveUrl,
       agreement_version: AGREEMENT_VERSION,
       signed_at: agreement?.signed_at ?? new Date().toISOString(),
+      language,
     }).catch(() => { /* already logged */ });
   }
 

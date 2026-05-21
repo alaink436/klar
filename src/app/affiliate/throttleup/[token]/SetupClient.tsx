@@ -14,7 +14,6 @@ const BRAND = BRANDS.throttleup;
 export function SetupClient({ token, handle, displayName }: { token: string; handle: string; displayName: string }) {
   void displayName;
   async function onSubmit(form: PayoutState) {
-    const promoCode = (handle.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12) || "MOTO") + "20";
     const res = await fetch("/api/affiliate/complete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -28,14 +27,12 @@ export function SetupClient({ token, handle, displayName }: { token: string; han
         payout_iban: form.method === "sepa" ? form.handle.trim() : null,
         tax_status: form.taxStatus,
         invoice_capable: form.canInvoice,
-        promo_code: promoCode,
         agreement_accepted: form.agreementAccepted,
         assets_drive_url: BRAND.assetsDriveUrl ?? null,
       }),
     });
-    const j = (await res.json().catch(() => null)) as { ok?: boolean; promo_code?: string; error?: string } | null;
+    const j = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
     if (!res.ok || !j?.ok) throw new Error(j?.error || `HTTP ${res.status}`);
-    return { promoCode: j.promo_code || promoCode };
   }
 
   return <OnboardingShell brand="throttleup" handle={`@${handle}`} onSubmit={onSubmit} />;

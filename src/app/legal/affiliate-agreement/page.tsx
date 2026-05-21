@@ -56,10 +56,11 @@ export default function AffiliateAgreementPage() {
             Klar betreibt sechs mobile Apps:{" "}
             <i>Yarn-Stash, ThrottleUp, On Wavelength, Kelva, Trubel</i> und{" "}
             <i>MyLoo</i>. Der Affiliate erhält pro App einen persönlichen
-            Tracking-Link und einen Promo-Code. Wenn ein über diesen Link oder
-            Code referrierter Nutzer in der App ein Premium-Abo abschließt oder
-            eine andere zahlungspflichtige Aktion auslöst, erhält der Affiliate
-            eine Provision gemäß §3.
+            Tracking-Link. Die Attribution erfolgt ausschließlich über diesen
+            Link, kein zusätzlicher Promo-Code wird ausgegeben oder benötigt.
+            Wenn ein über diesen Link referrierter Nutzer in der App ein
+            Premium-Abo abschließt oder eine andere zahlungspflichtige Aktion
+            auslöst, erhält der Affiliate eine Provision gemäß §3.
           </p>
         </Section>
 

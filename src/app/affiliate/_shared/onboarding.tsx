@@ -519,7 +519,7 @@ function AttributionDiagram({ brand }: { brand: Brand }) {
       </svg>
 
       <figcaption style={{ padding: "10px 12px 4px", fontSize: 12, lineHeight: 1.5, color: "var(--aff-fg-3)", textAlign: "center" }}>
-        Vier Stationen, ein Code. Awin prüft 30 Tage gegen Refunds, danach landet dein Anteil per Stripe-Connect auf deinem Konto.
+        Vier Stationen, ein Link. Awin prüft 30 Tage gegen Refunds, danach landet dein Anteil per Stripe-Connect auf deinem Konto.
       </figcaption>
     </figure>
   );
@@ -588,13 +588,13 @@ function StepWelcome({ brand, go, handle }: { brand: Brand; go: () => void; hand
         <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
           <li style={{ display: "grid", gridTemplateColumns: "22px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12, color: "var(--aff-fg-3)" }}>01</span><span>Stash-Tour Reel mit Voice-over, 30 bis 45 Sekunden</span></li>
           <li style={{ display: "grid", gridTemplateColumns: "22px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12, color: "var(--aff-fg-3)" }}>02</span><span>Vorher-Nachher Foto: Chaos zu sortiertem Atelier</span></li>
-          <li style={{ display: "grid", gridTemplateColumns: "22px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12, color: "var(--aff-fg-3)" }}>03</span><span>Honest-Review im Vlog-Stil mit Promo-Code am Ende</span></li>
+          <li style={{ display: "grid", gridTemplateColumns: "22px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12, color: "var(--aff-fg-3)" }}>03</span><span>Honest-Review im Vlog-Stil mit Link in der Caption</span></li>
         </ul>
       </AccSection>
 
-      <AccSection tag="004 // was du sonst bekommst." title={<>was du <span className="italic">sonst</span> bekommst.</>} pitch="promo, dashboard, payout">
+      <AccSection tag="004 // was du sonst bekommst." title={<>was du <span className="italic">sonst</span> bekommst.</>} pitch="link, dashboard, payout">
         <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
-          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>€</span><span><b>Eigener Promo-Code</b> mit 20 Prozent Rabatt für deine Audience</span></li>
+          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>€</span><span><b>Persönlicher Tracking-Link</b>, Attribution serverseitig, kein Code nötig</span></li>
           <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>€</span><span><b>Live-Dashboard</b> mit Klicks, Installs, Käufen, Auszahlungen</span></li>
           <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>€</span><span><b>Auszahlung monatlich</b> per PayPal, Wise oder SEPA</span></li>
         </ul>
@@ -792,9 +792,12 @@ function StepPayout({ go, prev, state, setState, onSubmit }: { go: () => void; p
 }
 
 // ── Step 4 · Live ───────────────────────────────────────────────────────────
-function StepLive({ brand, state }: { brand: Brand; state: PayoutState }) {
+function StepLive({ brand, state, handle }: { brand: Brand; state: PayoutState; handle: string }) {
   const [copied, setCopied] = useState<string | null>(null);
-  const trackingUrl = `https://${brand.domain}/r/${state.displayName.trim().split(/\s+/)[0].toLowerCase() || "molly"}`;
+  // Tracking link lives on getklar.org until each app has its own domain, and
+  // uses the affiliate's handle as path segment — no shared promo code.
+  const slug = handle.replace(/^@/, "").toLowerCase().replace(/[^a-z0-9_.-]/g, "") || "creator";
+  const trackingUrl = `https://getklar.org/i/${brand.key === "throttleup" ? "throttleup" : brand.key}/${slug}`;
 
   const copy = (key: string, value: string) => {
     try { navigator.clipboard.writeText(value); } catch (_) { /* noop */ }
@@ -810,24 +813,11 @@ function StepLive({ brand, state }: { brand: Brand; state: PayoutState }) {
           Du bist <span className="italic">live ✓</span>
         </h1>
         <p className="aff-lede" style={{ textAlign: "center" }}>
-          Dein Tracking-Link ist scharf, dein Promo-Code aktiv. Erste Klicks tauchen innerhalb von 5 Minuten im Dashboard auf.
+          Dein persönlicher Tracking-Link ist scharf. Erste Klicks tauchen innerhalb von 5 Minuten im Dashboard auf. Du brauchst keinen Code, der Link macht alles.
         </p>
       </div>
 
       <IconPanel brand={brand} tagline={brand.handTagline} />
-
-      <div className="aff-stack-sm">
-        <div className="aff-eyebrow" style={{ paddingLeft: 4 }}>Dein Promo-Code</div>
-        <div className="aff-promo">
-          <div className="pretitle">{brand.short} · 20 Prozent Rabatt für deine Audience</div>
-          <div className="code">{brand.promoCode}</div>
-          <div className="sub">Gültig für die ersten 3 Monate Premium</div>
-          <div className="aff-promo-discount">
-            <div className="pct">−20%</div>
-            <div className="lbl">code</div>
-          </div>
-        </div>
-      </div>
 
       <div className="aff-stack-sm">
         <div className="aff-eyebrow" style={{ paddingLeft: 4 }}>Dein Tracking-Link</div>
@@ -848,11 +838,11 @@ function StepLive({ brand, state }: { brand: Brand; state: PayoutState }) {
           </div>
           <div className="line">
             <span className="icon">ii.</span>
-            <span><b>Code in Captions</b>: Schreibe <code style={{ background: "var(--aff-bg-elev)", padding: "0 6px", borderRadius: 4 }}>{brand.promoCode}</code> in jede Caption. Funktioniert auch ohne Klick auf den Link.</span>
+            <span><b>Stories &amp; Reels</b>: Link-Sticker drauf, Sprachnotiz dazu, fertig. Werbekennzeichnung nicht vergessen.</span>
           </div>
           <div className="line">
             <span className="icon">iii.</span>
-            <span><b>Stories &amp; Reels</b>: Sticker drauf, Sprachnotiz, fertig. Werbekennzeichnung nicht vergessen.</span>
+            <span><b>Captions</b>: Pack den Link auch in die Caption, falls jemand nicht auf die Bio scrollt. Tracking läuft pro Klick, nicht pro Code.</span>
           </div>
         </div>
       </div>
@@ -869,7 +859,7 @@ function StepLive({ brand, state }: { brand: Brand; state: PayoutState }) {
 }
 
 // ── Onboarding Shell (main export) ──────────────────────────────────────────
-export function OnboardingShell({ brand: brandKey, handle, onSubmit, promoCodeFromSubmit }: { brand: BrandKey; handle: string; onSubmit?: (s: PayoutState) => Promise<{ promoCode?: string }>; promoCodeFromSubmit?: string }) {
+export function OnboardingShell({ brand: brandKey, handle, onSubmit }: { brand: BrandKey; handle: string; onSubmit?: (s: PayoutState) => Promise<void> }) {
   const brand = BRANDS[brandKey];
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
@@ -913,28 +903,17 @@ export function OnboardingShell({ brand: brandKey, handle, onSubmit, promoCodeFr
   const next = () => go(step + 1);
   const prev = () => go(Math.max(0, step - 1));
 
-  const [promoCode, setPromoCode] = useState(brand.promoCode);
-  useEffect(() => {
-    if (promoCodeFromSubmit) setPromoCode(promoCodeFromSubmit);
-  }, [promoCodeFromSubmit]);
-
-  const submitHook = onSubmit ? async (s: PayoutState) => {
-    const r = await onSubmit(s);
-    if (r?.promoCode) setPromoCode(r.promoCode);
-  } : undefined;
-
   const ActiveStep = useMemo(() => {
     const key: StepKey = STEPS[renderStep].key;
-    const brandWithCode: Brand = { ...brand, promoCode };
     switch (key) {
-      case "welcome":  return <StepWelcome brand={brandWithCode} go={next} handle={handle} />;
-      case "tracking": return <StepTracking brand={brandWithCode} go={next} prev={prev} />;
-      case "payout":   return <StepPayout go={next} prev={prev} state={payout} setState={setPayout} onSubmit={submitHook} />;
-      case "live":     return <StepLive brand={brandWithCode} state={payout} />;
+      case "welcome":  return <StepWelcome brand={brand} go={next} handle={handle} />;
+      case "tracking": return <StepTracking brand={brand} go={next} prev={prev} />;
+      case "payout":   return <StepPayout go={next} prev={prev} state={payout} setState={setPayout} onSubmit={onSubmit} />;
+      case "live":     return <StepLive brand={brand} state={payout} handle={handle} />;
       default:         return null;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renderStep, brand, payout, handle, promoCode]);
+  }, [renderStep, brand, payout, handle]);
 
   const screenClass = phase === "in" ? "aff-screen in" : (dir > 0 ? "aff-screen exit-left" : "aff-screen exit-right");
 
