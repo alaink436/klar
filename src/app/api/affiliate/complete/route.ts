@@ -243,29 +243,43 @@ export async function POST(req: NextRequest): Promise<Response> {
   // need this. The other apps (wavelength, kelva, myloo) are skipped until
   // their app-side capture is wired up.
   if (!finalPromo && (appSlug === "yarn-stash" || appSlug === "moto")) {
+    // The RPC enforces uppercase A-Z 0-9 _ . - and a 2-32 length window.
+    // Trim down handles that overflow so the regex passes; reject < 2.
     const autoCode = handle
       .toUpperCase()
       .replace(/[^A-Z0-9_.-]/g, "")
       .slice(0, 32);
-    if (autoCode) {
+    // RPC contract: commission_pct is a DECIMAL between 0 and 1, not percent.
+    // (Cross-project learning: Supabase RPCs that return { error } in JSON
+    // payload instead of raising must be checked at every call-site.)
+    const commissionDecimal = (meta?.commissionPct ?? 50) / 100;
+    if (autoCode.length >= 2) {
       try {
-        await sbRpc(app, "admin_create_influencer_code", {
+        const result = await sbRpc<{
+          success?: boolean;
+          code?: string;
+          error?: string;
+          detail?: string;
+        }>(app, "admin_create_influencer_code", {
           p_code: autoCode,
           p_display_name: displayName,
           p_handle: handle,
-          p_commission_pct: meta?.commissionPct ?? 50,
+          p_commission_pct: commissionDecimal,
         });
-        finalPromo = autoCode;
+        if (result?.success) {
+          finalPromo = result.code ?? autoCode;
+        } else if (result?.error === "CODE_EXISTS") {
+          // Idempotent: the row is already there from a prior run, reuse it.
+          finalPromo = autoCode;
+        } else {
+          console.warn("[affiliate/complete] auto-mint returned error", result?.error, result?.detail);
+        }
       } catch (e) {
-        // Idempotent: if the code already exists (unique violation), reuse it
-        // — the row is there, the App-side lookup will find it. Anything else
-        // we just log; the affiliate still gets the link, just may miss
-        // attribution on cold-install if the code wasn't actually persisted.
         const msg = e instanceof Error ? e.message : String(e);
         if (msg.includes("duplicate") || msg.includes("unique") || msg.includes("23505")) {
           finalPromo = autoCode;
         } else {
-          console.warn("[affiliate/complete] auto-mint code failed", msg);
+          console.warn("[affiliate/complete] auto-mint threw", msg);
         }
       }
     }
