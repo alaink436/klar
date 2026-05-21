@@ -36,6 +36,7 @@ export interface Brand {
   commissionPct: number;
   attributionMonths: number;
   streamLabel: string;
+  iconUrl: string;
   mascot: string | null;
   mascotHappy?: string | null;
   mascotSurprised?: string | null;
@@ -64,6 +65,7 @@ export const BRANDS: Record<BrandKey, Brand> = {
     commissionPct: 50,
     attributionMonths: 24,
     streamLabel: "Premium-Abos",
+    iconUrl: "/icons/yarnstash.webp",
     mascot: "/affiliate-mascots/yarnstash/cat_knitting.png",
     mascotHappy: "/affiliate-mascots/yarnstash/cat_happy.png",
     mascotSurprised: "/affiliate-mascots/yarnstash/cat_surprised.png",
@@ -102,6 +104,7 @@ export const BRANDS: Record<BrandKey, Brand> = {
     commissionPct: 25,
     attributionMonths: 12,
     streamLabel: "Premium-Verkäufe",
+    iconUrl: "/icons/moto.webp",
     mascot: null,
     glyph: { letter: "TU", italic: false },
     pdfTitle: "Creator Playbook",
@@ -123,6 +126,7 @@ export const BRANDS: Record<BrandKey, Brand> = {
     commissionPct: 30,
     attributionMonths: 12,
     streamLabel: "Premium-Abos",
+    iconUrl: "/icons/wavelength.webp",
     mascot: null,
     glyph: { letter: "W", italic: false },
     pdfTitle: "Creator Brief",
@@ -144,6 +148,7 @@ export const BRANDS: Record<BrandKey, Brand> = {
     commissionPct: 28,
     attributionMonths: 12,
     streamLabel: "Premium-Abos",
+    iconUrl: "/icons/kelva.webp",
     mascot: null,
     glyph: { letter: "K", italic: true },
     pdfTitle: "Editorial Brief",
@@ -165,6 +170,7 @@ export const BRANDS: Record<BrandKey, Brand> = {
     commissionPct: 50,
     attributionMonths: 24,
     streamLabel: "Premium-Abos",
+    iconUrl: "/icons/trubel.webp",
     mascot: null,
     glyph: { letter: "TR", italic: false },
     pdfTitle: "Sticker Pack & Brief",
@@ -201,6 +207,7 @@ export const BRANDS: Record<BrandKey, Brand> = {
     commissionPct: 26,
     attributionMonths: 12,
     streamLabel: "Premium-Abos",
+    iconUrl: "/icons/myloo.webp",
     mascot: null,
     glyph: { letter: "M", italic: true },
     pdfTitle: "Quiet Creator Brief",

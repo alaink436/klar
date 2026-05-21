@@ -1,20 +1,15 @@
-// Yarn-Stash affiliate-onboarding hosted on getklar.org. Loads the Yarn-Stash
-// brand fonts (Gloock, Newsreader, Inter, JetBrains Mono) via next/font and
-// exposes them as the shared --font-* CSS variables used by the design
-// tokens in affiliate-onboarding.css.
+// Yarn-Stash affiliate-onboarding hosted on getklar.org. Unified Klar
+// public-site look: fonts (Space Grotesk + Fraunces + Manrope + JetBrains
+// Mono) are loaded once in /app/layout.tsx and reused. The app identity is
+// the icon from /icons/yarnstash.webp, surfaced in the topframe + welcome
+// + live screens.
 
 import { use } from "react";
-import { Gloock, Newsreader, Inter, JetBrains_Mono } from "next/font/google";
 import { getApp, sbGet } from "@/lib/adminApps";
 import { SetupClient } from "./SetupClient";
 import "../../_shared/affiliate-onboarding.css";
 
 export const dynamic = "force-dynamic";
-
-const gloock = Gloock({ weight: "400", subsets: ["latin"], variable: "--font-display", display: "swap" });
-const newsreader = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-italic", display: "swap" });
-const inter = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap" });
-const jbm = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 interface Influencer {
   id: string;
@@ -44,25 +39,9 @@ export default function YarnStashSetupPage({ params }: { params: Promise<{ token
   const { token } = use(params);
   const data = use(loadInfluencer(token));
 
-  const fontVars = `${gloock.variable} ${newsreader.variable} ${inter.variable} ${jbm.variable}`;
-
-  return (
-    <div className={fontVars} data-brand="yarnstash">
-      {data ? (
-        data.status === "active" ? (
-          <Status alreadyDoneHandle={data.handle} />
-        ) : (
-          <SetupClient
-            token={token}
-            handle={data.handle}
-            displayName={data.display_name ?? ""}
-          />
-        )
-      ) : (
-        <Status expired />
-      )}
-    </div>
-  );
+  if (!data) return <Status expired />;
+  if (data.status === "active") return <Status alreadyDoneHandle={data.handle} />;
+  return <SetupClient token={token} handle={data.handle} displayName={data.display_name ?? ""} />;
 }
 
 function Status({ alreadyDoneHandle, expired }: { alreadyDoneHandle?: string; expired?: boolean }) {

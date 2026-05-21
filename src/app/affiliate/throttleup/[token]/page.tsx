@@ -1,19 +1,13 @@
-// ThrottleUp (Moto-Maintenance) affiliate-onboarding hosted on getklar.org.
-// Loads Boldonse (display + italic) + Inter (body) + JetBrains Mono (mono)
-// via next/font and exposes them as the shared --font-* CSS variables.
+// ThrottleUp affiliate-onboarding hosted on getklar.org. Unified Klar
+// public-site look — same fonts/palette as the landing page. The app
+// identity is the icon from /icons/moto.webp.
 
 import { use } from "react";
-import { Boldonse, Inter, JetBrains_Mono } from "next/font/google";
 import { getApp, sbGet } from "@/lib/adminApps";
 import { SetupClient } from "./SetupClient";
 import "../../_shared/affiliate-onboarding.css";
 
 export const dynamic = "force-dynamic";
-
-const boldonseDisplay = Boldonse({ weight: "400", subsets: ["latin"], variable: "--font-display", display: "swap" });
-const boldonseItalic = Boldonse({ weight: "400", subsets: ["latin"], variable: "--font-italic", display: "swap" });
-const inter = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap" });
-const jbm = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 interface Influencer {
   id: string;
@@ -43,25 +37,9 @@ export default function ThrottleUpSetupPage({ params }: { params: Promise<{ toke
   const { token } = use(params);
   const data = use(loadInfluencer(token));
 
-  const fontVars = `${boldonseDisplay.variable} ${boldonseItalic.variable} ${inter.variable} ${jbm.variable}`;
-
-  return (
-    <div className={fontVars} data-brand="throttleup">
-      {data ? (
-        data.status === "active" ? (
-          <Status alreadyDoneHandle={data.handle} />
-        ) : (
-          <SetupClient
-            token={token}
-            handle={data.handle}
-            displayName={data.display_name ?? ""}
-          />
-        )
-      ) : (
-        <Status expired />
-      )}
-    </div>
-  );
+  if (!data) return <Status expired />;
+  if (data.status === "active") return <Status alreadyDoneHandle={data.handle} />;
+  return <SetupClient token={token} handle={data.handle} displayName={data.display_name ?? ""} />;
 }
 
 function Status({ alreadyDoneHandle, expired }: { alreadyDoneHandle?: string; expired?: boolean }) {

@@ -52,17 +52,20 @@ interface PayoutState {
   canInvoice: boolean;
 }
 
-// ── Top frame (brandline + 4 progress bars + step label) ────────────────────
+// ── Top frame (icon header + progress bars + step label) ───────────────────
 function Topframe({ brand, step }: { brand: Brand; step: number }) {
   return (
     <div className="aff-topframe">
-      <div className="aff-brandline">
-        <span className="dot"/>
-        <span className="accent">{brand.short}</span>
-        <span style={{ opacity: 0.5 }}>·</span>
-        <span>Affiliate Onboarding</span>
-        <span style={{ flex: 1 }}/>
-        <span>{brand.vibe.split(",")[0]}</span>
+      <div className="aff-icon-header">
+        <div className="icon-tile">
+          {/* App icon — same one used on getklar.org, no per-brand quirk. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={brand.iconUrl} alt={`${brand.name} icon`} />
+        </div>
+        <div className="icon-meta">
+          <div className="app-name">{brand.name}</div>
+          <div className="app-meta">Klar Affiliate <span className="dot">●</span> {brand.vibe.split(",")[0]}</div>
+        </div>
       </div>
       <div className="aff-steps">
         {STEPS.map((s, i) => (
@@ -77,22 +80,13 @@ function Topframe({ brand, step }: { brand: Brand; step: number }) {
   );
 }
 
-// ── Mascot or brand-mark glyph ──────────────────────────────────────────────
-function MascotPanel({ brand, mascotKey = "mascot", tagline, height = 200 }: { brand: Brand; mascotKey?: "mascot" | "mascotHappy" | "mascotSurprised"; tagline?: string; height?: number }) {
-  const src = brand[mascotKey];
+// ── Icon panel — replaces the per-brand mascot, always shows the app icon ───
+function IconPanel({ brand, tagline }: { brand: Brand; tagline?: string }) {
   return (
-    <div className={`aff-mascot-frame${height > 200 ? " tall" : ""}`} style={{ height }}>
-      <div className="bg" />
-      {tagline ? <span className="hand">{tagline}</span> : null}
-      {src
-        ? <img src={src} alt={`${brand.name} mascot`} />
-        : (
-          <div className="glyph">
-            {brand.glyph.italic
-              ? <span className="italic">{brand.glyph.letter}</span>
-              : brand.glyph.letter}
-          </div>
-        )}
+    <div className="aff-icon-panel">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={brand.iconUrl} alt={`${brand.name} app icon`} />
+      {tagline ? <span className="tagline">{tagline}</span> : null}
     </div>
   );
 }
@@ -385,8 +379,8 @@ function Calculator({ brand }: { brand: Brand }) {
 function PhoneFrame({ x, y, children }: { x: number; y: number; children: React.ReactNode }) {
   return (
     <g transform={`translate(${x},${y})`}>
-      <rect x="-34" y="-62" width="68" height="124" rx="12" style={{ fill: "var(--paper)", stroke: "var(--ink)", strokeWidth: 1.8 }} />
-      <rect x="-10" y="-59" width="20" height="3" rx="1.5" style={{ fill: "var(--ink)" }} />
+      <rect x="-34" y="-62" width="68" height="124" rx="12" style={{ fill: "var(--aff-bg-elev)", stroke: "var(--aff-fg)", strokeWidth: 1.8 }} />
+      <rect x="-10" y="-59" width="20" height="3" rx="1.5" style={{ fill: "var(--aff-fg)" }} />
       {children}
     </g>
   );
@@ -394,7 +388,7 @@ function PhoneFrame({ x, y, children }: { x: number; y: number; children: React.
 
 function TileCaption({ x, y, text }: { x: number; y: number; text: string }) {
   return (
-    <text x={x} y={y} textAnchor="middle" style={{ fontSize: 13, fontFamily: "var(--font-italic)", fontStyle: "italic", fill: "var(--ink)" }}>
+    <text x={x} y={y} textAnchor="middle" style={{ fontSize: 13, fontFamily: "var(--font-editorial)", fontStyle: "italic", fill: "var(--aff-fg)" }}>
       {text}
     </text>
   );
@@ -405,8 +399,8 @@ function StickerLabel({ x, y, rot = 0, text, italic = false }: { x: number; y: n
   const width = Math.max(40, text.length * (italic ? 6.4 : 7.6));
   return (
     <g transform={`translate(${x},${y}) rotate(${rot})`}>
-      <rect x={-width / 2} y="-10" width={width} height="20" rx="3" style={{ fill: "var(--paper)", stroke: "var(--primary)", strokeWidth: 0.8 }} />
-      <text textAnchor="middle" y={italic ? 4 : 3.5} style={{ fontSize, fontFamily: italic ? "var(--font-italic)" : "var(--font-mono)", fontStyle: italic ? "italic" : "normal", fill: "var(--primary-ink)", letterSpacing: italic ? "0" : "1.2px", fontWeight: italic ? 400 : 600 }}>{text}</text>
+      <rect x={-width / 2} y="-10" width={width} height="20" rx="3" style={{ fill: "var(--aff-bg-elev)", stroke: "var(--aff-fg)", strokeWidth: 0.8 }} />
+      <text textAnchor="middle" y={italic ? 4 : 3.5} style={{ fontSize, fontFamily: italic ? "var(--font-editorial)" : "var(--font-mono)", fontStyle: italic ? "italic" : "normal", fill: "var(--aff-bg)", letterSpacing: italic ? "0" : "1.2px", fontWeight: italic ? 400 : 600 }}>{text}</text>
     </g>
   );
 }
@@ -414,8 +408,8 @@ function StickerLabel({ x, y, rot = 0, text, italic = false }: { x: number; y: n
 function NumberBadge({ x, y, n }: { x: number; y: number; n: string }) {
   return (
     <g transform={`translate(${x},${y})`}>
-      <rect x="-13" y="-9" width="26" height="18" rx="4" style={{ fill: "var(--ink)" }} />
-      <text textAnchor="middle" y="4" style={{ fontSize: 10.5, fontFamily: "var(--font-display)", fill: "var(--bg)", letterSpacing: "0.5px" }}>{n}</text>
+      <rect x="-13" y="-9" width="26" height="18" rx="4" style={{ fill: "var(--aff-fg)" }} />
+      <text textAnchor="middle" y="4" style={{ fontSize: 10.5, fontFamily: "var(--font-display)", fill: "var(--aff-bg)", letterSpacing: "0.5px" }}>{n}</text>
     </g>
   );
 }
@@ -426,53 +420,57 @@ function AttributionDiagram({ brand }: { brand: Brand }) {
       <svg viewBox="0 0 480 460" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style={{ width: "100%", display: "block" }}>
         <defs>
           <marker id="aend" markerWidth="6" markerHeight="6" refX="4" refY="3" orient="auto" markerUnits="strokeWidth">
-            <path d="M0,0 L6,3 L0,6 z" style={{ fill: "var(--primary)" }} />
+            <path d="M0,0 L6,3 L0,6 z" style={{ fill: "var(--aff-fg)" }} />
           </marker>
         </defs>
 
-        <path d="M 138 110 Q 240 60 342 110" fill="none" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" markerEnd="url(#aend)" style={{ stroke: "var(--primary)" }} />
-        <path d="M 378 188 Q 250 240 102 268" fill="none" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" markerEnd="url(#aend)" style={{ stroke: "var(--primary)" }} />
-        <path d="M 138 335 Q 240 388 342 335" fill="none" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" markerEnd="url(#aend)" style={{ stroke: "var(--primary)" }} />
+        <path d="M 138 110 Q 240 60 342 110" fill="none" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" markerEnd="url(#aend)" style={{ stroke: "var(--aff-fg)" }} />
+        <path d="M 378 188 Q 250 240 102 268" fill="none" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" markerEnd="url(#aend)" style={{ stroke: "var(--aff-fg)" }} />
+        <path d="M 138 335 Q 240 388 342 335" fill="none" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" markerEnd="url(#aend)" style={{ stroke: "var(--aff-fg)" }} />
 
         <StickerLabel x={240} y={48} rot={-2} text="60 d" />
         <StickerLabel x={250} y={230} rot={4}  text="deeplink" italic />
         <StickerLabel x={240} y={400} rot={-2} text="30 d" />
 
         <PhoneFrame x={100} y={110}>
-          <circle cx="-20" cy="-44" r="5" style={{ fill: "var(--primary-soft)", stroke: "var(--primary)", strokeWidth: 0.8 }} />
-          <rect x="-12" y="-46" width="26" height="2.2" rx="1.1" style={{ fill: "var(--ink)", opacity: 0.65 }} />
-          <rect x="-12" y="-41" width="18" height="1.6" rx="0.8" style={{ fill: "var(--mute)", opacity: 0.55 }} />
+          <circle cx="-20" cy="-44" r="5" style={{ fill: "var(--aff-bg-elev)", stroke: "var(--aff-fg)", strokeWidth: 0.8 }} />
+          <rect x="-12" y="-46" width="26" height="2.2" rx="1.1" style={{ fill: "var(--aff-fg)", opacity: 0.65 }} />
+          <rect x="-12" y="-41" width="18" height="1.6" rx="0.8" style={{ fill: "var(--aff-fg-3)", opacity: 0.55 }} />
           {[-22, -8, 6, 20].map((x, i) => (
-            <rect key={i} x={x - 5} y="-33" width="10" height="3" rx="1.5" style={{ fill: i === 0 ? "var(--primary)" : "var(--hair-on)" }} />
+            <rect key={i} x={x - 5} y="-33" width="10" height="3" rx="1.5" style={{ fill: i === 0 ? "var(--aff-fg)" : "var(--aff-line-strong)" }} />
           ))}
-          <rect x="-26" y="-24" width="52" height="20" rx="5" style={{ fill: "var(--primary)" }} />
-          <circle cx="-18" cy="-14" r="4" style={{ fill: "var(--on-primary)", opacity: 0.25 }} />
-          <path d="M 12 -14 L 18 -14 M 15 -17 L 18 -14 L 15 -11" fill="none" style={{ stroke: "var(--on-primary)", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" }} />
-          <circle cx="22" cy="-14" r="15" fill="none" style={{ stroke: "var(--primary)", strokeWidth: 0.7, opacity: 0.18 }} />
-          <circle cx="22" cy="-14" r="10" fill="none" style={{ stroke: "var(--primary)", strokeWidth: 0.9, opacity: 0.4 }} />
-          <circle cx="22" cy="-14" r="4" style={{ fill: "var(--primary)" }} />
+          <rect x="-26" y="-24" width="52" height="20" rx="5" style={{ fill: "var(--aff-fg)" }} />
+          <circle cx="-18" cy="-14" r="4" style={{ fill: "var(--aff-bg)", opacity: 0.25 }} />
+          <path d="M 12 -14 L 18 -14 M 15 -17 L 18 -14 L 15 -11" fill="none" style={{ stroke: "var(--aff-bg)", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" }} />
+          <circle cx="22" cy="-14" r="15" fill="none" style={{ stroke: "var(--aff-fg)", strokeWidth: 0.7, opacity: 0.18 }} />
+          <circle cx="22" cy="-14" r="10" fill="none" style={{ stroke: "var(--aff-fg)", strokeWidth: 0.9, opacity: 0.4 }} />
+          <circle cx="22" cy="-14" r="4" style={{ fill: "var(--aff-fg)" }} />
           {[2, 14, 26].map((y, i) => (
-            <rect key={i} x="-26" y={y} width={[52, 44, 50][i]} height="6" rx="2" style={{ fill: "var(--hair-on)" }} />
+            <rect key={i} x="-26" y={y} width={[52, 44, 50][i]} height="6" rx="2" style={{ fill: "var(--aff-line-strong)" }} />
           ))}
-          <line x1="-34" y1="46" x2="34" y2="46" style={{ stroke: "var(--hair-on)", strokeWidth: 0.5 }} />
+          <line x1="-34" y1="46" x2="34" y2="46" style={{ stroke: "var(--aff-line-strong)", strokeWidth: 0.5 }} />
           {[-22, -10, 2, 14, 26].map((x, i) => (
-            <rect key={i} x={x - 3.5} y="50" width="7" height="7" rx="1.5" style={{ fill: i === 4 ? "var(--primary)" : "var(--hair-on)" }} />
+            <rect key={i} x={x - 3.5} y="50" width="7" height="7" rx="1.5" style={{ fill: i === 4 ? "var(--aff-fg)" : "var(--aff-line-strong)" }} />
           ))}
         </PhoneFrame>
         <NumberBadge x={48} y={56} n="01" />
         <TileCaption x={100} y={198} text="Du teilst den Link." />
 
         <g transform="translate(380,118)">
-          <line x1="0" y1="-72" x2="0" y2="-50" style={{ stroke: "var(--primary)", strokeWidth: 1.5, strokeLinecap: "round" }} />
-          <path d="M -6 -56 L 0 -50 L 6 -56" fill="none" style={{ stroke: "var(--primary)", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" }} />
-          <rect x="-40" y="-40" width="80" height="80" rx="18" style={{ fill: "var(--primary)", stroke: "var(--ink)", strokeWidth: 2 }} />
-          <path d="M -36 -36 Q -36 -24 -22 -24 L 22 -24 Q 36 -24 36 -36 Q 36 -38 34 -38 L -34 -38 Q -36 -38 -36 -36 Z" style={{ fill: "var(--on-primary)", opacity: 0.14 }} />
-          <text x="0" y="14" textAnchor="middle" style={{ fontSize: 46, fontFamily: brand.glyph.italic ? "var(--font-italic)" : "var(--font-display)", fontStyle: brand.glyph.italic ? "italic" : "normal", fontWeight: 400, fill: "var(--on-primary)" }}>
-            {brand.glyph.letter}
-          </text>
-          <rect x="-40" y="50" width="80" height="5" rx="2.5" style={{ fill: "var(--hair-on)" }} />
-          <rect x="-40" y="50" width="54" height="5" rx="2.5" style={{ fill: "var(--primary)" }} />
-          <g transform="translate(0,68)" style={{ fill: "var(--primary)" }}>
+          <line x1="0" y1="-72" x2="0" y2="-50" style={{ stroke: "var(--aff-fg)", strokeWidth: 1.5, strokeLinecap: "round" }} />
+          <path d="M -6 -56 L 0 -50 L 6 -56" fill="none" style={{ stroke: "var(--aff-fg)", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" }} />
+          {/* App icon as the install target — clipped to a rounded square so
+              the photo doesn't bleed outside the tile. */}
+          <defs>
+            <clipPath id="appicon-clip">
+              <rect x="-40" y="-40" width="80" height="80" rx="18" />
+            </clipPath>
+          </defs>
+          <rect x="-40" y="-40" width="80" height="80" rx="18" style={{ fill: "var(--aff-bg-elev)", stroke: "var(--aff-line-strong)", strokeWidth: 1.5 }} />
+          <image href={brand.iconUrl} x="-40" y="-40" width="80" height="80" clipPath="url(#appicon-clip)" preserveAspectRatio="xMidYMid slice" />
+          <rect x="-40" y="50" width="80" height="4" rx="2" style={{ fill: "var(--aff-line-strong)" }} />
+          <rect x="-40" y="50" width="54" height="4" rx="2" style={{ fill: "var(--aff-fg)" }} />
+          <g transform="translate(0,68)" style={{ fill: "var(--aff-fg)" }}>
             {[-22, -11, 0, 11, 22].map((x, i) => (
               <text key={i} x={x} y="0" textAnchor="middle" style={{ fontSize: 9 }}>★</text>
             ))}
@@ -482,19 +480,19 @@ function AttributionDiagram({ brand }: { brand: Brand }) {
         <TileCaption x={380} y={210} text="Sie installieren." />
 
         <PhoneFrame x={100} y={335}>
-          <path d="M -16 -38 L -10 -28 L 0 -42 L 10 -28 L 16 -38 L 14 -22 L -14 -22 Z" style={{ fill: "var(--primary)", stroke: "var(--ink)", strokeWidth: 1, strokeLinejoin: "round" }} />
-          <circle cx="-16" cy="-39" r="1.6" style={{ fill: "var(--ink)" }} />
-          <circle cx="0"   cy="-43" r="1.6" style={{ fill: "var(--ink)" }} />
-          <circle cx="16"  cy="-39" r="1.6" style={{ fill: "var(--ink)" }} />
+          <path d="M -16 -38 L -10 -28 L 0 -42 L 10 -28 L 16 -38 L 14 -22 L -14 -22 Z" style={{ fill: "var(--aff-fg)", stroke: "var(--aff-fg)", strokeWidth: 1, strokeLinejoin: "round" }} />
+          <circle cx="-16" cy="-39" r="1.6" style={{ fill: "var(--aff-fg)" }} />
+          <circle cx="0"   cy="-43" r="1.6" style={{ fill: "var(--aff-fg)" }} />
+          <circle cx="16"  cy="-39" r="1.6" style={{ fill: "var(--aff-fg)" }} />
           {[0, 1, 2].map((i) => (
             <g key={i}>
-              <circle cx="-20" cy={-8 + i * 11} r="3" style={{ fill: "var(--primary)" }} />
-              <path d={`M -21.5 ${-8 + i * 11} L -20.2 ${-6.7 + i * 11} L -18 ${-9.5 + i * 11}`} fill="none" style={{ stroke: "var(--on-primary)", strokeWidth: 0.9, strokeLinecap: "round", strokeLinejoin: "round" }} />
-              <rect x="-14" y={-10 + i * 11} width={[30, 24, 28][i]} height="4" rx="2" style={{ fill: "var(--ink)", opacity: 0.7 }} />
+              <circle cx="-20" cy={-8 + i * 11} r="3" style={{ fill: "var(--aff-fg)" }} />
+              <path d={`M -21.5 ${-8 + i * 11} L -20.2 ${-6.7 + i * 11} L -18 ${-9.5 + i * 11}`} fill="none" style={{ stroke: "var(--aff-bg)", strokeWidth: 0.9, strokeLinecap: "round", strokeLinejoin: "round" }} />
+              <rect x="-14" y={-10 + i * 11} width={[30, 24, 28][i]} height="4" rx="2" style={{ fill: "var(--aff-fg)", opacity: 0.7 }} />
             </g>
           ))}
-          <rect x="-28" y="34" width="56" height="18" rx="6" style={{ fill: "var(--primary)" }} />
-          <path d="M 6 43 L 14 43 M 10 39 L 14 43 L 10 47" fill="none" style={{ stroke: "var(--on-primary)", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" }} />
+          <rect x="-28" y="34" width="56" height="18" rx="6" style={{ fill: "var(--aff-fg)" }} />
+          <path d="M 6 43 L 14 43 M 10 39 L 14 43 L 10 47" fill="none" style={{ stroke: "var(--aff-bg)", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" }} />
         </PhoneFrame>
         <NumberBadge x={48} y={281} n="03" />
         <TileCaption x={100} y={423} text="Sie kaufen Premium." />
@@ -506,20 +504,20 @@ function AttributionDiagram({ brand }: { brand: Brand }) {
             { cx: 0,   cy: -58, r: 6.5 },
           ].map((c, i) => (
             <g key={i}>
-              <circle cx={c.cx} cy={c.cy} r={c.r} style={{ fill: "var(--primary)", stroke: "var(--ink)", strokeWidth: 1.4 }} />
-              <text x={c.cx} y={c.cy + c.r * 0.35} textAnchor="middle" style={{ fontSize: c.r * 1.1, fontFamily: "var(--font-display)", fontWeight: 700, fill: "var(--on-primary)" }}>€</text>
+              <circle cx={c.cx} cy={c.cy} r={c.r} style={{ fill: "var(--aff-fg)", stroke: "var(--aff-fg)", strokeWidth: 1.4 }} />
+              <text x={c.cx} y={c.cy + c.r * 0.35} textAnchor="middle" style={{ fontSize: c.r * 1.1, fontFamily: "var(--font-display)", fontWeight: 700, fill: "var(--aff-bg)" }}>€</text>
             </g>
           ))}
-          <ellipse cx="0" cy="56" rx="36" ry="4.5" style={{ fill: "var(--ink)", opacity: 0.10 }} />
-          <path d="M -20 -4 L -16 -14 Q -8 -10 -4 -4 L 4 -4 Q 8 -10 16 -14 L 20 -4 Q 32 6 32 24 Q 32 50 0 50 Q -32 50 -32 24 Q -32 6 -20 -4 Z" style={{ fill: "var(--paper)", stroke: "var(--ink)", strokeWidth: 2, strokeLinejoin: "round" }} />
-          <rect x="-22" y="-5" width="44" height="6" style={{ fill: "var(--ink)" }} />
-          <text x="0" y="34" textAnchor="middle" style={{ fontSize: 28, fontFamily: "var(--font-display)", fontWeight: 700, fill: "var(--primary)" }}>€</text>
+          <ellipse cx="0" cy="56" rx="36" ry="4.5" style={{ fill: "var(--aff-fg)", opacity: 0.10 }} />
+          <path d="M -20 -4 L -16 -14 Q -8 -10 -4 -4 L 4 -4 Q 8 -10 16 -14 L 20 -4 Q 32 6 32 24 Q 32 50 0 50 Q -32 50 -32 24 Q -32 6 -20 -4 Z" style={{ fill: "var(--aff-bg-elev)", stroke: "var(--aff-fg)", strokeWidth: 2, strokeLinejoin: "round" }} />
+          <rect x="-22" y="-5" width="44" height="6" style={{ fill: "var(--aff-fg)" }} />
+          <text x="0" y="34" textAnchor="middle" style={{ fontSize: 28, fontFamily: "var(--font-display)", fontWeight: 700, fill: "var(--aff-fg)" }}>€</text>
         </g>
         <NumberBadge x={329} y={281} n="04" />
         <TileCaption x={380} y={423} text="Du wirst ausgezahlt." />
       </svg>
 
-      <figcaption style={{ padding: "10px 12px 4px", fontSize: 12, lineHeight: 1.5, color: "var(--mute)", textAlign: "center" }}>
+      <figcaption style={{ padding: "10px 12px 4px", fontSize: 12, lineHeight: 1.5, color: "var(--aff-fg-3)", textAlign: "center" }}>
         Vier Stationen, ein Code. Awin prüft 30 Tage gegen Refunds, danach landet dein Anteil per Stripe-Connect auf deinem Konto.
       </figcaption>
     </figure>
@@ -539,7 +537,7 @@ function StepWelcome({ brand, go, handle }: { brand: Brand; go: () => void; hand
         </p>
       </div>
 
-      <MascotPanel brand={brand} tagline={brand.handTagline} />
+      <IconPanel brand={brand} tagline={brand.handTagline} />
 
       <div className="aff-section">
         <span className="aff-eyebrow">So verdienst du</span>
@@ -553,10 +551,10 @@ function StepWelcome({ brand, go, handle }: { brand: Brand; go: () => void; hand
         <div>
           <div className="lr-label">PDF · 4 Seiten</div>
           <div className="lr-title">{brand.pdfTitle} <span className="italic">herunterladen</span></div>
-          <div style={{ fontSize: 12, color: "var(--mute)", marginTop: 4, fontFamily: "var(--font-body)" }}>{brand.pdfHint}</div>
+          <div style={{ fontSize: 12, color: "var(--aff-fg-3)", marginTop: 4, fontFamily: "var(--font-body)" }}>{brand.pdfHint}</div>
         </div>
         <span style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-          <DocIcon style={{ color: "var(--primary)" }} />
+          <DocIcon style={{ color: "var(--aff-fg)" }} />
           <span className="lr-arrow">↓</span>
         </span>
       </a>
@@ -632,9 +630,9 @@ function StepTracking({ brand, go, prev }: { brand: Brand; go: () => void; prev:
         <div>
           <div className="lr-label">Live</div>
           <div className="lr-title">Deine <span className="italic">Statistiken</span></div>
-          <div style={{ fontSize: 12, color: "var(--mute)", marginTop: 4 }}>Klicks, Installs, Käufe, Provision. Aktualisiert alle 6 Stunden.</div>
+          <div style={{ fontSize: 12, color: "var(--aff-fg-3)", marginTop: 4 }}>Klicks, Installs, Käufe, Provision. Aktualisiert alle 6 Stunden.</div>
         </div>
-        <ChartIcon style={{ color: "var(--primary)" }} />
+        <ChartIcon style={{ color: "var(--aff-fg)" }} />
       </a>
 
       <div className="aff-section">
@@ -649,7 +647,7 @@ function StepTracking({ brand, go, prev }: { brand: Brand; go: () => void; prev:
 
       <div className="aff-section">
         <span className="aff-eyebrow">Werbekennzeichnung</span>
-        <p style={{ fontSize: 13.5, color: "var(--ink)" }}>
+        <p style={{ fontSize: 13.5, color: "var(--aff-fg)" }}>
           Markiere Affiliate-Content immer als <i>Werbung</i> oder <i>Anzeige</i>. Bei Stories reicht der Sticker, bei Reels und Posts gehört es in die ersten Zeilen der Caption. Das schützt dich und uns.
         </p>
       </div>
@@ -766,7 +764,7 @@ function StepPayout({ go, prev, state, setState, onSubmit }: { go: () => void; p
       </div>
 
       {error && (
-        <div style={{ padding: "10px 14px", background: "color-mix(in oklab, var(--primary), transparent 88%)", border: "1px solid color-mix(in oklab, var(--primary), transparent 60%)", borderRadius: 10, color: "var(--primary-ink)", fontSize: 13.5 }}>
+        <div style={{ padding: "10px 14px", background: "color-mix(in oklab, var(--aff-fg), transparent 88%)", border: "1px solid color-mix(in oklab, var(--aff-fg), transparent 60%)", borderRadius: 10, color: "var(--aff-bg)", fontSize: 13.5 }}>
           {error}
         </div>
       )}
@@ -810,7 +808,7 @@ function StepLive({ brand, state }: { brand: Brand; state: PayoutState }) {
         </p>
       </div>
 
-      <MascotPanel brand={brand} mascotKey="mascotHappy" tagline={brand.handTagline} height={210} />
+      <IconPanel brand={brand} tagline={brand.handTagline} />
 
       <div className="aff-stack-sm">
         <div className="aff-eyebrow" style={{ paddingLeft: 4 }}>Dein Promo-Code</div>
@@ -844,7 +842,7 @@ function StepLive({ brand, state }: { brand: Brand; state: PayoutState }) {
           </div>
           <div className="line">
             <span className="icon">ii.</span>
-            <span><b>Code in Captions</b>: Schreibe <code style={{ background: "var(--paper)", padding: "0 6px", borderRadius: 4 }}>{brand.promoCode}</code> in jede Caption. Funktioniert auch ohne Klick auf den Link.</span>
+            <span><b>Code in Captions</b>: Schreibe <code style={{ background: "var(--aff-bg-elev)", padding: "0 6px", borderRadius: 4 }}>{brand.promoCode}</code> in jede Caption. Funktioniert auch ohne Klick auf den Link.</span>
           </div>
           <div className="line">
             <span className="icon">iii.</span>
