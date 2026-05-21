@@ -1,0 +1,951 @@
+"use client";
+
+// Affiliate onboarding — port of the Claude Design handoff. Step routing,
+// step components, calculator, attribution diagram, mascot panel — all in
+// one file because they share types + helpers and Next.js bundles them as
+// a single chunk anyway.
+
+import { useEffect, useMemo, useState } from "react";
+import { Brand, BrandKey, BRANDS, STEPS, StepKey } from "./brands";
+
+// ── Icons ────────────────────────────────────────────────────────────────────
+const ArrowRight = (p: React.SVGProps<SVGSVGElement>) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M5 12h14M13 5l7 7-7 7"/>
+  </svg>
+);
+const ArrowLeft = (p: React.SVGProps<SVGSVGElement>) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M19 12H5M11 5l-7 7 7 7"/>
+  </svg>
+);
+const DocIcon = (p: React.SVGProps<SVGSVGElement>) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="8" y1="13" x2="14" y2="13"/>
+    <line x1="8" y1="17" x2="14" y2="17"/>
+  </svg>
+);
+const ChartIcon = (p: React.SVGProps<SVGSVGElement>) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <line x1="3" y1="20" x2="21" y2="20"/>
+    <line x1="6" y1="20" x2="6" y2="13"/>
+    <line x1="11" y1="20" x2="11" y2="8"/>
+    <line x1="16" y1="20" x2="16" y2="15"/>
+    <line x1="20" y1="20" x2="20" y2="10"/>
+  </svg>
+);
+const CheckIcon = (p: React.SVGProps<SVGSVGElement>) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <polyline points="5 12 10 17 19 7"/>
+  </svg>
+);
+
+// ── Payout form state shape (lifted to shell so steps can navigate back) ────
+interface PayoutState {
+  displayName: string;
+  country: string;
+  method: "paypal" | "wise" | "sepa";
+  handle: string;
+  taxStatus: string;
+  canInvoice: boolean;
+}
+
+// ── Top frame (brandline + 4 progress bars + step label) ────────────────────
+function Topframe({ brand, step }: { brand: Brand; step: number }) {
+  return (
+    <div className="aff-topframe">
+      <div className="aff-brandline">
+        <span className="dot"/>
+        <span className="accent">{brand.short}</span>
+        <span style={{ opacity: 0.5 }}>·</span>
+        <span>Affiliate Onboarding</span>
+        <span style={{ flex: 1 }}/>
+        <span>{brand.vibe.split(",")[0]}</span>
+      </div>
+      <div className="aff-steps">
+        {STEPS.map((s, i) => (
+          <div key={s.key} className={`bar${i < step ? " done" : ""}${i === step ? " active" : ""}`} />
+        ))}
+      </div>
+      <div className="aff-steplabel">
+        <span className="name">{STEPS[step].label}</span>
+        <span className="count">Step {String(step + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")}</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Mascot or brand-mark glyph ──────────────────────────────────────────────
+function MascotPanel({ brand, mascotKey = "mascot", tagline, height = 200 }: { brand: Brand; mascotKey?: "mascot" | "mascotHappy" | "mascotSurprised"; tagline?: string; height?: number }) {
+  const src = brand[mascotKey];
+  return (
+    <div className={`aff-mascot-frame${height > 200 ? " tall" : ""}`} style={{ height }}>
+      <div className="bg" />
+      {tagline ? <span className="hand">{tagline}</span> : null}
+      {src
+        ? <img src={src} alt={`${brand.name} mascot`} />
+        : (
+          <div className="glyph">
+            {brand.glyph.italic
+              ? <span className="italic">{brand.glyph.letter}</span>
+              : brand.glyph.letter}
+          </div>
+        )}
+    </div>
+  );
+}
+
+// ── Stream cards summary (top of Step 1) ────────────────────────────────────
+function StreamCardsForBrand({ brand }: { brand: Brand }) {
+  const months = brand.attributionMonths || 12;
+  const s2 = brand.secondStream;
+  return (
+    <div className={`aff-streams-grid${s2 ? "" : " single"}`}>
+      <div className="aff-stream-card">
+        <span className="stream-num">①</span>
+        <div className="stream-eyebrow">Premium-Abos</div>
+        <div className="stream-title">
+          {brand.commissionPct} % <span className="italic">der Sub.</span>
+        </div>
+        <div className="stream-detail">
+          Pro Premium-Kauf bekommst du <b>{brand.commissionPct} %</b> der Sub-Einnahmen,
+          {" "}<b>{months} Monate lang</b>. {brand.productPrice ? `Sub-Preis ${brand.productPrice}.` : ""}
+        </div>
+      </div>
+      {s2 ? (
+        <div className="aff-stream-card">
+          <span className="stream-num">②</span>
+          <div className="stream-eyebrow">{s2.sublabel || s2.label}</div>
+          <div className="stream-title">
+            {s2.kind === "yarn-shop"
+              ? <>Anteil an <span className="italic">Garn-Käufen.</span></>
+              : <>Anteil an <span className="italic">Album-Käufen.</span></>}
+          </div>
+          <div className="stream-detail">
+            {s2.kind === "yarn-shop"
+              ? <>Jedes Mal wenn dein User Garn über die In-App Shop-Links kauft, bekommst du einen Anteil an unserer Awin-Provision.{" "}<b>Bei Strick-Audiences meist der größere Stream</b>, weil Stricker:innen regelmäßig nachkaufen.</>
+              : <>Wenn dein User ein 4k-Album kauft, bekommst du <b>50 % des Verkaufspreises</b>. One-Shot, ideal für Event-Trigger wie Hochzeiten oder Festivals.</>}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ── Slider helpers (log + lin) ──────────────────────────────────────────────
+const LOG_RES = 1000;
+const logToPos = (val: number, min: number, max: number) =>
+  Math.round(((Math.log(val) - Math.log(min)) / (Math.log(max) - Math.log(min))) * LOG_RES);
+const logFromPos = (pos: number, min: number, max: number) =>
+  Math.round(Math.exp(Math.log(min) + (pos / LOG_RES) * (Math.log(max) - Math.log(min))));
+
+function compactNum(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 1 }) + "M";
+  if (n >= 1_000)     return (n / 1_000).toLocaleString("de-DE", { maximumFractionDigits: 0 }) + "k";
+  return n.toLocaleString("de-DE");
+}
+
+function NumInput({ value, setValue, min, max, ariaLabel, width = 92 }: { value: number; setValue: (n: number) => void; min: number; max: number; ariaLabel: string; width?: number }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const fmt = (n: number) => n.toLocaleString("de-DE");
+  const display = editing ? draft : fmt(value);
+  const clamp = (n: number) => Math.max(min, Math.min(max, n));
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      className="numval"
+      aria-label={ariaLabel}
+      value={display}
+      style={{ width }}
+      onFocus={(e) => {
+        setEditing(true);
+        setDraft(String(value));
+        requestAnimationFrame(() => e.target.select());
+      }}
+      onChange={(e) => {
+        const cleaned = e.target.value.replace(/[^\d.,]/g, "").replace(",", ".").slice(0, 9);
+        setDraft(e.target.value.slice(0, 11));
+        const n = cleaned === "" ? NaN : parseFloat(cleaned);
+        if (!isNaN(n)) setValue(clamp(n));
+      }}
+      onBlur={() => {
+        setEditing(false);
+        if (draft === "") setValue(min);
+      }}
+      onKeyDown={(e) => { if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur(); }}
+    />
+  );
+}
+
+function LogSlider({ value, setValue, min, max, ticks, ariaLabel }: { value: number; setValue: (n: number) => void; min: number; max: number; ticks: number[]; ariaLabel: string }) {
+  const pos = logToPos(value, min, max);
+  return (
+    <>
+      <input
+        className="aff-rg" type="range"
+        min={0} max={LOG_RES} step={1}
+        value={pos}
+        aria-label={ariaLabel}
+        onChange={(e) => setValue(logFromPos(+e.target.value, min, max))}
+        style={{ ["--fill" as string]: Math.round((pos / LOG_RES) * 100) + "%" } as React.CSSProperties} />
+      <div className="ticks">
+        {ticks.map((t) => {
+          const left = ((Math.log(t) - Math.log(min)) / (Math.log(max) - Math.log(min))) * 100;
+          return (
+            <span key={t} className="tick" style={{ left: left + "%" }}>
+              {compactNum(t)}
+            </span>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function LinSlider({ value, setValue, min, max, step = 1, ticks, ariaLabel, unit }: { value: number; setValue: (n: number) => void; min: number; max: number; step?: number; ticks: number[]; ariaLabel: string; unit?: string }) {
+  const fill = Math.round(((value - min) / (max - min)) * 100);
+  return (
+    <>
+      <input
+        className="aff-rg" type="range"
+        min={min} max={max} step={step}
+        value={value}
+        aria-label={ariaLabel}
+        onChange={(e) => setValue(+e.target.value)}
+        style={{ ["--fill" as string]: fill + "%" } as React.CSSProperties} />
+      <div className="ticks">
+        {ticks.map((t) => {
+          const left = ((t - min) / (max - min)) * 100;
+          return (
+            <span key={t} className="tick" style={{ left: left + "%" }}>
+              {t}{unit || ""}
+            </span>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function brandPrice(brand: Brand) {
+  return parseFloat(String(brand.productPrice).replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
+}
+
+// ── Calculator ──────────────────────────────────────────────────────────────
+function Calculator({ brand }: { brand: Brand }) {
+  const [followers, setFollowers] = useState(12000);
+  const [views, setViews] = useState(30000);
+  const [convPct, setConvPct] = useState(9);
+  const s2 = brand.secondStream;
+  const [s2Rate, setS2Rate] = useState(s2?.defaultRate ?? 0);
+  const [s2Basket, setS2Basket] = useState(s2?.defaultBasket ?? 0);
+
+  const BIO_CTR = 0.025;
+  const INSTALL_RATE = 0.40;
+
+  const clicks = Math.round(views * BIO_CTR);
+  const installs = Math.round(clicks * INSTALL_RATE);
+  const buyers = Math.round(installs * (convPct / 100));
+
+  const price = brandPrice(brand);
+  const isSub = /\/mo|\/m/i.test(brand.productPrice);
+  const streamOne = buyers * price * (brand.commissionPct / 100);
+  const months = brand.attributionMonths || 12;
+
+  let streamTwo = 0;
+  let streamTwoNote = "";
+  if (s2) {
+    if (s2.kind === "yarn-shop") {
+      const shoppers = Math.round(installs * (s2Rate / 100));
+      streamTwo = shoppers * s2Basket * s2.commissionRate;
+      streamTwoNote = `${shoppers.toLocaleString("de-DE")} aktive Garn-Käufer × ${s2Basket} € Korb × ${(s2.commissionRate * 100).toFixed(2).replace(".", ",")} %`;
+    } else if (s2.kind === "album-buy") {
+      const albumBuyers = Math.round(installs * (s2Rate / 100));
+      streamTwo = albumBuyers * s2Basket * s2.commissionRate;
+      streamTwoNote = `${albumBuyers.toLocaleString("de-DE")} Album-Käufer × ${s2Basket} € × ${(s2.commissionRate * 100).toFixed(0)} %`;
+    }
+  }
+
+  const total = streamOne + streamTwo;
+  const fmt = (n: number) => Math.round(n).toLocaleString("de-DE");
+
+  // Suppress unused-var warning for followers (slider influences views indirectly via UX expectation)
+  void followers;
+
+  return (
+    <div className="aff-calc">
+      <div className="slider-row">
+        <div className="slider-head">
+          <span className="name">Follower auf Instagram &middot; TikTok</span>
+          <NumInput value={followers} setValue={setFollowers} min={500} max={1_000_000} ariaLabel="Follower-Anzahl" />
+        </div>
+        <LogSlider value={followers} setValue={setFollowers} min={500} max={1_000_000} ticks={[500, 5000, 50000, 500000, 1_000_000]} ariaLabel="Follower-Anzahl" />
+      </div>
+
+      <div className="slider-row">
+        <div className="slider-head">
+          <span className="name">Views pro Monat &middot; alle Posts zusammen</span>
+          <NumInput value={views} setValue={setViews} min={1000} max={5_000_000} ariaLabel="Views pro Monat" />
+        </div>
+        <LogSlider value={views} setValue={setViews} min={1000} max={5_000_000} ticks={[1000, 10000, 100000, 1_000_000, 5_000_000]} ariaLabel="Views pro Monat" />
+      </div>
+
+      <div className="stream-divider" style={{ marginTop: 4 }}>
+        <span className="label"><span className="plus">①</span>STREAM &middot; {brand.streamLabel || "Premium-Abos"}</span>
+        <span className="line" />
+      </div>
+      <div className="stream-sub">
+        {isSub
+          ? `${brand.productPrice} · ${brand.commissionPct} % an dich, ${months} Monate lang.`
+          : `${brand.productPrice} · ${brand.commissionPct} % an dich pro Verkauf.`}
+      </div>
+
+      <div className="slider-row">
+        <div className="slider-head">
+          <span className="name">Premium-Conversion nach Install</span>
+          <span className="valgroup">
+            <NumInput value={convPct} setValue={setConvPct} min={3} max={15} ariaLabel="Premium-Conversion" width={48} />
+            <span className="unit">%</span>
+          </span>
+        </div>
+        <LinSlider value={convPct} setValue={setConvPct} min={3} max={15} step={1} ticks={[3, 6, 9, 12, 15]} unit=" %" ariaLabel="Premium-Conversion" />
+      </div>
+
+      <div className="mini-rows">
+        <span><span className="arrow">→</span> Bio-Klicks (2,5 % der Views)</span>
+        <span className="v">{fmt(clicks)}</span>
+        <span><span className="arrow">→</span> Installs (40 % der Klicks)</span>
+        <span className="v">{fmt(installs)}</span>
+        <span><span className="arrow">→</span> Premium-Käufer ({convPct} %)</span>
+        <span className="v">{fmt(buyers)}</span>
+        <span><span className="arrow">→</span> {brand.productPriceShort || brand.productPrice} &times; {brand.commissionPct} %</span>
+        <span className="v">{fmt(streamOne)} €{isSub ? "/mo" : ""}</span>
+      </div>
+
+      {s2 ? (
+        <>
+          <div className="stream-divider" style={{ marginTop: 6 }}>
+            <span className="label"><span className="plus">②</span>STREAM &middot; {s2.label}</span>
+            <span className="line" />
+          </div>
+          <div className="stream-sub">{s2.sublabel}</div>
+
+          <div className="slider-row">
+            <div className="slider-head">
+              <span className="name">{s2.rateLabel}</span>
+              <span className="valgroup">
+                <NumInput value={s2Rate} setValue={setS2Rate} min={s2.rateMin} max={s2.rateMax} ariaLabel={s2.rateLabel} width={48} />
+                <span className="unit">%</span>
+              </span>
+            </div>
+            <LinSlider value={s2Rate} setValue={setS2Rate} min={s2.rateMin} max={s2.rateMax} step={s2.rateStep} ticks={[s2.rateMin, Math.round((s2.rateMin + s2.rateMax) / 2), s2.rateMax]} unit=" %" ariaLabel={s2.rateLabel} />
+          </div>
+
+          <div className="slider-row">
+            <div className="slider-head">
+              <span className="name">{s2.basketLabel}</span>
+              <span className="valgroup">
+                <NumInput value={s2Basket} setValue={setS2Basket} min={s2.basketMin} max={s2.basketMax} ariaLabel={s2.basketLabel} width={60} />
+                <span className="unit">{s2.basketUnit}</span>
+              </span>
+            </div>
+            <LinSlider value={s2Basket} setValue={setS2Basket} min={s2.basketMin} max={s2.basketMax} step={s2.basketStep} ticks={[s2.basketMin, Math.round((s2.basketMin + s2.basketMax) / 2), s2.basketMax]} unit={" " + s2.basketUnit} ariaLabel={s2.basketLabel} />
+          </div>
+
+          <p className="formula-hint" style={{ marginTop: -4 }}>
+            <b>{streamTwoNote}</b> &nbsp;&middot;&nbsp; {s2.hint}
+          </p>
+
+          <div className="mini-rows">
+            <span><span className="arrow">→</span> Stream 2 {s2.recurring ? "pro Monat" : "pro Install-Cohort"}</span>
+            <span className="v">{fmt(streamTwo)} €</span>
+          </div>
+        </>
+      ) : null}
+
+      <div className="total-pop">
+        <span className="tp-label">
+          {s2 ? <>Gesamt monatlich an dich <small>Stream 1 + Stream 2</small></> : <>monatlich an dich {isSub ? <small>{months} Monate lang</small> : null}</>}
+        </span>
+        <span className="tp-value">{fmt(total)} €<span className="small">/ mo</span></span>
+      </div>
+
+      <p className="formula-hint" style={{ textAlign: "center" }}>
+        Lifetime pro Install-Cohort (×&nbsp;{months}&nbsp;Monate): <b>{fmt(total * months)} €</b>
+      </p>
+    </div>
+  );
+}
+
+// ── AttributionDiagram (Step 2 SVG) ─────────────────────────────────────────
+function PhoneFrame({ x, y, children }: { x: number; y: number; children: React.ReactNode }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <rect x="-34" y="-62" width="68" height="124" rx="12" style={{ fill: "var(--paper)", stroke: "var(--ink)", strokeWidth: 1.8 }} />
+      <rect x="-10" y="-59" width="20" height="3" rx="1.5" style={{ fill: "var(--ink)" }} />
+      {children}
+    </g>
+  );
+}
+
+function TileCaption({ x, y, text }: { x: number; y: number; text: string }) {
+  return (
+    <text x={x} y={y} textAnchor="middle" style={{ fontSize: 13, fontFamily: "var(--font-italic)", fontStyle: "italic", fill: "var(--ink)" }}>
+      {text}
+    </text>
+  );
+}
+
+function StickerLabel({ x, y, rot = 0, text, italic = false }: { x: number; y: number; rot?: number; text: string; italic?: boolean }) {
+  const fontSize = italic ? 11 : 10;
+  const width = Math.max(40, text.length * (italic ? 6.4 : 7.6));
+  return (
+    <g transform={`translate(${x},${y}) rotate(${rot})`}>
+      <rect x={-width / 2} y="-10" width={width} height="20" rx="3" style={{ fill: "var(--paper)", stroke: "var(--primary)", strokeWidth: 0.8 }} />
+      <text textAnchor="middle" y={italic ? 4 : 3.5} style={{ fontSize, fontFamily: italic ? "var(--font-italic)" : "var(--font-mono)", fontStyle: italic ? "italic" : "normal", fill: "var(--primary-ink)", letterSpacing: italic ? "0" : "1.2px", fontWeight: italic ? 400 : 600 }}>{text}</text>
+    </g>
+  );
+}
+
+function NumberBadge({ x, y, n }: { x: number; y: number; n: string }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <rect x="-13" y="-9" width="26" height="18" rx="4" style={{ fill: "var(--ink)" }} />
+      <text textAnchor="middle" y="4" style={{ fontSize: 10.5, fontFamily: "var(--font-display)", fill: "var(--bg)", letterSpacing: "0.5px" }}>{n}</text>
+    </g>
+  );
+}
+
+function AttributionDiagram({ brand }: { brand: Brand }) {
+  return (
+    <figure className="aff-attr-diagram" aria-label={`Attribution-Flow für ${brand.name}`}>
+      <svg viewBox="0 0 480 460" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style={{ width: "100%", display: "block" }}>
+        <defs>
+          <marker id="aend" markerWidth="6" markerHeight="6" refX="4" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L6,3 L0,6 z" style={{ fill: "var(--primary)" }} />
+          </marker>
+        </defs>
+
+        <path d="M 138 110 Q 240 60 342 110" fill="none" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" markerEnd="url(#aend)" style={{ stroke: "var(--primary)" }} />
+        <path d="M 378 188 Q 250 240 102 268" fill="none" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" markerEnd="url(#aend)" style={{ stroke: "var(--primary)" }} />
+        <path d="M 138 335 Q 240 388 342 335" fill="none" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" markerEnd="url(#aend)" style={{ stroke: "var(--primary)" }} />
+
+        <StickerLabel x={240} y={48} rot={-2} text="60 d" />
+        <StickerLabel x={250} y={230} rot={4}  text="deeplink" italic />
+        <StickerLabel x={240} y={400} rot={-2} text="30 d" />
+
+        <PhoneFrame x={100} y={110}>
+          <circle cx="-20" cy="-44" r="5" style={{ fill: "var(--primary-soft)", stroke: "var(--primary)", strokeWidth: 0.8 }} />
+          <rect x="-12" y="-46" width="26" height="2.2" rx="1.1" style={{ fill: "var(--ink)", opacity: 0.65 }} />
+          <rect x="-12" y="-41" width="18" height="1.6" rx="0.8" style={{ fill: "var(--mute)", opacity: 0.55 }} />
+          {[-22, -8, 6, 20].map((x, i) => (
+            <rect key={i} x={x - 5} y="-33" width="10" height="3" rx="1.5" style={{ fill: i === 0 ? "var(--primary)" : "var(--hair-on)" }} />
+          ))}
+          <rect x="-26" y="-24" width="52" height="20" rx="5" style={{ fill: "var(--primary)" }} />
+          <circle cx="-18" cy="-14" r="4" style={{ fill: "var(--on-primary)", opacity: 0.25 }} />
+          <path d="M 12 -14 L 18 -14 M 15 -17 L 18 -14 L 15 -11" fill="none" style={{ stroke: "var(--on-primary)", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" }} />
+          <circle cx="22" cy="-14" r="15" fill="none" style={{ stroke: "var(--primary)", strokeWidth: 0.7, opacity: 0.18 }} />
+          <circle cx="22" cy="-14" r="10" fill="none" style={{ stroke: "var(--primary)", strokeWidth: 0.9, opacity: 0.4 }} />
+          <circle cx="22" cy="-14" r="4" style={{ fill: "var(--primary)" }} />
+          {[2, 14, 26].map((y, i) => (
+            <rect key={i} x="-26" y={y} width={[52, 44, 50][i]} height="6" rx="2" style={{ fill: "var(--hair-on)" }} />
+          ))}
+          <line x1="-34" y1="46" x2="34" y2="46" style={{ stroke: "var(--hair-on)", strokeWidth: 0.5 }} />
+          {[-22, -10, 2, 14, 26].map((x, i) => (
+            <rect key={i} x={x - 3.5} y="50" width="7" height="7" rx="1.5" style={{ fill: i === 4 ? "var(--primary)" : "var(--hair-on)" }} />
+          ))}
+        </PhoneFrame>
+        <NumberBadge x={48} y={56} n="01" />
+        <TileCaption x={100} y={198} text="Du teilst den Link." />
+
+        <g transform="translate(380,118)">
+          <line x1="0" y1="-72" x2="0" y2="-50" style={{ stroke: "var(--primary)", strokeWidth: 1.5, strokeLinecap: "round" }} />
+          <path d="M -6 -56 L 0 -50 L 6 -56" fill="none" style={{ stroke: "var(--primary)", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" }} />
+          <rect x="-40" y="-40" width="80" height="80" rx="18" style={{ fill: "var(--primary)", stroke: "var(--ink)", strokeWidth: 2 }} />
+          <path d="M -36 -36 Q -36 -24 -22 -24 L 22 -24 Q 36 -24 36 -36 Q 36 -38 34 -38 L -34 -38 Q -36 -38 -36 -36 Z" style={{ fill: "var(--on-primary)", opacity: 0.14 }} />
+          <text x="0" y="14" textAnchor="middle" style={{ fontSize: 46, fontFamily: brand.glyph.italic ? "var(--font-italic)" : "var(--font-display)", fontStyle: brand.glyph.italic ? "italic" : "normal", fontWeight: 400, fill: "var(--on-primary)" }}>
+            {brand.glyph.letter}
+          </text>
+          <rect x="-40" y="50" width="80" height="5" rx="2.5" style={{ fill: "var(--hair-on)" }} />
+          <rect x="-40" y="50" width="54" height="5" rx="2.5" style={{ fill: "var(--primary)" }} />
+          <g transform="translate(0,68)" style={{ fill: "var(--primary)" }}>
+            {[-22, -11, 0, 11, 22].map((x, i) => (
+              <text key={i} x={x} y="0" textAnchor="middle" style={{ fontSize: 9 }}>★</text>
+            ))}
+          </g>
+        </g>
+        <NumberBadge x={329} y={56} n="02" />
+        <TileCaption x={380} y={210} text="Sie installieren." />
+
+        <PhoneFrame x={100} y={335}>
+          <path d="M -16 -38 L -10 -28 L 0 -42 L 10 -28 L 16 -38 L 14 -22 L -14 -22 Z" style={{ fill: "var(--primary)", stroke: "var(--ink)", strokeWidth: 1, strokeLinejoin: "round" }} />
+          <circle cx="-16" cy="-39" r="1.6" style={{ fill: "var(--ink)" }} />
+          <circle cx="0"   cy="-43" r="1.6" style={{ fill: "var(--ink)" }} />
+          <circle cx="16"  cy="-39" r="1.6" style={{ fill: "var(--ink)" }} />
+          {[0, 1, 2].map((i) => (
+            <g key={i}>
+              <circle cx="-20" cy={-8 + i * 11} r="3" style={{ fill: "var(--primary)" }} />
+              <path d={`M -21.5 ${-8 + i * 11} L -20.2 ${-6.7 + i * 11} L -18 ${-9.5 + i * 11}`} fill="none" style={{ stroke: "var(--on-primary)", strokeWidth: 0.9, strokeLinecap: "round", strokeLinejoin: "round" }} />
+              <rect x="-14" y={-10 + i * 11} width={[30, 24, 28][i]} height="4" rx="2" style={{ fill: "var(--ink)", opacity: 0.7 }} />
+            </g>
+          ))}
+          <rect x="-28" y="34" width="56" height="18" rx="6" style={{ fill: "var(--primary)" }} />
+          <path d="M 6 43 L 14 43 M 10 39 L 14 43 L 10 47" fill="none" style={{ stroke: "var(--on-primary)", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" }} />
+        </PhoneFrame>
+        <NumberBadge x={48} y={281} n="03" />
+        <TileCaption x={100} y={423} text="Sie kaufen Premium." />
+
+        <g transform="translate(380,335)">
+          {[
+            { cx: -20, cy: -34, r: 8.5 },
+            { cx: 18,  cy: -46, r: 10 },
+            { cx: 0,   cy: -58, r: 6.5 },
+          ].map((c, i) => (
+            <g key={i}>
+              <circle cx={c.cx} cy={c.cy} r={c.r} style={{ fill: "var(--primary)", stroke: "var(--ink)", strokeWidth: 1.4 }} />
+              <text x={c.cx} y={c.cy + c.r * 0.35} textAnchor="middle" style={{ fontSize: c.r * 1.1, fontFamily: "var(--font-display)", fontWeight: 700, fill: "var(--on-primary)" }}>€</text>
+            </g>
+          ))}
+          <ellipse cx="0" cy="56" rx="36" ry="4.5" style={{ fill: "var(--ink)", opacity: 0.10 }} />
+          <path d="M -20 -4 L -16 -14 Q -8 -10 -4 -4 L 4 -4 Q 8 -10 16 -14 L 20 -4 Q 32 6 32 24 Q 32 50 0 50 Q -32 50 -32 24 Q -32 6 -20 -4 Z" style={{ fill: "var(--paper)", stroke: "var(--ink)", strokeWidth: 2, strokeLinejoin: "round" }} />
+          <rect x="-22" y="-5" width="44" height="6" style={{ fill: "var(--ink)" }} />
+          <text x="0" y="34" textAnchor="middle" style={{ fontSize: 28, fontFamily: "var(--font-display)", fontWeight: 700, fill: "var(--primary)" }}>€</text>
+        </g>
+        <NumberBadge x={329} y={281} n="04" />
+        <TileCaption x={380} y={423} text="Du wirst ausgezahlt." />
+      </svg>
+
+      <figcaption style={{ padding: "10px 12px 4px", fontSize: 12, lineHeight: 1.5, color: "var(--mute)", textAlign: "center" }}>
+        Vier Stationen, ein Code. Awin prüft 30 Tage gegen Refunds, danach landet dein Anteil per Stripe-Connect auf deinem Konto.
+      </figcaption>
+    </figure>
+  );
+}
+
+// ── Step 1 · Welcome ────────────────────────────────────────────────────────
+function StepWelcome({ brand, go, handle }: { brand: Brand; go: () => void; handle: string }) {
+  return (
+    <div className="aff-pad aff-stack-lg">
+      <div className="aff-stack-md">
+        <h1 className="aff-h1">
+          Hi <span className="italic">{handle},</span>
+        </h1>
+        <p className="aff-lede">
+          Willkommen im {brand.name} Affiliate-Programm. Vier kurze Schritte, dann ist dein Tracking-Link live.
+        </p>
+      </div>
+
+      <MascotPanel brand={brand} tagline={brand.handTagline} />
+
+      <div className="aff-section">
+        <span className="aff-eyebrow">So verdienst du</span>
+        <h3>
+          {brand.secondStream ? <>Zwei Einkommens-<span className="italic">Ströme.</span></> : <>Dein <span className="italic">Einkommens-Strom.</span></>}
+        </h3>
+        <StreamCardsForBrand brand={brand} />
+      </div>
+
+      <a className="aff-linkrow" href="#" onClick={(e) => e.preventDefault()}>
+        <div>
+          <div className="lr-label">PDF · 4 Seiten</div>
+          <div className="lr-title">{brand.pdfTitle} <span className="italic">herunterladen</span></div>
+          <div style={{ fontSize: 12, color: "var(--mute)", marginTop: 4, fontFamily: "var(--font-body)" }}>{brand.pdfHint}</div>
+        </div>
+        <span style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+          <DocIcon style={{ color: "var(--primary)" }} />
+          <span className="lr-arrow">↓</span>
+        </span>
+      </a>
+
+      <div className="aff-section">
+        <span className="aff-eyebrow">Was ist {brand.short}</span>
+        <h3>Ein <span className="italic">{brand.productLine}</span>.</h3>
+        <p>
+          Native iOS-App, designed in Europa, ohne Tracker, mit klarer Premium-Logik. Deine Audience bekommt ein Tool das aussieht und sich anfühlt wie für sie gebaut.
+        </p>
+      </div>
+
+      <div className="aff-section">
+        <span className="aff-eyebrow">Passt zu deiner Audience</span>
+        <ul>
+          <li><span className="mark">✦</span><span>{brand.audience}, die Tools statt Hacks suchen</span></li>
+          <li><span className="mark">✦</span><span>Mobile-first, kein Login auf Web nötig, kein Account-Stress</span></li>
+          <li><span className="mark">✦</span><span>Hoher Wiederwert: Stash wächst, App wird täglich geöffnet</span></li>
+          <li><span className="mark">✦</span><span>Premium-Conversion liegt im Schnitt bei 8 bis 12 Prozent</span></li>
+        </ul>
+      </div>
+
+      <div className="aff-section">
+        <span className="aff-eyebrow">Content-Ideen</span>
+        <ul>
+          <li><span className="mark num">01</span><span>Stash-Tour Reel mit Voice-over, 30 bis 45 Sekunden</span></li>
+          <li><span className="mark num">02</span><span>Vorher-Nachher Foto: Chaos zu sortiertem Atelier</span></li>
+          <li><span className="mark num">03</span><span>Honest-Review im Vlog-Stil mit Promo-Code am Ende</span></li>
+        </ul>
+      </div>
+
+      <div className="aff-section">
+        <span className="aff-eyebrow">Rechne selbst</span>
+        <h3>Was springt für dich <span className="italic">raus?</span></h3>
+        <p style={{ marginBottom: 4 }}>
+          Schieb die Regler auf realistische Werte für deine Audience. Die Rechnung passt sich live an.
+        </p>
+        <Calculator brand={brand} />
+      </div>
+
+      <div className="aff-section">
+        <span className="aff-eyebrow">Was du sonst noch bekommst</span>
+        <ul>
+          <li><span className="mark">€</span><span><b>Eigener Promo-Code</b> mit 20 Prozent Rabatt für deine Audience</span></li>
+          <li><span className="mark">€</span><span><b>Live-Dashboard</b> mit Klicks, Installs, Käufen, Auszahlungen</span></li>
+          <li><span className="mark">€</span><span><b>Auszahlung monatlich</b> per PayPal, Wise oder SEPA</span></li>
+        </ul>
+      </div>
+
+      <div className="aff-cta-stack">
+        <button className="aff-btn aff-btn-primary" onClick={go}>
+          Weiter <ArrowRight />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Step 2 · Tracking ───────────────────────────────────────────────────────
+function StepTracking({ brand, go, prev }: { brand: Brand; go: () => void; prev: () => void }) {
+  return (
+    <div className="aff-pad aff-stack-lg">
+      <div className="aff-stack-md">
+        <h1 className="aff-h1 small">So funktioniert <span className="italic">das Tracking.</span></h1>
+        <p className="aff-lede">
+          DIY-Attribution, kein Awin-Pixel auf deiner Seite nötig. Dein Link trägt deinen Code, der Rest passiert serverseitig.
+        </p>
+      </div>
+
+      <AttributionDiagram brand={brand} />
+
+      <a className="aff-linkrow" href="#" onClick={(e) => e.preventDefault()}>
+        <div>
+          <div className="lr-label">Live</div>
+          <div className="lr-title">Deine <span className="italic">Statistiken</span></div>
+          <div style={{ fontSize: 12, color: "var(--mute)", marginTop: 4 }}>Klicks, Installs, Käufe, Provision. Aktualisiert alle 6 Stunden.</div>
+        </div>
+        <ChartIcon style={{ color: "var(--primary)" }} />
+      </a>
+
+      <div className="aff-section">
+        <span className="aff-eyebrow">Schutz-Mechanismen</span>
+        <ul>
+          <li><span className="mark">✓</span><span>Self-Referral-Block: dein eigener Account zählt nicht</span></li>
+          <li><span className="mark">✓</span><span>Refund-Window 30 Tage, danach ist die Provision sicher</span></li>
+          <li><span className="mark">✓</span><span>IP- und Device-Fingerprint gegen Fraud-Bursts</span></li>
+          <li><span className="mark">✓</span><span>Cookie-loses Fallback per Install-Receipt für iOS 14+</span></li>
+        </ul>
+      </div>
+
+      <div className="aff-section">
+        <span className="aff-eyebrow">Werbekennzeichnung</span>
+        <p style={{ fontSize: 13.5, color: "var(--ink)" }}>
+          Markiere Affiliate-Content immer als <i>Werbung</i> oder <i>Anzeige</i>. Bei Stories reicht der Sticker, bei Reels und Posts gehört es in die ersten Zeilen der Caption. Das schützt dich und uns.
+        </p>
+      </div>
+
+      <div className="aff-btn-row">
+        <button className="aff-btn aff-btn-secondary" onClick={prev} aria-label="Zurück">
+          <ArrowLeft />
+        </button>
+        <button className="aff-btn aff-btn-primary" onClick={go}>
+          Weiter <ArrowRight />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Step 3 · Payout ─────────────────────────────────────────────────────────
+function StepPayout({ go, prev, state, setState, onSubmit }: { go: () => void; prev: () => void; state: PayoutState; setState: (s: PayoutState) => void; onSubmit?: (s: PayoutState) => Promise<void> }) {
+  const f = state;
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const set = <K extends keyof PayoutState>(k: K, v: PayoutState[K]) => setState({ ...f, [k]: v });
+  const valid = f.displayName.trim().length > 1 && f.handle.length > 1 && f.country
+    && ((f.method === "paypal" && /@/.test(f.handle))
+        || (f.method === "wise" && /@/.test(f.handle))
+        || (f.method === "sepa" && f.handle.replace(/\s/g, "").length >= 14))
+    && f.taxStatus;
+
+  async function handleNext() {
+    if (!valid) return;
+    if (!onSubmit) { go(); return; }
+    setBusy(true);
+    setError(null);
+    try {
+      await onSubmit(f);
+      go();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Setup fehlgeschlagen, bitte erneut versuchen.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="aff-pad aff-stack-lg">
+      <div className="aff-stack-md">
+        <h1 className="aff-h1 small">Wohin geht <span className="italic">das Geld?</span></h1>
+        <p className="aff-lede">
+          Wir zahlen monatlich aus, sobald 25 € erreicht sind. Du kannst die Daten später jederzeit im Dashboard ändern.
+        </p>
+      </div>
+
+      <div className="aff-stack-md">
+        <div className="aff-field">
+          <label className="aff-field-label">Anzeigename auf der Rechnung</label>
+          <input className="aff-field-input" value={f.displayName} placeholder="Molly Hartmann" onChange={(e) => set("displayName", e.target.value)} />
+        </div>
+
+        <div className="aff-field">
+          <label className="aff-field-label">Land der Steuerpflicht</label>
+          <select className="aff-field-select" value={f.country} onChange={(e) => set("country", e.target.value)}>
+            <option value="">Bitte wählen</option>
+            <option value="DE">Deutschland</option>
+            <option value="AT">Österreich</option>
+            <option value="CH">Schweiz</option>
+            <option value="NL">Niederlande</option>
+            <option value="FR">Frankreich</option>
+            <option value="IT">Italien</option>
+            <option value="ES">Spanien</option>
+            <option value="OTHER">Anderes EU-Land</option>
+          </select>
+        </div>
+
+        <div className="aff-field">
+          <label className="aff-field-label">Auszahlungsmethode</label>
+          <div className="aff-segmented" role="tablist">
+            {[
+              { id: "paypal" as const, label: "PayPal" },
+              { id: "wise" as const, label: "Wise" },
+              { id: "sepa" as const, label: "SEPA" },
+            ].map((m) => (
+              <button key={m.id} role="tab" aria-selected={f.method === m.id} className={f.method === m.id ? "on" : ""} onClick={() => set("method", m.id)}>
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="aff-field">
+          <label className="aff-field-label">
+            {f.method === "sepa" ? "IBAN" : "E-Mail des Auszahlungskontos"}
+          </label>
+          <input className="aff-field-input" value={f.handle} placeholder={f.method === "sepa" ? "DE89 3704 0044 0532 0130 00" : "pay@molly.studio"} onChange={(e) => set("handle", e.target.value)} />
+        </div>
+
+        <div className="aff-field">
+          <label className="aff-field-label">Steuerstatus</label>
+          <select className="aff-field-select" value={f.taxStatus} onChange={(e) => set("taxStatus", e.target.value)}>
+            <option value="">Bitte wählen</option>
+            <option value="kleinunternehmer">Kleinunternehmer, keine MwSt</option>
+            <option value="regelbesteuert">Regelbesteuert, mit MwSt</option>
+            <option value="private">Privatperson, ohne Gewerbe</option>
+          </select>
+        </div>
+
+        <label className="aff-check">
+          <input type="checkbox" checked={f.canInvoice} onChange={(e) => set("canInvoice", e.target.checked)} />
+          <span className="box" />
+          <span className="ctext">
+            Ich kann eine Rechnung mit ausgewiesener MwSt ausstellen.
+            <small>Falls nicht, übernehmen wir die Gutschrift automatisch für dich.</small>
+          </span>
+        </label>
+      </div>
+
+      {error && (
+        <div style={{ padding: "10px 14px", background: "color-mix(in oklab, var(--primary), transparent 88%)", border: "1px solid color-mix(in oklab, var(--primary), transparent 60%)", borderRadius: 10, color: "var(--primary-ink)", fontSize: 13.5 }}>
+          {error}
+        </div>
+      )}
+
+      <div className="aff-btn-row">
+        <button className="aff-btn aff-btn-secondary" onClick={prev} aria-label="Zurück" disabled={busy}>
+          <ArrowLeft />
+        </button>
+        <button className="aff-btn aff-btn-primary" disabled={!valid || busy} onClick={handleNext} style={!valid || busy ? { opacity: 0.6, cursor: busy ? "wait" : "not-allowed", transform: "none", boxShadow: "none" } : undefined}>
+          {busy ? "Speichere…" : <>Affiliate-Setup abschließen <ArrowRight /></>}
+        </button>
+      </div>
+
+      <p className="aff-consent">
+        Mit Klick auf <i>abschließen</i> bestätigst du, dass die Angaben korrekt sind und du die <a href="#">Affiliate-Bedingungen</a> sowie die <a href="#"> Datenschutzerklärung</a> gelesen hast. Du kannst jederzeit kündigen, ausstehende Provisionen verfallen nicht.
+      </p>
+    </div>
+  );
+}
+
+// ── Step 4 · Live ───────────────────────────────────────────────────────────
+function StepLive({ brand, state }: { brand: Brand; state: PayoutState }) {
+  const [copied, setCopied] = useState<string | null>(null);
+  const trackingUrl = `https://${brand.domain}/r/${state.displayName.trim().split(/\s+/)[0].toLowerCase() || "molly"}`;
+
+  const copy = (key: string, value: string) => {
+    try { navigator.clipboard.writeText(value); } catch (_) { /* noop */ }
+    setCopied(key);
+    setTimeout(() => setCopied(null), 1400);
+  };
+
+  return (
+    <div className="aff-pad aff-stack-lg">
+      <div className="aff-stack-md" style={{ textAlign: "center" }}>
+        <div className="aff-bigcheck"><CheckIcon /></div>
+        <h1 className="aff-h1" style={{ textAlign: "center" }}>
+          Du bist <span className="italic">live ✓</span>
+        </h1>
+        <p className="aff-lede" style={{ textAlign: "center" }}>
+          Dein Tracking-Link ist scharf, dein Promo-Code aktiv. Erste Klicks tauchen innerhalb von 5 Minuten im Dashboard auf.
+        </p>
+      </div>
+
+      <MascotPanel brand={brand} mascotKey="mascotHappy" tagline={brand.handTagline} height={210} />
+
+      <div className="aff-stack-sm">
+        <div className="aff-eyebrow" style={{ paddingLeft: 4 }}>Dein Promo-Code</div>
+        <div className="aff-promo">
+          <div className="pretitle">{brand.short} · 20 Prozent Rabatt für deine Audience</div>
+          <div className="code">{brand.promoCode}</div>
+          <div className="sub">Gültig für die ersten 3 Monate Premium</div>
+          <div className="aff-promo-discount">
+            <div className="pct">−20%</div>
+            <div className="lbl">code</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="aff-stack-sm">
+        <div className="aff-eyebrow" style={{ paddingLeft: 4 }}>Dein Tracking-Link</div>
+        <div className="aff-codeblock">
+          <span className="url">{trackingUrl}</span>
+          <button className={`aff-copybtn${copied === "url" ? " copied" : ""}`} onClick={() => copy("url", trackingUrl)}>
+            {copied === "url" ? "Kopiert" : "Kopieren"}
+          </button>
+        </div>
+      </div>
+
+      <div className="aff-section">
+        <span className="aff-eyebrow">So teilst du</span>
+        <div className="aff-share-list">
+          <div className="line">
+            <span className="icon">i.</span>
+            <span><b>Bio-Link</b>: Setze den Link direkt in deine Instagram- oder TikTok-Bio. Beide Plattformen akzeptieren den Link ohne Redirect.</span>
+          </div>
+          <div className="line">
+            <span className="icon">ii.</span>
+            <span><b>Code in Captions</b>: Schreibe <code style={{ background: "var(--paper)", padding: "0 6px", borderRadius: 4 }}>{brand.promoCode}</code> in jede Caption. Funktioniert auch ohne Klick auf den Link.</span>
+          </div>
+          <div className="line">
+            <span className="icon">iii.</span>
+            <span><b>Stories &amp; Reels</b>: Sticker drauf, Sprachnotiz, fertig. Werbekennzeichnung nicht vergessen.</span>
+          </div>
+        </div>
+      </div>
+
+      <a href="https://getklar.org/dashboard" className="aff-btn aff-btn-primary" style={{ textDecoration: "none" }}>
+        Zu deinem Affiliate-Dashboard <ArrowRight />
+      </a>
+
+      <p className="aff-consent" style={{ textAlign: "center" }}>
+        Bestätigung an <i>{state.handle || "deine E-Mail"}</i> ist unterwegs. Fragen? <a href="#">affiliates@{brand.domain}</a>
+      </p>
+    </div>
+  );
+}
+
+// ── Onboarding Shell (main export) ──────────────────────────────────────────
+export function OnboardingShell({ brand: brandKey, handle, onSubmit, promoCodeFromSubmit }: { brand: BrandKey; handle: string; onSubmit?: (s: PayoutState) => Promise<{ promoCode?: string }>; promoCodeFromSubmit?: string }) {
+  const brand = BRANDS[brandKey];
+  const [step, setStep] = useState(0);
+  const [dir, setDir] = useState(1);
+  const [renderStep, setRenderStep] = useState(0);
+  const [phase, setPhase] = useState<"in" | "out">("in");
+  const [payout, setPayout] = useState<PayoutState>({
+    displayName: "",
+    country: "",
+    method: "paypal",
+    handle: "",
+    taxStatus: "",
+    canInvoice: false,
+  });
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.setAttribute("data-brand", brandKey);
+  }, [brandKey]);
+
+  useEffect(() => {
+    if (renderStep === step) return;
+    const forward = step > renderStep;
+    setDir(forward ? 1 : -1);
+    setPhase("out");
+    const t1 = setTimeout(() => {
+      setRenderStep(step);
+      setPhase("in");
+    }, 220);
+    return () => clearTimeout(t1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  const go = (n: number) => {
+    setDir(n > step ? 1 : -1);
+    setStep(Math.max(0, Math.min(STEPS.length - 1, n)));
+    if (typeof window !== "undefined") {
+      requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+    }
+  };
+  const next = () => go(step + 1);
+  const prev = () => go(Math.max(0, step - 1));
+
+  const [promoCode, setPromoCode] = useState(brand.promoCode);
+  useEffect(() => {
+    if (promoCodeFromSubmit) setPromoCode(promoCodeFromSubmit);
+  }, [promoCodeFromSubmit]);
+
+  const submitHook = onSubmit ? async (s: PayoutState) => {
+    const r = await onSubmit(s);
+    if (r?.promoCode) setPromoCode(r.promoCode);
+  } : undefined;
+
+  const ActiveStep = useMemo(() => {
+    const key: StepKey = STEPS[renderStep].key;
+    const brandWithCode: Brand = { ...brand, promoCode };
+    switch (key) {
+      case "welcome":  return <StepWelcome brand={brandWithCode} go={next} handle={handle} />;
+      case "tracking": return <StepTracking brand={brandWithCode} go={next} prev={prev} />;
+      case "payout":   return <StepPayout go={next} prev={prev} state={payout} setState={setPayout} onSubmit={submitHook} />;
+      case "live":     return <StepLive brand={brandWithCode} state={payout} />;
+      default:         return null;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [renderStep, brand, payout, handle, promoCode]);
+
+  const screenClass = phase === "in" ? "aff-screen in" : (dir > 0 ? "aff-screen exit-left" : "aff-screen exit-right");
+
+  return (
+    <div className="aff-stage">
+      <div className="aff-shell">
+        <Topframe brand={brand} step={step} />
+        <div className="aff-card">
+          <div className="aff-deck">
+            <div className={screenClass} key={renderStep}>
+              {ActiveStep}
+            </div>
+          </div>
+        </div>
+        <div className="aff-footer-note">{brand.short} · Affiliate · v1.0</div>
+      </div>
+    </div>
+  );
+}

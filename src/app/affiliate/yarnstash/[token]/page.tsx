@@ -1,29 +1,20 @@
-// Yarn-Stash affiliate-onboarding hosted on getklar.org because Yarn-Stash
-// doesn't have its own dedicated web-repo (the iOS app is the only product
-// surface, klar hosts the landing). Token comes from the admin /api/
-// affiliate/approve flow that mints in the Yarn-Stash Supabase.
+// Yarn-Stash affiliate-onboarding hosted on getklar.org. Loads the Yarn-Stash
+// brand fonts (Gloock, Newsreader, Inter, JetBrains Mono) via next/font and
+// exposes them as the shared --font-* CSS variables used by the design
+// tokens in affiliate-onboarding.css.
 
 import { use } from "react";
-import { Gloock, Newsreader } from "next/font/google";
+import { Gloock, Newsreader, Inter, JetBrains_Mono } from "next/font/google";
 import { getApp, sbGet } from "@/lib/adminApps";
 import { SetupClient } from "./SetupClient";
-import { t, isLang, type Lang } from "./translations";
+import "../../_shared/affiliate-onboarding.css";
 
 export const dynamic = "force-dynamic";
 
-const display = Gloock({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--ys-display",
-  display: "swap",
-});
-
-const editorial = Newsreader({
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  variable: "--ys-editorial",
-  display: "swap",
-});
+const gloock = Gloock({ weight: "400", subsets: ["latin"], variable: "--font-display", display: "swap" });
+const newsreader = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-italic", display: "swap" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+const jbm = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 interface Influencer {
   id: string;
@@ -45,88 +36,51 @@ async function loadInfluencer(token: string): Promise<Influencer | null> {
   );
   const row = (rows[0] as Influencer | undefined) ?? null;
   if (!row) return null;
-  if (row.setup_token_expires_at && new Date(row.setup_token_expires_at) < new Date()) {
-    return null;
-  }
+  if (row.setup_token_expires_at && new Date(row.setup_token_expires_at) < new Date()) return null;
   return row;
 }
 
-export default function YarnStashSetupPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ token: string }>;
-  searchParams: Promise<{ lang?: string }>;
-}) {
+export default function YarnStashSetupPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
-  const sp = use(searchParams);
   const data = use(loadInfluencer(token));
-  const lang: Lang = isLang(sp.lang) ? sp.lang : isLang(data?.language) ? (data!.language as Lang) : "de";
+
+  const fontVars = `${gloock.variable} ${newsreader.variable} ${inter.variable} ${jbm.variable}`;
 
   return (
-    <div className={`${display.variable} ${editorial.variable}`}>
+    <div className={fontVars} data-brand="yarnstash">
       {data ? (
         data.status === "active" ? (
-          <Status lang={lang} alreadyDoneHandle={data.handle} />
+          <Status alreadyDoneHandle={data.handle} />
         ) : (
           <SetupClient
             token={token}
             handle={data.handle}
             displayName={data.display_name ?? ""}
-            sharePct={data.share_pct}
-            shareMonths={data.share_months}
-            lang={lang}
           />
         )
       ) : (
-        <Status lang={lang} expired />
+        <Status expired />
       )}
     </div>
   );
 }
 
-function Status({ lang, alreadyDoneHandle, expired }: { lang: Lang; alreadyDoneHandle?: string; expired?: boolean }) {
-  const tt = t(lang);
+function Status({ alreadyDoneHandle, expired }: { alreadyDoneHandle?: string; expired?: boolean }) {
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background:
-          "radial-gradient(circle at 80% 0%, #F2DCD8 0%, transparent 50%), " +
-          "radial-gradient(circle at 0% 100%, #EBE0CE 0%, transparent 55%), #FAF6F0",
-        color: "#1E1A17",
-        padding: 24,
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 440,
-          textAlign: "center",
-          background: "#FFFFFF",
-          border: "1px solid rgba(30,26,23,0.10)",
-          borderRadius: 28,
-          padding: "44px 32px",
-          boxShadow: "0 24px 60px -20px rgba(40,30,24,0.12)",
-        }}
-      >
-        <h1
-          style={{
-            fontFamily: "var(--ys-display), 'Gloock', Georgia, serif",
-            fontSize: 32,
-            fontWeight: 400,
-            margin: "0 0 12px",
-            letterSpacing: -0.4,
-            lineHeight: 1.05,
-          }}
-        >
-          {alreadyDoneHandle ? `@${alreadyDoneHandle} ✓` : expired ? tt.expired_title : "My Yarn Stash"}
-        </h1>
-        <p style={{ fontSize: 15, color: "#756B62", lineHeight: 1.55 }}>
-          {alreadyDoneHandle ? tt.already_done_body : expired ? tt.expired_body : tt.loading}
-        </p>
+    <main className="aff-stage">
+      <div className="aff-shell" style={{ maxWidth: 440 }}>
+        <div className="aff-card aff-pad" style={{ textAlign: "center" }}>
+          <h1 className="aff-h1" style={{ marginBottom: 12 }}>
+            {alreadyDoneHandle ? <>@{alreadyDoneHandle} <span className="italic">✓</span></> : expired ? <>Link <span className="italic">abgelaufen</span></> : <span className="italic">Lade …</span>}
+          </h1>
+          <p className="aff-lede" style={{ textAlign: "center" }}>
+            {alreadyDoneHandle
+              ? "Du bist bereits als Affiliate eingerichtet. Bei Fragen: alain@getklar.org"
+              : expired
+              ? "Dein Onboarding-Link ist abgelaufen oder ungültig. Schreib uns kurz an alain@getklar.org, wir erneuern ihn."
+              : ""}
+          </p>
+        </div>
       </div>
     </main>
   );

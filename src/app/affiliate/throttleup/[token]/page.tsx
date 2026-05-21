@@ -1,24 +1,19 @@
-// ThrottleUp (Moto-Maintenance) affiliate-onboarding hosted on getklar.org —
-// no dedicated throttleup-web repo yet, klar carries the landing.
+// ThrottleUp (Moto-Maintenance) affiliate-onboarding hosted on getklar.org.
+// Loads Boldonse (display + italic) + Inter (body) + JetBrains Mono (mono)
+// via next/font and exposes them as the shared --font-* CSS variables.
 
 import { use } from "react";
-import { Boldonse } from "next/font/google";
+import { Boldonse, Inter, JetBrains_Mono } from "next/font/google";
 import { getApp, sbGet } from "@/lib/adminApps";
 import { SetupClient } from "./SetupClient";
-import { t, isLang, type Lang } from "./translations";
+import "../../_shared/affiliate-onboarding.css";
 
 export const dynamic = "force-dynamic";
 
-// Boldonse was referenced as a font-family string in the previous version
-// but never actually loaded, so the browser silently fell back to Georgia.
-// Load it via next/font/google and expose as --font-boldonse so all step
-// components can use a single CSS variable.
-const boldonse = Boldonse({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-boldonse",
-  display: "swap",
-});
+const boldonseDisplay = Boldonse({ weight: "400", subsets: ["latin"], variable: "--font-display", display: "swap" });
+const boldonseItalic = Boldonse({ weight: "400", subsets: ["latin"], variable: "--font-italic", display: "swap" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+const jbm = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 interface Influencer {
   id: string;
@@ -44,80 +39,47 @@ async function loadInfluencer(token: string): Promise<Influencer | null> {
   return row;
 }
 
-export default function ThrottleUpSetupPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ token: string }>;
-  searchParams: Promise<{ lang?: string }>;
-}) {
+export default function ThrottleUpSetupPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
-  const sp = use(searchParams);
   const data = use(loadInfluencer(token));
-  const lang: Lang = isLang(sp.lang) ? sp.lang : isLang(data?.language) ? (data!.language as Lang) : "de";
+
+  const fontVars = `${boldonseDisplay.variable} ${boldonseItalic.variable} ${inter.variable} ${jbm.variable}`;
 
   return (
-    <div className={boldonse.variable}>
+    <div className={fontVars} data-brand="throttleup">
       {data ? (
         data.status === "active" ? (
-          <Status lang={lang} alreadyDoneHandle={data.handle} />
+          <Status alreadyDoneHandle={data.handle} />
         ) : (
           <SetupClient
             token={token}
             handle={data.handle}
             displayName={data.display_name ?? ""}
-            sharePct={data.share_pct}
-            shareMonths={data.share_months}
-            lang={lang}
           />
         )
       ) : (
-        <Status lang={lang} expired />
+        <Status expired />
       )}
     </div>
   );
 }
 
-function Status({ lang, alreadyDoneHandle, expired }: { lang: Lang; alreadyDoneHandle?: string; expired?: boolean }) {
-  const tt = t(lang);
+function Status({ alreadyDoneHandle, expired }: { alreadyDoneHandle?: string; expired?: boolean }) {
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#16110D",
-        color: "#F5EFE3",
-        padding: 24,
-        fontFamily: "system-ui, -apple-system, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 440,
-          textAlign: "center",
-          background: "rgba(245, 239, 227, 0.06)",
-          border: "1px solid rgba(245, 239, 227, 0.12)",
-          borderRadius: 24,
-          padding: "44px 32px",
-        }}
-      >
-        <h1
-          style={{
-            fontFamily: "var(--font-boldonse), Georgia, serif",
-            fontSize: 28,
-            fontWeight: 400,
-            margin: "0 0 12px",
-            letterSpacing: -0.4,
-            color: "#F5EFE3",
-          }}
-        >
-          {alreadyDoneHandle ? `@${alreadyDoneHandle} ✓` : expired ? tt.expired_title : "ThrottleUp"}
-        </h1>
-        <p style={{ fontSize: 15, color: "rgba(245, 239, 227, 0.65)", lineHeight: 1.55 }}>
-          {alreadyDoneHandle ? tt.already_done_body : expired ? tt.expired_body : tt.loading}
-        </p>
+    <main className="aff-stage">
+      <div className="aff-shell" style={{ maxWidth: 440 }}>
+        <div className="aff-card aff-pad" style={{ textAlign: "center" }}>
+          <h1 className="aff-h1" style={{ marginBottom: 12 }}>
+            {alreadyDoneHandle ? <>@{alreadyDoneHandle} <span className="italic">✓</span></> : expired ? <>Link <span className="italic">abgelaufen</span></> : <span className="italic">Lade …</span>}
+          </h1>
+          <p className="aff-lede" style={{ textAlign: "center" }}>
+            {alreadyDoneHandle
+              ? "Du bist bereits als Affiliate eingerichtet. Bei Fragen: alain@getklar.org"
+              : expired
+              ? "Dein Onboarding-Link ist abgelaufen oder ungültig. Schreib uns kurz an alain@getklar.org, wir erneuern ihn."
+              : ""}
+          </p>
+        </div>
       </div>
     </main>
   );
