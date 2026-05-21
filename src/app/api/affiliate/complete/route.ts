@@ -49,13 +49,64 @@ const COUNTRY_RE = /^[A-Z]{2,8}$/;
 const PAYOUT_METHODS = new Set(["wise", "paypal", "sepa", "manual"]);
 
 const AGREEMENT_VERSION = "v1.0-2026-05-21";
-const KLAR_DOMAIN_BY_APP: Record<string, { host: string; appName: string; commissionPct: number; attributionMonths: number }> = {
-  "yarn-stash": { host: "yarnstash", appName: "Yarn-Stash", commissionPct: 50, attributionMonths: 24 },
-  moto:         { host: "throttleup", appName: "ThrottleUp", commissionPct: 25, attributionMonths: 12 },
-  wavelength:   { host: "wavelength", appName: "Wavelength", commissionPct: 30, attributionMonths: 12 },
-  kelva:        { host: "kelva", appName: "Kelva", commissionPct: 28, attributionMonths: 12 },
-  trubel:       { host: "trubel", appName: "Trubel", commissionPct: 50, attributionMonths: 24 },
-  myloo:        { host: "myloo", appName: "MyLoo", commissionPct: 26, attributionMonths: 12 },
+// Tracking-Link routing per app. Sister-web apps (wavelength/trubel/myloo)
+// host the landing page on their own domain; the two apps without a sister
+// repo (yarn-stash, moto/throttleup) land on klar's own /i/<slug>/<code>
+// route. Kelva uses /r/<code> instead of /i/<handle> because that's how
+// kelva-web is structured.
+//
+// `trackingUrl(slug)` is the user-facing URL that the Affiliate posts in
+// their bio. `slug` is the URL path segment — for code-based apps that's
+// the influencer_codes.code, for handle-based apps it's the raw handle.
+const KLAR_DOMAIN_BY_APP: Record<string, {
+  host: string;
+  appName: string;
+  commissionPct: number;
+  attributionMonths: number;
+  trackingUrl: (slug: string) => string;
+}> = {
+  "yarn-stash": {
+    host: "yarnstash",
+    appName: "Yarn-Stash",
+    commissionPct: 50,
+    attributionMonths: 24,
+    trackingUrl: (s) => `https://getklar.org/i/yarnstash/${encodeURIComponent(s)}`,
+  },
+  moto: {
+    host: "throttleup",
+    appName: "ThrottleUp",
+    commissionPct: 25,
+    attributionMonths: 12,
+    trackingUrl: (s) => `https://getklar.org/i/throttleup/${encodeURIComponent(s)}`,
+  },
+  wavelength: {
+    host: "wavelength",
+    appName: "Wavelength",
+    commissionPct: 30,
+    attributionMonths: 12,
+    trackingUrl: (s) => `https://onwavelength.space/i/${encodeURIComponent(s)}`,
+  },
+  kelva: {
+    host: "kelva",
+    appName: "Kelva",
+    commissionPct: 28,
+    attributionMonths: 12,
+    trackingUrl: (s) => `https://kelva.space/r/${encodeURIComponent(s)}`,
+  },
+  trubel: {
+    host: "trubel",
+    appName: "Trubel",
+    commissionPct: 50,
+    attributionMonths: 24,
+    trackingUrl: (s) => `https://trubel.space/i/${encodeURIComponent(s)}`,
+  },
+  myloo: {
+    host: "myloo",
+    appName: "MyLoo",
+    commissionPct: 26,
+    attributionMonths: 12,
+    trackingUrl: (s) => `https://myloo.org/i/${encodeURIComponent(s)}`,
+  },
 };
 
 function bad(req: NextRequest, message: string, status = 400): Response {
@@ -242,7 +293,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   // Trubel matches on referrals.influencer_handle directly, so it doesn't
   // need this. The other apps (wavelength, kelva, myloo) are skipped until
   // their app-side capture is wired up.
-  if (!finalPromo && (appSlug === "yarn-stash" || appSlug === "moto")) {
+  if (!finalPromo && (appSlug === "yarn-stash" || appSlug === "moto" || appSlug === "kelva")) {
     // The RPC enforces uppercase A-Z 0-9 _ . - and a 2-32 length window.
     // Trim down handles that overflow so the regex passes; reject < 2.
     const autoCode = handle
@@ -309,7 +360,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     // It's an internal identifier — the Affiliate never sees it as a "promo
     // code" anymore in mail/PDF/UI, it's just part of the link.
     const trackingSlug = finalPromo || handle || row.id || "creator";
-    const trackingUrl = `https://getklar.org/i/${meta.host}/${trackingSlug}`;
+    const trackingUrl = meta.trackingUrl(trackingSlug);
     const language: "de" | "en" = row.language === "en" ? "en" : "de";
     fireConfirmationEmail({
       app_slug: appSlug,
