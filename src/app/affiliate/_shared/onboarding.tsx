@@ -43,13 +43,14 @@ const CheckIcon = (p: React.SVGProps<SVGSVGElement>) => (
 );
 
 // ── Payout form state shape (lifted to shell so steps can navigate back) ────
-interface PayoutState {
+export interface PayoutState {
   displayName: string;
   country: string;
   method: "paypal" | "wise" | "sepa";
   handle: string;
   taxStatus: string;
   canInvoice: boolean;
+  agreementAccepted: boolean;
 }
 
 // ── Top frame (icon header + progress bars + step label) ───────────────────
@@ -669,7 +670,8 @@ function StepPayout({ go, prev, state, setState, onSubmit }: { go: () => void; p
     && ((f.method === "paypal" && /@/.test(f.handle))
         || (f.method === "wise" && /@/.test(f.handle))
         || (f.method === "sepa" && f.handle.replace(/\s/g, "").length >= 14))
-    && f.taxStatus;
+    && f.taxStatus
+    && f.agreementAccepted;
 
   async function handleNext() {
     if (!valid) return;
@@ -754,6 +756,15 @@ function StepPayout({ go, prev, state, setState, onSubmit }: { go: () => void; p
           <span className="ctext">
             Ich kann eine Rechnung mit ausgewiesener MwSt ausstellen.
             <small>Falls nicht, übernehmen wir die Gutschrift automatisch für dich.</small>
+          </span>
+        </label>
+
+        <label className="aff-check">
+          <input type="checkbox" checked={f.agreementAccepted} onChange={(e) => set("agreementAccepted", e.target.checked)} />
+          <span className="box" />
+          <span className="ctext">
+            Ich akzeptiere die <a href="/legal/affiliate-agreement" target="_blank" rel="noopener noreferrer" style={{ color: "var(--aff-fg)", textDecoration: "underline", textUnderlineOffset: 2 }}>Affiliate-Bedingungen</a> der Version v1.0.
+            <small>50&nbsp;% Sub-Anteil, 24 Monate Attribution, 30 Tage Refund-Holdback, monatliche Auszahlung ab 50&nbsp;EUR. IP und Zeitstempel werden für den Audit-Trail gespeichert.</small>
           </span>
         </label>
       </div>
@@ -871,6 +882,7 @@ export function OnboardingShell({ brand: brandKey, handle, onSubmit, promoCodeFr
     handle: "",
     taxStatus: "",
     canInvoice: false,
+    agreementAccepted: false,
   });
 
   useEffect(() => {

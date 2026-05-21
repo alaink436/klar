@@ -37,6 +37,10 @@ export interface Brand {
   attributionMonths: number;
   streamLabel: string;
   iconUrl: string;
+  /** Public Google Drive folder with brand assets (logo, screenshots,
+   *  cheat sheet, playbook PDF). Filled in once the user creates the
+   *  per-app folder, null until then. */
+  assetsDriveUrl?: string | null;
   mascot: string | null;
   mascotHappy?: string | null;
   mascotSurprised?: string | null;

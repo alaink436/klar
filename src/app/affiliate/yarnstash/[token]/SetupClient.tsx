@@ -1,14 +1,22 @@
 "use client";
 
 // Yarn-Stash thin wrapper around the shared OnboardingShell. Posts the
-// completed payout form to /api/affiliate/complete which proxies into the
-// Yarn-Stash Supabase via service-role.
+// completed payout form to /api/affiliate/complete which:
+//   1. proxies into the Yarn-Stash Supabase via service-role to call
+//      complete_influencer_setup
+//   2. logs the click-through agreement in anime-vault.affiliate_agreements
+//   3. fires the confirmation email via the affiliate-confirmation-email
+//      edge function
 
 import { OnboardingShell } from "../../_shared/onboarding";
+import type { PayoutState } from "../../_shared/onboarding";
+import { BRANDS } from "../../_shared/brands";
+
+const BRAND = BRANDS.yarnstash;
 
 export function SetupClient({ token, handle, displayName }: { token: string; handle: string; displayName: string }) {
-  void displayName; // accepted for API symmetry, surfaced to user inside form prefill if needed
-  async function onSubmit(form: { displayName: string; country: string; method: "paypal" | "wise" | "sepa"; handle: string; taxStatus: string; canInvoice: boolean }) {
+  void displayName;
+  async function onSubmit(form: PayoutState) {
     const promoCode = (handle.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12) || "YARN") + "20";
     const res = await fetch("/api/affiliate/complete", {
       method: "POST",
@@ -24,6 +32,8 @@ export function SetupClient({ token, handle, displayName }: { token: string; han
         tax_status: form.taxStatus,
         invoice_capable: form.canInvoice,
         promo_code: promoCode,
+        agreement_accepted: form.agreementAccepted,
+        assets_drive_url: BRAND.assetsDriveUrl ?? null,
       }),
     });
     const j = (await res.json().catch(() => null)) as { ok?: boolean; promo_code?: string; error?: string } | null;
