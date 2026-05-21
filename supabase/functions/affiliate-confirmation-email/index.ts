@@ -1,13 +1,17 @@
 // Edge Function: affiliate-confirmation-email
 //
 // Called from klar's /api/affiliate/complete once an influencer finishes
-// onboarding. Sends a Brevo transactional email containing the tracking link,
-// dashboard pointer and an attached PDF copy of the signed affiliate
-// agreement.
+// onboarding. Sends a Brevo transactional email with TWO attachments:
+//   1. Generated affiliate agreement PDF (pdf-lib, language-aware DE/EN)
+//   2. Per-app strategy playbook PDF fetched from getklar.org/assets/
 //
-// Language-aware: payload.language drives email subject/body and PDF copy.
-// Supported: 'de' (default) and 'en'. DE remains the legally binding
-// original; EN is a convenience translation with that exact note inside.
+// Plus the existing tracking link, dashboard pointer, and the "Brand-Assets
+// herunterladen" CTA when assets_drive_url is set in brands.ts.
+//
+// Language-aware: payload.language drives email subject/body and agreement
+// PDF copy. Supported: 'de' (default) and 'en'. DE remains the legally
+// binding original; EN is a convenience translation with that exact note
+// inside.
 //
 // Promo-Code is intentionally NOT shown in either Email or PDF anymore.
 // Attribution runs solely via the per-affiliate tracking link.
@@ -737,6 +741,40 @@ serve(async (req) => {
     console.error("[affiliate-confirmation-email] pdf render failed", pdfError);
   }
 
+  // Per-app strategy playbook attachment. Lives on getklar.org/assets/ and
+  // is shared with the n8n V3 Mail-2 path. PDF filenames use the URL-slug
+  // version of the app, not the internal app_slug (yarn-stash -> yarnstash,
+  // moto -> throttleup). Soft-fail: if the playbook fetch hangs or 404s,
+  // the email still ships with just the agreement attached.
+  function playbookSlug(appSlug: string): string {
+    if (appSlug === "yarn-stash") return "yarnstash";
+    if (appSlug === "moto") return "throttleup";
+    return appSlug;
+  }
+  let playbookBase64: string | null = null;
+  let playbookFilename: string | null = null;
+  let playbookError: string | null = null;
+  try {
+    const pbSlug = playbookSlug(payload.app_slug);
+    // EN playbook lives at affiliate-playbook-<slug>-en.pdf; DE keeps the
+    // historical filename without suffix. Falls back to DE if -en is 404.
+    const langSuffix = pickLang(payload) === "en" ? "-en" : "";
+    const playbookUrl = `https://getklar.org/assets/affiliate-playbook-${pbSlug}${langSuffix}.pdf`;
+    let res = await fetch(playbookUrl, { redirect: "follow" });
+    if (!res.ok && langSuffix === "-en") {
+      // Fallback: EN file missing -> try DE so the affiliate at least gets *a* playbook
+      res = await fetch(`https://getklar.org/assets/affiliate-playbook-${pbSlug}.pdf`, { redirect: "follow" });
+    }
+    if (!res.ok) throw new Error(`playbook fetch ${res.status} ${playbookUrl}`);
+    const buf = new Uint8Array(await res.arrayBuffer());
+    if (buf.byteLength < 1024) throw new Error(`playbook unexpectedly small (${buf.byteLength}b)`);
+    playbookBase64 = encodeBase64(buf);
+    playbookFilename = `klar-affiliate-playbook-${pbSlug}${langSuffix}.pdf`;
+  } catch (e) {
+    playbookError = e instanceof Error ? e.message : String(e);
+    console.warn("[affiliate-confirmation-email] playbook fetch failed", playbookError);
+  }
+
   const lang = pickLang(payload);
   const subject = I18N[lang].subject(payload.app_name);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -749,9 +787,11 @@ serve(async (req) => {
     textContent: renderText(payload),
     tags: ["affiliate-onboarding", `app:${payload.app_slug}`, `version:${payload.agreement_version}`, `lang:${lang}`],
   };
-  if (pdfBase64 && pdfFilename) {
-    body.attachment = [{ name: pdfFilename, content: pdfBase64 }];
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const attachments: Array<{ name: string; content: string }> = [];
+  if (pdfBase64 && pdfFilename) attachments.push({ name: pdfFilename, content: pdfBase64 });
+  if (playbookBase64 && playbookFilename) attachments.push({ name: playbookFilename, content: playbookBase64 });
+  if (attachments.length > 0) body.attachment = attachments;
 
   const res = await fetch(BREVO_ENDPOINT, {
     method: "POST",
@@ -773,5 +813,8 @@ serve(async (req) => {
     pdf_attached: pdfBase64 !== null,
     pdf_error: pdfError,
     pdf_filename: pdfFilename,
+    playbook_attached: playbookBase64 !== null,
+    playbook_error: playbookError,
+    playbook_filename: playbookFilename,
   }), { status: 200, headers: { "content-type": "application/json" } });
 });
