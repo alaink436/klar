@@ -70,10 +70,14 @@ async function logAgreement(args: {
   ip: string | null;
   userAgent: string | null;
 }): Promise<{ signed_at: string } | null> {
-  const url = process.env.KLAR_INBOX_SUPABASE_URL;
+  // Match the fallback used by /api/track + /api/cal-webhook + /api/affiliate/approve.
+  // Production prod-env only sets KLAR_INBOX_SERVICE_KEY explicitly; the URL is hardcoded
+  // to anime-vault as a fallback so the agreement-log never silently skips when only the
+  // URL var is absent.
+  const url = process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
   const key = process.env.KLAR_INBOX_SERVICE_KEY;
-  if (!url || !key) {
-    console.warn("[affiliate/complete] KLAR_INBOX_* env missing, agreement not logged");
+  if (!key) {
+    console.warn("[affiliate/complete] KLAR_INBOX_SERVICE_KEY env missing, agreement not logged");
     return null;
   }
   try {
@@ -122,10 +126,12 @@ async function fireConfirmationEmail(payload: {
   agreement_version: string;
   signed_at: string;
 }): Promise<void> {
-  const url = process.env.KLAR_INBOX_SUPABASE_URL;
+  // Same fallback pattern as logAgreement — anime-vault host is hardcoded so only the
+  // admin-key needs to be set explicitly for the confirmation email to fire.
+  const url = process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
   const adminKey = process.env.KLAR_AGREEMENT_ADMIN_KEY;
-  if (!url || !adminKey) {
-    console.warn("[affiliate/complete] confirmation-email env missing, skip");
+  if (!adminKey) {
+    console.warn("[affiliate/complete] KLAR_AGREEMENT_ADMIN_KEY env missing, confirmation-email skip");
     return;
   }
   try {
