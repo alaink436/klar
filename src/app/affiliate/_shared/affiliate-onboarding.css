@@ -24,14 +24,14 @@
   --aff-success:     oklch(0.72 0.15 145);    /* green check */
   --aff-radius:      14px;
   --aff-radius-sm:   8px;
-  --aff-radius-lg:   20px;
-  --aff-card-max:    560px;
+  --aff-radius-lg:   24px;
+  --aff-card-max:    720px;
 
   min-height: 100vh;
   min-height: 100svh;
   display: flex;
   justify-content: center;
-  padding: 24px 14px 48px;
+  padding: 32px 16px 64px;
   font-family: var(--font-body), system-ui, sans-serif;
   color: var(--aff-fg);
   background: var(--aff-bg);
@@ -42,31 +42,31 @@
   -webkit-font-smoothing: antialiased;
 }
 
-.aff-shell { width: 100%; max-width: var(--aff-card-max); display: flex; flex-direction: column; gap: 18px; }
+.aff-shell { width: 100%; max-width: var(--aff-card-max); display: flex; flex-direction: column; gap: 22px; }
 
 /* ── Top frame ────────────────────────────────────────────────────────────── */
-.aff-topframe { display: flex; flex-direction: column; gap: 14px; padding: 4px 4px 0; }
-.aff-icon-header { display: flex; align-items: center; gap: 14px; }
+.aff-topframe { display: flex; flex-direction: column; gap: 18px; padding: 4px 4px 0; }
+.aff-icon-header { display: flex; align-items: center; gap: 18px; }
 .aff-icon-header .icon-tile {
-  width: 56px; height: 56px; flex-shrink: 0; border-radius: 14px;
+  width: 72px; height: 72px; flex-shrink: 0; border-radius: 18px;
   background: var(--aff-bg-elev); border: 1px solid var(--aff-line);
   overflow: hidden; display: flex; align-items: center; justify-content: center;
 }
 .aff-icon-header .icon-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.aff-icon-header .icon-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.aff-icon-header .icon-meta .app-name { font-family: var(--font-display), sans-serif; font-weight: 700; font-size: 20px; line-height: 1.1; letter-spacing: -0.02em; color: var(--aff-fg); }
-.aff-icon-header .icon-meta .app-meta { font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--aff-fg-3); }
+.aff-icon-header .icon-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.aff-icon-header .icon-meta .app-name { font-family: var(--font-display), sans-serif; font-weight: 700; font-size: clamp(22px, 3.4vw, 28px); line-height: 1.1; letter-spacing: -0.02em; color: var(--aff-fg); }
+.aff-icon-header .icon-meta .app-meta { font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--aff-fg-3); }
 .aff-icon-header .icon-meta .app-meta .dot { color: var(--aff-accent); margin: 0 6px; }
 
-.aff-steps { display: flex; align-items: center; gap: 6px; }
-.aff-steps .bar { flex: 1; height: 2px; background: var(--aff-line); position: relative; overflow: hidden; }
+.aff-steps { display: flex; align-items: center; gap: 8px; }
+.aff-steps .bar { flex: 1; height: 3px; background: var(--aff-line); position: relative; overflow: hidden; border-radius: 99px; }
 .aff-steps .bar::after { content: ""; position: absolute; inset: 0; background: var(--aff-fg); transform: translateX(-101%); transition: transform 600ms cubic-bezier(0.65, 0, 0.35, 1); }
 .aff-steps .bar.done::after { transform: translateX(0); }
 .aff-steps .bar.active::after { transform: translateX(-40%); }
 
 .aff-steplabel { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.aff-steplabel .name { font-family: var(--font-editorial), serif; font-style: italic; font-size: 14px; letter-spacing: -0.005em; color: var(--aff-fg); }
-.aff-steplabel .count { font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.18em; color: var(--aff-fg-3); text-transform: uppercase; }
+.aff-steplabel .name { font-family: var(--font-editorial), serif; font-style: italic; font-size: 16px; letter-spacing: -0.005em; color: var(--aff-fg); }
+.aff-steplabel .count { font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.18em; color: var(--aff-fg-3); text-transform: uppercase; }
 
 /* ── Card ─────────────────────────────────────────────────────────────────── */
 .aff-card { background: var(--aff-bg-card); border: 1px solid var(--aff-line); border-radius: var(--aff-radius-lg); overflow: hidden; position: relative; }
@@ -77,23 +77,23 @@
 .aff-screen.exit-right { transform: translateX(40px); opacity: 0; position: absolute; inset: 0; }
 
 /* ── Typography ───────────────────────────────────────────────────────────── */
-.aff-h1 { font-family: var(--font-display), sans-serif; font-weight: 700; font-size: clamp(28px, 6vw, 38px); line-height: 1.02; letter-spacing: -0.025em; color: var(--aff-fg); margin: 0; text-wrap: balance; }
+.aff-h1 { font-family: var(--font-display), sans-serif; font-weight: 700; font-size: clamp(32px, 5.4vw, 48px); line-height: 1.02; letter-spacing: -0.025em; color: var(--aff-fg); margin: 0; text-wrap: balance; }
 .aff-h1 .italic { font-family: var(--font-editorial), serif; font-style: italic; font-weight: 400; color: var(--aff-fg); letter-spacing: -0.005em; }
-.aff-h1.small { font-size: clamp(24px, 5vw, 30px); }
-.aff-eyebrow { font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.2em; color: var(--aff-fg-3); text-transform: uppercase; }
-.aff-lede { font-size: clamp(14px, 2.2vw, 16px); line-height: 1.55; color: var(--aff-fg-2); margin: 0; text-wrap: pretty; }
+.aff-h1.small { font-size: clamp(26px, 4.4vw, 36px); }
+.aff-eyebrow { font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.2em; color: var(--aff-fg-3); text-transform: uppercase; }
+.aff-lede { font-size: clamp(15px, 1.9vw, 18px); line-height: 1.55; color: var(--aff-fg-2); margin: 0; text-wrap: pretty; }
 
-.aff-section { display: flex; flex-direction: column; gap: 8px; }
-.aff-section h3 { font-family: var(--font-display), sans-serif; font-weight: 600; font-size: clamp(17px, 3.4vw, 21px); line-height: 1.2; letter-spacing: -0.015em; color: var(--aff-fg); margin: 0; }
+.aff-section { display: flex; flex-direction: column; gap: 10px; }
+.aff-section h3 { font-family: var(--font-display), sans-serif; font-weight: 600; font-size: clamp(19px, 2.8vw, 24px); line-height: 1.2; letter-spacing: -0.015em; color: var(--aff-fg); margin: 0; }
 .aff-section h3 .italic { font-family: var(--font-editorial), serif; font-style: italic; font-weight: 400; color: var(--aff-fg); }
-.aff-section p { margin: 0; font-size: clamp(13.5px, 2vw, 15px); line-height: 1.55; color: var(--aff-fg-2); }
-.aff-section ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.aff-section li { display: grid; grid-template-columns: 16px 1fr; gap: 10px; align-items: baseline; font-size: clamp(13.5px, 2vw, 15px); line-height: 1.5; color: var(--aff-fg); }
-.aff-section li .mark { color: var(--aff-fg-3); font-family: var(--font-mono), monospace; font-size: 11px; font-weight: 500; line-height: 1.5; }
+.aff-section p { margin: 0; font-size: clamp(14.5px, 1.7vw, 16.5px); line-height: 1.55; color: var(--aff-fg-2); }
+.aff-section ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.aff-section li { display: grid; grid-template-columns: 18px 1fr; gap: 12px; align-items: baseline; font-size: clamp(14.5px, 1.7vw, 16.5px); line-height: 1.55; color: var(--aff-fg); }
+.aff-section li .mark { color: var(--aff-fg-3); font-family: var(--font-mono), monospace; font-size: 12px; font-weight: 500; line-height: 1.5; }
 .aff-section li .mark.num { font-family: var(--font-mono), monospace; color: var(--aff-fg-3); }
 
 /* ── Buttons ──────────────────────────────────────────────────────────────── */
-.aff-btn { appearance: none; border: 1px solid transparent; background: var(--aff-bg-elev); color: var(--aff-fg); padding: 16px 18px; border-radius: var(--aff-radius); font-family: var(--font-body), sans-serif; font-weight: 500; font-size: 15px; letter-spacing: -0.005em; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: transform 120ms ease, background 200ms ease, border-color 200ms ease; width: 100%; }
+.aff-btn { appearance: none; border: 1px solid transparent; background: var(--aff-bg-elev); color: var(--aff-fg); padding: 18px 22px; border-radius: var(--aff-radius); font-family: var(--font-body), sans-serif; font-weight: 500; font-size: 16px; letter-spacing: -0.005em; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: transform 120ms ease, background 200ms ease, border-color 200ms ease; width: 100%; }
 .aff-btn:hover:not(:disabled) { transform: translateY(-1px); }
 .aff-btn:active { transform: translateY(0); }
 .aff-btn-primary { background: var(--aff-primary); color: var(--aff-primary-ink); font-weight: 600; }
@@ -103,12 +103,12 @@
 .aff-btn-row { display: grid; grid-template-columns: auto 1fr; gap: 10px; }
 
 /* ── Link row ─────────────────────────────────────────────────────────────── */
-.aff-linkrow { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 18px; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius); text-decoration: none; color: var(--aff-fg); transition: background 160ms ease, transform 120ms ease, border-color 160ms ease; }
+.aff-linkrow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 22px; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius); text-decoration: none; color: var(--aff-fg); transition: background 160ms ease, transform 120ms ease, border-color 160ms ease; }
 .aff-linkrow:hover { background: var(--aff-soft); transform: translateY(-1px); border-color: var(--aff-fg-3); }
-.aff-linkrow .lr-label { font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--aff-fg-3); }
-.aff-linkrow .lr-title { font-family: var(--font-display), sans-serif; font-size: 17px; font-weight: 600; line-height: 1.2; margin-top: 2px; letter-spacing: -0.01em; }
+.aff-linkrow .lr-label { font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--aff-fg-3); }
+.aff-linkrow .lr-title { font-family: var(--font-display), sans-serif; font-size: clamp(17px, 2vw, 20px); font-weight: 600; line-height: 1.2; margin-top: 4px; letter-spacing: -0.01em; }
 .aff-linkrow .lr-title .italic { font-family: var(--font-editorial), serif; font-style: italic; font-weight: 400; color: var(--aff-fg); }
-.aff-linkrow .lr-arrow { font-size: 18px; color: var(--aff-fg-2); }
+.aff-linkrow .lr-arrow { font-size: 20px; color: var(--aff-fg-2); }
 
 /* ── Pipeline (Step 2 numbered list) ──────────────────────────────────────── */
 .aff-pipe-step { display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: start; position: relative; }
@@ -122,29 +122,29 @@
 .aff-pipe-step:last-child::before { display: none; }
 
 /* ── Icon panel (used in Welcome + Live; replaces brand mascot/glyph) ─────── */
-.aff-icon-panel { position: relative; display: flex; align-items: center; justify-content: center; padding: 28px; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius); overflow: hidden; }
+.aff-icon-panel { position: relative; display: flex; align-items: center; justify-content: center; padding: 40px 28px; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius); overflow: hidden; }
 .aff-icon-panel::before {
   content: ""; position: absolute; inset: 0;
   background:
-    radial-gradient(180px 140px at 30% 35%, oklch(0.85 0.04 250 / 0.10) 0%, transparent 65%),
-    radial-gradient(180px 140px at 70% 65%, oklch(0.85 0.04 30 / 0.10) 0%, transparent 65%);
+    radial-gradient(240px 200px at 30% 35%, oklch(0.85 0.04 250 / 0.10) 0%, transparent 65%),
+    radial-gradient(240px 200px at 70% 65%, oklch(0.85 0.04 30 / 0.10) 0%, transparent 65%);
   pointer-events: none;
 }
-.aff-icon-panel img { position: relative; width: 128px; height: 128px; border-radius: 28px; box-shadow: 0 22px 50px -20px oklch(0 0 0 / 0.55); z-index: 2; }
-.aff-icon-panel .tagline { position: absolute; bottom: 14px; right: 16px; font-family: var(--font-editorial), serif; font-style: italic; font-size: 14px; color: var(--aff-fg-2); z-index: 3; }
+.aff-icon-panel img { position: relative; width: 168px; height: 168px; border-radius: 36px; box-shadow: 0 28px 60px -20px oklch(0 0 0 / 0.55); z-index: 2; }
+.aff-icon-panel .tagline { position: absolute; bottom: 16px; right: 20px; font-family: var(--font-editorial), serif; font-style: italic; font-size: 15px; color: var(--aff-fg-2); z-index: 3; }
 
 /* ── Form ─────────────────────────────────────────────────────────────────── */
-.aff-field { display: flex; flex-direction: column; gap: 6px; }
-.aff-field-label { font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--aff-fg-3); }
-.aff-field-input, .aff-field-select { width: 100%; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius-sm); padding: 13px 14px; font-size: 15px; color: var(--aff-fg); transition: border-color 160ms ease, background 160ms ease; }
+.aff-field { display: flex; flex-direction: column; gap: 8px; }
+.aff-field-label { font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--aff-fg-3); }
+.aff-field-input, .aff-field-select { width: 100%; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius-sm); padding: 16px 16px; font-size: 16px; color: var(--aff-fg); transition: border-color 160ms ease, background 160ms ease; }
 .aff-field-input::placeholder { color: var(--aff-fg-4); }
 .aff-field-input:hover, .aff-field-select:hover { border-color: var(--aff-fg-3); }
 .aff-field-input:focus, .aff-field-select:focus { outline: none; border-color: var(--aff-fg); background: oklch(0.10 0.002 270); }
 .aff-field-select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--aff-fg-2) 50%), linear-gradient(135deg, var(--aff-fg-2) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 36px; }
 
 /* ── Segmented ────────────────────────────────────────────────────────────── */
-.aff-segmented { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 4px; background: var(--aff-bg-elev); border-radius: var(--aff-radius-sm); border: 1px solid var(--aff-line); }
-.aff-segmented button { appearance: none; border: 1px solid transparent; background: transparent; color: var(--aff-fg-3); padding: 10px 8px; border-radius: 6px; cursor: pointer; font-family: var(--font-body), sans-serif; font-size: 13px; font-weight: 500; transition: background 160ms ease, color 160ms ease; }
+.aff-segmented { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 5px; background: var(--aff-bg-elev); border-radius: var(--aff-radius-sm); border: 1px solid var(--aff-line); }
+.aff-segmented button { appearance: none; border: 1px solid transparent; background: transparent; color: var(--aff-fg-3); padding: 12px 10px; border-radius: 6px; cursor: pointer; font-family: var(--font-body), sans-serif; font-size: 14px; font-weight: 500; transition: background 160ms ease, color 160ms ease; }
 .aff-segmented button.on { background: var(--aff-bg-card); color: var(--aff-fg); border-color: var(--aff-line-strong); }
 
 /* ── Checkbox ─────────────────────────────────────────────────────────────── */
@@ -164,12 +164,12 @@
 .aff-copybtn.copied { background: var(--aff-fg); color: var(--aff-bg); border-color: var(--aff-fg); }
 
 /* ── Promo (Step 4) — inverted card (white on near-black) ─────────────────── */
-.aff-promo { position: relative; background: var(--aff-fg); color: var(--aff-bg); padding: 24px 22px 22px; border-radius: var(--aff-radius); overflow: hidden; }
-.aff-promo .pretitle { font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.6; }
-.aff-promo .code { font-family: var(--font-display), sans-serif; font-weight: 700; font-size: clamp(32px, 8vw, 42px); letter-spacing: 0.08em; margin-top: 8px; line-height: 1; }
-.aff-promo .sub { font-family: var(--font-editorial), serif; font-style: italic; margin-top: 8px; font-size: 14px; color: var(--aff-bg); opacity: 0.78; }
-.aff-promo-discount { position: absolute; bottom: 18px; right: 22px; text-align: right; }
-.aff-promo-discount .pct { font-family: var(--font-display), sans-serif; font-weight: 700; font-size: 28px; line-height: 1; }
+.aff-promo { position: relative; background: var(--aff-fg); color: var(--aff-bg); padding: 30px 28px 28px; border-radius: var(--aff-radius); overflow: hidden; }
+.aff-promo .pretitle { font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.6; }
+.aff-promo .code { font-family: var(--font-display), sans-serif; font-weight: 700; font-size: clamp(36px, 7vw, 56px); letter-spacing: 0.06em; margin-top: 10px; line-height: 1; }
+.aff-promo .sub { font-family: var(--font-editorial), serif; font-style: italic; margin-top: 10px; font-size: 16px; color: var(--aff-bg); opacity: 0.78; }
+.aff-promo-discount { position: absolute; bottom: 24px; right: 28px; text-align: right; }
+.aff-promo-discount .pct { font-family: var(--font-display), sans-serif; font-weight: 700; font-size: 34px; line-height: 1; }
 .aff-promo-discount .lbl { font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.6; }
 
 /* ── Consent / share / footer ─────────────────────────────────────────────── */
@@ -180,18 +180,18 @@
 .aff-share-list .line .icon { font-family: var(--font-editorial), serif; font-style: italic; color: var(--aff-fg-2); font-weight: 400; font-size: 15px; }
 
 /* ── Layout helpers ───────────────────────────────────────────────────────── */
-.aff-pad { padding: 26px 22px 28px; }
-.aff-stack-lg { display: flex; flex-direction: column; gap: 26px; }
-.aff-stack-md { display: flex; flex-direction: column; gap: 14px; }
-.aff-stack-sm { display: flex; flex-direction: column; gap: 8px; }
-.aff-cta-stack { display: flex; flex-direction: column; gap: 10px; }
-.aff-footer-note { text-align: center; font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--aff-fg-4); padding-top: 6px; }
+.aff-pad { padding: 36px 36px 40px; }
+.aff-stack-lg { display: flex; flex-direction: column; gap: 32px; }
+.aff-stack-md { display: flex; flex-direction: column; gap: 16px; }
+.aff-stack-sm { display: flex; flex-direction: column; gap: 10px; }
+.aff-cta-stack { display: flex; flex-direction: column; gap: 12px; }
+.aff-footer-note { text-align: center; font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--aff-fg-4); padding-top: 8px; }
 
-.aff-bigcheck { width: 76px; height: 76px; border-radius: 50%; background: var(--aff-bg-elev); border: 1px solid var(--aff-line-strong); color: var(--aff-fg); display: flex; align-items: center; justify-content: center; margin: 0 auto; }
-.aff-bigcheck svg { width: 40px; height: 40px; }
+.aff-bigcheck { width: 92px; height: 92px; border-radius: 50%; background: var(--aff-bg-elev); border: 1px solid var(--aff-line-strong); color: var(--aff-fg); display: flex; align-items: center; justify-content: center; margin: 0 auto; }
+.aff-bigcheck svg { width: 48px; height: 48px; }
 
 /* ── Calculator (Step 1) ──────────────────────────────────────────────────── */
-.aff-calc { display: flex; flex-direction: column; gap: 18px; padding: 18px 16px 16px; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius); }
+.aff-calc { display: flex; flex-direction: column; gap: 22px; padding: 24px 22px 22px; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius); }
 .aff-calc .slider-row { display: flex; flex-direction: column; gap: 6px; }
 .aff-calc .slider-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .aff-calc .slider-head .name { font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--aff-fg-3); }
@@ -224,16 +224,16 @@
 .aff-calc .mini-rows .arrow { color: var(--aff-fg-3); margin-right: 4px; }
 
 /* ── Stream cards ─────────────────────────────────────────────────────────── */
-.aff-streams-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+.aff-streams-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 6px; }
 .aff-streams-grid.single { grid-template-columns: 1fr; }
-@media (max-width: 480px) { .aff-streams-grid { grid-template-columns: 1fr; } }
-.aff-stream-card { position: relative; padding: 18px 18px 16px; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius-sm); overflow: hidden; }
+@media (max-width: 540px) { .aff-streams-grid { grid-template-columns: 1fr; } }
+.aff-stream-card { position: relative; padding: 22px 22px 20px; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius-sm); overflow: hidden; }
 .aff-stream-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: var(--aff-fg); opacity: 0.5; }
-.aff-stream-card .stream-num { position: absolute; top: 10px; right: 14px; font-family: var(--font-display), sans-serif; font-weight: 700; font-size: 28px; color: var(--aff-fg); line-height: 1; opacity: 0.15; pointer-events: none; }
-.aff-stream-card .stream-eyebrow { font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.2em; color: var(--aff-fg-3); text-transform: uppercase; }
-.aff-stream-card .stream-title { font-family: var(--font-display), sans-serif; font-weight: 600; font-size: 18px; line-height: 1.15; letter-spacing: -0.015em; color: var(--aff-fg); margin-top: 4px; }
+.aff-stream-card .stream-num { position: absolute; top: 12px; right: 16px; font-family: var(--font-display), sans-serif; font-weight: 700; font-size: 32px; color: var(--aff-fg); line-height: 1; opacity: 0.15; pointer-events: none; }
+.aff-stream-card .stream-eyebrow { font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.2em; color: var(--aff-fg-3); text-transform: uppercase; }
+.aff-stream-card .stream-title { font-family: var(--font-display), sans-serif; font-weight: 600; font-size: clamp(18px, 2.2vw, 22px); line-height: 1.15; letter-spacing: -0.015em; color: var(--aff-fg); margin-top: 6px; }
 .aff-stream-card .stream-title .italic { font-family: var(--font-editorial), serif; font-style: italic; font-weight: 400; color: var(--aff-fg); }
-.aff-stream-card .stream-detail { font-size: 13px; line-height: 1.5; color: var(--aff-fg-2); margin-top: 6px; }
+.aff-stream-card .stream-detail { font-size: 14px; line-height: 1.55; color: var(--aff-fg-2); margin-top: 8px; }
 
 /* ── Range slider ─────────────────────────────────────────────────────────── */
 input[type="range"].aff-rg { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; cursor: pointer; margin: 0; padding: 0; }
@@ -253,11 +253,34 @@ input[type="range"].aff-rg::-moz-range-thumb { width: 16px; height: 16px; border
   .aff-screen, .aff-steps .bar::after { transition-duration: 0.001s !important; }
 }
 
-/* ── Mobile tightening ────────────────────────────────────────────────────── */
-@media (max-width: 480px) {
-  .aff-pad { padding: 22px 18px 24px; }
-  .aff-icon-header .icon-tile { width: 48px; height: 48px; border-radius: 12px; }
-  .aff-icon-header .icon-meta .app-name { font-size: 18px; }
-  .aff-icon-panel { padding: 22px; }
-  .aff-icon-panel img { width: 104px; height: 104px; border-radius: 22px; }
+/* ── Mobile tightening (< 540px) ──────────────────────────────────────────── */
+@media (max-width: 540px) {
+  .aff-stage { padding: 20px 12px 48px; }
+  .aff-shell { gap: 18px; }
+  .aff-pad { padding: 24px 20px 28px; }
+  .aff-stack-lg { gap: 24px; }
+  .aff-topframe { gap: 14px; }
+  .aff-icon-header { gap: 14px; }
+  .aff-icon-header .icon-tile { width: 56px; height: 56px; border-radius: 14px; }
+  .aff-icon-header .icon-meta .app-name { font-size: 20px; }
+  .aff-icon-header .icon-meta .app-meta { font-size: 10px; }
+  .aff-icon-panel { padding: 28px 22px; }
+  .aff-icon-panel img { width: 124px; height: 124px; border-radius: 28px; }
+  .aff-icon-panel .tagline { bottom: 12px; right: 14px; font-size: 13px; }
+  .aff-btn { padding: 16px 18px; font-size: 15px; }
+  .aff-field-input, .aff-field-select { padding: 14px 14px; font-size: 15px; }
+  .aff-segmented button { padding: 11px 8px; font-size: 13px; }
+  .aff-promo { padding: 26px 22px 24px; }
+  .aff-promo-discount { bottom: 18px; right: 22px; }
+  .aff-promo-discount .pct { font-size: 28px; }
+  .aff-calc { padding: 20px 16px 18px; gap: 18px; }
+  .aff-linkrow { padding: 16px 18px; gap: 12px; }
+  .aff-bigcheck { width: 76px; height: 76px; }
+  .aff-bigcheck svg { width: 40px; height: 40px; }
+}
+
+/* ── Tablet+ widening (>= 720px): use the extra width for breathing room ──── */
+@media (min-width: 720px) {
+  .aff-pad { padding: 44px 48px 48px; }
+  .aff-stack-lg { gap: 36px; }
 }
