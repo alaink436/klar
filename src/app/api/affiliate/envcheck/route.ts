@@ -9,8 +9,55 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest): Promise<Response> {
-  const probe = new URL(req.url).searchParams.get("probe") ?? "";
+  const params = new URL(req.url).searchParams;
+  const probe = params.get("probe") ?? "";
   const adminKey = process.env.KLAR_AGREEMENT_ADMIN_KEY ?? "";
+  const serviceKey = process.env.KLAR_INBOX_SERVICE_KEY ?? "";
+  const inboxUrl = process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
+
+  // Optional: when ?send=<contact_email> is passed AND probe matches adminKey,
+  // we fire a synchronous call to the confirmation-email edge function with
+  // a stub payload and return the raw Brevo status/body so we can diagnose
+  // why the function 502s in prod.
+  const sendTo = params.get("send");
+  if (sendTo && probe === adminKey && adminKey) {
+    try {
+      const res = await fetch(`${inboxUrl}/functions/v1/affiliate-confirmation-email`, {
+        method: "POST",
+        headers: {
+          "x-admin-key": adminKey,
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          app_slug: "yarn-stash",
+          app_name: "Yarn-Stash",
+          handle: "envcheck-probe",
+          display_name: "Envcheck Probe",
+          contact_email: sendTo,
+          promo_code: "PROBE20",
+          tracking_url: "https://getklar.org/i/yarnstash/PROBE20",
+          commission_pct: 50,
+          attribution_months: 24,
+          assets_drive_url: null,
+          agreement_version: "v1.0-2026-05-21",
+          signed_at: new Date().toISOString(),
+        }),
+      });
+      const body = await res.text();
+      return NextResponse.json({
+        edge_call: {
+          status: res.status,
+          body: body.slice(0, 1200),
+        },
+      });
+    } catch (e) {
+      return NextResponse.json({
+        edge_call: { error: e instanceof Error ? e.message : String(e) },
+      });
+    }
+  }
 
   return NextResponse.json({
     ok: true,
