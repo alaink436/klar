@@ -59,10 +59,31 @@ interface Inquiry {
   project?: string;
   budget?: string;
   brief?: string;
+  source?: string;
   // Approval columns added 2026-05-20 via klar_inquiries_approval_columns:
   approved_app?: string;
   approved_code?: string;
   approved_at?: string;
+}
+
+// Known source values + readable labels + Pill-color tokens. Falls back to
+// the raw value when an unknown source shows up (e.g. ad-hoc dm import).
+const SOURCE_META: Record<string, { label: string; bg: string; fg: string }> = {
+  "getklar.org":    { label: "Kontaktformular", bg: "#e0e7ff", fg: "#3730a3" },
+  "outreach-reply": { label: "Outreach-Reply",  bg: "#fef3c7", fg: "#92400e" },
+  "dm":             { label: "DM",              bg: "#fce7f3", fg: "#9d174d" },
+  "manual":         { label: "Manuell",         bg: "#dcfce7", fg: "#166534" },
+};
+const SOURCE_KEYS = ["getklar.org", "outreach-reply", "dm", "manual"] as const;
+function sourceLabel(s: string | undefined): string {
+  if (!s) return "—";
+  return SOURCE_META[s]?.label ?? s;
+}
+function sourcePill(s: string | undefined): string {
+  if (!s) return `<span class="pill muted" style="font-size:10px">unbekannt</span>`;
+  const m = SOURCE_META[s];
+  if (!m) return `<span class="pill" style="font-size:10px">${esc(s)}</span>`;
+  return `<span class="pill" style="background:${m.bg};color:${m.fg};border:1px solid ${m.fg}22;font-size:10px;font-weight:600">${esc(m.label)}</span>`;
 }
 
 interface CalBooking {
@@ -528,10 +549,10 @@ async function outreachView(): Promise<string> {
     <p class="sub muted" style="margin-top:16px;font-size:14px">Das eingebettete Sheet lädt nur, wenn du im selben Browser beim berechtigten Google-Account angemeldet bist.</p>`;
 }
 
-async function inboxView(): Promise<string> {
+async function inboxView(typeFilter: string, sourceFilter: string): Promise<string> {
   if (!KLAR_INBOX_KEY)
     return `<h1>Inbox</h1><p class="sub muted">Fast fertig, es fehlt nur der Lese-Key. Setze <span class="warn">KLAR_INBOX_SERVICE_KEY</span> im klar-Vercel-Projekt (Wert: anime-vault &rarr; Settings &rarr; API &rarr; <em>service_role</em>). Optional <span class="warn">KLAR_INBOX_SUPABASE_URL</span>. Anfragen werden schon dauerhaft gespeichert, nur die Anzeige hier braucht den Key.</p>`;
-  let rows: Inquiry[] = [];
+  let rowsAll: Inquiry[] = [];
   try {
     const res = await fetch(
       `${KLAR_INBOX_URL}/rest/v1/klar_inquiries?select=*&order=created_at.desc&limit=200`,
@@ -547,20 +568,73 @@ async function inboxView(): Promise<string> {
     if (!res.ok)
       return `<h1>Inbox</h1><p class="sub muted">Anfragen konnten nicht geladen werden (HTTP ${res.status}). Vermutlich stimmt der hinterlegte service_role-Key nicht.</p>`;
     const j = await res.json();
-    rows = Array.isArray(j) ? j : [];
+    rowsAll = Array.isArray(j) ? j : [];
   } catch {
     return `<h1>Inbox</h1><p class="sub muted">Netzwerkfehler beim Laden der Inbox. Einmal neu laden hilft meist.</p>`;
   }
 
-  const nNew = rows.filter((r) => r.status === "new").length;
-  const aff = rows.filter((r) => r.type === "affiliate").length;
-  const con = rows.filter((r) => r.type === "consulting").length;
-  const cards = `<div class="cards">
-    <div class="card"><div class="k">Neu</div><div class="v">${nNew}</div><div class="s">ungelesen</div></div>
-    <div class="card"><div class="k">Affiliate</div><div class="v">${aff}</div></div>
-    <div class="card"><div class="k">Consulting</div><div class="v">${con}</div></div>
-    <div class="card"><div class="k">Gesamt</div><div class="v">${rows.length}</div><div class="s">letzte 200</div></div>
+  // Filter rows by selected type + source (both default "all")
+  const effectiveType = typeFilter === "consulting" || typeFilter === "affiliate" ? typeFilter : "all";
+  const effectiveSource = sourceFilter && sourceFilter !== "all" ? sourceFilter : "all";
+  const rows = rowsAll.filter((r) => {
+    if (effectiveType !== "all" && r.type !== effectiveType) return false;
+    if (effectiveSource !== "all" && (r.source ?? "") !== effectiveSource) return false;
+    return true;
+  });
+
+  // Build aggregate counts so filter tabs/pills show live totals.
+  const totalsByType: Record<string, number> = { all: rowsAll.length, affiliate: 0, consulting: 0 };
+  const totalsBySource: Record<string, number> = { all: rowsAll.length };
+  for (const k of SOURCE_KEYS) totalsBySource[k] = 0;
+  totalsBySource["unknown"] = 0;
+  let nNew = 0;
+  for (const r of rowsAll) {
+    if (r.type === "affiliate") totalsByType.affiliate++;
+    if (r.type === "consulting") totalsByType.consulting++;
+    const s = r.source ?? "";
+    if (s && totalsBySource[s] !== undefined) totalsBySource[s]++;
+    else if (!s) totalsBySource["unknown"]++;
+    else totalsBySource[s] = (totalsBySource[s] ?? 0) + 1;
+    if (r.status === "new") nNew++;
+  }
+
+  // Filter UI: type-tabs (Alle / Affiliate / Consulting) + source-pills below.
+  const buildHref = (t: string, s: string) =>
+    `/admin?view=inbox${t !== "all" ? `&type=${t}` : ""}${s !== "all" ? `&source=${encodeURIComponent(s)}` : ""}`;
+  const tabBtn = (t: string, label: string, count: number) => `<a class="nav ${effectiveType === t ? "on" : ""}" href="${buildHref(t, effectiveSource)}" style="padding:8px 14px;border-radius:8px">${esc(label)} <span class="muted" style="margin-left:6px;font-size:11px">${count}</span></a>`;
+  const typeTabs = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px 0">
+    ${tabBtn("all", "Alle", totalsByType.all)}
+    ${tabBtn("affiliate", "Affiliate", totalsByType.affiliate)}
+    ${tabBtn("consulting", "Consulting", totalsByType.consulting)}
   </div>`;
+  const sourceBtn = (s: string, label: string, count: number) => {
+    const on = effectiveSource === s;
+    const m = s !== "all" ? SOURCE_META[s] : null;
+    const styleOn = m ? `background:${m.bg};color:${m.fg};border:1px solid ${m.fg}88` : `background:var(--fg);color:var(--bg);border:1px solid var(--fg)`;
+    return `<a href="${buildHref(effectiveType, s)}" class="pill" style="${on ? styleOn : ""};font-size:11px;padding:5px 10px;text-decoration:none">${esc(label)} <span style="opacity:0.6;margin-left:4px">${count}</span></a>`;
+  };
+  const sourceFilters = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 16px 0;align-items:center">
+    <span class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-right:4px">Quelle</span>
+    ${sourceBtn("all", "Alle", totalsBySource.all)}
+    ${SOURCE_KEYS.map((s) => sourceBtn(s, SOURCE_META[s].label, totalsBySource[s] ?? 0)).join("")}
+    ${totalsBySource["unknown"] ? sourceBtn("unknown", "Ohne Quelle", totalsBySource["unknown"]) : ""}
+  </div>`;
+
+  // Cards: when an explicit type is selected, split by source for that type;
+  // otherwise show the high-level type breakdown.
+  const cardsByType = `<div class="cards">
+    <div class="card"><div class="k">Neu</div><div class="v">${nNew}</div><div class="s">ungelesen</div></div>
+    <div class="card"><div class="k">Affiliate</div><div class="v">${totalsByType.affiliate}</div><div class="s">Anfragen</div></div>
+    <div class="card"><div class="k">Consulting</div><div class="v">${totalsByType.consulting}</div><div class="s">Anfragen</div></div>
+    <div class="card"><div class="k">Gesamt</div><div class="v">${totalsByType.all}</div><div class="s">letzte 200</div></div>
+  </div>`;
+  const sourceCountForType = (t: string, s: string) => rowsAll.filter((r) => r.type === t && (r.source ?? "") === s).length;
+  const cardsBySource = effectiveType !== "all"
+    ? `<div class="cards">
+        ${SOURCE_KEYS.map((s) => `<div class="card"><div class="k">${esc(SOURCE_META[s].label)}</div><div class="v">${sourceCountForType(effectiveType, s)}</div><div class="s">${esc(effectiveType === "affiliate" ? "Affiliate" : "Consulting")}</div></div>`).join("")}
+      </div>`
+    : "";
+  const cards = `${cardsByType}${cardsBySource}`;
 
   const fmt = (s: unknown) => {
     const d = new Date(String(s));
@@ -623,7 +697,7 @@ async function inboxView(): Promise<string> {
     if ((r.status === "invited" || r.status === "approved" || r.status === "active") && r.approved_app && r.approved_code) {
       const link = setupLinkFor(r.approved_app, r.approved_code);
       const isLive = r.status === "active";
-      return `<tr class="approved-row"><td colspan="5" style="padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--line)">
+      return `<tr class="approved-row"><td colspan="6" style="padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--line)">
         <span class="pill" style="background:${isLive ? "#dcfce7" : "#dbeafe"};color:${isLive ? "#166534" : "#1e40af"};border:1px solid ${isLive ? "#bbf7d0" : "#bfdbfe"};font-weight:600">${isLive ? "✓ active" : "→ invited"} · ${esc(r.approved_app)}</span>
         <a class="applink" style="margin-left:10px;font-family:ui-monospace,monospace;font-size:12px" href="${link}" target="_blank" rel="noopener">${link} ↗</a>
         <button type="button" class="btn" style="margin-left:8px;padding:4px 10px;font-size:11px" onclick="navigator.clipboard.writeText('${link}').then(()=>this.textContent='✓ copied').catch(()=>this.textContent='copy failed')">Copy link</button>
@@ -633,7 +707,7 @@ async function inboxView(): Promise<string> {
 
     if (!r.id) return "";
     const displayName = r.handle || (r.email ?? "").split("@")[0] || "";
-    return `<tr class="approve-row"><td colspan="5" style="padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--line)">
+    return `<tr class="approve-row"><td colspan="6" style="padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--line)">
       <form method="POST" action="/api/affiliate/approve" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
         <input type="hidden" name="inquiry_id" value="${esc(r.id)}"/>
         <input type="hidden" name="email" value="${esc(r.email ?? "")}"/>
@@ -688,17 +762,25 @@ async function inboxView(): Promise<string> {
           return `<tr>
         <td class="muted" style="white-space:nowrap">${fmt(r.created_at)}</td>
         <td><span class="pill ${r.status === "new" && r.type === "affiliate" ? "live" : ""}">${esc(r.type)}</span></td>
+        <td>${sourcePill(r.source)}</td>
         <td><a class="applink" href="mailto:${esc(r.email)}">${esc(r.email)}</a></td>
-        <td class="muted" style="font-size:12px;max-width:520px">${esc(detail(r))}</td>
+        <td class="muted" style="font-size:12px;max-width:480px">${esc(detail(r))}</td>
         <td>${statusPill}</td>
       </tr>${approveForm(r)}`;
         })
         .join("")
-    : `<tr><td colspan="5" class="muted">noch keine Anfragen</td></tr>`;
+    : `<tr><td colspan="6" class="muted">keine Anfragen in dieser Auswahl. ${effectiveType !== "all" || effectiveSource !== "all" ? `<a class="applink" href="/admin?view=inbox">Filter zurücksetzen</a>` : ""}</td></tr>`;
 
-  return `<h1>Inbox</h1><p class="sub">Affiliate- und Consulting-Anfragen von getklar.org. Affiliate-Zeilen ohne Onboarding-Link haben darunter ein Formular: App wählen, Handle/Sprache prüfen, <em>Generate onboarding link</em> klicken — generiert einen 7-Tage-Setup-Token im App-Supabase und zeigt dir den Link zum Versenden an den Influencer.</p>
+  const consultingHint = effectiveType === "consulting"
+    ? `<p class="sub muted" style="margin:0 0 16px;font-size:13px">Consulting-Calls aus Cal.com (consulting + coaching event types) erscheinen unter <a class="applink" href="/admin?view=bookings">Bookings</a>. Hier nur die schriftlichen Anfragen vom Kontaktformular.</p>`
+    : "";
+
+  return `<h1>Inbox</h1><p class="sub">Affiliate- und Consulting-Anfragen, gefiltert nach Typ und Quelle. Affiliate-Zeilen ohne Onboarding-Link haben darunter ein Formular: App wählen, Handle/Sprache prüfen, <em>Generate onboarding link</em> klicken — generiert einen 7-Tage-Setup-Token im App-Supabase und zeigt dir den Link zum Versenden an den Influencer.</p>
+    ${typeTabs}
+    ${sourceFilters}
+    ${consultingHint}
     ${cards}
-    <table><thead><tr><th>Wann</th><th>Typ</th><th>Email</th><th>Details</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>`;
+    <table><thead><tr><th>Wann</th><th>Typ</th><th>Quelle</th><th>Email</th><th>Details</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 
 async function bookingsView(): Promise<string> {
@@ -943,7 +1025,11 @@ export async function GET(req: Request): Promise<Response> {
 
   let main: string;
   if (view === "outreach") main = await outreachView();
-  else if (view === "inbox") main = await inboxView();
+  else if (view === "inbox") {
+    const typeFilter = url.searchParams.get("type") ?? "all";
+    const sourceFilter = url.searchParams.get("source") ?? "all";
+    main = await inboxView(typeFilter, sourceFilter);
+  }
   else if (view === "bookings") main = await bookingsView();
   else if (view === "cal") main = calView();
   else if (view === "revenue") main = await revenueView(apps);
