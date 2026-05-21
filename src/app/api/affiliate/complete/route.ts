@@ -18,9 +18,31 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { getApp, sbRpc } from "@/lib/adminApps";
+import { ALLOWED_ORIGINS, isAllowedOrigin, clientIp, rateLimit, exceedsContentLength } from "@/lib/apiGuards";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const MAX_BYTES = 8 * 1024;        // 8 KB is plenty for a payout form
+const RATE_MAX = 5;
+const RATE_WINDOW_MS = 10 * 60_000; // 5 submits / 10 min / IP
+
+function corsHeaders(origin: string | null): HeadersInit {
+  // Echo back the origin if it's allow-listed; otherwise null (still readable
+  // by same-origin callers, just no cross-origin grant).
+  const allow = origin && ALLOWED_ORIGINS.has(origin) ? origin : "https://getklar.org";
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
+    Vary: "Origin",
+  };
+}
+
+export async function OPTIONS(req: NextRequest): Promise<Response> {
+  return new Response(null, { status: 204, headers: corsHeaders(req.headers.get("origin")) });
+}
 
 const HANDLE_RE = /^[A-Za-z0-9_.-]{1,64}$/;
 const COUNTRY_RE = /^[A-Z]{2,8}$/;
@@ -36,8 +58,8 @@ const KLAR_DOMAIN_BY_APP: Record<string, { host: string; appName: string; commis
   myloo:        { host: "myloo", appName: "MyLoo", commissionPct: 26, attributionMonths: 12 },
 };
 
-function bad(message: string, status = 400): Response {
-  return NextResponse.json({ ok: false, error: message }, { status });
+function bad(req: NextRequest, message: string, status = 400): Response {
+  return NextResponse.json({ ok: false, error: message }, { status, headers: corsHeaders(req.headers.get("origin")) });
 }
 
 async function logAgreement(args: {
@@ -124,18 +146,22 @@ async function fireConfirmationEmail(payload: {
   }
 }
 
-function clientIp(req: NextRequest): string | null {
-  const xf = req.headers.get("x-forwarded-for");
-  if (xf) return xf.split(",")[0]?.trim() ?? null;
-  return req.headers.get("x-real-ip");
-}
-
 export async function POST(req: NextRequest): Promise<Response> {
+  if (!isAllowedOrigin(req)) return bad(req, "forbidden origin", 403);
+  if (exceedsContentLength(req, MAX_BYTES)) return bad(req, "payload too large", 413);
+  const rl = rateLimit("affiliate-complete", clientIp(req), RATE_MAX, RATE_WINDOW_MS);
+  if (!rl.ok) {
+    return NextResponse.json({ ok: false, error: "rate_limited" }, {
+      status: 429,
+      headers: { ...corsHeaders(req.headers.get("origin")), "Retry-After": String(rl.retryAfterSeconds) },
+    });
+  }
+
   let payload: Record<string, unknown>;
   try {
     payload = (await req.json()) as Record<string, unknown>;
   } catch {
-    return bad("bad json");
+    return bad(req,"bad json");
   }
 
   const appSlug = String(payload.app ?? "").trim();
@@ -152,20 +178,20 @@ export async function POST(req: NextRequest): Promise<Response> {
   const contactEmail = String(payload.contact_email ?? payload.payout_email ?? "").trim().toLowerCase() || null;
   const assetsDriveUrl = typeof payload.assets_drive_url === "string" ? payload.assets_drive_url : null;
 
-  if (!appSlug) return bad("missing app");
-  if (token.length < 16) return bad("invalid token");
-  if (!displayName) return bad("missing display_name");
-  if (!COUNTRY_RE.test(country)) return bad("invalid country");
-  if (!PAYOUT_METHODS.has(payoutMethod)) return bad("invalid payout_method");
-  if (promoCode && !HANDLE_RE.test(promoCode)) return bad("invalid promo_code");
-  if (payoutMethod === "sepa" && !payoutIban) return bad("missing iban");
+  if (!appSlug) return bad(req, "missing app");
+  if (token.length < 16) return bad(req, "invalid token");
+  if (!displayName) return bad(req, "missing display_name");
+  if (!COUNTRY_RE.test(country)) return bad(req, "invalid country");
+  if (!PAYOUT_METHODS.has(payoutMethod)) return bad(req, "invalid payout_method");
+  if (promoCode && !HANDLE_RE.test(promoCode)) return bad(req, "invalid promo_code");
+  if (payoutMethod === "sepa" && !payoutIban) return bad(req, "missing iban");
   if ((payoutMethod === "wise" || payoutMethod === "paypal") && !payoutEmail) {
-    return bad("missing payout_email");
+    return bad(req, "missing payout_email");
   }
-  if (!agreementAccepted) return bad("agreement_not_accepted");
+  if (!agreementAccepted) return bad(req, "agreement_not_accepted");
 
   const app = getApp(appSlug);
-  if (!app) return bad(`unknown app: ${appSlug}`);
+  if (!app) return bad(req, `unknown app: ${appSlug}`);
 
   let row: { promo_code?: string; handle?: string; id?: string; contact_email?: string };
   try {
@@ -182,7 +208,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    return bad(msg, 502);
+    return bad(req,msg, 502);
   }
 
   // Best-effort side-effects: agreement log + confirmation email. Failures
@@ -223,5 +249,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     }).catch(() => { /* already logged */ });
   }
 
-  return NextResponse.json({ ok: true, promo_code: finalPromo, handle: row.handle ?? null });
+  return NextResponse.json({ ok: true, promo_code: finalPromo, handle: row.handle ?? null }, {
+    headers: corsHeaders(req.headers.get("origin")),
+  });
 }

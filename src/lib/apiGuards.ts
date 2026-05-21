@@ -9,10 +9,20 @@
 
 // Production + preview origins we accept POSTs from. Any localhost / 127.0.0.1
 // port is also accepted (dev servers, MCP previews pick random ports).
+// Sister-app origins are listed so /api/affiliate/complete can be called
+// cross-origin from the per-app onboarding pages (wavelength-web etc.).
 export const ALLOWED_ORIGINS: ReadonlySet<string> = new Set([
   "https://getklar.org",
   "https://www.getklar.org",
   "https://klar-five.vercel.app",
+  "https://onwavelength.space",
+  "https://www.onwavelength.space",
+  "https://kelva.space",
+  "https://www.kelva.space",
+  "https://trubel.space",
+  "https://www.trubel.space",
+  "https://myloo.org",
+  "https://www.myloo.org",
 ]);
 
 function isAllowedOriginString(origin: string): boolean {
