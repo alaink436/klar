@@ -746,7 +746,7 @@ function StepPayout({ go, prev, state, setState, onSubmit }: { go: () => void; p
             <option value="">Bitte wählen</option>
             <option value="kleinunternehmer">Kleinunternehmer, keine MwSt</option>
             <option value="regelbesteuert">Regelbesteuert, mit MwSt</option>
-            <option value="private">Privatperson, ohne Gewerbe</option>
+            <option value="unknown">Privatperson, ohne Gewerbe</option>
           </select>
         </div>
 
