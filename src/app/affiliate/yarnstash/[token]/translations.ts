@@ -1,5 +1,7 @@
 // Translations for the Yarn-Stash affiliate setup form.
-// 5 languages fully translated (DE/EN/FR/ES/IT), NL as bonus, PT/PL fall back to EN.
+// 5 languages fully translated for UI strings (DE/EN/FR/ES/IT), NL bonus,
+// PT/PL fall back to EN. Brand-story body content (welcome/tracking) is
+// DE+EN only, other langs fall back to EN to keep maintenance sane.
 
 export type Lang = "de" | "en" | "fr" | "es" | "it" | "nl" | "pt" | "pl";
 
@@ -18,6 +20,7 @@ export interface T {
   done_body: string;
   done_share_explainer: string;
   done_tracking_label: string;
+  done_dashboard_cta: string;
   tag: string;
   welcome_title: string;
   welcome_body: string;
@@ -41,6 +44,24 @@ export interface T {
   submit_idle: string;
   submit_busy: string;
   consent: string;
+  step_welcome: string;
+  step_tracking: string;
+  step_payout: string;
+  step_done: string;
+  nav_back: string;
+  nav_next: string;
+  welcome_what_title: string;
+  welcome_audience_title: string;
+  welcome_ideas_title: string;
+  welcome_math_title: string;
+  welcome_compensation_title: string;
+  tracking_pipeline_title: string;
+  tracking_pipeline_step_click: string;
+  tracking_pipeline_step_install: string;
+  tracking_pipeline_step_premium: string;
+  tracking_pipeline_step_payout: string;
+  tracking_protection_title: string;
+  tracking_compliance_title: string;
 }
 
 function tpl(s: string, vars: Record<string, string | number>): string {
@@ -56,9 +77,10 @@ const de: T = {
   done_body: "Wir haben deinen Affiliate-Account eingerichtet. Dein persönlicher Code:",
   done_share_explainer: "{sharePct}% Revenue-Share für {shareMonths} Monate ab erstem Sub. Auszahlung monatlich via Wise, PayPal oder SEPA, 30 Tage Refund-Holdback.",
   done_tracking_label: "Dein Sharing-Link:",
+  done_dashboard_cta: "Zu deinem Affiliate-Dashboard",
   tag: "Yarn-Stash · Onboarding",
   welcome_title: "Hi @{handle},",
-  welcome_body: "Letzter Schritt: Auszahlungs-Setup. 2 bis 3 Minuten, dann ist dein persönlicher Link live.",
+  welcome_body: "Willkommen im Yarn-Stash Affiliate-Programm. Vier kurze Schritte, dann ist dein Tracking-Link live.",
   field_name_label: "Anzeigename",
   field_name_placeholder: "Wie wir dich nennen",
   field_country_label: "Land (für Steuer)",
@@ -79,6 +101,24 @@ const de: T = {
   submit_idle: "Affiliate-Setup abschließen",
   submit_busy: "Wird eingerichtet …",
   consent: "Mit dem Klick bestätige ich {sharePct}% Revenue-Share über {shareMonths} Monate als Direkt-Vereinbarung mit Alain Kessler (CH, Einzelfirma).",
+  step_welcome: "Willkommen",
+  step_tracking: "Tracking",
+  step_payout: "Auszahlung",
+  step_done: "Fertig",
+  nav_back: "Zurück",
+  nav_next: "Weiter",
+  welcome_what_title: "Was ist My Yarn Stash",
+  welcome_audience_title: "Passt zu deiner Audience",
+  welcome_ideas_title: "Content-Ideen",
+  welcome_math_title: "Rechnen wir nach",
+  welcome_compensation_title: "Was du bekommst",
+  tracking_pipeline_title: "So funktioniert das Tracking",
+  tracking_pipeline_step_click: "Klick auf deinen Link",
+  tracking_pipeline_step_install: "Install und Login",
+  tracking_pipeline_step_premium: "Premium-Kauf",
+  tracking_pipeline_step_payout: "Auszahlung an dich",
+  tracking_protection_title: "Schutz-Mechanismen",
+  tracking_compliance_title: "Werbekennzeichnung",
 };
 
 const en: T = {
@@ -90,9 +130,10 @@ const en: T = {
   done_body: "Your affiliate account is set up. Your personal code:",
   done_share_explainer: "{sharePct}% revenue share for {shareMonths} months from the first sub. Monthly payout via Wise, PayPal or SEPA, 30-day refund holdback.",
   done_tracking_label: "Your sharing link:",
+  done_dashboard_cta: "To your affiliate dashboard",
   tag: "Yarn-Stash · Onboarding",
   welcome_title: "Hi @{handle},",
-  welcome_body: "Last step: payout setup. 2 to 3 minutes, then your personal link is live.",
+  welcome_body: "Welcome to the Yarn-Stash affiliate program. Four short steps, then your tracking link is live.",
   field_name_label: "Display name",
   field_name_placeholder: "How we should call you",
   field_country_label: "Country (for tax)",
@@ -113,6 +154,24 @@ const en: T = {
   submit_idle: "Complete affiliate setup",
   submit_busy: "Setting up …",
   consent: "By clicking I confirm {sharePct}% revenue share over {shareMonths} months as a direct agreement with Alain Kessler (CH, sole proprietorship).",
+  step_welcome: "Welcome",
+  step_tracking: "Tracking",
+  step_payout: "Payout",
+  step_done: "Done",
+  nav_back: "Back",
+  nav_next: "Next",
+  welcome_what_title: "What is My Yarn Stash",
+  welcome_audience_title: "Fits your audience",
+  welcome_ideas_title: "Content ideas",
+  welcome_math_title: "Let's do the math",
+  welcome_compensation_title: "What you get",
+  tracking_pipeline_title: "How tracking works",
+  tracking_pipeline_step_click: "Click on your link",
+  tracking_pipeline_step_install: "Install and sign in",
+  tracking_pipeline_step_premium: "Premium purchase",
+  tracking_pipeline_step_payout: "Payout to you",
+  tracking_protection_title: "Protection mechanisms",
+  tracking_compliance_title: "Disclosure",
 };
 
 const fr: T = {
@@ -125,9 +184,10 @@ const fr: T = {
   done_body: "Ton compte affilié est configuré. Ton code personnel :",
   done_share_explainer: "{sharePct}% de revenu partagé pendant {shareMonths} mois à partir du premier abonnement. Paiement mensuel via Wise, PayPal ou SEPA, retenue de 30 jours pour les remboursements.",
   done_tracking_label: "Ton lien de partage :",
+  done_dashboard_cta: "Vers ton tableau de bord",
   tag: "Yarn-Stash · Onboarding",
   welcome_title: "Salut @{handle},",
-  welcome_body: "Dernière étape : configuration du paiement. 2 à 3 minutes, et ton lien personnel est en ligne.",
+  welcome_body: "Bienvenue dans le programme affilié Yarn-Stash. Quatre courtes étapes, puis ton lien est en ligne.",
   field_name_label: "Nom affiché",
   field_name_placeholder: "Comment t'appeler",
   field_country_label: "Pays (pour la fiscalité)",
@@ -147,6 +207,12 @@ const fr: T = {
   submit_idle: "Finaliser la configuration",
   submit_busy: "Configuration en cours …",
   consent: "En cliquant je confirme {sharePct}% de revenu partagé sur {shareMonths} mois comme accord direct avec Alain Kessler (CH, entreprise individuelle).",
+  step_welcome: "Bienvenue",
+  step_tracking: "Tracking",
+  step_payout: "Paiement",
+  step_done: "Terminé",
+  nav_back: "Retour",
+  nav_next: "Suivant",
 };
 
 const es: T = {
@@ -159,9 +225,10 @@ const es: T = {
   done_body: "Tu cuenta de afiliado está lista. Tu código personal:",
   done_share_explainer: "{sharePct}% de revenue share durante {shareMonths} meses desde la primera sub. Pago mensual vía Wise, PayPal o SEPA, 30 días de retención por reembolsos.",
   done_tracking_label: "Tu enlace para compartir:",
+  done_dashboard_cta: "A tu panel de afiliado",
   tag: "Yarn-Stash · Onboarding",
   welcome_title: "Hola @{handle},",
-  welcome_body: "Último paso: configuración del pago. 2 a 3 minutos y tu enlace personal está en vivo.",
+  welcome_body: "Bienvenida al programa de afiliados Yarn-Stash. Cuatro pasos cortos y tu enlace está en vivo.",
   field_name_label: "Nombre visible",
   field_name_placeholder: "Cómo llamarte",
   field_country_label: "País (para impuestos)",
@@ -181,6 +248,12 @@ const es: T = {
   submit_idle: "Completar configuración de afiliado",
   submit_busy: "Configurando …",
   consent: "Al hacer clic confirmo {sharePct}% de revenue share por {shareMonths} meses como acuerdo directo con Alain Kessler (CH, empresa individual).",
+  step_welcome: "Bienvenida",
+  step_tracking: "Tracking",
+  step_payout: "Pago",
+  step_done: "Listo",
+  nav_back: "Atrás",
+  nav_next: "Siguiente",
 };
 
 const it: T = {
@@ -193,9 +266,10 @@ const it: T = {
   done_body: "Il tuo account affiliato è pronto. Il tuo codice personale:",
   done_share_explainer: "{sharePct}% di revenue share per {shareMonths} mesi dal primo abbonamento. Pagamento mensile via Wise, PayPal o SEPA, 30 giorni di holdback per i rimborsi.",
   done_tracking_label: "Il tuo link da condividere:",
+  done_dashboard_cta: "Al tuo pannello affiliato",
   tag: "Yarn-Stash · Onboarding",
   welcome_title: "Ciao @{handle},",
-  welcome_body: "Ultimo passo: configurazione del pagamento. 2 o 3 minuti, poi il tuo link personale è live.",
+  welcome_body: "Benvenuto nel programma affiliato Yarn-Stash. Quattro passi brevi, poi il tuo link è live.",
   field_name_label: "Nome visualizzato",
   field_name_placeholder: "Come chiamarti",
   field_country_label: "Paese (per le tasse)",
@@ -215,6 +289,12 @@ const it: T = {
   submit_idle: "Completa configurazione affiliato",
   submit_busy: "Configurazione in corso …",
   consent: "Cliccando confermo il {sharePct}% di revenue share per {shareMonths} mesi come accordo diretto con Alain Kessler (CH, ditta individuale).",
+  step_welcome: "Benvenuto",
+  step_tracking: "Tracking",
+  step_payout: "Pagamento",
+  step_done: "Fatto",
+  nav_back: "Indietro",
+  nav_next: "Avanti",
 };
 
 const nl: T = {
@@ -227,9 +307,10 @@ const nl: T = {
   done_body: "Je affiliate-account is ingesteld. Je persoonlijke code:",
   done_share_explainer: "{sharePct}% revenue share gedurende {shareMonths} maanden vanaf de eerste sub. Maandelijkse uitbetaling via Wise, PayPal of SEPA, 30 dagen refund-holdback.",
   done_tracking_label: "Jouw deel-link:",
+  done_dashboard_cta: "Naar je affiliate-dashboard",
   tag: "Yarn-Stash · Onboarding",
   welcome_title: "Hi @{handle},",
-  welcome_body: "Laatste stap: uitbetaling instellen. 2 tot 3 minuten en je persoonlijke link is live.",
+  welcome_body: "Welkom bij het Yarn-Stash affiliate-programma. Vier korte stappen en je link is live.",
   field_name_label: "Weergavenaam",
   field_name_placeholder: "Hoe we je mogen noemen",
   field_country_label: "Land (voor belasting)",
@@ -249,6 +330,12 @@ const nl: T = {
   submit_idle: "Affiliate-setup afronden",
   submit_busy: "Instellen …",
   consent: "Door te klikken bevestig ik {sharePct}% revenue share over {shareMonths} maanden als directe afspraak met Alain Kessler (CH, eenmanszaak).",
+  step_welcome: "Welkom",
+  step_tracking: "Tracking",
+  step_payout: "Uitbetaling",
+  step_done: "Klaar",
+  nav_back: "Terug",
+  nav_next: "Verder",
 };
 
 const pt: T = { ...en };

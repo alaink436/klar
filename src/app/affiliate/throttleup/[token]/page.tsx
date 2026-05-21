@@ -2,11 +2,23 @@
 // no dedicated throttleup-web repo yet, klar carries the landing.
 
 import { use } from "react";
+import { Boldonse } from "next/font/google";
 import { getApp, sbGet } from "@/lib/adminApps";
 import { SetupClient } from "./SetupClient";
 import { t, isLang, type Lang } from "./translations";
 
 export const dynamic = "force-dynamic";
+
+// Boldonse was referenced as a font-family string in the previous version
+// but never actually loaded, so the browser silently fell back to Georgia.
+// Load it via next/font/google and expose as --font-boldonse so all step
+// components can use a single CSS variable.
+const boldonse = Boldonse({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-boldonse",
+  display: "swap",
+});
 
 interface Influencer {
   id: string;
@@ -44,18 +56,25 @@ export default function ThrottleUpSetupPage({
   const data = use(loadInfluencer(token));
   const lang: Lang = isLang(sp.lang) ? sp.lang : isLang(data?.language) ? (data!.language as Lang) : "de";
 
-  if (!data) return <Status lang={lang} expired />;
-  if (data.status === "active") return <Status lang={lang} alreadyDoneHandle={data.handle} />;
-
   return (
-    <SetupClient
-      token={token}
-      handle={data.handle}
-      displayName={data.display_name ?? ""}
-      sharePct={data.share_pct}
-      shareMonths={data.share_months}
-      lang={lang}
-    />
+    <div className={boldonse.variable}>
+      {data ? (
+        data.status === "active" ? (
+          <Status lang={lang} alreadyDoneHandle={data.handle} />
+        ) : (
+          <SetupClient
+            token={token}
+            handle={data.handle}
+            displayName={data.display_name ?? ""}
+            sharePct={data.share_pct}
+            shareMonths={data.share_months}
+            lang={lang}
+          />
+        )
+      ) : (
+        <Status lang={lang} expired />
+      )}
+    </div>
   );
 }
 
@@ -86,7 +105,7 @@ function Status({ lang, alreadyDoneHandle, expired }: { lang: Lang; alreadyDoneH
       >
         <h1
           style={{
-            fontFamily: "'Boldonse', Georgia, serif",
+            fontFamily: "var(--font-boldonse), Georgia, serif",
             fontSize: 28,
             fontWeight: 400,
             margin: "0 0 12px",
