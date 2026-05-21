@@ -560,33 +560,6 @@ function StepWelcome({ brand, go, handle }: { brand: Brand; go: () => void; hand
       </a>
 
       <div className="aff-section">
-        <span className="aff-eyebrow">Was ist {brand.short}</span>
-        <h3>Ein <span className="italic">{brand.productLine}</span>.</h3>
-        <p>
-          Native iOS-App, designed in Europa, ohne Tracker, mit klarer Premium-Logik. Deine Audience bekommt ein Tool das aussieht und sich anfühlt wie für sie gebaut.
-        </p>
-      </div>
-
-      <div className="aff-section">
-        <span className="aff-eyebrow">Passt zu deiner Audience</span>
-        <ul>
-          <li><span className="mark">✦</span><span>{brand.audience}, die Tools statt Hacks suchen</span></li>
-          <li><span className="mark">✦</span><span>Mobile-first, kein Login auf Web nötig, kein Account-Stress</span></li>
-          <li><span className="mark">✦</span><span>Hoher Wiederwert: Stash wächst, App wird täglich geöffnet</span></li>
-          <li><span className="mark">✦</span><span>Premium-Conversion liegt im Schnitt bei 8 bis 12 Prozent</span></li>
-        </ul>
-      </div>
-
-      <div className="aff-section">
-        <span className="aff-eyebrow">Content-Ideen</span>
-        <ul>
-          <li><span className="mark num">01</span><span>Stash-Tour Reel mit Voice-over, 30 bis 45 Sekunden</span></li>
-          <li><span className="mark num">02</span><span>Vorher-Nachher Foto: Chaos zu sortiertem Atelier</span></li>
-          <li><span className="mark num">03</span><span>Honest-Review im Vlog-Stil mit Promo-Code am Ende</span></li>
-        </ul>
-      </div>
-
-      <div className="aff-section">
         <span className="aff-eyebrow">Rechne selbst</span>
         <h3>Was springt für dich <span className="italic">raus?</span></h3>
         <p style={{ marginBottom: 4 }}>
@@ -595,14 +568,36 @@ function StepWelcome({ brand, go, handle }: { brand: Brand; go: () => void; hand
         <Calculator brand={brand} />
       </div>
 
-      <div className="aff-section">
-        <span className="aff-eyebrow">Was du sonst noch bekommst</span>
-        <ul>
-          <li><span className="mark">€</span><span><b>Eigener Promo-Code</b> mit 20 Prozent Rabatt für deine Audience</span></li>
-          <li><span className="mark">€</span><span><b>Live-Dashboard</b> mit Klicks, Installs, Käufen, Auszahlungen</span></li>
-          <li><span className="mark">€</span><span><b>Auszahlung monatlich</b> per PayPal, Wise oder SEPA</span></li>
+      <AccSection tag={`001 // was ist ${brand.short.toLowerCase()}.`} title={<>was ist <span className="italic">{brand.short}</span>.</>} pitch="60-sec breakdown">
+        <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--aff-fg-2)", margin: 0 }}>
+          Ein <i>{brand.productLine}</i>. Native iOS-App, designed in Europa, ohne Tracker, mit klarer Premium-Logik. Deine Audience bekommt ein Tool das aussieht und sich anfühlt wie für sie gebaut.
+        </p>
+      </AccSection>
+
+      <AccSection tag="002 // passt zu audience." title={<>passt zu deiner <span className="italic">audience.</span></>} pitch="4 niches that convert">
+        <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>✦</span><span>{brand.audience}, die Tools statt Hacks suchen</span></li>
+          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>✦</span><span>Mobile-first, kein Login auf Web nötig, kein Account-Stress</span></li>
+          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>✦</span><span>Hoher Wiederwert, App wird täglich geöffnet</span></li>
+          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>✦</span><span>Premium-Conversion liegt im Schnitt bei 8 bis 12 Prozent</span></li>
         </ul>
-      </div>
+      </AccSection>
+
+      <AccSection tag="003 // content-ideen." title={<>content-<span className="italic">ideen.</span></>} pitch="3 reels-formats">
+        <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+          <li style={{ display: "grid", gridTemplateColumns: "22px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12, color: "var(--aff-fg-3)" }}>01</span><span>Stash-Tour Reel mit Voice-over, 30 bis 45 Sekunden</span></li>
+          <li style={{ display: "grid", gridTemplateColumns: "22px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12, color: "var(--aff-fg-3)" }}>02</span><span>Vorher-Nachher Foto: Chaos zu sortiertem Atelier</span></li>
+          <li style={{ display: "grid", gridTemplateColumns: "22px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12, color: "var(--aff-fg-3)" }}>03</span><span>Honest-Review im Vlog-Stil mit Promo-Code am Ende</span></li>
+        </ul>
+      </AccSection>
+
+      <AccSection tag="004 // was du sonst bekommst." title={<>was du <span className="italic">sonst</span> bekommst.</>} pitch="promo, dashboard, payout">
+        <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>€</span><span><b>Eigener Promo-Code</b> mit 20 Prozent Rabatt für deine Audience</span></li>
+          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>€</span><span><b>Live-Dashboard</b> mit Klicks, Installs, Käufen, Auszahlungen</span></li>
+          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>€</span><span><b>Auszahlung monatlich</b> per PayPal, Wise oder SEPA</span></li>
+        </ul>
+      </AccSection>
 
       <div className="aff-cta-stack">
         <button className="aff-btn aff-btn-primary" onClick={go}>
@@ -933,6 +928,7 @@ export function OnboardingShell({ brand: brandKey, handle, onSubmit, promoCodeFr
 
   return (
     <div className="aff-stage">
+      <BgStage />
       <div className="aff-shell">
         <Topframe brand={brand} step={step} />
         <div className="aff-card">
@@ -945,5 +941,33 @@ export function OnboardingShell({ brand: brandKey, handle, onSubmit, promoCodeFr
         <div className="aff-footer-note">{brand.short} · Affiliate · v1.0</div>
       </div>
     </div>
+  );
+}
+
+// ── Animated background stage (4-layer cross-fade, same as getklar.org) ─────
+function BgStage() {
+  return (
+    <div className="aff-bg-stage" aria-hidden="true">
+      <div className="aff-bg-layer aff-bg-layer-1" style={{ backgroundImage: "url('/bg/bg-1.webp')" }} />
+      <div className="aff-bg-layer aff-bg-layer-2" style={{ backgroundImage: "url('/bg/bg-2.webp')" }} />
+      <div className="aff-bg-layer aff-bg-layer-3" style={{ backgroundImage: "url('/bg/bg-3.webp')" }} />
+      <div className="aff-bg-layer aff-bg-layer-4" style={{ backgroundImage: "url('/bg/bg-4.webp')" }} />
+      <div className="aff-bg-vignette" />
+    </div>
+  );
+}
+
+// ── Collapsible accordion section (mirrors getklar.org acc-* pattern) ───────
+function AccSection({ tag, title, pitch, children, defaultOpen = false }: { tag: string; title: React.ReactNode; pitch: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  return (
+    <details className="aff-acc" {...(defaultOpen ? { open: true } : {})}>
+      <summary className="aff-acc-summary">
+        <span className="aff-acc-tag">{tag}</span>
+        <span className="aff-acc-title">{title}</span>
+        <span className="aff-acc-pitch">{pitch}</span>
+        <span className="aff-acc-toggle" aria-hidden="true" />
+      </summary>
+      <div className="aff-acc-body">{children}</div>
+    </details>
   );
 }

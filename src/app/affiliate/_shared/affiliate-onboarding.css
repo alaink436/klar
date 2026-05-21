@@ -34,13 +34,43 @@
   padding: 32px 16px 64px;
   font-family: var(--font-body), system-ui, sans-serif;
   color: var(--aff-fg);
-  background: var(--aff-bg);
-  background-image:
-    radial-gradient(900px 700px at 50% -10%, oklch(0.10 0.02 270 / 0.7) 0%, transparent 60%),
-    radial-gradient(800px 600px at 100% 100%, oklch(0.08 0.01 280 / 0.5) 0%, transparent 55%);
-  background-attachment: fixed;
+  background: transparent;
   -webkit-font-smoothing: antialiased;
+  position: relative;
+  isolation: isolate;
 }
+
+/* ── Liquid-metal animated background (mirrors getklar.org) ───────────────── */
+.aff-bg-stage {
+  position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+  background: var(--aff-bg);
+}
+.aff-bg-stage .aff-bg-layer {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center; background-repeat: no-repeat;
+  will-change: opacity;
+  transform: translateZ(0);
+  filter: saturate(0) contrast(1.15) brightness(0.7);
+  opacity: 0;
+}
+.aff-bg-stage .aff-bg-layer-1 { animation: aff-bg-fade-1 96s linear infinite; }
+.aff-bg-stage .aff-bg-layer-2 { animation: aff-bg-fade-2 96s linear infinite; }
+.aff-bg-stage .aff-bg-layer-3 { animation: aff-bg-fade-3 96s linear infinite; }
+.aff-bg-stage .aff-bg-layer-4 { animation: aff-bg-fade-4 96s linear infinite; }
+.aff-bg-vignette {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 35%, transparent 0%, oklch(0.04 0.002 270 / 0.55) 70%, oklch(0.04 0.002 270 / 0.85) 100%);
+}
+@keyframes aff-bg-fade-1 { 0%, 18% { opacity: 0.55; } 23%, 73% { opacity: 0; } 78%, 100% { opacity: 0.55; } }
+@keyframes aff-bg-fade-2 { 0%, 18% { opacity: 0; } 23%, 43% { opacity: 0.4; } 48%, 100% { opacity: 0; } }
+@keyframes aff-bg-fade-3 { 0%, 43% { opacity: 0; } 48%, 68% { opacity: 0.5; } 73%, 100% { opacity: 0; } }
+@keyframes aff-bg-fade-4 { 0%, 68% { opacity: 0; } 73%, 93% { opacity: 0.45; } 98%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .aff-bg-stage .aff-bg-layer-1, .aff-bg-stage .aff-bg-layer-2, .aff-bg-stage .aff-bg-layer-3, .aff-bg-stage .aff-bg-layer-4 { animation: none; }
+  .aff-bg-stage .aff-bg-layer-1 { opacity: 0.4; }
+}
+
+.aff-shell { position: relative; z-index: 1; }
 
 .aff-shell { width: 100%; max-width: var(--aff-card-max); display: flex; flex-direction: column; gap: 22px; }
 
@@ -248,6 +278,33 @@ input[type="range"].aff-rg::-moz-range-thumb { width: 16px; height: 16px; border
 /* ── Attribution diagram ──────────────────────────────────────────────────── */
 .aff-attr-diagram { background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius); padding: 6px 8px; position: relative; overflow: hidden; }
 
+/* ── Collapsible sections (mirrors getklar.org acc-* pattern) ─────────────── */
+.aff-acc { border-top: 1px solid var(--aff-line-strong); border-bottom: 1px solid var(--aff-line-strong); margin: 0 -36px; }
+.aff-acc + .aff-acc { border-top: none; }
+.aff-acc-summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 20px 36px;
+  transition: background 0.2s, color 0.2s;
+  user-select: none;
+}
+.aff-acc-summary::-webkit-details-marker { display: none; }
+.aff-acc-summary::marker { content: ""; }
+@media (hover: hover) {
+  .aff-acc-summary:hover { background: var(--aff-fg); color: var(--aff-bg); }
+  .aff-acc-summary:hover .aff-acc-tag { color: var(--aff-bg); }
+  .aff-acc-summary:hover .aff-acc-pitch { color: var(--aff-bg); opacity: 0.7; }
+}
+.aff-acc-tag { font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--aff-fg-3); flex-shrink: 0; }
+.aff-acc-title { font-family: var(--font-display), sans-serif; font-weight: 700; letter-spacing: -0.02em; font-size: clamp(22px, 4.4vw, 38px); line-height: 1; flex: 1; text-align: left; }
+.aff-acc-title .italic { font-family: var(--font-editorial), serif; font-style: italic; font-weight: 400; }
+.aff-acc-pitch { font-family: var(--font-editorial), serif; font-style: italic; font-size: clamp(13px, 1.6vw, 16px); color: var(--aff-fg-3); flex-shrink: 0; display: none; }
+@media (min-width: 760px) { .aff-acc-pitch { display: inline; } }
+.aff-acc-toggle { font-family: var(--font-mono), monospace; font-size: 24px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1; color: var(--aff-fg); }
+.aff-acc-toggle::after { content: "+"; }
+details[open] .aff-acc-toggle::after { content: "−"; }
+.aff-acc-body { padding: 22px 36px 32px 36px; animation: aff-acc-fade 0.3s ease-out; }
+@keyframes aff-acc-fade { 0% { opacity: 0; transform: translateY(-4px); } 100% { opacity: 1; transform: translateY(0); } }
+
 /* ── Reduce motion ────────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .aff-screen, .aff-steps .bar::after { transition-duration: 0.001s !important; }
@@ -258,6 +315,9 @@ input[type="range"].aff-rg::-moz-range-thumb { width: 16px; height: 16px; border
   .aff-stage { padding: 20px 12px 48px; }
   .aff-shell { gap: 18px; }
   .aff-pad { padding: 24px 20px 28px; }
+  .aff-acc { margin: 0 -20px; }
+  .aff-acc-summary { padding: 18px 20px; }
+  .aff-acc-body { padding: 18px 20px 28px 20px; }
   .aff-stack-lg { gap: 24px; }
   .aff-topframe { gap: 14px; }
   .aff-icon-header { gap: 14px; }
