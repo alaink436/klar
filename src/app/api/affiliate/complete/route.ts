@@ -130,15 +130,21 @@ async function fireConfirmationEmail(payload: {
   // admin-key needs to be set explicitly for the confirmation email to fire.
   const url = process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
   const adminKey = process.env.KLAR_AGREEMENT_ADMIN_KEY;
-  if (!adminKey) {
-    console.warn("[affiliate/complete] KLAR_AGREEMENT_ADMIN_KEY env missing, confirmation-email skip");
+  const serviceKey = process.env.KLAR_INBOX_SERVICE_KEY;
+  if (!adminKey || !serviceKey) {
+    console.warn("[affiliate/complete] KLAR_AGREEMENT_ADMIN_KEY or KLAR_INBOX_SERVICE_KEY env missing, confirmation-email skip");
     return;
   }
   try {
+    // Edge function has verify_jwt: true, so the Supabase gateway needs an
+    // Authorization: Bearer <JWT> header on top of x-admin-key. Service-role
+    // key is itself a valid JWT, so we reuse it for both apikey + bearer.
     const res = await fetch(`${url}/functions/v1/affiliate-confirmation-email`, {
       method: "POST",
       headers: {
         "x-admin-key": adminKey,
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
