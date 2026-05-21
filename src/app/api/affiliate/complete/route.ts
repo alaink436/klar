@@ -255,9 +255,14 @@ export async function POST(req: NextRequest): Promise<Response> {
     const commissionDecimal = (meta?.commissionPct ?? 50) / 100;
     if (autoCode.length >= 2) {
       try {
+        // Two shapes in the wild:
+        //   - Yarn-Stash returns json: { success, code } or { error, detail }
+        //   - Moto returns the influencer_codes row directly (success-by-presence)
+        // Both expose `.code` on success; the json shape adds `.error` on failure.
         const result = await sbRpc<{
           success?: boolean;
           code?: string;
+          id?: string;
           error?: string;
           detail?: string;
         }>(app, "admin_create_influencer_code", {
@@ -266,13 +271,16 @@ export async function POST(req: NextRequest): Promise<Response> {
           p_handle: handle,
           p_commission_pct: commissionDecimal,
         });
-        if (result?.success) {
-          finalPromo = result.code ?? autoCode;
-        } else if (result?.error === "CODE_EXISTS") {
+        if (result?.error === "CODE_EXISTS") {
           // Idempotent: the row is already there from a prior run, reuse it.
           finalPromo = autoCode;
+        } else if (result?.error) {
+          console.warn("[affiliate/complete] auto-mint returned error", result.error, result.detail);
+        } else if (result?.code) {
+          finalPromo = result.code;
         } else {
-          console.warn("[affiliate/complete] auto-mint returned error", result?.error, result?.detail);
+          // Shape we didn't anticipate — assume failure, log it.
+          console.warn("[affiliate/complete] auto-mint unexpected response shape", JSON.stringify(result).slice(0, 200));
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
