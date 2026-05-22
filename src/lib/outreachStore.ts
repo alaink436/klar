@@ -444,6 +444,93 @@ export async function createOutreachRun(input: CreateRunInput): Promise<Outreach
   return rows[0];
 }
 
+// ---------- klar_app_mail_templates (per-app outreach config) --------------
+
+export interface AppMailTemplate {
+  app_slug: string;
+  language: string;
+  hashtags: string[];
+  mail1_subject: string | null;
+  mail1_body: string | null;
+  mail2_subject: string | null;
+  mail2_body: string | null;
+  notes: string | null;
+  updated_at: string;
+}
+
+export interface TemplatePatch {
+  hashtags?: string[];
+  mail1_subject?: string | null;
+  mail1_body?: string | null;
+  mail2_subject?: string | null;
+  mail2_body?: string | null;
+  notes?: string | null;
+}
+
+/** All per-app outreach templates, ordered by app+language. */
+export async function listAppTemplates(): Promise<AppMailTemplate[]> {
+  if (!KLAR_INBOX_KEY) return [];
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_app_mail_templates?select=*&order=app_slug.asc,language.asc`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as AppMailTemplate[];
+  } catch {
+    return [];
+  }
+}
+
+/** Single template by (app_slug, language). Returns null if not seeded. */
+export async function getAppTemplate(
+  appSlug: string,
+  language = "de",
+): Promise<AppMailTemplate | null> {
+  if (!KLAR_INBOX_KEY) return null;
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_app_mail_templates?app_slug=eq.${encodeURIComponent(appSlug)}&language=eq.${encodeURIComponent(language)}&select=*&limit=1`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as AppMailTemplate[];
+    return rows[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Upsert a template patch. Used by the templates editor. */
+export async function upsertAppTemplate(
+  appSlug: string,
+  language: string,
+  patch: TemplatePatch,
+): Promise<AppMailTemplate> {
+  if (!KLAR_INBOX_KEY) throw new Error("KLAR_INBOX_SERVICE_KEY missing");
+  const body = {
+    app_slug: appSlug,
+    language,
+    ...patch,
+    updated_at: new Date().toISOString(),
+  };
+  const res = await fetch(
+    `${KLAR_INBOX_URL}/rest/v1/klar_app_mail_templates?on_conflict=app_slug,language`,
+    {
+      method: "POST",
+      headers: { ...hdr(), Prefer: "return=representation,resolution=merge-duplicates" },
+      body: JSON.stringify(body),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`template upsert ${res.status}: ${text.slice(0, 200)}`);
+  }
+  const rows = (await res.json()) as AppMailTemplate[];
+  if (!rows[0]) throw new Error("template upsert returned no row");
+  return rows[0];
+}
+
 /** Last N runs, newest first. UI uses this for the History-Table. */
 export async function listOutreachRuns(limit = 25): Promise<OutreachRun[]> {
   if (!KLAR_INBOX_KEY) return [];

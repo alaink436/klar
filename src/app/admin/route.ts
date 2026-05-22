@@ -16,11 +16,13 @@ import {
   getOutreachPerAppStats,
   listOutreachTargets,
   listOutreachRuns,
+  listAppTemplates,
   isOutreachConfigured,
   type OutreachPlatform,
   type OutreachStatus,
   type OutreachTarget,
   type OutreachRun,
+  type AppMailTemplate,
   type PerAppStat,
 } from "../../lib/outreachStore";
 import {
@@ -856,35 +858,88 @@ getklar.org`;
         <textarea name="mail_body" rows="14" style="padding:10px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-body);resize:vertical;line-height:1.5">${esc(defaultMailBody)}</textarea>
       </label>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding-top:8px;border-top:1px solid var(--line);flex-wrap:wrap">
-        <div id="wave-cost" class="muted" style="font-family:var(--font-mono);font-size:12px">
-          <span class="k" style="margin-right:8px">Schätzung</span>
-          <span id="wave-cost-display">— Apps + Plattformen wählen</span>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div id="wave-cost" class="muted" style="font-family:var(--font-mono);font-size:12px">
+            <span class="k" style="margin-right:8px">Schätzung</span>
+            <span id="wave-cost-display">— Apps + Plattformen wählen</span>
+          </div>
+          <div id="wave-template-status" class="muted" style="font-family:var(--font-mono);font-size:11px;font-style:italic"></div>
         </div>
         <button type="submit" class="btn" style="padding:10px 18px;font-size:14px">🚀 Welle starten →</button>
       </div>
-      <p class="muted" style="margin:0;font-size:11px;font-style:italic">⚠️ Backend ist noch nicht scharf — der Klick speichert die Konfiguration aktuell als <code>klar_outreach_runs</code>-Row mit Status <code>queued</code>. n8n-Workflow der Apify scraped + Mails sendet kommt in nächster Session.</p>
+      <p class="muted" style="margin:0;font-size:11px">Templates pro App (Hashtags + Mail-1/2) bearbeitest du unter <a class="applink" href="/admin?view=templates">Templates</a>. Wenn du <strong>genau eine App</strong> auswählst, werden Subject + Body hier automatisch aus dem App-Default vor-geladen — kannst sie pro Welle überschreiben.</p>
     </form>
     <script>
       (function(){
         var f = document.getElementById('wave-form');
         if (!f) return;
         var display = document.getElementById('wave-cost-display');
+        var tplStatus = document.getElementById('wave-template-status');
+        var subjectInput = f.querySelector('input[name="mail_subject"]');
+        var bodyInput = f.querySelector('textarea[name="mail_body"]');
+        var initialSubject = subjectInput ? subjectInput.value : '';
+        var initialBody = bodyInput ? bodyInput.value : '';
+        var lastLoadedKey = '';
+
         function calc(){
           var apps = f.querySelectorAll('input.wave-app-chk:checked').length;
           var plats = f.querySelectorAll('input.wave-plat-chk:checked').length;
           var n = parseInt((f.querySelector('input[name="count_per_app"]')||{}).value || '0', 10) || 0;
           var total = apps * plats * n;
-          // Apify pricing rough estimate: ~$0.001 per profile lookup (profile-
-          // scraper actor). Real cost depends on actor + compute time; refine
-          // when we wire up Apify's getActor pricing API.
+          // Apify rough estimate ~$0.001 per profile lookup. Real cost
+          // depends on actor + compute time; refined post-run via Apify
+          // getActor pricing API.
           var usd = total * 0.001;
-          if (total === 0) {
-            display.textContent = '— Apps + Plattformen wählen';
-            return;
-          }
+          if (total === 0) { display.textContent = '— Apps + Plattformen wählen'; return; }
           display.innerHTML = '~' + total.toLocaleString() + ' Profile · <strong>≈ $' + usd.toFixed(2) + '</strong> Apify-Kosten';
         }
-        f.addEventListener('change', calc);
+
+        function loadTemplate(){
+          var picked = Array.from(f.querySelectorAll('input.wave-app-chk:checked')).map(function(c){return c.value;});
+          if (!subjectInput || !bodyInput) return;
+
+          // Multi-app: switch back to default text + indicate the situation.
+          if (picked.length !== 1) {
+            tplStatus.textContent = picked.length > 1
+              ? '⚠️ Multi-App: Subject/Body wird auf alle Apps angewendet (Platzhalter {{app_name}} pro Target ersetzt)'
+              : '';
+            return;
+          }
+
+          var app = picked[0];
+          var lang = 'de'; // default; future: small select if needed
+          var key = app + '|' + lang;
+          if (key === lastLoadedKey) return;
+
+          tplStatus.textContent = '⏳ lade Template ' + app + '/' + lang + '…';
+          fetch('/admin/templates/get?app=' + encodeURIComponent(app) + '&language=' + encodeURIComponent(lang), { credentials: 'same-origin' })
+            .then(function(r){ return r.ok ? r.json() : null; })
+            .then(function(tpl){
+              if (!tpl) {
+                tplStatus.textContent = '⚠️ Kein Template für ' + app + '/' + lang + ' — Welle nutzt den aktuellen Form-Inhalt';
+                return;
+              }
+              // Only overwrite if the field is currently the initial default
+              // (no manual edits yet) — otherwise leave the admin's tweaks.
+              var subjEmptyOrDefault = !subjectInput.value || subjectInput.value === initialSubject;
+              var bodyEmptyOrDefault = !bodyInput.value || bodyInput.value === initialBody;
+              if (subjEmptyOrDefault && tpl.mail1_subject) {
+                subjectInput.value = tpl.mail1_subject;
+                initialSubject = tpl.mail1_subject;
+              }
+              if (bodyEmptyOrDefault && tpl.mail1_body) {
+                bodyInput.value = tpl.mail1_body;
+                initialBody = tpl.mail1_body;
+              }
+              lastLoadedKey = key;
+              tplStatus.innerHTML = '✓ Template <strong>' + app + '/' + lang + '</strong> geladen' + (tpl.mail1_subject ? '' : ' (Subject leer — App-Editor noch nicht befüllt)');
+            })
+            .catch(function(e){
+              tplStatus.textContent = '⚠️ Template-Load fehlgeschlagen: ' + e.message;
+            });
+        }
+
+        f.addEventListener('change', function(ev){ calc(); if (ev.target && ev.target.classList && ev.target.classList.contains('wave-app-chk')) loadTemplate(); });
         f.addEventListener('input', calc);
         calc();
       })();
@@ -1281,6 +1336,122 @@ async function bookingsView(): Promise<string> {
 }
 
 // ============================================================
+// Templates View — per-app outreach templates (hashtags + Mail-1/2
+// subject+body). Editable per (app_slug, language) row. Used by the
+// Wave-Consumer to render Mail-1 and by Apify Discovery for hashtag-
+// based crawl seeds. Welle-Starter form pre-fills from these defaults
+// when the admin picks a single app + language.
+// ============================================================
+
+async function templatesView(): Promise<string> {
+  if (!isOutreachConfigured()) {
+    return `<h1>Templates</h1><p class="sub muted">Outreach-Tracker braucht <span class="warn">KLAR_INBOX_SERVICE_KEY</span> in Vercel (anime-vault Service-Role).</p>`;
+  }
+
+  const templates = await listAppTemplates();
+
+  // Group: one row per (app_slug, language). Sorted by KLAR_APPS order
+  // first so the visual layout matches the rest of the dashboard.
+  const byApp = new Map<string, AppMailTemplate[]>();
+  for (const t of templates) {
+    if (!byApp.has(t.app_slug)) byApp.set(t.app_slug, []);
+    byApp.get(t.app_slug)!.push(t);
+  }
+
+  const fmtRel = (s: string) => {
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return "—";
+    const ago = Date.now() - d.getTime();
+    const min = Math.floor(ago / 60000);
+    if (min < 1) return "gerade";
+    if (min < 60) return `${min}m`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}h`;
+    return `${Math.floor(hr / 24)}d`;
+  };
+
+  // Apify-Token Status: only env-presence-check, never expose the value.
+  const apifyTokenPresent = Boolean(process.env.APIFY_API_TOKEN);
+
+  const cards = `<div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+    <div class="card"><div class="k">Apify-Token</div><div class="v" style="font-size:18px">${apifyTokenPresent ? "✓ in Vercel" : "in n8n-Cred"}</div><div class="s">${apifyTokenPresent ? "KLAR_APIFY_TOKEN env gesetzt" : "via httpHeaderAuth Cred l8T8zGn0SrQSd4ws"}</div></div>
+    <div class="card"><div class="k">Templates</div><div class="v">${templates.length}</div><div class="s">App × Sprache (6 Apps × DE/EN)</div></div>
+    <div class="card"><div class="k">Vollständig</div><div class="v">${templates.filter((t) => t.mail1_subject && t.mail1_body).length}</div><div class="s">mit Mail-1 Subject + Body</div></div>
+  </div>`;
+
+  const rows = KLAR_APPS.flatMap((appMeta) => {
+    const tpls = byApp.get(appMeta.slug) ?? [];
+    if (tpls.length === 0) {
+      return [`<tr><td><strong>${esc(appMeta.name)}</strong><div class="muted" style="font-size:11px">${esc(appMeta.slug)}</div></td>
+        <td colspan="5" class="muted" style="font-style:italic">noch keine Templates angelegt — <a class="applink" href="#new-${esc(appMeta.slug)}">unten anlegen</a></td></tr>`];
+    }
+    return tpls.map((t) => {
+      const hashtagsStr = (t.hashtags ?? []).join(", ");
+      const m1Done = Boolean(t.mail1_subject && t.mail1_body);
+      const doneBadge = m1Done
+        ? `<span class="pill" style="background:#dcfce7;color:#166534;border-color:#bbf7d066;font-size:9px;font-weight:600">✓ Mail-1</span>`
+        : `<span class="pill" style="background:#fef9c3;color:#854d0e;border-color:#fde04766;font-size:9px;font-weight:600">leer</span>`;
+      return `<tr data-row-id="${esc(appMeta.slug)}-${esc(t.language)}">
+        <td><button type="button" class="btn ghost" onclick="this.closest('tbody').querySelector('[data-edit-for=&quot;${esc(appMeta.slug)}-${esc(t.language)}&quot;]').style.display=this.closest('tbody').querySelector('[data-edit-for=&quot;${esc(appMeta.slug)}-${esc(t.language)}&quot;]').style.display==='none'?'table-row':'none';" style="padding:2px 7px;font-size:11px;margin-right:6px">▸</button><strong>${esc(appMeta.name)}</strong><div class="muted" style="font-size:11px">${esc(appMeta.slug)}</div></td>
+        <td><span class="pill" style="font-size:10px;text-transform:uppercase">${esc(t.language)}</span></td>
+        <td>${doneBadge}</td>
+        <td class="muted" style="font-size:11px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(hashtagsStr)}">${esc(hashtagsStr || "—")}</td>
+        <td class="muted" style="font-size:11px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(t.mail1_subject ?? "")}">${esc(t.mail1_subject || "—")}</td>
+        <td class="muted" style="font-size:11px;white-space:nowrap">${fmtRel(t.updated_at)}</td>
+      </tr>
+      <tr data-edit-for="${esc(appMeta.slug)}-${esc(t.language)}" style="display:none"><td colspan="6" style="padding:14px 18px;background:var(--surface-2)">
+        <form method="POST" action="/admin/templates/save" style="display:flex;flex-direction:column;gap:12px">
+          <input type="hidden" name="app_slug" value="${esc(appMeta.slug)}"/>
+          <input type="hidden" name="language" value="${esc(t.language)}"/>
+          <label style="display:flex;flex-direction:column">
+            <span class="k" style="margin-bottom:5px">Hashtags <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">comma-sep, ohne #, max 8 für Cost-Control</span></span>
+            <input type="text" name="hashtags" value="${esc(hashtagsStr)}" maxlength="500" style="padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:12px;font-family:var(--font-mono)"/>
+          </label>
+          <label style="display:flex;flex-direction:column">
+            <span class="k" style="margin-bottom:5px">Mail-1 Subject</span>
+            <input type="text" name="mail1_subject" value="${esc(t.mail1_subject ?? "")}" maxlength="200" style="padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
+          </label>
+          <label style="display:flex;flex-direction:column">
+            <span class="k" style="margin-bottom:5px">Mail-1 Body <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">{{NAME}}/{{HANDLE}}/{{NICHE_REF}}/{{SPORT}} Platzhalter</span></span>
+            <textarea name="mail1_body" rows="14" style="padding:10px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-body);resize:vertical;line-height:1.5">${esc(t.mail1_body ?? "")}</textarea>
+          </label>
+          <details>
+            <summary style="cursor:pointer;font-size:12px;color:var(--fg-2);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Mail-2 (Reply-Auto, optional)</summary>
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px">
+              <label style="display:flex;flex-direction:column">
+                <span class="k" style="margin-bottom:5px">Mail-2 Subject <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">leer = "Re: ..." vom Reply-Tracker</span></span>
+                <input type="text" name="mail2_subject" value="${esc(t.mail2_subject ?? "")}" maxlength="200" style="padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
+              </label>
+              <label style="display:flex;flex-direction:column">
+                <span class="k" style="margin-bottom:5px">Mail-2 Body</span>
+                <textarea name="mail2_body" rows="14" style="padding:10px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-body);resize:vertical;line-height:1.5">${esc(t.mail2_body ?? "")}</textarea>
+              </label>
+            </div>
+          </details>
+          <label style="display:flex;flex-direction:column">
+            <span class="k" style="margin-bottom:5px">Notes <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">intern</span></span>
+            <input type="text" name="notes" value="${esc(t.notes ?? "")}" maxlength="500" style="padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:12px"/>
+          </label>
+          <div style="display:flex;justify-content:flex-end">
+            <button type="submit" class="btn" style="padding:8px 18px;font-size:13px">Speichern</button>
+          </div>
+        </form>
+      </td></tr>`;
+    });
+  }).join("");
+
+  return `<h1>Templates</h1>
+    <p class="sub">Per-App Outreach-Templates &mdash; Hashtags für Apify-Discovery, Mail-1 + Mail-2 für Brevo-Send. Editierbar pro App × Sprache. Die Wave-Starter-Form lädt diese Defaults automatisch wenn du genau eine App auswählst.</p>
+    ${cards}
+    <h2>Templates pro App</h2>
+    <table>
+      <thead><tr><th>App</th><th>Lang</th><th>Status</th><th>Hashtags</th><th>Mail-1 Subject</th><th>Updated</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="6" class="muted">keine Templates</td></tr>`}</tbody>
+    </table>
+    <p class="sub muted" style="margin-top:24px;font-size:12px">⚠️ Aktuell liest der n8n Wave-Consumer Mail-Subject/Body noch aus der Welle-Config (Run-Row), nicht aus dieser Tabelle. Phase 3d nächste Session verdrahtet das per-target Template-Read.</p>`;
+}
+
+// ============================================================
 // Central Payouts View — aggregates batches across every wired-up app.
 // Top: KPIs (open in REPORTING_CURRENCY, ready batches, FX pending, last paid). Then a
 // "Alle vorbereiten" form that POSTs to /admin/dispatch-all. Then two
@@ -1461,6 +1632,7 @@ export async function GET(req: Request): Promise<Response> {
   else if (view === "cal") main = calView();
   else if (view === "revenue") main = await revenueView(apps);
   else if (view === "payouts") main = await payoutsView(apps);
+  else if (view === "templates") main = await templatesView();
   else {
     const app = apps.find((a) => a.slug === view);
     main = app ? await appView(app) : await overview(apps);
