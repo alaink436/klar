@@ -563,7 +563,7 @@ async function outreachView(
     listOutreachRuns(10),
   ]);
 
-  // Auto-refresh meta-tag (15s). Toggle via ?ar=0.
+  // Auto-refresh meta-tag (15s). Off by default — toggle via ?ar=1.
   // Wird inline am Anfang der Outreach-View ausgespuckt — Next legt das in
   // den Head dank React 19 Document-Metadata-Hoisting.
   const refreshMeta = autoRefresh
@@ -586,7 +586,7 @@ async function outreachView(
     if (s !== "all") parts.push(`s=${encodeURIComponent(s)}`);
     if (a !== "all") parts.push(`a=${encodeURIComponent(a)}`);
     if (q) parts.push(`q=${encodeURIComponent(q)}`);
-    if (!autoRefresh) parts.push(`ar=0`);
+    if (autoRefresh) parts.push(`ar=1`);
     return `/admin?${parts.join("&")}`;
   };
   const segPlatform = `<div class="seg">
@@ -610,14 +610,22 @@ async function outreachView(
     ${platform !== "all" ? `<input type="hidden" name="p" value="${esc(platform)}"/>` : ""}
     ${status !== "all" ? `<input type="hidden" name="s" value="${esc(status)}"/>` : ""}
     ${app !== "all" ? `<input type="hidden" name="a" value="${esc(app)}"/>` : ""}
-    ${!autoRefresh ? `<input type="hidden" name="ar" value="0"/>` : ""}
+    ${autoRefresh ? `<input type="hidden" name="ar" value="1"/>` : ""}
     <input type="search" name="q" value="${esc(q)}" placeholder="Suche handle / display name / niche / notes…" maxlength="80" style="flex:1;padding:8px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--fg);font-size:13px"/>
     <button type="submit" class="btn ghost" style="padding:7px 12px;font-size:12px">Suchen</button>
     ${q ? `<a href="${buildFilterHref(platform, status, app).replace(/&?q=[^&]*/, "")}" class="btn ghost" style="padding:7px 10px;font-size:12px">×</a>` : ""}
   </form>`;
 
-  // Auto-Refresh Toggle
+  // Auto-Refresh Toggle. Default OFF; opt-in via ?ar=1.
   const refreshToggle = `<div class="seg" style="margin-left:auto">
+    <a href="${(() => {
+      const parts: string[] = ["view=outreach", "ar=1"];
+      if (platform !== "all") parts.push(`p=${encodeURIComponent(platform)}`);
+      if (status !== "all") parts.push(`s=${encodeURIComponent(status)}`);
+      if (app !== "all") parts.push(`a=${encodeURIComponent(app)}`);
+      if (q) parts.push(`q=${encodeURIComponent(q)}`);
+      return `/admin?${parts.join("&")}`;
+    })()}" class="${autoRefresh ? "on" : ""}" title="Auto-Refresh alle 15 Sekunden (full-page reload reisst aus Scroll)">15s ⟲</a>
     <a href="${(() => {
       const parts: string[] = ["view=outreach"];
       if (platform !== "all") parts.push(`p=${encodeURIComponent(platform)}`);
@@ -625,15 +633,7 @@ async function outreachView(
       if (app !== "all") parts.push(`a=${encodeURIComponent(app)}`);
       if (q) parts.push(`q=${encodeURIComponent(q)}`);
       return `/admin?${parts.join("&")}`;
-    })()}" class="${autoRefresh ? "on" : ""}" title="Auto-Refresh alle 15 Sekunden">15s ⟲</a>
-    <a href="${(() => {
-      const parts: string[] = ["view=outreach", "ar=0"];
-      if (platform !== "all") parts.push(`p=${encodeURIComponent(platform)}`);
-      if (status !== "all") parts.push(`s=${encodeURIComponent(status)}`);
-      if (app !== "all") parts.push(`a=${encodeURIComponent(app)}`);
-      if (q) parts.push(`q=${encodeURIComponent(q)}`);
-      return `/admin?${parts.join("&")}`;
-    })()}" class="${!autoRefresh ? "on" : ""}" title="Manueller Refresh">Pause</a>
+    })()}" class="${!autoRefresh ? "on" : ""}" title="Kein Auto-Refresh (Scroll-stabil)">Pause</a>
   </div>`;
 
   // Per-App-Stats-Tabelle
@@ -1619,8 +1619,9 @@ export async function GET(req: Request): Promise<Response> {
     const s = url.searchParams.get("s") ?? "all";
     const a = url.searchParams.get("a") ?? "all";
     const q = url.searchParams.get("q") ?? "";
-    // Auto-Refresh default-on; ?ar=0 schaltet es aus (persistiert via URL state)
-    const ar = (url.searchParams.get("ar") ?? "1") !== "0";
+    // Auto-Refresh default-OFF (full-page reload reisst aus Scroll-Position).
+    // ?ar=1 schaltet es opt-in ein. Persistiert via URL state.
+    const ar = url.searchParams.get("ar") === "1";
     main = await outreachView(p, s, a, q, ar);
   }
   else if (view === "inbox") {
