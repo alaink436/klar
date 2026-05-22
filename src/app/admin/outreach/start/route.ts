@@ -82,8 +82,9 @@ export async function POST(req: NextRequest): Promise<Response> {
   const profileLookups = apps.length * platforms.length * count;
   const costEstimateUsd = Math.round(profileLookups * APIFY_USD_PER_PROFILE * 10000) / 10000;
 
+  let row: Awaited<ReturnType<typeof createOutreachRun>>;
   try {
-    const row = await createOutreachRun({
+    row = await createOutreachRun({
       apps,
       platforms,
       count_per_app: count,
@@ -92,12 +93,26 @@ export async function POST(req: NextRequest): Promise<Response> {
       mail_body: mailBody,
       cost_estimate_usd: costEstimateUsd,
     });
-    return back(
-      req,
-      `Welle ${row.id.slice(0, 8)} angelegt: ${apps.length} Apps × ${platforms.length} Plattformen × ${count} = ~${profileLookups} Profile, est $${costEstimateUsd.toFixed(2)}. Status queued (n8n-Consumer kommt nächste Session).`,
-    );
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return back(req, `Start fehlgeschlagen: ${msg.slice(0, 160)}`);
   }
+
+  // Fire-and-forget the n8n Wave-Consumer webhook. We don't await it —
+  // the workflow itself can take minutes (Apify sync-runs + Brevo loop)
+  // and Vercel functions cap at ~60s. The consumer updates run.status
+  // → 'running' → 'done'/'failed', the UI polls.
+  const hookUrl =
+    process.env.KLAR_OUTREACH_WEBHOOK_URL ??
+    "https://alaink365.app.n8n.cloud/webhook/klar-outreach-wave";
+  void fetch(hookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ run_id: row.id }),
+  }).catch((e) => console.warn("wave webhook fire error:", e));
+
+  return back(
+    req,
+    `Welle ${row.id.slice(0, 8)} gestartet: ${apps.length} Apps × ${platforms.length} Plattformen × ${count} = ~${profileLookups} Profile, est $${costEstimateUsd.toFixed(2)}.`,
+  );
 }
