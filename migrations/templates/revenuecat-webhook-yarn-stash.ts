@@ -4,10 +4,9 @@
 // Receives RC subscription events and mirrors the entitlement to
 // public.user_entitlements (server-side source of truth for premium gating).
 //
-// Auth: shared secret in the Authorization header. Reads RC_WEBHOOK_SECRET
-// (primary, matches the Klar affiliate-ingest convention) with
-// REVENUECAT_WEBHOOK_SECRET as a backward-compatible fallback.
-// Bearer-prefix is tolerated. Fail-closed if no secret is set.
+// Auth: matches against EITHER RC_WEBHOOK_SECRET OR REVENUECAT_WEBHOOK_SECRET.
+// Either one being correct is enough. Bearer-prefix tolerated. Fail-closed
+// if NEITHER secret is configured.
 //
 // Configure in RC Dashboard → Integrations → Webhooks:
 //   URL: https://zysmsgaordfkptzngntn.supabase.co/functions/v1/revenuecat-webhook
@@ -35,6 +34,19 @@ function timingSafeEqual(a: string, b: string): boolean {
   return r === 0;
 }
 
+function matchesEitherSecret(provided: string): boolean {
+  const primary = Deno.env.get("RC_WEBHOOK_SECRET") ?? "";
+  const fallback = Deno.env.get("REVENUECAT_WEBHOOK_SECRET") ?? "";
+  if (!primary && !fallback) return false;
+  const matchesPrimary = primary !== "" && timingSafeEqual(provided, primary);
+  const matchesFallback = fallback !== "" && timingSafeEqual(provided, fallback);
+  return matchesPrimary || matchesFallback;
+}
+
+function hasAnySecret(): boolean {
+  return Boolean(Deno.env.get("RC_WEBHOOK_SECRET") || Deno.env.get("REVENUECAT_WEBHOOK_SECRET"));
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -50,12 +62,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return j(405, { error: "method_not_allowed" });
 
-  // Auth: dual-secret-name, Bearer-prefix tolerated.
-  const secret = Deno.env.get("RC_WEBHOOK_SECRET") || Deno.env.get("REVENUECAT_WEBHOOK_SECRET") || "";
-  if (!secret) return j(500, { error: "server_misconfigured_no_secret" });
+  // Auth: OR-match against either secret, Bearer-prefix tolerated.
+  if (!hasAnySecret()) return j(500, { error: "server_misconfigured_no_secret" });
   const authHeader = req.headers.get("authorization") ?? req.headers.get("Authorization") ?? "";
   const provided = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : authHeader;
-  if (!timingSafeEqual(provided, secret)) return j(401, { error: "unauthorized" });
+  if (!matchesEitherSecret(provided)) return j(401, { error: "unauthorized" });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");

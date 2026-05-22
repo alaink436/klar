@@ -6,9 +6,9 @@
 // scan-document, which read is_premium server-side and can't be spoofed
 // by a client editing its own profile row).
 //
-// Auth: shared secret in the Authorization header. Reads RC_WEBHOOK_SECRET
-// (primary) with REVENUECAT_WEBHOOK_SECRET as fallback. Bearer-prefix tolerated.
-// Fail-closed if no secret is set.
+// Auth: matches against EITHER RC_WEBHOOK_SECRET OR REVENUECAT_WEBHOOK_SECRET.
+// Either one being correct is enough. Bearer-prefix tolerated. Fail-closed
+// if NEITHER secret is configured.
 //
 // app_user_id == the Supabase auth user id, because the app calls
 // Purchases.logIn(userId) with exactly that id.
@@ -43,6 +43,19 @@ function timingSafeEqual(a: string, b: string): boolean {
   return r === 0;
 }
 
+function matchesEitherSecret(provided: string): boolean {
+  const primary = Deno.env.get("RC_WEBHOOK_SECRET") ?? "";
+  const fallback = Deno.env.get("REVENUECAT_WEBHOOK_SECRET") ?? "";
+  if (!primary && !fallback) return false;
+  const matchesPrimary = primary !== "" && timingSafeEqual(provided, primary);
+  const matchesFallback = fallback !== "" && timingSafeEqual(provided, fallback);
+  return matchesPrimary || matchesFallback;
+}
+
+function hasAnySecret(): boolean {
+  return Boolean(Deno.env.get("RC_WEBHOOK_SECRET") || Deno.env.get("REVENUECAT_WEBHOOK_SECRET"));
+}
+
 async function setPremium(supabase: any, userId: string, isPremium: boolean) {
   const { error } = await supabase.from("profiles").upsert(
     { id: userId, is_premium: isPremium, updated_at: new Date().toISOString() },
@@ -54,14 +67,13 @@ async function setPremium(supabase: any, userId: string, isPremium: boolean) {
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
-  const secret = Deno.env.get("RC_WEBHOOK_SECRET") || Deno.env.get("REVENUECAT_WEBHOOK_SECRET") || "";
-  if (!secret) {
-    console.error("RC_WEBHOOK_SECRET / REVENUECAT_WEBHOOK_SECRET not configured");
+  if (!hasAnySecret()) {
+    console.error("No RC webhook secret configured");
     return new Response("Webhook secret not configured", { status: 500 });
   }
   const authHeader = req.headers.get("Authorization") ?? req.headers.get("authorization") ?? "";
   const provided = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : authHeader;
-  if (!timingSafeEqual(provided, secret)) return new Response("Unauthorized", { status: 401 });
+  if (!matchesEitherSecret(provided)) return new Response("Unauthorized", { status: 401 });
 
   let payload: any;
   try {

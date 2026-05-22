@@ -4,9 +4,9 @@
 // Receives RC subscription events and inserts conversion rows into
 // public.conversions (MyLoo's existing convention).
 //
-// Auth: shared secret in the Authorization header. Reads RC_WEBHOOK_SECRET
-// (primary) with REVENUECAT_WEBHOOK_SECRET as fallback. Bearer-prefix tolerated.
-// Fail-closed if no secret is set. (Hardcoded fallback removed in S30.)
+// Auth: matches against EITHER RC_WEBHOOK_SECRET OR REVENUECAT_WEBHOOK_SECRET.
+// Either one being correct is enough. Bearer-prefix tolerated. Fail-closed
+// if NEITHER secret is configured. (Hardcoded fallback removed in S30.)
 
 // @ts-nocheck
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -18,6 +18,19 @@ function timingSafeEqual(a: string, b: string): boolean {
   return r === 0;
 }
 
+function matchesEitherSecret(provided: string): boolean {
+  const primary = Deno.env.get("RC_WEBHOOK_SECRET") ?? "";
+  const fallback = Deno.env.get("REVENUECAT_WEBHOOK_SECRET") ?? "";
+  if (!primary && !fallback) return false;
+  const matchesPrimary = primary !== "" && timingSafeEqual(provided, primary);
+  const matchesFallback = fallback !== "" && timingSafeEqual(provided, fallback);
+  return matchesPrimary || matchesFallback;
+}
+
+function hasAnySecret(): boolean {
+  return Boolean(Deno.env.get("RC_WEBHOOK_SECRET") || Deno.env.get("REVENUECAT_WEBHOOK_SECRET"));
+}
+
 const j = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
@@ -27,11 +40,10 @@ const j = (status: number, body: unknown) =>
 Deno.serve(async (req) => {
   if (req.method !== "POST") return j(405, { error: "method_not_allowed" });
 
-  const secret = Deno.env.get("RC_WEBHOOK_SECRET") || Deno.env.get("REVENUECAT_WEBHOOK_SECRET") || "";
-  if (!secret) return j(500, { error: "server_misconfigured_no_secret" });
+  if (!hasAnySecret()) return j(500, { error: "server_misconfigured_no_secret" });
   const authHeader = req.headers.get("authorization") ?? req.headers.get("Authorization") ?? "";
   const provided = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : authHeader;
-  if (!timingSafeEqual(provided, secret)) return j(401, { error: "unauthorized" });
+  if (!matchesEitherSecret(provided)) return j(401, { error: "unauthorized" });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
