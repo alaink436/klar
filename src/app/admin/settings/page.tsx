@@ -64,7 +64,7 @@ function settingsCardHtml(s: AdminSettings, msg: string | null): string {
 
   <section class="card">
     <h3>Globale Einstellungen</h3>
-    <form method="POST" action="/admin/settings" class="settings-form">
+    <form method="POST" action="/admin/settings/save" class="settings-form">
       <input type="hidden" name="section" value="global"/>
       <label class="toggle">
         <input type="checkbox" name="shader_enabled" value="1" ${s.shader_enabled ? "checked" : ""}/>
@@ -91,7 +91,7 @@ function settingsCardHtml(s: AdminSettings, msg: string | null): string {
   <section class="card">
     <h3>Benachrichtigungen</h3>
     <p class="card-sub">Wann + wie oft du eine Email zu Inbox-Events bekommst.</p>
-    <form method="POST" action="/admin/settings" class="settings-form">
+    <form method="POST" action="/admin/settings/save" class="settings-form">
       <input type="hidden" name="section" value="notif"/>
       <fieldset class="fieldset">
         <legend class="legend">Trigger</legend>
