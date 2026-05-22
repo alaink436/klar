@@ -3,7 +3,13 @@
 // Recharts-driven analytics dashboard. Receives aggregated payload from
 // the parent server component and only handles rendering + interactive
 // period switching. No client-side data fetching here.
+//
+// Tab + period switching uses next/link so the route change is a Soft
+// Navigation (only the AnalyticsClient subtree re-renders on the server)
+// rather than a full reload — avoids re-bootstrapping Recharts and the
+// WebGL smoke background on every click.
 
+import Link from "next/link";
 import {
   AreaChart,
   Area,
@@ -113,15 +119,16 @@ function TabSelector({
   return (
     <div className="seg" role="tablist" aria-label="Analytics Tab" style={{ marginBottom: 18 }}>
       {TABS.map((t) => (
-        <a
+        <Link
           key={t.id}
           href={hrefFor(t.id)}
           className={active === t.id ? "on" : ""}
           role="tab"
           aria-selected={active === t.id}
+          prefetch
         >
           {t.label}
-        </a>
+        </Link>
       ))}
     </div>
   );
@@ -152,15 +159,16 @@ function PeriodSelector({
   return (
     <div className="seg" role="tablist" aria-label="Zeitraum">
       {PERIODS.map((p) => (
-        <a
+        <Link
           key={p.id}
           href={hrefFor(p.id)}
           className={active === p.id ? "on" : ""}
           role="tab"
           aria-selected={active === p.id}
+          prefetch
         >
           {p.label}
-        </a>
+        </Link>
       ))}
     </div>
   );

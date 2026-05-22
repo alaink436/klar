@@ -8,7 +8,7 @@
 // Env: KLAR_ADMIN_KEY, KLAR_INBOX_SUPABASE_URL (default anime-vault),
 //      KLAR_INBOX_SERVICE_KEY.
 
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   STYLE,
@@ -18,9 +18,10 @@ import {
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
   SMOKE_BG_SCRIPT,
-  ctEqual,
+  readCookieFromString,
   esc,
 } from "../_shared";
+import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps, sbGet, type AdminApp } from "../../../lib/adminApps";
 import { KLAR_APPS, findKlarApp } from "../../../lib/klarApps";
 import AnalyticsClient, {
@@ -61,6 +62,9 @@ function periodWindow(p: Period): { since: string; bucket: "day" | "month" } {
 async function fetchPageviews(since: string): Promise<RawPageview[]> {
   if (!SERVICE_KEY) return [];
   try {
+    // 30s revalidate window: pageview data is for a human-readable dashboard,
+    // not a realtime monitor — a half-minute stale window is fine and avoids
+    // hammering Supabase on every tab/period switch.
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/klar_pageviews?select=created_at,path,referrer,country,session_hash,ua_family&created_at=gte.${encodeURIComponent(since)}&order=created_at.desc&limit=10000`,
       {
@@ -69,7 +73,7 @@ async function fetchPageviews(since: string): Promise<RawPageview[]> {
           Authorization: `Bearer ${SERVICE_KEY}`,
           Accept: "application/json",
         },
-        cache: "no-store",
+        next: { revalidate: 30 },
       },
     );
     if (!res.ok) return [];
@@ -267,6 +271,7 @@ async function fetchAppInstallsAndPremiums(
       sbGet(
         app,
         `referrals?select=id,user_id&created_at=gte.${encodeURIComponent(since)}&limit=10000`,
+        { revalidate: 30 },
       ),
       // Premium = paid revenue events that survived the guards. We filter
       // event_type in (initial_purchase, trial_conversion) so renewals don't
@@ -274,6 +279,7 @@ async function fetchAppInstallsAndPremiums(
       sbGet(
         app,
         `referral_revenue_events?select=user_id&event_type=in.(initial_purchase,trial_conversion)&counts_for_payout=eq.true&event_at=gte.${encodeURIComponent(since)}&limit=10000`,
+        { revalidate: 30 },
       ),
     ]);
     if (refs.length > 0 || paidEvents.length > 0) {
@@ -293,14 +299,17 @@ async function fetchAppInstallsAndPremiums(
       sbGet(
         app,
         `profiles?select=id&referred_by_code_id=not.is.null&created_at=gte.${encodeURIComponent(since)}&limit=10000`,
+        { revalidate: 30 },
       ),
       sbGet(
         app,
         `awin_conversions?select=id&created_at=gte.${encodeURIComponent(since)}&limit=10000`,
+        { revalidate: 30 },
       ),
       sbGet(
         app,
         `referral_revenue_events?select=id&event_type=in.(initial_purchase,trial_conversion)&counts_for_payout=eq.true&event_at=gte.${encodeURIComponent(since)}&limit=10000`,
+        { revalidate: 30 },
       ),
     ]);
     const installs = profiles.length;
@@ -370,28 +379,36 @@ function parsePeriod(p: string | undefined): Period {
   return "month";
 }
 
+const EMPTY_FUNNEL: FunnelPayload = {
+  perApp: [],
+  totalClicks: 0,
+  totalInstalls: 0,
+  totalPremiums: 0,
+};
+
 export default async function AnalyticsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ key?: string; p?: string; tab?: string; p_pub?: string; p_aff?: string; p_fun?: string }>;
+  searchParams: Promise<{ p?: string; tab?: string; p_pub?: string; p_aff?: string; p_fun?: string }>;
 }) {
+  // Auth: matches /admin route — requires klar_device (HMAC-verified) + klar_admin
+  // session (KLAR_ADMIN_KEY equality). Both cookies are issued by /admin/login
+  // after admin-key + TOTP succeed.
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  if (!KEY) {
-    return (
-      <p style={{ color: "#FF6B6B", padding: 24, fontFamily: "'JetBrains Mono',monospace" }}>
-        Server misconfigured: KLAR_ADMIN_KEY not set.
-      </p>
-    );
+  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
+  const TOTP = process.env.KLAR_TOTP_SECRET ?? "";
+  if (!KEY || !DEV || !TOTP) {
+    redirect("/admin/login");
   }
-  const sp = await searchParams;
-  const queryKey = sp.key ?? "";
-  const cookieStore = await cookies();
-  const cookieKey = cookieStore.get("klar_admin")?.value ?? "";
-  const authed = (queryKey && ctEqual(queryKey, KEY)) || ctEqual(cookieKey, KEY);
-  if (!authed) {
-    redirect(queryKey ? "/admin" : "/admin?msg=Bitte%20anmelden");
-  }
+  const h = await headers();
+  const cookieHeader = h.get("cookie") ?? "";
+  const deviceRaw = readCookieFromString(cookieHeader, "klar_device");
+  const device = await verifyDeviceCookie(deviceRaw, DEV);
+  if (!device) redirect("/admin/login");
+  const session = readCookieFromString(cookieHeader, "klar_admin");
+  if (session !== KEY) redirect("/admin/login");
 
+  const sp = await searchParams;
   const tab = parseTab(sp.tab);
   // Per-tab period (with legacy `p` fallback so old links still work)
   const pubP = parsePeriod(sp.p_pub ?? sp.p);
@@ -402,7 +419,12 @@ export default async function AnalyticsPage({
 
   const rows = await fetchPageviews(since);
   const data = aggregate(rows, activePeriod, since);
-  const funnel = await buildFunnel(rows, since);
+  // Funnel fans out 2 Supabase calls × ~6 apps. Only the funnel tab actually
+  // renders that payload, so we skip the fan-out on public/affiliate tabs
+  // and hand an empty funnel to the client (it knows to display zeroes
+  // there anyway because those tabs don't read it).
+  const funnel: FunnelPayload =
+    tab === "funnel" ? await buildFunnel(rows, since) : EMPTY_FUNNEL;
 
   const sidebar = `
     <a class="brand" href="/admin?view=overview" aria-label="Klar Control Home">
@@ -443,8 +465,10 @@ export default async function AnalyticsPage({
       <style dangerouslySetInnerHTML={{ __html: STYLE }} />
       <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       <script dangerouslySetInnerHTML={{ __html: THEME_TOGGLE_SCRIPT }} />
-      {/* Smoke + Glass embeds (same as /admin route) */}
-      <canvas id="klar-smoke-bg" aria-hidden="true" />
+      {/* Smoke + Glass embeds (same as /admin route). suppressHydrationWarning:
+          SMOKE_BG_SCRIPT sets width/height on the canvas at runtime, which is
+          fine but trips React's SSR→client diff. */}
+      <canvas id="klar-smoke-bg" aria-hidden="true" suppressHydrationWarning />
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <div className="layout">
