@@ -54,6 +54,30 @@ export interface Brand {
 
 export type BrandKey = "yarnstash" | "throttleup" | "wavelength" | "kelva" | "trubel" | "myloo";
 
+// Source-of-truth for the public tracking-landing host per app. The Step 4
+// "Live" panel in the onboarding reads this, AND the server-side
+// confirmation email composer in /api/affiliate/complete reuses the same
+// table so the URL the influencer sees in the UI matches what arrives in
+// their inbox.
+//
+// Yarn-Stash + ThrottleUp live on klar (no sister-web repo). The other four
+// apps still own their sister-domain for the tracking-landing only — the
+// onboarding itself was consolidated to klar, but the bio-link target keeps
+// pointing at the per-app domain so each install-referrer pipeline (Awin,
+// Branch-less clipboard, /r/ for Kelva) stays where it was already wired.
+export const TRACKING_HOST_BY_BRAND: Record<BrandKey, (slug: string) => string> = {
+  yarnstash:  (s) => `https://getklar.org/i/yarnstash/${encodeURIComponent(s)}`,
+  throttleup: (s) => `https://getklar.org/i/throttleup/${encodeURIComponent(s)}`,
+  wavelength: (s) => `https://onwavelength.space/i/${encodeURIComponent(s)}`,
+  kelva:      (s) => `https://kelva.space/r/${encodeURIComponent(s)}`,
+  trubel:     (s) => `https://trubel.space/i/${encodeURIComponent(s)}`,
+  myloo:      (s) => `https://myloo.org/i/${encodeURIComponent(s)}`,
+};
+
+export function getTrackingUrl(brand: BrandKey, slug: string): string {
+  return TRACKING_HOST_BY_BRAND[brand](slug);
+}
+
 export const BRANDS: Record<BrandKey, Brand> = {
   yarnstash: {
     key: "yarnstash",

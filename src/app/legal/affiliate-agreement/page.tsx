@@ -124,10 +124,11 @@ export default function AffiliateAgreementPage() {
           <p>
             Auszahlungen erfolgen monatlich, jeweils zum Ersten des Folgemonats,
             für alle bis dahin reifen und nicht zurückerstatteten Conversions.
-            Auszahlungsmethode wird im Onboarding gewählt: PayPal, Wise
-            oder SEPA. Der Affiliate ist für die korrekte Angabe seiner
-            Zahlungsinformationen verantwortlich; nicht zustellbare Beträge
-            werden zurückgehalten, bis korrigierte Daten vorliegen.
+            Auszahlung erfolgt ausschließlich über Wise an die im Onboarding
+            angegebene E-Mail-Adresse. Der Affiliate ist für die korrekte
+            Angabe seiner Zahlungsinformationen verantwortlich; nicht
+            zustellbare Beträge werden zurückgehalten, bis korrigierte Daten
+            vorliegen.
           </p>
           <p>
             Steuerstatus (Kleinunternehmer, regelbesteuert, Privatperson) wird

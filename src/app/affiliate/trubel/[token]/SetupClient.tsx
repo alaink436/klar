@@ -1,15 +1,15 @@
 "use client";
 
-// ThrottleUp thin wrapper around the shared OnboardingShell. Posts the
-// completed payout form to /api/affiliate/complete which proxies into the
-// Moto Supabase via service-role and triggers agreement-log + confirmation
+// Trubel thin wrapper around the shared OnboardingShell. Posts the completed
+// payout form to /api/affiliate/complete which proxies into the Trubel
+// Supabase via service-role and triggers agreement-log + confirmation
 // email.
 
 import { OnboardingShell } from "../../_shared/onboarding";
 import type { PayoutState } from "../../_shared/onboarding";
 import { BRANDS } from "../../_shared/brands";
 
-const BRAND = BRANDS.throttleup;
+const BRAND = BRANDS.trubel;
 
 export function SetupClient({ token, handle, displayName }: { token: string; handle: string; displayName: string }) {
   void displayName;
@@ -18,7 +18,7 @@ export function SetupClient({ token, handle, displayName }: { token: string; han
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        app: "moto",
+        app: "trubel",
         token,
         display_name: form.displayName.trim(),
         country: form.country,
@@ -34,5 +34,5 @@ export function SetupClient({ token, handle, displayName }: { token: string; han
     if (!res.ok || !j?.ok) throw new Error(j?.error || `HTTP ${res.status}`);
   }
 
-  return <OnboardingShell brand="throttleup" handle={`@${handle}`} onSubmit={onSubmit} />;
+  return <OnboardingShell brand="trubel" handle={`@${handle}`} onSubmit={onSubmit} />;
 }

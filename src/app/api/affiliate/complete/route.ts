@@ -19,6 +19,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getApp, sbRpc } from "@/lib/adminApps";
 import { ALLOWED_ORIGINS, isAllowedOrigin, clientIp, rateLimit, exceedsContentLength } from "@/lib/apiGuards";
+import { getTrackingUrl, type BrandKey } from "@/app/affiliate/_shared/brands";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,67 +47,38 @@ export async function OPTIONS(req: NextRequest): Promise<Response> {
 
 const HANDLE_RE = /^[A-Za-z0-9_.-]{1,64}$/;
 const COUNTRY_RE = /^[A-Z]{2,8}$/;
-const PAYOUT_METHODS = new Set(["wise", "paypal", "sepa", "manual"]);
+// Wise is the only payout rail we currently support. PayPal + SEPA are out
+// of scope until those rails are configured on our side. The onboarding UI
+// only ever sends "wise", so anything else is a programmer error or a
+// crafted request and gets rejected.
+const PAYOUT_METHODS = new Set(["wise"]);
 
 const AGREEMENT_VERSION = "v1.0-2026-05-21";
-// Tracking-Link routing per app. Sister-web apps (wavelength/trubel/myloo)
-// host the landing page on their own domain; the two apps without a sister
-// repo (yarn-stash, moto/throttleup) land on klar's own /i/<slug>/<code>
-// route. Kelva uses /r/<code> instead of /i/<handle> because that's how
-// kelva-web is structured.
-//
-// `trackingUrl(slug)` is the user-facing URL that the Affiliate posts in
-// their bio. `slug` is the URL path segment — for code-based apps that's
-// the influencer_codes.code, for handle-based apps it's the raw handle.
-const KLAR_DOMAIN_BY_APP: Record<string, {
-  host: string;
-  appName: string;
-  commissionPct: number;
-  attributionMonths: number;
-  trackingUrl: (slug: string) => string;
-}> = {
-  "yarn-stash": {
-    host: "yarnstash",
-    appName: "Yarn-Stash",
-    commissionPct: 50,
-    attributionMonths: 24,
-    trackingUrl: (s) => `https://getklar.org/i/yarnstash/${encodeURIComponent(s)}`,
-  },
-  moto: {
-    host: "throttleup",
-    appName: "ThrottleUp",
-    commissionPct: 25,
-    attributionMonths: 12,
-    trackingUrl: (s) => `https://getklar.org/i/throttleup/${encodeURIComponent(s)}`,
-  },
-  wavelength: {
-    host: "wavelength",
-    appName: "Wavelength",
-    commissionPct: 30,
-    attributionMonths: 12,
-    trackingUrl: (s) => `https://onwavelength.space/i/${encodeURIComponent(s)}`,
-  },
-  kelva: {
-    host: "kelva",
-    appName: "Kelva",
-    commissionPct: 28,
-    attributionMonths: 12,
-    trackingUrl: (s) => `https://kelva.space/r/${encodeURIComponent(s)}`,
-  },
-  trubel: {
-    host: "trubel",
-    appName: "Trubel",
-    commissionPct: 50,
-    attributionMonths: 24,
-    trackingUrl: (s) => `https://trubel.space/i/${encodeURIComponent(s)}`,
-  },
-  myloo: {
-    host: "myloo",
-    appName: "MyLoo",
-    commissionPct: 26,
-    attributionMonths: 12,
-    trackingUrl: (s) => `https://myloo.org/i/${encodeURIComponent(s)}`,
-  },
+// App-slug (= DB slug, what KLAR_ADMIN_APPS uses) to brand-key (= the
+// onboarding-shell brand identifier in _shared/brands.ts). Two apps have a
+// historical mismatch: the "yarn-stash" DB-slug maps to brand "yarnstash"
+// (no dash), and the "moto" DB-slug maps to brand "throttleup" (the public
+// product name). All other apps share the same string for both.
+const APP_TO_BRAND: Record<string, BrandKey> = {
+  "yarn-stash": "yarnstash",
+  moto: "throttleup",
+  wavelength: "wavelength",
+  kelva: "kelva",
+  trubel: "trubel",
+  myloo: "myloo",
+};
+
+// Per-app metadata that the confirmation email composer needs. Tracking URL
+// is built via the shared getTrackingUrl() helper in brands.ts so the URL
+// the affiliate sees in the onboarding Step 4 panel always matches the URL
+// that arrives in their inbox.
+const APP_META: Record<string, { appName: string; commissionPct: number; attributionMonths: number }> = {
+  "yarn-stash": { appName: "Yarn-Stash", commissionPct: 50, attributionMonths: 24 },
+  moto:         { appName: "ThrottleUp", commissionPct: 25, attributionMonths: 12 },
+  wavelength:   { appName: "Wavelength", commissionPct: 30, attributionMonths: 12 },
+  kelva:        { appName: "Kelva",      commissionPct: 28, attributionMonths: 12 },
+  trubel:       { appName: "Trubel",     commissionPct: 50, attributionMonths: 24 },
+  myloo:        { appName: "MyLoo",      commissionPct: 26, attributionMonths: 12 },
 };
 
 function bad(req: NextRequest, message: string, status = 400): Response {
@@ -233,7 +205,6 @@ export async function POST(req: NextRequest): Promise<Response> {
   const country = String(payload.country ?? "").trim().toUpperCase();
   const payoutMethod = String(payload.payout_method ?? "").trim().toLowerCase();
   const payoutEmail = String(payload.payout_email ?? "").trim().toLowerCase();
-  const payoutIban = String(payload.payout_iban ?? "").trim().toUpperCase();
   const taxStatus = String(payload.tax_status ?? "unknown").trim().toLowerCase();
   const invoiceCapable = Boolean(payload.invoice_capable);
   const promoCode = String(payload.promo_code ?? "").trim().toUpperCase();
@@ -247,10 +218,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (!COUNTRY_RE.test(country)) return bad(req, "invalid country");
   if (!PAYOUT_METHODS.has(payoutMethod)) return bad(req, "invalid payout_method");
   if (promoCode && !HANDLE_RE.test(promoCode)) return bad(req, "invalid promo_code");
-  if (payoutMethod === "sepa" && !payoutIban) return bad(req, "missing iban");
-  if ((payoutMethod === "wise" || payoutMethod === "paypal") && !payoutEmail) {
-    return bad(req, "missing payout_email");
-  }
+  if (!payoutEmail) return bad(req, "missing payout_email");
   if (!agreementAccepted) return bad(req, "agreement_not_accepted");
 
   const app = getApp(appSlug);
@@ -263,8 +231,8 @@ export async function POST(req: NextRequest): Promise<Response> {
       p_display_name: displayName,
       p_country: country,
       p_payout_method: payoutMethod,
-      p_payout_email: payoutMethod === "sepa" ? null : payoutEmail || null,
-      p_payout_iban: payoutMethod === "sepa" ? payoutIban : null,
+      p_payout_email: payoutEmail || null,
+      p_payout_iban: null,
       p_tax_status: taxStatus,
       p_invoice_capable: invoiceCapable,
       p_promo_code: promoCode || null,
@@ -280,7 +248,8 @@ export async function POST(req: NextRequest): Promise<Response> {
   const ua = req.headers.get("user-agent");
   const handle = row.handle ?? displayName.split(/\s+/)[0]?.toLowerCase() ?? "creator";
   let finalPromo = row.promo_code ?? promoCode ?? "";
-  const meta = KLAR_DOMAIN_BY_APP[appSlug];
+  const meta = APP_META[appSlug];
+  const brandKey = APP_TO_BRAND[appSlug];
   // Prefer the contact_email that was set at create_influencer_setup time
   // (token mint), fall back to the payout email the user just entered.
   const sendEmail = row.contact_email ?? contactEmail;
@@ -353,14 +322,16 @@ export async function POST(req: NextRequest): Promise<Response> {
     userAgent: ua,
   });
 
-  if (sendEmail && meta) {
+  if (sendEmail && meta && brandKey) {
     // Tracking URL uses the per-influencer code as path segment (the
     // /i/<host>/<code> route validates against the app's influencer_codes
     // table for yarn-stash + moto; trubel matches on the handle directly).
-    // It's an internal identifier — the Affiliate never sees it as a "promo
-    // code" anymore in mail/PDF/UI, it's just part of the link.
+    // It's an internal identifier, the Affiliate never sees it as a "promo
+    // code" anymore in mail/PDF/UI, it's just part of the link. Built via
+    // the shared getTrackingUrl() so the UI Step 4 panel always matches
+    // what arrives in the inbox.
     const trackingSlug = finalPromo || handle || row.id || "creator";
-    const trackingUrl = meta.trackingUrl(trackingSlug);
+    const trackingUrl = getTrackingUrl(brandKey, trackingSlug);
     const language: "de" | "en" = row.language === "en" ? "en" : "de";
     fireConfirmationEmail({
       app_slug: appSlug,

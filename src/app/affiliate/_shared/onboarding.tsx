@@ -6,7 +6,7 @@
 // a single chunk anyway.
 
 import { useEffect, useMemo, useState } from "react";
-import { Brand, BrandKey, BRANDS, STEPS, StepKey } from "./brands";
+import { Brand, BrandKey, BRANDS, STEPS, StepKey, getTrackingUrl } from "./brands";
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 const ArrowRight = (p: React.SVGProps<SVGSVGElement>) => (
@@ -43,10 +43,12 @@ const CheckIcon = (p: React.SVGProps<SVGSVGElement>) => (
 );
 
 // ── Payout form state shape (lifted to shell so steps can navigate back) ────
+// Only Wise is supported as a payout rail. PayPal + SEPA are out of scope
+// until those rails are actually configured on our side.
 export interface PayoutState {
   displayName: string;
   country: string;
-  method: "paypal" | "wise" | "sepa";
+  method: "wise";
   handle: string;
   taxStatus: string;
   canInvoice: boolean;
@@ -596,7 +598,7 @@ function StepWelcome({ brand, go, handle }: { brand: Brand; go: () => void; hand
         <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
           <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>€</span><span><b>Persönlicher Tracking-Link</b>, Attribution serverseitig, kein Code nötig</span></li>
           <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>€</span><span><b>Live-Dashboard</b> mit Klicks, Installs, Käufen, Auszahlungen</span></li>
-          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>€</span><span><b>Auszahlung monatlich</b> per PayPal, Wise oder SEPA</span></li>
+          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>€</span><span><b>Auszahlung monatlich</b> per Wise</span></li>
         </ul>
       </AccSection>
 
@@ -616,7 +618,7 @@ function StepTracking({ brand, go, prev }: { brand: Brand; go: () => void; prev:
       <div className="aff-stack-md">
         <h1 className="aff-h1 small">So funktioniert <span className="italic">das Tracking.</span></h1>
         <p className="aff-lede">
-          DIY-Attribution, kein Awin-Pixel auf deiner Seite nötig. Dein Link trägt deinen Code, der Rest passiert serverseitig.
+          DIY-Attribution, kein Awin-Pixel auf deiner Seite nötig. Dein Link erkennt dich automatisch wieder, der Rest passiert serverseitig.
         </p>
       </div>
 
@@ -666,10 +668,10 @@ function StepPayout({ go, prev, state, setState, onSubmit }: { go: () => void; p
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = <K extends keyof PayoutState>(k: K, v: PayoutState[K]) => setState({ ...f, [k]: v });
-  const valid = f.displayName.trim().length > 1 && f.handle.length > 1 && f.country
-    && ((f.method === "paypal" && /@/.test(f.handle))
-        || (f.method === "wise" && /@/.test(f.handle))
-        || (f.method === "sepa" && f.handle.replace(/\s/g, "").length >= 14))
+  const valid = f.displayName.trim().length > 1
+    && f.handle.length > 1
+    && f.country
+    && /@/.test(f.handle)
     && f.taxStatus
     && f.agreementAccepted;
 
@@ -719,25 +721,15 @@ function StepPayout({ go, prev, state, setState, onSubmit }: { go: () => void; p
         </div>
 
         <div className="aff-field">
-          <label className="aff-field-label">Auszahlungsmethode</label>
-          <div className="aff-segmented" role="tablist">
-            {[
-              { id: "paypal" as const, label: "PayPal" },
-              { id: "wise" as const, label: "Wise" },
-              { id: "sepa" as const, label: "SEPA" },
-            ].map((m) => (
-              <button key={m.id} role="tab" aria-selected={f.method === m.id} className={f.method === m.id ? "on" : ""} onClick={() => set("method", m.id)}>
-                {m.label}
-              </button>
-            ))}
-          </div>
+          <label className="aff-field-label">Auszahlung via Wise</label>
+          <p style={{ fontSize: 13, color: "var(--aff-fg-3)", margin: "2px 0 0", lineHeight: 1.45 }}>
+            Wir zahlen aktuell ausschließlich über Wise aus. Du brauchst nur eine E-Mail, die mit deinem Wise-Konto verknüpft ist. Wise leitet das Geld in deine Lokalwährung weiter.
+          </p>
         </div>
 
         <div className="aff-field">
-          <label className="aff-field-label">
-            {f.method === "sepa" ? "IBAN" : "E-Mail des Auszahlungskontos"}
-          </label>
-          <input className="aff-field-input" value={f.handle} placeholder={f.method === "sepa" ? "DE89 3704 0044 0532 0130 00" : "pay@molly.studio"} onChange={(e) => set("handle", e.target.value)} />
+          <label className="aff-field-label">E-Mail deines Wise-Kontos</label>
+          <input className="aff-field-input" value={f.handle} placeholder="pay@molly.studio" onChange={(e) => set("handle", e.target.value)} />
         </div>
 
         <div className="aff-field">
@@ -794,10 +786,13 @@ function StepPayout({ go, prev, state, setState, onSubmit }: { go: () => void; p
 // ── Step 4 · Live ───────────────────────────────────────────────────────────
 function StepLive({ brand, state, handle }: { brand: Brand; state: PayoutState; handle: string }) {
   const [copied, setCopied] = useState<string | null>(null);
-  // Tracking link lives on getklar.org until each app has its own domain, and
-  // uses the affiliate's handle as path segment — no shared promo code.
+  // Tracking link target depends on the brand. Apps with their own
+  // tracking-landing domain (wavelength, kelva, trubel, myloo) keep pointing
+  // there. Apps without a sister domain (yarn-stash, throttleup) land on
+  // klar's own /i/<slug>/<code> route. Same mapping the server-side
+  // confirmation-email composer reads, so UI + email never diverge.
   const slug = handle.replace(/^@/, "").toLowerCase().replace(/[^a-z0-9_.-]/g, "") || "creator";
-  const trackingUrl = `https://getklar.org/i/${brand.key === "throttleup" ? "throttleup" : brand.key}/${slug}`;
+  const trackingUrl = getTrackingUrl(brand.key, slug);
 
   const copy = (key: string, value: string) => {
     try { navigator.clipboard.writeText(value); } catch (_) { /* noop */ }
@@ -852,7 +847,7 @@ function StepLive({ brand, state, handle }: { brand: Brand; state: PayoutState; 
       </a>
 
       <p className="aff-consent" style={{ textAlign: "center" }}>
-        Bestätigung an <i>{state.handle || "deine E-Mail"}</i> ist unterwegs. Fragen? <a href="#">affiliates@{brand.domain}</a>
+        Bestätigung an <i>{state.handle || "deine E-Mail"}</i> ist unterwegs. Fragen? <a href="mailto:alain@getklar.org">alain@getklar.org</a>
       </p>
     </div>
   );
@@ -868,7 +863,7 @@ export function OnboardingShell({ brand: brandKey, handle, onSubmit }: { brand: 
   const [payout, setPayout] = useState<PayoutState>({
     displayName: "",
     country: "",
-    method: "paypal",
+    method: "wise",
     handle: "",
     taxStatus: "",
     canInvoice: false,

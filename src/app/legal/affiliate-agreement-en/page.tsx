@@ -125,11 +125,11 @@ export default function AffiliateAgreementEnPage() {
         <Section n="06" title="Payout">
           <p>
             Payouts happen monthly, on the first of the following month, for
-            all conversions that are mature and not refunded by then. The
-            payout method is chosen during onboarding: PayPal, Wise or SEPA.
-            The Affiliate is responsible for correct payment information;
-            non-deliverable amounts are held back until corrected data is
-            provided.
+            all conversions that are mature and not refunded by then. Payouts
+            are made exclusively via Wise to the email address provided
+            during onboarding. The Affiliate is responsible for correct
+            payment information; non-deliverable amounts are held back until
+            corrected data is provided.
           </p>
           <p>
             Tax status (small-business, regular taxation, private individual)

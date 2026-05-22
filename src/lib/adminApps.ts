@@ -38,7 +38,20 @@ export function getApp(slug: string): AdminApp | null {
 
 // PostgREST GET with the service-role key (bypasses RLS). Returns [] on any
 // failure so a not-yet-onboarded app degrades gracefully instead of throwing.
-export async function sbGet(app: AdminApp, path: string): Promise<any[]> {
+//
+// Optional `revalidate` opt-in (seconds) hands off caching to Next's data
+// cache. Default stays no-store so admin pages that need fresh state after a
+// POST (dispatch, reconcile, mint) keep seeing reality. Read-only dashboards
+// can pass revalidate: 30 to dedupe across tab-switches.
+export async function sbGet(
+  app: AdminApp,
+  path: string,
+  opts?: { revalidate?: number },
+): Promise<any[]> {
+  const cacheOpts =
+    opts && typeof opts.revalidate === "number"
+      ? { next: { revalidate: opts.revalidate } }
+      : { cache: "no-store" as const };
   try {
     const res = await fetch(`${app.supabaseUrl}/rest/v1/${path}`, {
       headers: {
@@ -46,7 +59,7 @@ export async function sbGet(app: AdminApp, path: string): Promise<any[]> {
         Authorization: `Bearer ${app.serviceKey}`,
         Accept: "application/json",
       },
-      cache: "no-store",
+      ...cacheOpts,
     });
     if (!res.ok) return [];
     const j = await res.json();
@@ -155,15 +168,18 @@ export async function createInfluencerSetup(
   });
 }
 
-// Canonical landing-page-host per app for the setup-token link. Apps with
-// their own sister-web-repo + domain use `<domain>/affiliate/<token>`.
-// Apps without a dedicated web-repo (Yarn-Stash, ThrottleUp) get a Klar
-// fallback under `getklar.org/affiliate/<slug>/<token>`.
+// Canonical landing-page-host per app for the setup-token link. All
+// affiliate-onboarding pages now live on getklar.org under
+// `affiliate/<slug>/<token>`, regardless of whether the app has its own
+// sister-web-repo or not. The sister-web-repos (kelva.space, trubel.space,
+// onwavelength.space, myloo.org) keep their tracking-landing routes
+// (`/i/<handle>`, `/r/<code>`) but the affiliate onboarding is consolidated
+// to klar so there's only one onboarding-shell to maintain.
 const FALLBACK_HOSTS: Record<string, string> = {
-  trubel: "https://trubel.space",
-  myloo: "https://myloo.org",
-  wavelength: "https://onwavelength.space",
-  kelva: "https://kelva.space",
+  trubel: "https://getklar.org/affiliate/trubel",
+  myloo: "https://getklar.org/affiliate/myloo",
+  wavelength: "https://getklar.org/affiliate/wavelength",
+  kelva: "https://getklar.org/affiliate/kelva",
   "yarn-stash": "https://getklar.org/affiliate/yarnstash",
   moto: "https://getklar.org/affiliate/throttleup",
 };
@@ -171,9 +187,10 @@ const FALLBACK_HOSTS: Record<string, string> = {
 export function setupLandingUrl(appSlug: string, token: string): string {
   const envHost = process.env[`KLAR_APP_HOST_${appSlug.toUpperCase().replace(/-/g, "_")}`];
   const host = envHost || FALLBACK_HOSTS[appSlug] || "https://getklar.org";
-  // For per-app domain hosts (trubel/myloo/etc.) use /affiliate/<token>.
-  // For the klar-fallback hosts the host already encodes the per-app
-  // subpath, just append the token.
+  // Klar-hosted onboarding paths already encode the per-app subpath, just
+  // append the token. The env-override branch keeps the old per-domain
+  // shape for emergency rollback (set KLAR_APP_HOST_TRUBEL=https://trubel.space
+  // to fall back to the sister-repo route if needed).
   if (host.startsWith("https://getklar.org/affiliate/")) {
     return `${host}/${encodeURIComponent(token)}`;
   }

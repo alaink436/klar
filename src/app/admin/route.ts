@@ -11,7 +11,7 @@
 //      KLAR_OUTREACH_SHEET_ID (optional, defaults to the Marketing master).
 
 import { createSign } from "node:crypto";
-import { getApps, sbGet, type AdminApp } from "../../lib/adminApps";
+import { getApps, sbGet, setupLandingUrl, type AdminApp } from "../../lib/adminApps";
 import { KLAR_APPS, type KlarAppMeta } from "../../lib/klarApps";
 import {
   STYLE,
@@ -21,15 +21,15 @@ import {
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
   SMOKE_BG_SCRIPT,
-  ctEqual,
-  readCookie,
+  checkAuth,
   esc,
 } from "./_shared";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const KLAR_ADMIN_KEY = process.env.KLAR_ADMIN_KEY ?? "";
+// Auth lives in _shared.ts (checkAuth) — requires KLAR_ADMIN_KEY +
+// KLAR_TOTP_SECRET + KLAR_DEVICE_SECRET. /admin/login handles the form.
 // Google Sheets read for the Outreach view. Whole service-account JSON key
 // file content in one Vercel env var (KLAR_SHEETS_SA_JSON) so the escaped
 // \n in private_key survive via JSON.parse. Never in the repo/chat. Without
@@ -142,22 +142,6 @@ if("serviceWorker"in navigator){addEventListener("load",function(){navigator.ser
 }
 
 // ICON record is now exported from ./_shared.
-
-function loginPage(err?: string): Response {
-  return doc(`<div class="login">
-    <div class="login-card">
-      <div class="login-badge" aria-hidden="true" style="width:56px;height:56px;padding:6px"><img src="/logo/klar-symbol.png" alt="Klar" style="width:100%;height:100%;object-fit:contain;display:block"/></div>
-      <div class="login-mark">Klar</div>
-      <p class="login-tag">Das Kontrollzentrum hinter dem Studio.</p>
-      <div class="login-rule"></div>
-      ${err ? `<p class="login-err">${esc(err)}</p>` : ""}
-      <form method="GET" action="/admin">
-        <input class="login-input" name="key" type="password" placeholder="Admin-Key" autofocus autocomplete="current-password"/>
-        <button class="btn" style="margin-top:14px;width:100%;padding:12px;justify-content:center" type="submit">Anmelden</button>
-      </form>
-      <p class="login-foot">Intern · getklar.org</p>
-    </div></div>`);
-}
 
 function shell(view: string, apps: AdminApp[], flash: string | null, main: string): string {
   const item = (v: string, label: string, icon: string, href?: string) =>
@@ -668,26 +652,11 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
     .map((a) => `<option value="${esc(a.slug)}">${esc(a.name)}</option>`)
     .join("");
 
-  // Map app-slug → onboarding-host. Mirrors lib/adminApps.setupLandingUrl()
-  // so the admin can copy/paste the live link without a round-trip.
-  const setupHostFor = (slug: string): string => {
-    const envHost = process.env[`KLAR_APP_HOST_${slug.toUpperCase().replace(/-/g, "_")}`];
-    if (envHost) return envHost;
-    const fallback: Record<string, string> = {
-      trubel: "https://trubel.space",
-      myloo: "https://myloo.app",
-      wavelength: "https://onwavelength.space",
-      kelva: "https://kelva.space",
-      "yarn-stash": "https://getklar.org/affiliate/yarnstash",
-      moto: "https://getklar.org/affiliate/throttleup",
-    };
-    return fallback[slug] ?? "https://getklar.org";
-  };
-  const setupLinkFor = (slug: string, token: string): string => {
-    const host = setupHostFor(slug);
-    if (host.startsWith("https://getklar.org/affiliate/")) return `${host}/${token}`;
-    return `${host}/affiliate/${token}`;
-  };
+  // Onboarding-Link delegated to lib/adminApps.setupLandingUrl() so there is
+  // exactly one place that knows the per-app host. The old in-line table
+  // here drifted from the canonical one (myloo.app vs myloo.org) which
+  // would have rendered dead admin links for the wrong app.
+  const setupLinkFor = (slug: string, token: string): string => setupLandingUrl(slug, token);
 
   const approveForm = (r: Inquiry): string => {
     if (r.type !== "affiliate") return "";
@@ -1012,13 +981,17 @@ function calView(): string {
 }
 
 export async function GET(req: Request): Promise<Response> {
-  if (!KLAR_ADMIN_KEY) return doc(`<p style="color:#FF6B6B;padding:24px;font-family:'JetBrains Mono',monospace">Server misconfigured: KLAR_ADMIN_KEY not set.</p>`);
-  const url = new URL(req.url);
-  const qKey = url.searchParams.get("key") ?? "";
-  const byQuery = !!qKey && ctEqual(qKey, KLAR_ADMIN_KEY);
-  const authed = byQuery || ctEqual(readCookie(req, "klar_admin"), KLAR_ADMIN_KEY);
-  if (!authed) return qKey ? loginPage("Wrong key.") : loginPage();
+  const auth = await checkAuth(req);
+  if (!auth.authed) {
+    // Misconfigured envs or unknown device or expired session — bounce to
+    // the unified login page, which handles all three cases.
+    return new Response(null, {
+      status: 303,
+      headers: { Location: "/admin/login" },
+    });
+  }
 
+  const url = new URL(req.url);
   const apps = getApps();
   const flash = url.searchParams.get("msg");
   const view = url.searchParams.get("view") || "overview";
@@ -1039,12 +1012,5 @@ export async function GET(req: Request): Promise<Response> {
     main = app ? await appView(app) : await overview(apps);
   }
 
-  const res = doc(shell(view, apps, flash, main));
-  if (byQuery) {
-    res.headers.append(
-      "Set-Cookie",
-      `klar_admin=${encodeURIComponent(qKey)}; HttpOnly; Secure; SameSite=Lax; Path=/admin; Max-Age=43200`,
-    );
-  }
-  return res;
+  return doc(shell(view, apps, flash, main));
 }
