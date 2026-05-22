@@ -17,6 +17,7 @@ import {
   listOutreachTargets,
   listOutreachRuns,
   listAppTemplates,
+  getOutreachCostSummary,
   isOutreachConfigured,
   type OutreachPlatform,
   type OutreachStatus,
@@ -556,10 +557,11 @@ async function outreachView(
   const app = filterApp && filterApp !== "all" ? filterApp : "all";
   const q = query.trim().slice(0, 80);
 
-  const [stats, rows, runs] = await Promise.all([
+  const [stats, rows, runs, costSummary] = await Promise.all([
     getOutreachStats(),
     listOutreachTargets({ platform, status, app, query: q, limit: 200 }),
     listOutreachRuns(10),
+    getOutreachCostSummary(),
   ]);
 
   // Auto-refresh meta-tag (15s). Off by default — toggle via ?ar=1.
@@ -972,38 +974,125 @@ getklar.org`;
     </script>
   </section>`;
 
-  // Run-History compact-Tabelle (letzte 10 Runs)
-  const runStatusPill = (s: OutreachRun["status"]): string => {
-    const m: Record<string, { bg: string; fg: string }> = {
-      queued:    { bg: "#fef9c3", fg: "#854d0e" },
-      running:   { bg: "#dbeafe", fg: "#1e40af" },
-      done:      { bg: "#dcfce7", fg: "#166534" },
-      failed:    { bg: "#fee2e2", fg: "#991b1b" },
-      cancelled: { bg: "#e5e5e5", fg: "#525252" },
+  // Run-History compact-Tabelle (letzte 10 Runs). Status-Pill markiert
+  // failed/stale visuell, errors-jsonb ist ausklappbar pro Row.
+  const STALE_MS = 10 * 60 * 1000;  // running > 10min → "may be stuck"
+  const now = Date.now();
+  const isStale = (r: OutreachRun) =>
+    r.status === "running" && r.started_at &&
+    now - new Date(r.started_at).getTime() > STALE_MS;
+  const runStatusPill = (r: OutreachRun): string => {
+    const s = r.status;
+    if (isStale(r)) {
+      return `<span class="pill" style="background:#fed7aa;color:#9a3412;border-color:#fb923c33;font-weight:600;font-size:9px">⚠ stale running</span>`;
+    }
+    const m: Record<string, { bg: string; fg: string; label: string }> = {
+      queued:    { bg: "#fef9c3", fg: "#854d0e", label: "queued" },
+      running:   { bg: "#dbeafe", fg: "#1e40af", label: "running" },
+      done:      { bg: "#dcfce7", fg: "#166534", label: "✓ done" },
+      failed:    { bg: "#fee2e2", fg: "#991b1b", label: "✕ failed" },
+      cancelled: { bg: "#e5e5e5", fg: "#525252", label: "cancelled" },
     };
-    const c = m[s] ?? { bg: "#e0e7ff", fg: "#3730a3" };
-    return `<span class="pill" style="background:${c.bg};color:${c.fg};border-color:${c.fg}22;font-weight:600;font-size:9px">${esc(s)}</span>`;
+    const c = m[s] ?? { bg: "#e0e7ff", fg: "#3730a3", label: s };
+    return `<span class="pill" style="background:${c.bg};color:${c.fg};border-color:${c.fg}22;font-weight:600;font-size:9px">${esc(c.label)}</span>`;
   };
-  const runRows = runs.length === 0
-    ? `<tr><td colspan="7" class="muted" style="font-style:italic">noch keine Wellen gestartet</td></tr>`
-    : runs.map((r) => `<tr>
-        <td class="muted" style="font-size:11px;white-space:nowrap">${fmtRelative(r.created_at)}</td>
+
+  const runRow = (r: OutreachRun, idx: number): string => {
+    const hasDetail = Boolean(
+      r.errors ||
+      r.status === "failed" ||
+      isStale(r) ||
+      r.niche ||
+      (r.mail_subject && r.mail_subject.length > 0)
+    );
+    const rowId = `run-${idx}`;
+    const expanderBtn = hasDetail
+      ? `<button type="button" class="btn ghost" onclick="var d=document.getElementById('${rowId}-detail');d.style.display=d.style.display==='none'?'table-row':'none';" style="padding:2px 7px;font-size:11px;margin-right:6px">▸</button>`
+      : `<span style="display:inline-block;width:28px"></span>`;
+    const durationStr = r.finished_at && r.started_at
+      ? `${Math.round((new Date(r.finished_at).getTime() - new Date(r.started_at).getTime()) / 1000)}s`
+      : r.status === "running" && r.started_at
+        ? `<span class="muted">läuft ${Math.round((now - new Date(r.started_at).getTime()) / 1000)}s</span>`
+        : "—";
+    const errorsHtml = r.errors
+      ? `<pre style="margin:8px 0 0;padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:6px;font-family:var(--font-mono);font-size:11px;color:var(--fg-2);overflow-x:auto;white-space:pre-wrap">${esc(JSON.stringify(r.errors, null, 2))}</pre>`
+      : "";
+    const sizeBuckets = (r.size_buckets && r.size_buckets.length > 0)
+      ? r.size_buckets.join(", ")
+      : "—";
+    const detailRow = hasDetail
+      ? `<tr id="${rowId}-detail" style="display:none"><td colspan="7" style="padding:14px 16px;background:var(--surface-2);border-top:1px solid var(--line)">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;font-size:12px">
+            <div><span class="k" style="font-size:9.5px">Buckets</span><div style="font-family:var(--font-mono);margin-top:2px">${esc(sizeBuckets)}</div></div>
+            <div><span class="k" style="font-size:9.5px">Niche</span><div style="margin-top:2px">${esc(r.niche ?? "—")}</div></div>
+            <div><span class="k" style="font-size:9.5px">Dauer</span><div style="font-family:var(--font-mono);margin-top:2px">${durationStr}</div></div>
+            <div><span class="k" style="font-size:9.5px">Run-ID</span><div style="font-family:var(--font-mono);font-size:10px;margin-top:2px">${esc(r.id.slice(0, 8))}…</div></div>
+          </div>
+          ${r.mail_subject ? `<div style="margin-top:12px"><span class="k" style="font-size:9.5px">Mail-Subject (Override)</span><div style="margin-top:3px;font-family:var(--font-mono);font-size:12px;color:var(--fg-2)">${esc(r.mail_subject)}</div></div>` : ""}
+          ${r.errors ? `<div style="margin-top:12px"><span class="k" style="font-size:9.5px;color:var(--danger)">Errors / Notes</span>${errorsHtml}</div>` : ""}
+        </td></tr>`
+      : "";
+    return `<tr>
+        <td>${expanderBtn}<span class="muted" style="font-size:11px;white-space:nowrap">${fmtRelative(r.created_at)}</span></td>
         <td>${(r.apps ?? []).map((a) => `<span class="pill" style="font-size:9px;padding:1px 6px">${esc(a)}</span>`).join(" ")}</td>
         <td>${(r.platforms ?? []).map((p) => `<span class="pill" style="font-size:9px;padding:1px 6px">${esc(p)}</span>`).join(" ")}</td>
         <td class="r">${r.count_per_app}/App</td>
         <td class="r">${r.cost_estimate_usd != null ? "$" + Number(r.cost_estimate_usd).toFixed(2) : "—"}${r.cost_actual_usd != null ? `<div class="muted" style="font-size:10px">actual $${Number(r.cost_actual_usd).toFixed(2)}</div>` : ""}</td>
-        <td class="r">${r.targets_added} Tgt / ${r.mails_sent} ✉</td>
-        <td>${runStatusPill(r.status)}</td>
-      </tr>`).join("");
+        <td class="r">${r.targets_added} / ${r.mails_sent} ✉<div class="muted" style="font-size:10px">${durationStr === "—" ? "" : durationStr}</div></td>
+        <td>${runStatusPill(r)}</td>
+      </tr>${detailRow}`;
+  };
+
+  const runRows = runs.length === 0
+    ? `<tr><td colspan="7" class="muted" style="font-style:italic">noch keine Wellen gestartet</td></tr>`
+    : runs.map(runRow).join("");
   const runsTable = `<h2>Letzte Wellen</h2>
     <table>
-      <thead><tr><th>Wann</th><th>Apps</th><th>Platforms</th><th class="r">Count</th><th class="r">Cost</th><th class="r">Output</th><th>Status</th></tr></thead>
+      <thead><tr><th>Wann</th><th>Apps</th><th>Platforms</th><th class="r">Count</th><th class="r">Cost</th><th class="r">Output / Dauer</th><th>Status</th></tr></thead>
       <tbody>${runRows}</tbody>
     </table>`;
+
+  // Cost-Tracker: aktueller Stand der Monatskosten + Brevo-Daily-Counter
+  // mit Progress-Bars gegen die Free-Tier-Limits.
+  const apifyUsed = costSummary.month_apify_actual_usd || costSummary.month_apify_estimate_usd;
+  const apifyPct = Math.min(100, Math.round((apifyUsed / costSummary.apify_free_tier_usd) * 100));
+  const apifyColor = apifyPct >= 90 ? "#dc2626" : apifyPct >= 70 ? "#d97706" : "#16a34a";
+  const brevoPct = Math.min(100, Math.round((costSummary.brevo_today_count / costSummary.brevo_free_daily_cap) * 100));
+  const brevoColor = brevoPct >= 90 ? "#dc2626" : brevoPct >= 70 ? "#d97706" : "#16a34a";
+  const costCard = `<section style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 22px;margin-bottom:24px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
+      <h2 style="margin:0;font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-0.01em;text-transform:none;color:var(--fg)">Kosten diesen Monat</h2>
+      <span class="muted" style="font-size:11px;font-family:var(--font-mono)">${costSummary.month_runs_count} Wellen · ${costSummary.month_targets_added} Targets · ${costSummary.month_mails_sent} Mails</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;margin-bottom:6px">
+          <span class="k">Apify</span>
+          <span style="font-family:var(--font-mono);color:var(--fg)"><strong>$${apifyUsed.toFixed(2)}</strong> / $${costSummary.apify_free_tier_usd.toFixed(2)} Free-Tier</span>
+        </div>
+        <div style="height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${apifyPct}%;background:${apifyColor};transition:width .3s"></div>
+        </div>
+        <div class="muted" style="font-size:10px;margin-top:4px">${costSummary.month_apify_actual_usd > 0 ? "actual" : "estimate"} · ${apifyPct}% Cap</div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;margin-bottom:6px">
+          <span class="k">Brevo (heute)</span>
+          <span style="font-family:var(--font-mono);color:var(--fg)"><strong>${costSummary.brevo_today_count}</strong> / ${costSummary.brevo_free_daily_cap} Free-Tier/Tag</span>
+        </div>
+        <div style="height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${brevoPct}%;background:${brevoColor};transition:width .3s"></div>
+        </div>
+        <div class="muted" style="font-size:10px;margin-top:4px">${costSummary.month_mails_sent} Mails gesamt diesen Monat · ${brevoPct}% Tages-Cap</div>
+      </div>
+    </div>
+    ${apifyPct >= 70 || brevoPct >= 70 ? `<p class="muted" style="font-size:11px;margin:12px 0 0;font-style:italic">${apifyPct >= 70 ? "⚠ Apify-Free-Tier wird knapp — weitere große Wellen kosten echtes Geld. Apify-Dashboard → Usage." : ""}${brevoPct >= 70 ? "⚠ Brevo-Tages-Cap wird knapp — morgen wieder fresh." : ""}</p>` : ""}
+  </section>`;
 
   return `${refreshMeta}<h1>Outreach</h1>
     <p class="sub">Influencer-Outreach-Tracker. <em>Queued → DM gesendet → Antwort → Converted</em>. Auto-Refresh ${autoRefresh ? "alle 15s" : "aus"}, Daten aus Supabase anime-vault.</p>
     ${cards}
+    ${costCard}
     ${waveForm}
     <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
     ${runsTable}

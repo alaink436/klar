@@ -534,6 +534,68 @@ export async function upsertAppTemplate(
   return rows[0];
 }
 
+export interface OutreachCostSummary {
+  month_runs_count: number;
+  month_targets_added: number;
+  month_mails_sent: number;
+  month_apify_estimate_usd: number;     // sum of cost_estimate_usd
+  month_apify_actual_usd: number;        // sum of cost_actual_usd (often null for now)
+  apify_free_tier_usd: number;           // hardcoded $5
+  brevo_free_daily_cap: number;          // hardcoded 300
+  brevo_today_count: number;
+}
+
+/** Aggregate this calendar month's run-costs + Brevo daily count. Used
+ * for the KPI cards in /admin?view=outreach so the admin can see how
+ * close they are to the Apify free-tier cap before they start a wave. */
+export async function getOutreachCostSummary(): Promise<OutreachCostSummary> {
+  const empty: OutreachCostSummary = {
+    month_runs_count: 0, month_targets_added: 0, month_mails_sent: 0,
+    month_apify_estimate_usd: 0, month_apify_actual_usd: 0,
+    apify_free_tier_usd: 5, brevo_free_daily_cap: 300, brevo_today_count: 0,
+  };
+  if (!KLAR_INBOX_KEY) return empty;
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+  const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_runs?select=cost_estimate_usd,cost_actual_usd,targets_added,mails_sent,finished_at,created_at&created_at=gte.${encodeURIComponent(monthStart)}`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return empty;
+    const rows = (await res.json()) as Array<{
+      cost_estimate_usd: number | null;
+      cost_actual_usd: number | null;
+      targets_added: number;
+      mails_sent: number;
+      finished_at: string | null;
+    }>;
+    let estimate = 0, actual = 0, targets = 0, mails = 0, todayMails = 0;
+    const dayMs = new Date(dayStart).getTime();
+    for (const r of rows) {
+      estimate += Number(r.cost_estimate_usd ?? 0);
+      actual += Number(r.cost_actual_usd ?? 0);
+      targets += Number(r.targets_added ?? 0);
+      mails += Number(r.mails_sent ?? 0);
+      if (r.finished_at && new Date(r.finished_at).getTime() >= dayMs) {
+        todayMails += Number(r.mails_sent ?? 0);
+      }
+    }
+    return {
+      ...empty,
+      month_runs_count: rows.length,
+      month_targets_added: targets,
+      month_mails_sent: mails,
+      month_apify_estimate_usd: Math.round(estimate * 1000) / 1000,
+      month_apify_actual_usd: Math.round(actual * 1000) / 1000,
+      brevo_today_count: todayMails,
+    };
+  } catch {
+    return empty;
+  }
+}
+
 /** Last N runs, newest first. UI uses this for the History-Table. */
 export async function listOutreachRuns(limit = 25): Promise<OutreachRun[]> {
   if (!KLAR_INBOX_KEY) return [];
