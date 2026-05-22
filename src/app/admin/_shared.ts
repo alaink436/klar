@@ -118,18 +118,6 @@ export const STYLE = `
  --font-display:'Space Grotesk',system-ui,sans-serif;--font-editorial:'Fraunces',Georgia,serif;
  --font-body:'Manrope',system-ui,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;
 }
-/* Re-assert font variables on the admin wrappers. /admin (route.ts) bypasses
-   the Next.js root layout, but /admin/settings + /admin/analytics render
-   inside it — where the body className from layout.tsx sets --font-* to
-   Next.js' hashed font variables and shadows the :root values above.
-   .layout / .login are closer ancestors to h1/.sub than <body>, so re-
-   declaring the same Google-Fonts-CDN families here wins via inheritance
-   and both routes end up rendering identically (Space Grotesk display +
-   Fraunces editorial via FONTS_LINK). */
-.layout,.login{
- --font-display:'Space Grotesk',system-ui,sans-serif;--font-editorial:'Fraunces',Georgia,serif;
- --font-body:'Manrope',system-ui,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;
-}
 [data-theme="dark"]{
  color-scheme:dark;
  --bg:#0A0A0A;--surface:#111111;--surface-2:#181818;--surface-3:#1F1F1F;
