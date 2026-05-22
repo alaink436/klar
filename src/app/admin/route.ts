@@ -15,10 +15,12 @@ import {
   getOutreachStats,
   getOutreachPerAppStats,
   listOutreachTargets,
+  listOutreachRuns,
   isOutreachConfigured,
   type OutreachPlatform,
   type OutreachStatus,
   type OutreachTarget,
+  type OutreachRun,
   type PerAppStat,
 } from "../../lib/outreachStore";
 import {
@@ -552,10 +554,11 @@ async function outreachView(
   const app = filterApp && filterApp !== "all" ? filterApp : "all";
   const q = query.trim().slice(0, 80);
 
-  const [stats, perApp, rows] = await Promise.all([
+  const [stats, perApp, rows, runs] = await Promise.all([
     getOutreachStats(),
     getOutreachPerAppStats(),
     listOutreachTargets({ platform, status, app, query: q, limit: 200 }),
+    listOutreachRuns(10),
   ]);
 
   // Auto-refresh meta-tag (15s). Toggle via ?ar=0.
@@ -787,11 +790,143 @@ async function outreachView(
     ? `<tr><td colspan="7" class="muted">Keine Targets in dieser Auswahl. ${(platform !== "all" || status !== "all" || app !== "all" || q) ? `<a class="applink" href="/admin?view=outreach">Filter zurücksetzen</a>` : "Füg einen mit dem Formular oben hinzu."}</td></tr>`
     : rows.map(targetRow).join("");
 
+  // Wave-Starter: kicks off an Apify-driven discovery + Mail-1 send for
+  // selected apps. The n8n consumer workflow (next session) picks up
+  // queued klar_outreach_runs rows and processes them. Until then the
+  // form persists the config but no scraping/sending happens.
+  const liveApps = KLAR_APPS.filter((a) => a.status === "LIVE");
+  const waveAppCheckboxes = liveApps
+    .map((a) => `<label class="wave-pick" style="display:inline-flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:13px;cursor:pointer">
+      <input type="checkbox" name="apps" value="${esc(a.slug)}" class="wave-app-chk" style="margin:0"/>${esc(a.name)}
+    </label>`).join("");
+
+  const defaultMailSubject = "Quick collab idea — {{app_name}} x @{{handle}}";
+  const defaultMailBody = `Hi {{name}},
+
+[1 spezifischer Satz zu ihrem Content der zeigt dass du wirklich folgst].
+
+Quick intro: I'm Alain, solo-dev behind {{app_name}}, [1-sentence USP].
+
+Why I'm writing: your audience overlaps strongly with our users. What I can offer:
+- Free Lifetime Premium for you, no strings
+- Your personal affiliate link: 50% revenue-share on every Premium sub it brings in, for 24 months, auto-tracked, paid out monthly (Wise/PayPal/SEPA)
+- Optional flat fee per post on top if you'd rather de-risk it
+- Full creative freedom, no scripts, no approval cycles
+
+If interested I'll send a 5-min Loom of the app plus 2-3 hook ideas in your content style. If not, no worries.
+
+Cheers,
+Alain
+getklar.org`;
+
+  const waveForm = `<details open style="background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;padding:18px 22px;margin-bottom:24px;box-shadow:var(--shadow-sm)">
+    <summary style="cursor:pointer;font-weight:700;font-size:15px;color:var(--fg);user-select:none;font-family:var(--font-display);letter-spacing:-0.01em">🚀 Welle starten</summary>
+    <form method="POST" action="/admin/outreach/start" id="wave-form" style="margin-top:18px;display:flex;flex-direction:column;gap:16px">
+      <div>
+        <div class="k" style="margin-bottom:8px">Apps (Multi-Select, nur LIVE)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">${waveAppCheckboxes}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
+        <div>
+          <div class="k" style="margin-bottom:8px">Plattformen</div>
+          <div style="display:flex;gap:8px">
+            <label class="wave-pick" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:12px;cursor:pointer">
+              <input type="checkbox" name="platforms" value="tiktok" checked class="wave-plat-chk" style="margin:0"/>TikTok
+            </label>
+            <label class="wave-pick" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:12px;cursor:pointer">
+              <input type="checkbox" name="platforms" value="instagram" checked class="wave-plat-chk" style="margin:0"/>Instagram
+            </label>
+          </div>
+        </div>
+        <label style="display:flex;flex-direction:column">
+          <span class="k" style="margin-bottom:6px">Pro App</span>
+          <input type="number" name="count_per_app" min="1" max="500" value="20" id="wave-count" style="padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:14px;font-variant-numeric:tabular-nums"/>
+        </label>
+        <label style="display:flex;flex-direction:column">
+          <span class="k" style="margin-bottom:6px">Niche-Keyword (optional)</span>
+          <input type="text" name="niche" maxlength="80" placeholder="yarn, coach, moto…" style="padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:14px"/>
+        </label>
+      </div>
+      <label style="display:flex;flex-direction:column">
+        <span class="k" style="margin-bottom:6px">Mail-Subject</span>
+        <input type="text" name="mail_subject" maxlength="200" value="${esc(defaultMailSubject)}" style="padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:14px;font-family:var(--font-mono)"/>
+      </label>
+      <label style="display:flex;flex-direction:column">
+        <span class="k" style="margin-bottom:6px">Mail-Body <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">{{name}}, {{handle}}, {{app_name}} werden pro Target ersetzt</span></span>
+        <textarea name="mail_body" rows="14" style="padding:10px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-body);resize:vertical;line-height:1.5">${esc(defaultMailBody)}</textarea>
+      </label>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding-top:8px;border-top:1px solid var(--line);flex-wrap:wrap">
+        <div id="wave-cost" class="muted" style="font-family:var(--font-mono);font-size:12px">
+          <span class="k" style="margin-right:8px">Schätzung</span>
+          <span id="wave-cost-display">— Apps + Plattformen wählen</span>
+        </div>
+        <button type="submit" class="btn" style="padding:10px 18px;font-size:14px">🚀 Welle starten →</button>
+      </div>
+      <p class="muted" style="margin:0;font-size:11px;font-style:italic">⚠️ Backend ist noch nicht scharf — der Klick speichert die Konfiguration aktuell als <code>klar_outreach_runs</code>-Row mit Status <code>queued</code>. n8n-Workflow der Apify scraped + Mails sendet kommt in nächster Session.</p>
+    </form>
+    <script>
+      (function(){
+        var f = document.getElementById('wave-form');
+        if (!f) return;
+        var display = document.getElementById('wave-cost-display');
+        function calc(){
+          var apps = f.querySelectorAll('input.wave-app-chk:checked').length;
+          var plats = f.querySelectorAll('input.wave-plat-chk:checked').length;
+          var n = parseInt((f.querySelector('input[name="count_per_app"]')||{}).value || '0', 10) || 0;
+          var total = apps * plats * n;
+          // Apify pricing rough estimate: ~$0.001 per profile lookup (profile-
+          // scraper actor). Real cost depends on actor + compute time; refine
+          // when we wire up Apify's getActor pricing API.
+          var usd = total * 0.001;
+          if (total === 0) {
+            display.textContent = '— Apps + Plattformen wählen';
+            return;
+          }
+          display.innerHTML = '~' + total.toLocaleString() + ' Profile · <strong>≈ $' + usd.toFixed(2) + '</strong> Apify-Kosten';
+        }
+        f.addEventListener('change', calc);
+        f.addEventListener('input', calc);
+        calc();
+      })();
+    </script>
+  </details>`;
+
+  // Run-History compact-Tabelle (letzte 10 Runs)
+  const runStatusPill = (s: OutreachRun["status"]): string => {
+    const m: Record<string, { bg: string; fg: string }> = {
+      queued:    { bg: "#fef9c3", fg: "#854d0e" },
+      running:   { bg: "#dbeafe", fg: "#1e40af" },
+      done:      { bg: "#dcfce7", fg: "#166534" },
+      failed:    { bg: "#fee2e2", fg: "#991b1b" },
+      cancelled: { bg: "#e5e5e5", fg: "#525252" },
+    };
+    const c = m[s] ?? { bg: "#e0e7ff", fg: "#3730a3" };
+    return `<span class="pill" style="background:${c.bg};color:${c.fg};border-color:${c.fg}22;font-weight:600;font-size:9px">${esc(s)}</span>`;
+  };
+  const runRows = runs.length === 0
+    ? `<tr><td colspan="7" class="muted" style="font-style:italic">noch keine Wellen gestartet</td></tr>`
+    : runs.map((r) => `<tr>
+        <td class="muted" style="font-size:11px;white-space:nowrap">${fmtRelative(r.created_at)}</td>
+        <td>${(r.apps ?? []).map((a) => `<span class="pill" style="font-size:9px;padding:1px 6px">${esc(a)}</span>`).join(" ")}</td>
+        <td>${(r.platforms ?? []).map((p) => `<span class="pill" style="font-size:9px;padding:1px 6px">${esc(p)}</span>`).join(" ")}</td>
+        <td class="r">${r.count_per_app}/App</td>
+        <td class="r">${r.cost_estimate_usd != null ? "$" + Number(r.cost_estimate_usd).toFixed(2) : "—"}${r.cost_actual_usd != null ? `<div class="muted" style="font-size:10px">actual $${Number(r.cost_actual_usd).toFixed(2)}</div>` : ""}</td>
+        <td class="r">${r.targets_added} Tgt / ${r.mails_sent} ✉</td>
+        <td>${runStatusPill(r.status)}</td>
+      </tr>`).join("");
+  const runsTable = `<h2>Letzte Wellen</h2>
+    <table>
+      <thead><tr><th>Wann</th><th>Apps</th><th>Platforms</th><th class="r">Count</th><th class="r">Cost</th><th class="r">Output</th><th>Status</th></tr></thead>
+      <tbody>${runRows}</tbody>
+    </table>`;
+
   return `${refreshMeta}<h1>Outreach</h1>
     <p class="sub">Influencer-Outreach-Tracker. <em>Queued → DM gesendet → Antwort → Converted</em>. Auto-Refresh ${autoRefresh ? "alle 15s" : "aus"}, Daten aus Supabase anime-vault.</p>
     ${cards}
     <h2>Pro App</h2>
     ${perAppTable}
+    ${waveForm}
+    ${runsTable}
     ${addForm}
     <h2>Filter</h2>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center">

@@ -376,3 +376,85 @@ export async function deleteOutreachTarget(id: string): Promise<void> {
     throw new Error(`outreach delete ${res.status}: ${text.slice(0, 200)}`);
   }
 }
+
+// ---------- klar_outreach_runs (Self-Service Wave audit) -------------------
+
+export type OutreachRunStatus = "queued" | "running" | "done" | "failed" | "cancelled";
+
+export interface OutreachRun {
+  id: string;
+  created_at: string;
+  created_by: string | null;
+  status: OutreachRunStatus;
+  apps: string[];
+  platforms: string[];          // "tiktok" | "instagram"
+  count_per_app: number;
+  niche: string | null;
+  mail_subject: string | null;
+  mail_body: string | null;
+  cost_estimate_usd: number | null;
+  cost_actual_usd: number | null;
+  apify_run_ids: Record<string, string> | null;
+  targets_added: number;
+  mails_sent: number;
+  errors: unknown | null;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface CreateRunInput {
+  apps: string[];
+  platforms: string[];
+  count_per_app: number;
+  niche?: string | null;
+  mail_subject?: string | null;
+  mail_body?: string | null;
+  cost_estimate_usd?: number | null;
+}
+
+/** Insert a new outreach-wave run row. n8n consumer (next session) polls
+ * status='queued' and transitions through running → done/failed. */
+export async function createOutreachRun(input: CreateRunInput): Promise<OutreachRun> {
+  if (!KLAR_INBOX_KEY) throw new Error("KLAR_INBOX_SERVICE_KEY missing");
+  const body = {
+    apps: input.apps,
+    platforms: input.platforms,
+    count_per_app: input.count_per_app,
+    niche: input.niche ?? null,
+    mail_subject: input.mail_subject ?? null,
+    mail_body: input.mail_body ?? null,
+    cost_estimate_usd: input.cost_estimate_usd ?? null,
+    created_by: "admin",
+    status: "queued" as OutreachRunStatus,
+  };
+  const res = await fetch(
+    `${KLAR_INBOX_URL}/rest/v1/klar_outreach_runs`,
+    {
+      method: "POST",
+      headers: { ...hdr(), Prefer: "return=representation" },
+      body: JSON.stringify(body),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`run insert ${res.status}: ${text.slice(0, 200)}`);
+  }
+  const rows = (await res.json()) as OutreachRun[];
+  if (!rows[0]) throw new Error("run insert returned no row");
+  return rows[0];
+}
+
+/** Last N runs, newest first. UI uses this for the History-Table. */
+export async function listOutreachRuns(limit = 25): Promise<OutreachRun[]> {
+  if (!KLAR_INBOX_KEY) return [];
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_runs?select=*&order=created_at.desc&limit=${Math.min(Math.max(limit, 1), 100)}`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as OutreachRun[];
+  } catch {
+    return [];
+  }
+}
