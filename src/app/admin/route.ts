@@ -346,12 +346,13 @@ async function revenueView(apps: AdminApp[]): Promise<string> {
 }
 
 async function appView(app: AdminApp): Promise<string> {
-  const [inf, claim, batches] = await Promise.all([
+  const [inf, claim, batches, outreachTargets] = await Promise.all([
     listInfluencers(app),
     sbGet(app, "influencer_claimable?select=handle,status,payout_method,matured_share_eur_cents,paid_eur_cents,claimable_eur_cents,unnormalized_events&order=claimable_eur_cents.desc"),
     sbGet(app, "influencer_payout_batches?select=id,period_start,period_end,status,item_count,total_amount_cents&order=created_at.desc&limit=8"),
+    listOutreachTargets({ platform: "all", status: "all", app: app.slug, limit: 200 }),
   ]);
-  if (inf.length === 0 && claim.length === 0 && batches.length === 0)
+  if (inf.length === 0 && claim.length === 0 && batches.length === 0 && outreachTargets.length === 0)
     return `<h1>${esc(app.name)}</h1>
       <p class="sub">Noch keine Affiliates aktiv für ${esc(app.name)}. Schema ist ausgerollt und bereit.</p>
       <div class="card" style="margin-top:18px;padding:20px;max-width:560px">
@@ -465,6 +466,65 @@ async function appView(app: AdminApp): Promise<string> {
         </tr>`;
       }).join("");
 
+  // ----- Outreach-Pipeline-Block pro App (Angefragt/Reply/Angenommen) -----
+  // Filtert klar_outreach_targets auf die targets die diese App als
+  // for_apps Tag tragen, gruppiert nach Status-Bucket.
+  const appBucket = { angefragt: [] as OutreachTarget[], reply: [] as OutreachTarget[], angenommen: [] as OutreachTarget[] };
+  for (const t of outreachTargets) {
+    if (t.status === "converted") appBucket.angenommen.push(t);
+    else if (t.status === "replied") appBucket.reply.push(t);
+    else if (t.mail_status === "mail1_sent" || t.mail_status === "mail2_sent" || t.status === "dm_sent") appBucket.angefragt.push(t);
+  }
+  const sortNewestFirst = (a: OutreachTarget, b: OutreachTarget) => {
+    const ax = new Date(a.last_message_at || a.mail1_sent_at || a.updated_at).getTime();
+    const bx = new Date(b.last_message_at || b.mail1_sent_at || b.updated_at).getTime();
+    return bx - ax;
+  };
+  appBucket.angefragt.sort(sortNewestFirst);
+  appBucket.reply.sort(sortNewestFirst);
+  appBucket.angenommen.sort(sortNewestFirst);
+  const renderAppOutreachRow = (t: OutreachTarget): string => {
+    const sentRel = t.mail1_sent_at ? fmtRelative(t.mail1_sent_at) : "";
+    const fLabel = t.follower_estimate
+      ? (t.follower_estimate >= 1_000_000
+          ? `${(t.follower_estimate / 1_000_000).toFixed(1)}M`
+          : t.follower_estimate >= 1_000
+            ? `${Math.round(t.follower_estimate / 1_000)}k`
+            : String(t.follower_estimate))
+      : "";
+    const profileLink = t.profile_url
+      ? `<a class="applink" href="${esc(t.profile_url)}" target="_blank" rel="noopener" style="font-weight:600">@${esc(t.handle)}</a>`
+      : `<span style="font-weight:600">@${esc(t.handle)}</span>`;
+    const platIcon = t.platform === "tiktok" ? "TT" : "IG";
+    return `<div style="padding:8px 10px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px">
+      <div style="min-width:0;flex:1">
+        <div style="display:flex;gap:6px;align-items:center">${profileLink}<span class="pill" style="font-size:8px;padding:1px 5px">${platIcon}</span>${fLabel ? `<span class="muted" style="font-size:10px;font-family:var(--font-mono)">${esc(fLabel)}</span>` : ""}</div>
+        ${t.contact_email ? `<div class="muted" style="font-size:10px;margin-top:1px;font-family:var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.contact_email)}</div>` : ""}
+      </div>
+      <div class="muted" style="font-size:10px;white-space:nowrap;text-align:right">${esc(sentRel)}</div>
+    </div>`;
+  };
+  const renderAppBucketCol = (label: string, items: OutreachTarget[], emoji: string): string => `
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:8px;min-height:120px">
+      <div style="padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline">
+        <span class="k">${emoji} ${esc(label)}</span>
+        <span style="font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--fg)">${items.length}</span>
+      </div>
+      ${items.length === 0
+        ? `<div class="muted" style="padding:12px;font-style:italic;font-size:11px">keine Einträge</div>`
+        : items.slice(0, 10).map(renderAppOutreachRow).join("") +
+          (items.length > 10 ? `<div class="muted" style="padding:8px 12px;font-size:11px">+ ${items.length - 10} weitere</div>` : "")}
+    </div>`;
+  const outreachBlock = outreachTargets.length === 0
+    ? ""
+    : `<h2>Outreach-Pipeline <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${outreachTargets.length} Targets · ${appBucket.angefragt.length} angefragt · ${appBucket.reply.length} reply · ${appBucket.angenommen.length} angenommen</span></h2>
+      <p class="sub muted" style="margin:0 0 14px;font-size:12px">Influencer aus der Wave-Pipeline für ${esc(app.name)}. Status-Übergänge: Mail-1 raus → Reply via Gmail-Tracker → Onboarding-Setup durch.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:24px">
+        ${renderAppBucketCol("Angefragt", appBucket.angefragt, "✉")}
+        ${renderAppBucketCol("Reply", appBucket.reply, "↩")}
+        ${renderAppBucketCol("Angenommen", appBucket.angenommen, "✓")}
+      </div>`;
+
   return `<h1>${esc(app.name)}</h1><p class="sub">Affiliate-Salden, Auszahlungen und Affiliates für ${esc(app.name)}.</p>${cards}
     <form method="POST" action="/admin/reconcile" style="margin:0 0 18px"><input type="hidden" name="app" value="${esc(app.slug)}"/><button class="btn ghost" type="submit">Status aktualisieren · Wise nach DB</button></form>
     <h2>Affiliates <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${inf.length} Einträge</span></h2>
@@ -472,6 +532,7 @@ async function appView(app: AdminApp): Promise<string> {
       <thead><tr><th>Handle</th><th>Status</th><th>Email</th><th>Auszahlung</th><th class="r">Share</th><th class="r">Aktionen</th></tr></thead>
       <tbody>${infRows}</tbody>
     </table>
+    ${outreachBlock}
     <h2>Salden + Conversions</h2>
     <table><thead><tr><th>Handle</th><th>Status</th><th>Methode</th><th class="r">Gereift</th><th class="r">Bezahlt</th><th class="r">Offen</th><th class="c">FX</th></tr></thead><tbody>${claimRows}</tbody></table>
     <h2>Batches</h2>${batchHtml || `<p class="muted">noch keine Batches (pg_cron baut am 1. des Monats)</p>`}`;
