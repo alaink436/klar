@@ -42,22 +42,21 @@ const DEVICE_SECRET = () => process.env.KLAR_DEVICE_SECRET ?? "";
 
 const SESSION_COOKIE_MAX_AGE = 12 * 60 * 60; // 12h
 
-// Path=/ damit der Cookie auch an /api/affiliate/{approve,complete} und alle
-// anderen Admin-protected API-Routes außerhalb /admin gesendet wird.
-// Sicherheit bleibt durch HttpOnly + Secure + SameSite=Strict erhalten:
-// kein JS-Zugriff, kein non-HTTPS, kein Third-Party-Request.
+// S30f: Path=/admin (zurück zum enger-scoped Default). Alle Admin-Endpoints
+// liegen jetzt unter /admin/{approve,dispatch,reconcile,...} — Cookie wird
+// nur dort gesendet, leakt nicht zu Public-API-Routes.
 function sessionCookieHeader(keyValue: string): string {
-  return `klar_admin=${encodeURIComponent(keyValue)}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${SESSION_COOKIE_MAX_AGE}`;
+  return `klar_admin=${encodeURIComponent(keyValue)}; HttpOnly; Secure; SameSite=Strict; Path=/admin; Max-Age=${SESSION_COOKIE_MAX_AGE}`;
 }
 
-// Cleanup: alten Path=/admin Cookie explizit invalidieren (Browser hat ihn
-// noch im Storage von vor dem Path-Fix S30e). Setzt einen leeren Cookie mit
-// Max-Age=0 auf dem alten Path → Browser löscht ihn.
-function clearLegacyAdminPath(): string {
-  return `klar_admin=; HttpOnly; Secure; SameSite=Strict; Path=/admin; Max-Age=0`;
+// Cleanup: räumt sowohl die ursprünglichen Path=/admin Cookies als auch
+// die S30e Path=/ Cookies aus Browsern auf. Browser löscht den passenden
+// Cookie wenn ein leerer mit Max-Age=0 und gleichem Path kommt.
+function clearLegacyRootPath(): string {
+  return `klar_admin=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`;
 }
-function clearLegacyDevicePath(): string {
-  return `klar_device=; HttpOnly; Secure; SameSite=Strict; Path=/admin; Max-Age=0`;
+function clearLegacyDeviceRootPath(): string {
+  return `klar_device=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`;
 }
 
 function htmlShell(inner: string): Response {
@@ -173,10 +172,10 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const headers = new Headers({ Location: "/admin" });
-  // Always clear legacy Path=/admin cookies first so the new Path=/ cookies
-  // are the only ones the browser presents going forward.
-  headers.append("Set-Cookie", clearLegacyAdminPath());
-  headers.append("Set-Cookie", clearLegacyDevicePath());
+  // Clear S30e Path=/ cookies first so the browser stops sending them
+  // alongside the new Path=/admin cookies (two same-name cookies = race).
+  headers.append("Set-Cookie", clearLegacyRootPath());
+  headers.append("Set-Cookie", clearLegacyDeviceRootPath());
   headers.append("Set-Cookie", sessionCookieHeader(KEY()));
   if (issueDeviceCookie) {
     const signed = await signDeviceCookie(

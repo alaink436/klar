@@ -949,7 +949,7 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
     if (!r.id) return "";
     const displayName = r.handle || (r.email ?? "").split("@")[0] || "";
     return `<tr class="approve-row"><td colspan="6" style="padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--line)">
-      <form method="POST" action="/api/affiliate/approve" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
+      <form method="POST" action="/admin/approve" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
         <input type="hidden" name="inquiry_id" value="${esc(r.id)}"/>
         <input type="hidden" name="email" value="${esc(r.email ?? "")}"/>
         <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">
