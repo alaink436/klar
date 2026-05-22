@@ -1485,41 +1485,81 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
     return `<span class="pill" style="font-size:10px">${esc(t ?? "—")}</span>`;
   };
 
+  // Initials-Avatar: stable pastel bg via deterministic hash of the email
+  // local-part. Used as the visual anchor on each inbox card.
+  const avatarFor = (email: string): string => {
+    const local = (email || "?").split("@")[0] || "?";
+    const letters = local.replace(/[^a-zA-Z]/g, "").slice(0, 2).toUpperCase() || local.slice(0, 2).toUpperCase();
+    let h = 0;
+    for (const ch of local) h = (h * 31 + ch.charCodeAt(0)) & 0xffffffff;
+    const hue = Math.abs(h) % 360;
+    const bg = `hsl(${hue}, 55%, 88%)`;
+    const fg = `hsl(${hue}, 60%, 28%)`;
+    return `<div aria-hidden="true" style="flex-shrink:0;width:44px;height:44px;border-radius:50%;background:${bg};color:${fg};display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;letter-spacing:0.02em">${esc(letters)}</div>`;
+  };
+
+  // Status indicator: subtle dot for "new" (pulsing), checkmark for
+  // active, arrow for invited; pushed into the top-right of each card.
+  const statusBadgeFor = (r: Inquiry): string => {
+    if (r.status === "active") return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#166534;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase">✓ active</span>`;
+    if (r.status === "invited" || r.status === "approved") return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#1e40af;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase">→ invited</span>`;
+    if (r.status === "new") return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#854d0e;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#eab308;box-shadow:0 0 0 0 #eab308a0;animation:klar-pulse 1.6s infinite"></span>neu</span>`;
+    return `<span style="font-size:11px;font-family:var(--font-mono);color:var(--fg-3);letter-spacing:.04em;text-transform:uppercase">${esc(r.status ?? "")}</span>`;
+  };
+
+  // Subtle inline type-badge: matches Klar's editorial tone (lowercase
+  // mono in tinted pill instead of the previous loud uppercase).
+  const typeBadgeMini = (t: string | undefined): string => {
+    if (t === "affiliate") return `<span style="font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:#5b21b6;background:#ede9fe;padding:3px 9px;border-radius:999px;letter-spacing:.02em">affiliate</span>`;
+    if (t === "consulting") return `<span style="font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:#9d174d;background:#fce7f3;padding:3px 9px;border-radius:999px;letter-spacing:.02em">consulting</span>`;
+    return `<span style="font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);padding:3px 9px;border-radius:999px;background:var(--surface-2)">${esc(t ?? "—")}</span>`;
+  };
+
   const renderCard = (r: Inquiry): string => {
     const details = detailPairs(r)
       .filter(([, v]) => v && String(v).trim())
-      .map(([k, v, isLong]) => `<div style="display:flex;gap:10px;font-size:12.5px;line-height:1.5;align-items:${isLong ? "flex-start" : "baseline"}">
-        <span class="muted" style="min-width:90px;flex-shrink:0;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;padding-top:${isLong ? "3px" : "0"}">${esc(k)}</span>
+      .map(([k, v, isLong]) => `<div style="display:flex;gap:14px;font-size:13px;line-height:1.55;align-items:${isLong ? "flex-start" : "baseline"};padding:6px 0">
+        <span style="min-width:88px;flex-shrink:0;font-family:var(--font-mono);font-weight:500;text-transform:uppercase;letter-spacing:.08em;font-size:9.5px;color:var(--fg-4);padding-top:${isLong ? "4px" : "0"}">${esc(k)}</span>
         <span style="color:var(--fg);flex:1;${isLong ? "white-space:pre-wrap;word-wrap:break-word" : ""}">${esc(v!)}</span>
       </div>`)
       .join("");
 
-    return `<div class="card" style="padding:18px 20px;margin:0">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px">
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          ${typePillFor(r.type)}
-          ${sourcePill(r.source)}
+    const isNew = r.status === "new";
+    return `<article class="inbox-card" style="background:var(--surface);border:1px solid ${isNew ? "var(--line-strong)" : "var(--line)"};border-radius:14px;padding:24px 26px;margin:0;transition:border-color .15s,box-shadow .2s;position:relative;${isNew ? "box-shadow:0 0 0 1px var(--line-strong) inset" : ""}">
+      <header style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:18px">
+        <div style="display:flex;gap:14px;align-items:center;flex:1;min-width:0">
+          ${avatarFor(r.email ?? "")}
+          <div style="min-width:0;flex:1">
+            <a class="applink" href="mailto:${esc(r.email)}" style="font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:-.01em;color:var(--fg);border:none;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.email)}</a>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:5px;flex-wrap:wrap">
+              ${typeBadgeMini(r.type)}
+              ${sourcePill(r.source)}
+            </div>
+          </div>
         </div>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-          ${statusPillFor(r)}
-          <span class="muted" style="font-size:11px;white-space:nowrap">${fmt(r.created_at)}</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;text-align:right;flex-shrink:0">
+          ${statusBadgeFor(r)}
+          <span class="muted" style="font-size:11px;font-family:var(--font-mono);letter-spacing:.02em" title="${esc(fmt(r.created_at))}">${esc(fmtRelative(typeof r.created_at === "string" ? r.created_at : null))}</span>
         </div>
-      </div>
-      <div style="margin-bottom:12px;font-size:14px"><a class="applink" href="mailto:${esc(r.email)}" style="font-weight:600">${esc(r.email)}</a></div>
-      <div style="display:flex;flex-direction:column;gap:6px">${details || `<span class="muted" style="font-size:12px">keine weiteren Angaben</span>`}</div>
+      </header>
+      <div style="display:flex;flex-direction:column;gap:0">${details || `<span class="muted" style="font-size:12.5px;font-style:italic">keine weiteren Angaben</span>`}</div>
       ${actionBlock(r)}
-    </div>`;
+    </article>`;
   };
 
   const body = rows.length
-    ? `<div style="display:flex;flex-direction:column;gap:14px;margin-top:6px">${rows.map(renderCard).join("")}</div>`
-    : `<div class="card" style="padding:30px;text-align:center"><span class="muted">keine Anfragen in dieser Auswahl.${effectiveType !== "all" || effectiveSource !== "all" ? ` <a class="applink" href="/admin?view=inbox">Filter zurücksetzen</a>` : ""}</span></div>`;
+    ? `<div style="display:flex;flex-direction:column;gap:14px;margin-top:8px">${rows.map(renderCard).join("")}</div>`
+    : `<div style="background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:48px 24px;text-align:center"><div style="font-family:var(--font-mono);font-size:11px;color:var(--fg-4);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">leer</div><span class="muted" style="font-size:13px">Keine Anfragen in dieser Auswahl.${effectiveType !== "all" || effectiveSource !== "all" ? ` <a class="applink" href="/admin?view=inbox">Filter zurücksetzen</a>` : ""}</span></div>`;
 
   const consultingHint = effectiveType === "consulting"
     ? `<p class="sub muted" style="margin:0 0 16px;font-size:13px">Consulting-Calls aus Cal.com (consulting + coaching event types) erscheinen unter <a class="applink" href="/admin?view=bookings">Bookings</a>. Hier nur die schriftlichen Anfragen vom Kontaktformular.</p>`
     : "";
 
-  return `<h1>Inbox</h1><p class="sub">Affiliate- und Consulting-Anfragen, gefiltert nach Typ und Quelle. Affiliate-Karten haben den <em>Approve</em>-Klappbereich für den Onboarding-Link &mdash; bei neuen Anfragen ist er aufgeklappt.</p>
+  return `<style>
+    @keyframes klar-pulse { 0%,100% { box-shadow: 0 0 0 0 #eab308a0; } 50% { box-shadow: 0 0 0 4px transparent; } }
+    .inbox-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow); }
+    .inbox-card details[open] summary { color: var(--fg); }
+  </style><h1>Inbox</h1><p class="sub">Affiliate- und Consulting-Anfragen, gefiltert nach Typ und Quelle. Affiliate-Karten haben den <em>Approve</em>-Klappbereich für den Onboarding-Link &mdash; bei neuen Anfragen ist er aufgeklappt.</p>
     ${typeTabs}
     ${sourceFilters}
     ${consultingHint}
