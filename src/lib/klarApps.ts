@@ -21,9 +21,9 @@ export interface KlarAppMeta {
 }
 
 export const KLAR_APPS: KlarAppMeta[] = [
-  { slug: "trubel", name: "Trubel", icon: "/icons/trubel.webp", status: "BUILD" },
-  { slug: "myloo", name: "MyLoo", icon: "/icons/myloo.webp", status: "BETA" },
-  { slug: "wavelength", name: "Wavelength", icon: "/icons/wavelength.webp", status: "BUILD" },
+  { slug: "trubel", name: "Trubel", icon: "/icons/trubel.webp", status: "LIVE", affiliatePathPrefix: "/i/trubel" },
+  { slug: "myloo", name: "MyLoo", icon: "/icons/myloo.webp", status: "LIVE", affiliatePathPrefix: "/i/myloo" },
+  { slug: "wavelength", name: "Wavelength", icon: "/icons/wavelength.webp", status: "LIVE", affiliatePathPrefix: "/i/wavelength" },
   {
     slug: "yarn-stash",
     name: "Yarn-Stash",
@@ -31,8 +31,8 @@ export const KLAR_APPS: KlarAppMeta[] = [
     status: "LIVE",
     affiliatePathPrefix: "/i/yarnstash",
   },
-  { slug: "kelva", name: "Kelva", icon: "/icons/kelva.webp", status: "BUILD" },
-  { slug: "moto", name: "ThrottleUp", icon: "/icons/moto.webp", status: "BUILD" },
+  { slug: "kelva", name: "Kelva", icon: "/icons/kelva.webp", status: "LIVE", affiliatePathPrefix: "/i/kelva" },
+  { slug: "moto", name: "ThrottleUp", icon: "/icons/moto.webp", status: "LIVE", affiliatePathPrefix: "/i/throttleup" },
 ];
 
 export function findKlarApp(slug: string): KlarAppMeta | undefined {

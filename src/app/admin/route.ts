@@ -7,12 +7,18 @@
 // intros), via Google Fonts. Restrained magenta accent for orientation.
 // Revenue chart is server-rendered SVG (no client JS).
 //
-// Env: KLAR_ADMIN_KEY, KLAR_ADMIN_APPS (JSON registry, see lib/adminApps),
-//      KLAR_OUTREACH_SHEET_ID (optional, defaults to the Marketing master).
+// Env: KLAR_ADMIN_KEY, KLAR_ADMIN_APPS (JSON registry, see lib/adminApps).
 
-import { createSign } from "node:crypto";
 import { getApps, sbGet, setupLandingUrl, type AdminApp } from "../../lib/adminApps";
 import { KLAR_APPS, type KlarAppMeta } from "../../lib/klarApps";
+import {
+  getOutreachStats,
+  listOutreachTargets,
+  isOutreachConfigured,
+  type OutreachPlatform,
+  type OutreachStatus,
+  type OutreachTarget,
+} from "../../lib/outreachStore";
 import {
   STYLE,
   ICON,
@@ -30,13 +36,11 @@ export const runtime = "nodejs";
 
 // Auth lives in _shared.ts (checkAuth) — requires KLAR_ADMIN_KEY +
 // KLAR_TOTP_SECRET + KLAR_DEVICE_SECRET. /admin/login handles the form.
-// Google Sheets read for the Outreach view. Whole service-account JSON key
-// file content in one Vercel env var (KLAR_SHEETS_SA_JSON) so the escaped
-// \n in private_key survive via JSON.parse. Never in the repo/chat. Without
-// it the Outreach view degrades to the embedded-iframe-only fallback.
-const KLAR_SHEETS_SA = process.env.KLAR_SHEETS_SA_JSON ?? "";
-const OUTREACH_SHEET_ID =
-  process.env.KLAR_OUTREACH_SHEET_ID ?? "16MLUtfYVDzbu3bxjntilRqD_XjHSaRmypwpj1Rarx0c";
+//
+// Outreach-Tracker: 2026-05-22 von Google-Sheets auf Supabase
+// (klar_outreach_targets in anime-vault, exiuwektrqxvycclqfdd) migriert.
+// Liest + schreibt via src/lib/outreachStore.ts. Brauchte vorher
+// KLAR_SHEETS_SA_JSON + KLAR_OUTREACH_SHEET_ID, jetzt entfernt.
 
 // Contact-form inbox. Reads klar_inquiries from the anime-vault project with a
 // service-role key (RLS-bypass for read). Service key lives only in Vercel env,
@@ -369,168 +373,230 @@ async function appView(app: AdminApp): Promise<string> {
     <h2>Batches</h2>${batchHtml || `<p class="muted">noch keine Batches (pg_cron baut am 1. des Monats)</p>`}`;
 }
 
-// ---- Google Sheets via service account, zero extra deps -------------------
-let sheetsTok: { token: string; exp: number } | null = null;
+// ---- Outreach-Tracker -----------------------------------------------------
+// Status-Lifecycle: queued -> dm_sent -> replied -> {converted, declined, dead}.
+// Daten in klar_outreach_targets (anime-vault). Lese/Schreib via outreachStore.
 
-function b64url(input: Buffer | string): string {
-  return Buffer.from(input)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+const STATUS_LABEL: Record<OutreachStatus, string> = {
+  queued: "Queued",
+  dm_sent: "DM gesendet",
+  replied: "Geantwortet",
+  declined: "Abgelehnt",
+  converted: "Converted",
+  dead: "Dead",
+};
+const STATUS_COLOR: Record<OutreachStatus, { bg: string; fg: string }> = {
+  queued:    { bg: "#e0e7ff", fg: "#3730a3" },
+  dm_sent:   { bg: "#fef3c7", fg: "#92400e" },
+  replied:   { bg: "#fce7f3", fg: "#9d174d" },
+  declined:  { bg: "#fee2e2", fg: "#991b1b" },
+  converted: { bg: "#dcfce7", fg: "#166534" },
+  dead:      { bg: "#e5e5e5", fg: "#525252" },
+};
+function statusPill(s: OutreachStatus): string {
+  const c = STATUS_COLOR[s];
+  const l = STATUS_LABEL[s];
+  return `<span class="pill" style="background:${c.bg};color:${c.fg};border-color:${c.fg}22;font-weight:600">${esc(l)}</span>`;
+}
+const PLATFORM_LABEL: Record<OutreachPlatform, string> = {
+  tiktok: "TikTok",
+  instagram: "Instagram",
+};
+function fmtFollowers(n: number | null): string {
+  if (n === null || n === undefined) return "—";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1000) return `${(n / 1000).toFixed(0)}k`;
+  return String(n);
+}
+function fmtRelative(ts: string | null): string {
+  if (!ts) return "—";
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return "—";
+  const diff = Date.now() - d.getTime();
+  const days = Math.floor(diff / 86_400_000);
+  if (days < 1) return "heute";
+  if (days < 2) return "gestern";
+  if (days < 30) return `vor ${days}d`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `vor ${months}mo`;
+  return `vor ${Math.floor(months / 12)}y`;
 }
 
-async function sheetsToken(): Promise<string | null> {
-  if (sheetsTok && sheetsTok.exp > Date.now() + 30_000) return sheetsTok.token;
-  let creds: { client_email?: string; private_key?: string };
-  try {
-    creds = JSON.parse(KLAR_SHEETS_SA);
-  } catch {
-    return null;
-  }
-  if (!creds.client_email || !creds.private_key) return null;
-  const now = Math.floor(Date.now() / 1000);
-  const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const claim = b64url(
-    JSON.stringify({
-      iss: creds.client_email,
-      scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
-      aud: "https://oauth2.googleapis.com/token",
-      iat: now,
-      exp: now + 3600,
-    }),
-  );
-  let signature: string;
-  try {
-    const signer = createSign("RSA-SHA256");
-    signer.update(`${header}.${claim}`);
-    signer.end();
-    signature = b64url(signer.sign(creds.private_key));
-  } catch {
-    return null;
-  }
-  try {
-    const res = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        assertion: `${header}.${claim}.${signature}`,
-      }),
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    const j = await res.json();
-    if (!j?.access_token) return null;
-    sheetsTok = {
-      token: j.access_token,
-      exp: Date.now() + (Number(j.expires_in ?? 3600) - 60) * 1000,
-    };
-    return sheetsTok.token;
-  } catch {
-    return null;
-  }
-}
+const TARGET_STATUS_ORDER: OutreachStatus[] = [
+  "queued", "dm_sent", "replied", "converted", "declined", "dead",
+];
 
-async function sheetsApi(path: string, token: string): Promise<any | null> {
-  try {
-    const res = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${path}`,
-      { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
+async function outreachView(
+  filterPlatform: string,
+  filterStatus: string,
+  filterApp: string,
+): Promise<string> {
+  if (!isOutreachConfigured()) {
+    return `<h1>Outreach</h1><p class="sub muted">Outreach-Tracker braucht <span class="warn">KLAR_INBOX_SERVICE_KEY</span> in Vercel (anime-vault Service-Role). Tabelle <code>klar_outreach_targets</code> ist via Migration <code>klar_outreach_targets_v1</code> bereits angelegt.</p>`;
+  }
+
+  const platform = (["tiktok", "instagram"].includes(filterPlatform) ? filterPlatform : "all") as
+    | OutreachPlatform | "all";
+  const status = (TARGET_STATUS_ORDER as string[]).includes(filterStatus)
+    ? (filterStatus as OutreachStatus)
+    : "all";
+  const app = filterApp && filterApp !== "all" ? filterApp : "all";
+
+  const [stats, rows] = await Promise.all([
+    getOutreachStats(),
+    listOutreachTargets({ platform, status, app, limit: 200 }),
+  ]);
+
+  // KPI-Cards
+  const cards = `<div class="cards">
+    <div class="card"><div class="k">Total</div><div class="v">${stats.total}</div><div class="s">Targets im Tracker</div></div>
+    <div class="card"><div class="k">Queued</div><div class="v">${stats.queued}</div><div class="s">noch nicht kontaktiert</div></div>
+    <div class="card"><div class="k">DM gesendet (7d)</div><div class="v">${stats.contacted_last_7d}</div><div class="s">letzte Woche</div></div>
+    <div class="card"><div class="k">Antworten</div><div class="v">${stats.replied + stats.converted + stats.declined}</div><div class="s">${stats.response_rate_pct ?? "—"}% Response-Rate</div></div>
+    <div class="card"><div class="k">Converted (30d)</div><div class="v">${stats.converted_last_30d}</div><div class="s">${stats.conversion_rate_pct ?? "—"}% Conversion-Rate</div></div>
+  </div>`;
+
+  // Filter-Strip
+  const buildFilterHref = (p: string, s: string, a: string): string => {
+    const parts: string[] = ["view=outreach"];
+    if (p !== "all") parts.push(`p=${encodeURIComponent(p)}`);
+    if (s !== "all") parts.push(`s=${encodeURIComponent(s)}`);
+    if (a !== "all") parts.push(`a=${encodeURIComponent(a)}`);
+    return `/admin?${parts.join("&")}`;
+  };
+  const segPlatform = `<div class="seg">
+    <a href="${buildFilterHref("all", status, app)}" class="${platform === "all" ? "on" : ""}">Alle</a>
+    <a href="${buildFilterHref("tiktok", status, app)}" class="${platform === "tiktok" ? "on" : ""}">TikTok</a>
+    <a href="${buildFilterHref("instagram", status, app)}" class="${platform === "instagram" ? "on" : ""}">Instagram</a>
+  </div>`;
+  const segStatus = `<div class="seg">
+    <a href="${buildFilterHref(platform, "all", app)}" class="${status === "all" ? "on" : ""}">Alle</a>
+    ${TARGET_STATUS_ORDER.map((s) => `<a href="${buildFilterHref(platform, s, app)}" class="${status === s ? "on" : ""}">${esc(STATUS_LABEL[s])}</a>`).join("")}
+  </div>`;
+  const appOptions = ["all", ...KLAR_APPS.map((a) => a.slug)];
+  const segApp = `<div class="seg" style="flex-wrap:wrap">
+    ${appOptions.map((a) => `<a href="${buildFilterHref(platform, status, a)}" class="${app === a ? "on" : ""}">${esc(a === "all" ? "Alle Apps" : a)}</a>`).join("")}
+  </div>`;
+
+  // Add-Target-Form
+  const appCheckboxes = KLAR_APPS
+    .map((a) => `<label style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;font-size:12px;cursor:pointer">
+      <input type="checkbox" name="for_apps_${a.slug}" value="${esc(a.slug)}" style="margin:0"/>${esc(a.name)}
+    </label>`).join("");
+
+  const addForm = `<details style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin-bottom:24px">
+    <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--fg-2);user-select:none">+ Target hinzufügen</summary>
+    <form method="POST" action="/admin/outreach/add" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:16px" id="outreach-add-form">
+      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Handle*
+        <input type="text" name="handle" required maxlength="64" pattern="[A-Za-z0-9_.-]{1,64}" placeholder="marie_knits" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-family:var(--font-mono);font-size:13px"/>
+      </label>
+      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Plattform*
+        <select name="platform" required style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px">
+          <option value="tiktok">TikTok</option>
+          <option value="instagram">Instagram</option>
+        </select>
+      </label>
+      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Display-Name
+        <input type="text" name="display_name" maxlength="80" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
+      </label>
+      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Profile-URL
+        <input type="url" name="profile_url" maxlength="500" placeholder="https://tiktok.com/@..." style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
+      </label>
+      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Follower (est.)
+        <input type="number" name="follower_estimate" min="0" max="100000000" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
+      </label>
+      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Niche
+        <input type="text" name="niche" maxlength="80" placeholder="yarn, fitness, moto..." style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
+      </label>
+      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Sprache
+        <select name="language" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px">
+          <option value="de">de</option><option value="en">en</option><option value="fr">fr</option><option value="es">es</option><option value="it">it</option>
+        </select>
+      </label>
+      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Priority (1=top)
+        <input type="number" name="priority" min="1" max="5" value="3" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
+      </label>
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Passende Apps
+        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">${appCheckboxes}</div>
+        <input type="hidden" name="for_apps" value="" id="for-apps-hidden"/>
+      </div>
+      <label style="grid-column:1/-1;display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Notes
+        <textarea name="notes" rows="2" maxlength="1000" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-body);resize:vertical"></textarea>
+      </label>
+      <div style="grid-column:1/-1"><button type="submit" class="btn">Target anlegen</button></div>
+    </form>
+    <script>
+      (function(){
+        var f = document.getElementById('outreach-add-form');
+        if (!f) return;
+        f.addEventListener('submit', function(){
+          var picks = Array.from(f.querySelectorAll('input[type=checkbox][name^="for_apps_"]:checked')).map(function(c){return c.value;});
+          document.getElementById('for-apps-hidden').value = picks.join(',');
+        });
+      })();
+    </script>
+  </details>`;
+
+  // Targets-Tabelle
+  const targetRow = (t: OutreachTarget): string => {
+    const profile = t.profile_url
+      ? `<a href="${esc(t.profile_url)}" target="_blank" rel="noopener" class="applink">@${esc(t.handle)}</a>`
+      : `@${esc(t.handle)}`;
+    const apps = (t.for_apps && t.for_apps.length > 0)
+      ? t.for_apps.map((a) => `<span class="pill" style="font-size:9px;padding:1px 6px">${esc(a)}</span>`).join(" ")
+      : `<span class="muted" style="font-size:11px">—</span>`;
+
+    // Status-Quick-Actions: nur Vorwärts-Pfeile zeigen, basierend auf aktuellem Status.
+    const actions: { label: string; status: OutreachStatus }[] = [];
+    if (t.status === "queued")  actions.push({ label: "DM ✓", status: "dm_sent" });
+    if (t.status === "dm_sent") actions.push(
+      { label: "Antwort", status: "replied" },
+      { label: "Abgelehnt", status: "declined" },
+      { label: "Dead", status: "dead" },
     );
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
+    if (t.status === "replied") actions.push(
+      { label: "Converted", status: "converted" },
+      { label: "Abgelehnt", status: "declined" },
+    );
+    const actionForms = actions.map((a) =>
+      `<form method="POST" action="/admin/outreach/update" style="display:inline">
+        <input type="hidden" name="id" value="${esc(t.id)}"/>
+        <input type="hidden" name="status" value="${esc(a.status)}"/>
+        <button type="submit" class="btn ghost" style="padding:4px 9px;font-size:11px">${esc(a.label)}</button>
+      </form>`,
+    ).join(" ");
 
-const sheetRange = (title: string) =>
-  encodeURIComponent(`'${title.replace(/'/g, "''")}'`);
+    const deleteForm = `<form method="POST" action="/admin/outreach/delete" style="display:inline" onsubmit="return confirm('Lead @${esc(t.handle)} löschen?')">
+      <input type="hidden" name="id" value="${esc(t.id)}"/>
+      <button type="submit" class="btn ghost" style="padding:4px 9px;font-size:11px;color:var(--danger)" title="Hard delete">✕</button>
+    </form>`;
 
-async function outreachStats(): Promise<string> {
-  const token = await sheetsToken();
-  if (!token) return "";
-  const meta = await sheetsApi(
-    `${OUTREACH_SHEET_ID}?fields=${encodeURIComponent("sheets(properties(title))")}`,
-    token,
-  );
-  const tabs: string[] = (meta?.sheets ?? [])
-    .map((s: any) => String(s?.properties?.title ?? ""))
-    .filter((t: string) => t)
-    .slice(0, 25);
-  if (tabs.length === 0) return "";
-  const ranges = tabs.map((t) => `ranges=${sheetRange(t)}`).join("&");
-  const vals = await sheetsApi(
-    `${OUTREACH_SHEET_ID}/values:batchGet?${ranges}&majorDimension=ROWS`,
-    token,
-  );
-  const vr: any[] = vals?.valueRanges ?? [];
+    return `<tr>
+      <td>${profile}<div class="muted" style="font-size:11px;margin-top:2px">${esc(t.display_name ?? "")} ${t.niche ? `· ${esc(t.niche)}` : ""}</div></td>
+      <td><span class="pill" style="font-size:10px">${esc(PLATFORM_LABEL[t.platform])}</span></td>
+      <td class="r">${fmtFollowers(t.follower_estimate)}</td>
+      <td>${apps}</td>
+      <td>${statusPill(t.status)}<div class="muted" style="font-size:10px;margin-top:2px">${fmtRelative(t.updated_at)}</div></td>
+      <td class="r" style="white-space:nowrap">${actionForms} ${deleteForm}</td>
+    </tr>`;
+  };
 
-  const STAT = ["to-contact", "contacted", "replied", "posted"];
-  const agg: Record<string, number> = {};
-  let totRows = 0;
-  const rows = tabs.map((title, i) => {
-    const grid: string[][] = vr[i]?.values ?? [];
-    const header = (grid[0] ?? []).map((h) => String(h).trim().toLowerCase());
-    const body = grid
-      .slice(1)
-      .filter((r) => r.some((c) => String(c ?? "").trim()));
-    totRows += body.length;
-    const si = header.findIndex((h) => h.includes("status"));
-    let tally = "";
-    if (si >= 0) {
-      const counts: Record<string, number> = {};
-      for (const r of body) {
-        const v = String(r[si] ?? "").trim().toLowerCase();
-        if (!v) continue;
-        counts[v] = (counts[v] ?? 0) + 1;
-        agg[v] = (agg[v] ?? 0) + 1;
-      }
-      tally = STAT.filter((k) => counts[k])
-        .map((k) => `<span class="pill">${esc(k)} ${counts[k]}</span>`)
-        .join(" ");
-      const extra = Object.keys(counts)
-        .filter((k) => !STAT.includes(k))
-        .reduce((s, k) => s + counts[k], 0);
-      if (extra) tally += ` <span class="pill">andere ${extra}</span>`;
-    }
-    return `<tr><td>${esc(title)}</td><td class="r">${body.length}</td><td>${tally || '<span class="muted">kein Status-Feld</span>'}</td></tr>`;
-  });
+  const tableBody = rows.length === 0
+    ? `<tr><td colspan="6" class="muted">Keine Targets in dieser Auswahl. ${(platform !== "all" || status !== "all" || app !== "all") ? `<a class="applink" href="/admin?view=outreach">Filter zurücksetzen</a>` : "Füg einen mit dem Formular oben hinzu."}</td></tr>`
+    : rows.map(targetRow).join("");
 
-  const aggChips =
-    STAT.filter((k) => agg[k])
-      .map((k) => `<span class="pill">${esc(k)} ${agg[k]}</span>`)
-      .join(" ") || '<span class="muted">keine Status-Spalten erkannt</span>';
-
-  return `<div class="cards">
-      <div class="card"><div class="k">App-Tabs</div><div class="v">${tabs.length}</div></div>
-      <div class="card"><div class="k">Kontakte gesamt</div><div class="v">${totRows}</div><div class="s">Zeilen mit Inhalt</div></div>
-      <div class="card"><div class="k">Status gesamt</div><div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${aggChips}</div></div>
-    </div>
-    <h2>Pro App-Tab</h2>
-    <table><thead><tr><th>Tab</th><th class="r">Kontakte</th><th>Status</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
-}
-
-async function outreachView(): Promise<string> {
-  const v = `https://docs.google.com/spreadsheets/d/${OUTREACH_SHEET_ID}/preview`;
-  const edit = `https://docs.google.com/spreadsheets/d/${OUTREACH_SHEET_ID}/edit`;
-  let stats = "";
-  let hint = "";
-  if (KLAR_SHEETS_SA) {
-    stats = await outreachStats();
-    if (!stats)
-      hint = `<p class="sub muted" style="font-size:14px">Service-Account-Stats nicht ladbar. Key gültig? Sheet mit der SA-Mail als Betrachter geteilt? Solange greift das eingebettete Sheet unten.</p>`;
-  } else {
-    hint = `<p class="sub muted" style="font-size:14px">Für automatische Zahlen pro App: <span class="warn">KLAR_SHEETS_SA_JSON</span> (kompletter Dienstkonto-JSON-Key) im klar-Vercel-Projekt setzen + Sheet mit der SA-Mail als Betrachter teilen. Bis dahin nur das eingebettete Sheet.</p>`;
-  }
-  return `<h1>Outreach</h1><p class="sub">Der Influencer-Outreach-Master. Jeder App-Tab führt den Status: To-Contact, Contacted, Replied, Posted.</p>
-    ${stats}
-    ${hint}
-    <h2>Volles Sheet</h2>
-    <div style="margin-bottom:16px"><a class="btn" target="_blank" rel="noopener" href="${edit}">In Google Sheets öffnen</a></div>
-    <div class="iframewrap"><iframe src="${v}" loading="lazy"></iframe></div>
-    <p class="sub muted" style="margin-top:16px;font-size:14px">Das eingebettete Sheet lädt nur, wenn du im selben Browser beim berechtigten Google-Account angemeldet bist.</p>`;
+  return `<h1>Outreach</h1>
+    <p class="sub">Influencer-Outreach-Tracker. Status-Lifecycle <em>Queued → DM gesendet → Antwort → Converted</em>. Alles in Supabase (anime-vault, RLS-locked, service-role-only).</p>
+    ${cards}
+    ${addForm}
+    <h2>Filter</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px">${segPlatform}${segStatus}</div>
+    <div style="margin-bottom:18px">${segApp}</div>
+    <h2>Targets <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${rows.length} angezeigt</span></h2>
+    <table>
+      <thead><tr><th>Lead</th><th>Plattform</th><th class="r">Follower</th><th>Apps</th><th>Status</th><th class="r">Aktionen</th></tr></thead>
+      <tbody>${tableBody}</tbody>
+    </table>`;
 }
 
 async function inboxView(typeFilter: string, sourceFilter: string): Promise<string> {
@@ -997,7 +1063,12 @@ export async function GET(req: Request): Promise<Response> {
   const view = url.searchParams.get("view") || "overview";
 
   let main: string;
-  if (view === "outreach") main = await outreachView();
+  if (view === "outreach") {
+    const p = url.searchParams.get("p") ?? "all";
+    const s = url.searchParams.get("s") ?? "all";
+    const a = url.searchParams.get("a") ?? "all";
+    main = await outreachView(p, s, a);
+  }
   else if (view === "inbox") {
     const typeFilter = url.searchParams.get("type") ?? "all";
     const sourceFilter = url.searchParams.get("source") ?? "all";
