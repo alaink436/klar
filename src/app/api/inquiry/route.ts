@@ -20,6 +20,9 @@ import {
   isAllowedOrigin,
   rateLimit,
 } from "@/lib/apiGuards";
+import { getAdminSettings, logNotifEvent } from "@/lib/adminSettings";
+import { approveAffiliateCore } from "@/lib/affiliateApprove";
+import { flushNotifsIfBatchReady } from "@/lib/notifFlusher";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -116,13 +119,16 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   try {
+    // We need the inserted row back so we can (a) reference its id when
+    // auto-accept is on and (b) attach it to the notification log. Switch
+    // from minimal to representation now that we read the row downstream.
     const res = await fetch(`${SUPABASE_URL}/rest/v1/klar_inquiries`, {
       method: "POST",
       headers: {
         apikey: ANON_KEY,
         Authorization: `Bearer ${ANON_KEY}`,
         "Content-Type": "application/json",
-        Prefer: "return=minimal",
+        Prefer: "return=representation",
       },
       body: JSON.stringify(row),
       cache: "no-store",
@@ -132,6 +138,62 @@ export async function POST(req: Request): Promise<Response> {
       console.error("klar_inquiries insert failed", res.status, await res.text());
       return json({ success: false, error: "store_failed" }, 502);
     }
+    const inserted = (await res.json().catch(() => [])) as Array<{
+      id?: string;
+    }>;
+    const inquiryId = Array.isArray(inserted) ? inserted[0]?.id ?? null : null;
+
+    // Read admin settings once. Best-effort — getAdminSettings falls back to
+    // defaults if the inbox project is unreachable, so a misconfig here
+    // never blocks the public form.
+    const settings = await getAdminSettings({ revalidate: 30 });
+
+    // Append a notification event when the inquiry trigger is on. The
+    // batcher reads admin_notif_log and sends a digest when pending count
+    // crosses settings.notification_batch_size (handled in Phase 2c).
+    if (settings.notification_trigger_inquiry) {
+      // Log first, then attempt a flush. logNotifEvent is fire-and-forget
+      // (best-effort PostgREST POST). Flush is also fire-and-forget — it
+      // reads pending count, builds + sends digest if batch_size hit.
+      void logNotifEvent({
+        event_type: "inquiry_new",
+        app_slug: typeof row.target_app === "string" ? row.target_app : null,
+        handle: typeof row.handle === "string" ? row.handle : null,
+        inquiry_id: inquiryId,
+        payload: { type, email },
+      }).then(() => flushNotifsIfBatchReady());
+    }
+
+    // Auto-accept: only for affiliate-type inquiries that have a
+    // target_app + handle. If any required field is missing the inquiry
+    // stays in the inbox for manual approve — we never approve without
+    // enough data to mint a setup token.
+    if (
+      settings.auto_accept_affiliates &&
+      type === "affiliate" &&
+      inquiryId &&
+      typeof row.target_app === "string" &&
+      typeof row.handle === "string" &&
+      row.handle
+    ) {
+      const handle = String(row.handle).replace(/^@/, "").toLowerCase();
+      // Don't await — the approve flow makes 2-3 round-trips (RPC, PATCH,
+      // Brevo) and we don't want to block the form submission on it. The
+      // user just needs to know their inquiry landed.
+      void approveAffiliateCore({
+        inquiryId,
+        appSlug: row.target_app,
+        handle,
+        email,
+        displayName: handle,
+        language: "de",
+        sharePct: 50,
+        shareMonths: 24,
+      }).catch((e) => {
+        console.error("[inquiry] auto-accept failed", e);
+      });
+    }
+
     return json({ success: true });
   } catch (e) {
     console.error("klar_inquiries insert threw", e);

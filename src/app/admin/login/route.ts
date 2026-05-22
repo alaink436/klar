@@ -32,6 +32,7 @@ import {
   deviceCookieHeader,
   newDeviceId,
 } from "../../../lib/deviceCookie";
+import { fetchInvite, markInviteUsed } from "../../../lib/adminSettings";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -101,30 +102,46 @@ function setupHint(): Response {
 function renderForm({
   knownDeviceName,
   err,
+  inviteToken,
+  inviteName,
 }: {
   knownDeviceName: string | null;
   err?: string;
+  inviteToken?: string;
+  inviteName?: string | null;
 }): Response {
   const isNewDevice = knownDeviceName === null;
+  const hasInvite = Boolean(inviteToken);
+  // Invite flow: skip the admin-key input (the invite is the entry pass),
+  // still require device-name + TOTP. Known-device flow ignores invites.
+  const showKeyInput = isNewDevice && !hasInvite;
+  const showNameInput = isNewDevice; // both new-device paths need a name
+  const tag = hasInvite
+    ? `Eingeladen${inviteName ? `, ${esc(inviteName)}` : ""}`
+    : isNewDevice
+      ? "Neues Gerät einrichten"
+      : `Willkommen zurück, ${esc(knownDeviceName ?? "")}`;
+  const foot = hasInvite
+    ? "Einmal-Invite. Nach Anmeldung wird der Token verbraucht."
+    : isNewDevice
+      ? "Gerät wird nach erfolgreicher Anmeldung registriert"
+      : "Code aus deiner Authenticator-App";
   return htmlShell(`<div class="login"><div class="login-card">
     <div class="login-badge" aria-hidden="true" style="width:56px;height:56px;padding:6px">
       <img src="/logo/klar-symbol.png" alt="Klar" style="width:100%;height:100%;object-fit:contain;display:block"/>
     </div>
     <div class="login-mark">Klar</div>
-    <p class="login-tag">${isNewDevice ? "Neues Gerät einrichten" : `Willkommen zurück, ${esc(knownDeviceName)}`}</p>
+    <p class="login-tag">${tag}</p>
     <div class="login-rule"></div>
     ${err ? `<p class="login-err">${esc(err)}</p>` : ""}
     <form method="POST" action="/admin/login" style="display:flex;flex-direction:column;gap:10px">
-      ${
-        isNewDevice
-          ? `<input class="login-input" name="key" type="password" placeholder="Admin-Key" autocomplete="off" required/>
-             <input class="login-input" name="name" type="text" placeholder="Gerätename (z.B. PC, Laptop)" autocomplete="off" maxlength="40" required/>`
-          : ""
-      }
+      ${hasInvite ? `<input type="hidden" name="invite" value="${esc(inviteToken)}"/>` : ""}
+      ${showKeyInput ? `<input class="login-input" name="key" type="password" placeholder="Admin-Key" autocomplete="off" required/>` : ""}
+      ${showNameInput ? `<input class="login-input" name="name" type="text" placeholder="Gerätename (z.B. PC, Laptop)" autocomplete="off" maxlength="40" required/>` : ""}
       <input class="login-input" name="totp" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6-stelliger Code" autocomplete="one-time-code" autofocus required/>
       <button class="btn" style="margin-top:8px;width:100%;padding:12px;justify-content:center" type="submit">Anmelden</button>
     </form>
-    <p class="login-foot">${isNewDevice ? "Gerät wird nach erfolgreicher Anmeldung registriert" : "Code aus deiner Authenticator-App"}</p>
+    <p class="login-foot">${foot}</p>
   </div></div>`);
 }
 
@@ -134,6 +151,27 @@ export async function GET(req: Request): Promise<Response> {
   if (!KEY() || !TOTP_SECRET() || !DEVICE_SECRET()) return setupHint();
   const deviceRaw = readCookie(req, "klar_device");
   const device = await verifyDeviceCookie(deviceRaw, DEVICE_SECRET());
+
+  // Invite flow: GET /admin/login?invite=TOKEN renders the form without the
+  // admin-key input. The invite is the proof you were authorized to log in.
+  // Known devices ignore invites — they already have a device cookie.
+  const url = new URL(req.url);
+  const inviteToken = url.searchParams.get("invite")?.trim() ?? "";
+  if (inviteToken && !device) {
+    const invite = await fetchInvite(inviteToken);
+    if (!invite) {
+      return renderForm({
+        knownDeviceName: null,
+        err: "Invite-Link ungültig, abgelaufen oder schon eingelöst.",
+      });
+    }
+    return renderForm({
+      knownDeviceName: null,
+      inviteToken,
+      inviteName: invite.invited_name,
+    });
+  }
+
   return renderForm({ knownDeviceName: device ? device.name : null });
 }
 
@@ -144,36 +182,64 @@ export async function POST(req: Request): Promise<Response> {
   const totp = String(form.get("totp") ?? "").trim();
   const keyInput = String(form.get("key") ?? "");
   const deviceName = String(form.get("name") ?? "").trim().slice(0, 40);
+  const inviteToken = String(form.get("invite") ?? "").trim();
 
   const deviceRaw = readCookie(req, "klar_device");
   const knownDevice = await verifyDeviceCookie(deviceRaw, DEVICE_SECRET());
 
-  // TOTP is required on both paths.
+  // TOTP is required on every path — known device, new device with admin-key,
+  // new device with invite token. The TOTP shared secret is the only thing
+  // we never delegate, so a leaked invite alone can't sign you in.
   const totpOk = await verifyTOTP(TOTP_SECRET(), totp);
   if (!totpOk) {
     return renderForm({
       knownDeviceName: knownDevice ? knownDevice.name : null,
       err: "Code falsch oder abgelaufen.",
+      inviteToken: inviteToken || undefined,
     });
   }
 
-  // New-device path: also requires admin-key + device-name.
+  // Resolve which entry path we're on.
   let issueDeviceCookie = false;
   let newName = knownDevice?.name ?? "";
+  let consumedInvite: string | null = null;
+
   if (!knownDevice) {
-    if (!ctEqual(keyInput, KEY())) {
-      return renderForm({ knownDeviceName: null, err: "Admin-Key falsch." });
+    if (inviteToken) {
+      // Invite path: validate the token, no admin-key needed.
+      const invite = await fetchInvite(inviteToken);
+      if (!invite) {
+        return renderForm({
+          knownDeviceName: null,
+          err: "Invite-Link ungültig, abgelaufen oder schon eingelöst.",
+          inviteToken,
+        });
+      }
+      if (!deviceName) {
+        return renderForm({
+          knownDeviceName: null,
+          err: "Bitte Gerätename angeben.",
+          inviteToken,
+          inviteName: invite.invited_name,
+        });
+      }
+      issueDeviceCookie = true;
+      newName = deviceName;
+      consumedInvite = inviteToken;
+    } else {
+      // Admin-key path: original behaviour.
+      if (!ctEqual(keyInput, KEY())) {
+        return renderForm({ knownDeviceName: null, err: "Admin-Key falsch." });
+      }
+      if (!deviceName) {
+        return renderForm({ knownDeviceName: null, err: "Bitte Gerätename angeben." });
+      }
+      issueDeviceCookie = true;
+      newName = deviceName;
     }
-    if (!deviceName) {
-      return renderForm({ knownDeviceName: null, err: "Bitte Gerätename angeben." });
-    }
-    issueDeviceCookie = true;
-    newName = deviceName;
   }
 
   const headers = new Headers({ Location: "/admin" });
-  // Clear S30e Path=/ cookies first so the browser stops sending them
-  // alongside the new Path=/admin cookies (two same-name cookies = race).
   headers.append("Set-Cookie", clearLegacyRootPath());
   headers.append("Set-Cookie", clearLegacyDeviceRootPath());
   headers.append("Set-Cookie", sessionCookieHeader(KEY()));
@@ -184,5 +250,13 @@ export async function POST(req: Request): Promise<Response> {
     );
     headers.append("Set-Cookie", deviceCookieHeader(signed));
   }
+
+  // Burn the invite token only after the cookies are queued. We don't await
+  // — a slow Supabase round-trip should not block the redirect, and
+  // markInviteUsed swallows its own errors.
+  if (consumedInvite) {
+    void markInviteUsed(consumedInvite, newName);
+  }
+
   return new Response(null, { status: 303, headers });
 }

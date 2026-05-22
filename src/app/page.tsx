@@ -10,6 +10,7 @@ import HashAccordion from "./components/HashAccordion";
 import { AffiliateForm, ConsultingForm, CoachingForm } from "./components/Forms";
 import CalEmbed from "./components/CalEmbed";
 import codebase from "./data/codebase.json";
+import { getAdminSettings } from "@/lib/adminSettings";
 
 const CB_TOTALS = codebase.totals;
 const nf = (n: number) => n.toLocaleString("en-US");
@@ -129,19 +130,30 @@ const APPS: App[] = [
 const GITHUB_PROFILE = "https://github.com/alaink436";
 const GITHUB_NOW = "https://github.com/alaink436/now";
 
-export default function Home() {
+export default async function Home() {
+  // Admin can disable the liquid-metal background animation from
+  // /admin/settings (shader_enabled). Cached for 60s so the homepage
+  // doesn't hit Supabase on every visit.
+  const settings = await getAdminSettings({ revalidate: 60 });
   return (
     <>
       <HashAccordion />
 
       {/* ─── GLOBAL LIQUID-METAL BACKGROUND ─── */}
-      <div className="bg-stage" aria-hidden="true">
-        <div className="bg-layer bg-layer-1" style={{ backgroundImage: "url('/bg/bg-1.webp')" }} />
-        <div className="bg-layer bg-layer-2" style={{ backgroundImage: "url('/bg/bg-2.webp')" }} />
-        <div className="bg-layer bg-layer-3" style={{ backgroundImage: "url('/bg/bg-3.webp')" }} />
-        <div className="bg-layer bg-layer-4" style={{ backgroundImage: "url('/bg/bg-4.webp')" }} />
-        <div className="bg-vignette" />
-      </div>
+      {settings.shader_enabled ? (
+        <div className="bg-stage" aria-hidden="true">
+          <div className="bg-layer bg-layer-1" style={{ backgroundImage: "url('/bg/bg-1.webp')" }} />
+          <div className="bg-layer bg-layer-2" style={{ backgroundImage: "url('/bg/bg-2.webp')" }} />
+          <div className="bg-layer bg-layer-3" style={{ backgroundImage: "url('/bg/bg-3.webp')" }} />
+          <div className="bg-layer bg-layer-4" style={{ backgroundImage: "url('/bg/bg-4.webp')" }} />
+          <div className="bg-vignette" />
+        </div>
+      ) : (
+        // Shader off → just the vignette + bg color, no rotating layers.
+        <div className="bg-stage" aria-hidden="true">
+          <div className="bg-vignette" />
+        </div>
+      )}
 
       <main className="min-h-screen relative">
         {/* ─────────── NAV ─────────── */}

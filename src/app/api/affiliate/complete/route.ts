@@ -20,6 +20,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getApp, sbRpc } from "@/lib/adminApps";
 import { ALLOWED_ORIGINS, isAllowedOrigin, clientIp, rateLimit, exceedsContentLength } from "@/lib/apiGuards";
 import { getTrackingUrl, type BrandKey } from "@/app/affiliate/_shared/brands";
+import { getAdminSettings, logNotifEvent } from "@/lib/adminSettings";
+import { flushNotifsIfBatchReady } from "@/lib/notifFlusher";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -348,6 +350,31 @@ export async function POST(req: NextRequest): Promise<Response> {
       language,
     }).catch(() => { /* already logged */ });
   }
+
+  // Admin notification: log a setup_completed event and let the flusher
+  // decide whether to send a digest mail (batched per admin_settings).
+  // Fire-and-forget — the influencer's completion response must not block
+  // on Brevo / Supabase availability.
+  void (async () => {
+    try {
+      const settings = await getAdminSettings({ revalidate: 30 });
+      if (!settings.notification_trigger_complete) return;
+      await logNotifEvent({
+        event_type: "setup_completed",
+        app_slug: appSlug,
+        handle,
+        inquiry_id: null,
+        payload: {
+          display_name: displayName,
+          country,
+          promo_code: finalPromo || null,
+        },
+      });
+      await flushNotifsIfBatchReady();
+    } catch (e) {
+      console.warn("[affiliate/complete] notif log/flush threw", e);
+    }
+  })();
 
   return NextResponse.json({ ok: true, promo_code: finalPromo || null, handle: row.handle ?? null }, {
     headers: corsHeaders(req.headers.get("origin")),
