@@ -5,8 +5,8 @@
 // redirect to /dashboard.
 
 import { NextResponse, type NextRequest } from "next/server";
-import { serverSupabase, serviceSupabase } from "@/lib/supabaseAuth";
-import { getApps, sbGet } from "@/lib/adminApps";
+import { serverSupabase } from "@/lib/supabaseAuth";
+import { ensureAffiliate } from "@/lib/ensureAffiliate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,52 +30,15 @@ export async function GET(req: NextRequest): Promise<Response> {
   }
 
   // Best-effort: link the auth.users row to klar_affiliates by walking the
-  // 6 app supabases and collecting any influencer rows that share this
-  // email. If the affiliate is not yet onboarded in any app the row stays
-  // empty (apps=[]), the dashboard then shows a friendly empty-state.
+  // 6 app supabases. Idempotent helper is also called from the dashboard
+  // page-load so existing legacy auth.users that sign in with a password
+  // never go through this route still get a row.
   const email = (data.user.email ?? "").trim().toLowerCase();
   if (email) {
-    void linkAffiliate(data.user.id, email).catch((e) => {
-      console.warn("[auth/callback] link-affiliate threw", e);
+    void ensureAffiliate(data.user.id, email).catch((e) => {
+      console.warn("[auth/callback] ensure-affiliate threw", e);
     });
   }
 
   return NextResponse.redirect(new URL(redirectTo, req.url));
-}
-
-async function linkAffiliate(userId: string, email: string): Promise<void> {
-  const apps = getApps();
-  const hits: Array<{ slug: string; handle: string; display_name: string | null }> = [];
-
-  // Parallel email-lookup across all wired app supabases.
-  await Promise.all(
-    apps.map(async (app) => {
-      const rows = await sbGet(
-        app,
-        `influencers?contact_email=eq.${encodeURIComponent(email)}&select=handle,display_name&limit=1`,
-      );
-      const row = rows[0] as { handle?: string; display_name?: string | null } | undefined;
-      if (row?.handle) {
-        hits.push({ slug: app.slug, handle: row.handle, display_name: row.display_name ?? null });
-      }
-    }),
-  );
-
-  const handles: Record<string, string> = {};
-  for (const h of hits) handles[h.slug] = h.handle;
-  const displayName = hits[0]?.display_name ?? null;
-
-  const svc = serviceSupabase();
-  // Upsert klar_affiliates with the discovered apps + handles. ON CONFLICT
-  // user_id we merge so a second app linking later just appends to apps[].
-  await svc.from("klar_affiliates").upsert(
-    {
-      user_id: userId,
-      email,
-      display_name: displayName,
-      apps: hits.map((h) => h.slug),
-      handles,
-    },
-    { onConflict: "user_id" },
-  );
 }

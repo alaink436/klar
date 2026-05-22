@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser, serviceSupabase, isSupabaseConfigured } from "@/lib/supabaseAuth";
 import { getApp, sbGet } from "@/lib/adminApps";
+import { ensureAffiliate } from "@/lib/ensureAffiliate";
 
 export const dynamic = "force-dynamic";
 
@@ -114,6 +115,17 @@ export default async function DashboardPage() {
 
   const user = await getSessionUser();
   if (!user) redirect("/dashboard/login");
+
+  // Existing legacy auth.users that sign in with a password never go through
+  // the /auth/callback route, so their klar_affiliates row would never be
+  // created. ensureAffiliate is idempotent: a no-op if the row already
+  // exists, otherwise it walks the 6 app supabases by email and mints the
+  // row from any matching influencer.contact_email.
+  if (user.email) {
+    await ensureAffiliate(user.id, user.email).catch((e) => {
+      console.warn("[dashboard] ensure-affiliate threw", e);
+    });
+  }
 
   const affiliate = await loadAffiliate(user.id);
   if (!affiliate) {
