@@ -1,9 +1,9 @@
 "use client";
 
 // Magic-link fallback for the "forgot password" + "signed up via the
-// confirmation email" cases. Supabase sends an OTP link, the user clicks
-// it, lands on /dashboard/auth/callback which exchanges the code for a
-// session and redirects to /dashboard.
+// confirmation email" cases. Supabase sends a one-time link, the user
+// clicks it, lands on /dashboard/auth/callback which exchanges the code
+// for a session and redirects to /dashboard.
 
 import { useState } from "react";
 import Link from "next/link";
@@ -33,7 +33,7 @@ export function MagicForm() {
       if (err) throw new Error(err.message);
       setDone(true);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Magic-Link konnte nicht gesendet werden.";
+      const msg = e instanceof Error ? e.message : "Couldn't send the magic link.";
       setError(msg);
     } finally {
       setBusy(false);
@@ -42,23 +42,23 @@ export function MagicForm() {
 
   return (
     <AuthShell
-      eyebrow="Affiliate · Magic-Link"
-      title={<>Login ohne <i style={{ fontFamily: "var(--font-editorial, serif)" }}>Passwort.</i></>}
-      intro="Gib deine Affiliate-E-Mail an. Wir schicken dir einen Einmal-Link, der dich direkt einloggt."
+      eyebrow="Affiliate · Magic link"
+      title={<>Sign in without a <i style={{ fontFamily: "var(--font-editorial, serif)" }}>password.</i></>}
+      intro="Enter your affiliate email and we'll send you a one-time login link. Valid for one hour."
       footer={
         <>
-          Lieber Passwort? <Link href="/dashboard/login" style={{ color: "var(--fg)", fontWeight: 600 }}>Login</Link>
+          Prefer a password? <Link href="/dashboard/login" style={{ color: "var(--fg)", fontWeight: 600 }}>Sign in</Link>
         </>
       }
     >
       {done ? (
         <div style={successStyle}>
-          Magic-Link ist unterwegs. Check dein Postfach (auch Spam). Der Link ist 1 Stunde gültig.
+          Magic link sent. Check your inbox (and spam folder). The link works once and expires in 60 minutes.
         </div>
       ) : (
         <form onSubmit={onSubmit} style={{ display: "grid", gap: 14 }}>
           <div>
-            <label htmlFor="magic-email" style={labelStyle}>E-Mail</label>
+            <label htmlFor="magic-email" style={labelStyle}>Email</label>
             <input
               id="magic-email"
               type="email"
@@ -67,12 +67,12 @@ export function MagicForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               style={inputStyle}
-              placeholder="nina@example.com"
+              placeholder="you@example.com"
             />
           </div>
           {error && <div style={errorStyle}>{error}</div>}
           <button type="submit" disabled={busy} style={{ ...buttonStyle, opacity: busy ? 0.6 : 1, cursor: busy ? "wait" : "pointer" }}>
-            {busy ? "Sende Link…" : "Magic-Link senden"}
+            {busy ? "Sending link…" : "Send magic link"}
           </button>
         </form>
       )}

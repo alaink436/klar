@@ -29,7 +29,7 @@ export function LoginForm() {
       if (err) throw new Error(err.message);
       window.location.href = "/dashboard";
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Login fehlgeschlagen.";
+      const msg = e instanceof Error ? e.message : "Login failed.";
       setError(msg);
       setBusy(false);
     }
@@ -37,18 +37,18 @@ export function LoginForm() {
 
   return (
     <AuthShell
-      eyebrow="Affiliate · Login"
-      title={<>Willkommen <i style={{ fontFamily: "var(--font-editorial, serif)" }}>zurück.</i></>}
-      intro="Logge dich mit deiner Affiliate-E-Mail ein. Vergessen? Nimm den Magic-Link statt Passwort."
+      eyebrow="Affiliate · Log in"
+      title={<>Welcome <i style={{ fontFamily: "var(--font-editorial, serif)" }}>back.</i></>}
+      intro="Sign in with the email we onboarded you with. Forgot your password? Use the magic link instead."
       footer={
         <>
-          Noch kein Konto? <Link href="/dashboard/signup" style={{ color: "var(--fg)", fontWeight: 600 }}>Konto erstellen</Link>
+          New here? <Link href="/dashboard/signup" style={{ color: "var(--fg)", fontWeight: 600 }}>Create an account</Link>
         </>
       }
     >
       <form onSubmit={onSubmit} style={{ display: "grid", gap: 14 }}>
         <div>
-          <label htmlFor="login-email" style={labelStyle}>E-Mail</label>
+          <label htmlFor="login-email" style={labelStyle}>Email</label>
           <input
             id="login-email"
             type="email"
@@ -57,10 +57,11 @@ export function LoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={inputStyle}
+            placeholder="you@example.com"
           />
         </div>
         <div>
-          <label htmlFor="login-password" style={labelStyle}>Passwort</label>
+          <label htmlFor="login-password" style={labelStyle}>Password</label>
           <input
             id="login-password"
             type="password"
@@ -69,14 +70,15 @@ export function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={inputStyle}
+            placeholder="••••••••"
           />
         </div>
         {error && <div style={errorStyle}>{error}</div>}
         <button type="submit" disabled={busy} style={{ ...buttonStyle, opacity: busy ? 0.6 : 1, cursor: busy ? "wait" : "pointer" }}>
-          {busy ? "Logge ein…" : "Einloggen"}
+          {busy ? "Signing in…" : "Sign in"}
         </button>
         <p style={{ fontSize: 12, color: "var(--fg-3)", margin: 0, textAlign: "center" }}>
-          Kein Passwort mehr? <Link href="/dashboard/magic" style={{ color: "var(--fg-2)" }}>Magic-Link</Link>
+          Forgot your password? <Link href="/dashboard/magic" style={{ color: "var(--fg-2)" }}>Get a magic link</Link>
         </p>
       </form>
     </AuthShell>

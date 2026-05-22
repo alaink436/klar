@@ -1,8 +1,9 @@
 "use client";
 
-// Compact card layout for the 3 auth screens (signup / login / magic).
-// Kept as a single shared component so the screens stay visually identical
-// and only the form body changes.
+// Compact card layout for the 4 auth screens (signup / login / magic /
+// cancel). Kept as a single shared component so the screens stay visually
+// identical and only the form body changes. The KLAR wordmark sits above
+// the card as a small, restrained brand anchor.
 
 import Link from "next/link";
 
@@ -24,11 +25,14 @@ export function AuthShell({
       style={{
         minHeight: "100dvh",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         padding: "32px 18px",
+        gap: 24,
       }}
     >
+      <KlarWordmark />
       <article
         style={{
           width: "100%",
@@ -110,6 +114,47 @@ export function AuthShell({
         </div>
       </article>
     </div>
+  );
+}
+
+// Klar wordmark used on auth + cancel screens. Pure typography, no PNG,
+// so it stays sharp at any zoom level and avoids loading an extra image.
+export function KlarWordmark({ size = "md" }: { size?: "sm" | "md" }) {
+  const fontSize = size === "sm" ? 18 : 24;
+  return (
+    <Link
+      href="/"
+      style={{
+        display: "inline-flex",
+        alignItems: "baseline",
+        gap: 6,
+        textDecoration: "none",
+        color: "var(--fg)",
+        letterSpacing: -0.4,
+      }}
+    >
+      <span
+        style={{
+          fontFamily: "var(--font-display, system-ui, sans-serif)",
+          fontWeight: 600,
+          fontSize,
+          color: "var(--fg)",
+        }}
+      >
+        Klar
+      </span>
+      <span
+        style={{
+          fontFamily: "var(--font-editorial, Georgia, serif)",
+          fontStyle: "italic",
+          fontWeight: 400,
+          fontSize: fontSize * 0.7,
+          color: "var(--fg-3)",
+        }}
+      >
+        affiliate
+      </span>
+    </Link>
   );
 }
 

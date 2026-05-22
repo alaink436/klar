@@ -1,9 +1,9 @@
 "use client";
 
-// Vertragsauflösung-Bestätigung. Hard-stop: zweite Bestätigung damit ein
-// Fehlklick nicht den Account löscht. Submit POSTet an /api/affiliate/
-// cancel, das setzt status=cancelled in klar_affiliates + den passenden
-// influencers-Rows in jeder App-Supabase.
+// Contract cancellation confirmation. Hard stop: requires the user to type
+// CANCEL before the button enables so a misclick can't kill the account.
+// Submit POSTs to /api/affiliate/cancel which flips status=cancelled in
+// klar_affiliates + the per-app influencers rows.
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -26,7 +26,7 @@ export function CancelForm({ displayName, apps }: { displayName: string | null; 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const requiredPhrase = "AUFLÖSEN";
+  const requiredPhrase = "CANCEL";
   const canSubmit = confirmText.trim().toUpperCase() === requiredPhrase && !busy;
 
   async function onSubmit(e: React.FormEvent) {
@@ -44,23 +44,23 @@ export function CancelForm({ displayName, apps }: { displayName: string | null; 
       if (!res.ok || !j?.ok) throw new Error(j?.error || `HTTP ${res.status}`);
       router.replace("/dashboard");
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Auflösung fehlgeschlagen.");
+      setError(e instanceof Error ? e.message : "Cancellation failed.");
       setBusy(false);
     }
   }
 
   return (
     <AuthShell
-      eyebrow="Affiliate · Vertrag auflösen"
-      title={<>Bist du <i style={{ fontFamily: "var(--font-editorial, serif)" }}>sicher?</i></>}
+      eyebrow="Affiliate · Cancel contract"
+      title={<>Are you <i style={{ fontFamily: "var(--font-editorial, serif)" }}>sure?</i></>}
       intro={
         apps.length === 0
-          ? "Wir lösen deinen Affiliate-Account. Bereits verdiente Provisionen werden noch ausgezahlt."
-          : `Wir setzen deinen Status in ${apps.length === 1 ? "1 App" : `${apps.length} Apps`} (${apps.map((s) => APP_NAME[s] ?? s).join(", ")}) auf "cancelled". Tracking-Links funktionieren weiter, aber neue Klicks werden nicht mehr provisionsrelevant gezählt.`
+          ? "We'll close your affiliate account. Any commissions you've already earned will still be paid out."
+          : `We'll flip your status to cancelled in ${apps.length === 1 ? "1 app" : `${apps.length} apps`} (${apps.map((s) => APP_NAME[s] ?? s).join(", ")}). Your tracking links keep working, but new clicks no longer count toward commission.`
       }
       footer={
         <>
-          Doch nicht? <Link href="/dashboard" style={{ color: "var(--fg)", fontWeight: 600 }}>Zurück</Link>
+          Changed your mind? <Link href="/dashboard" style={{ color: "var(--fg)", fontWeight: 600 }}>Go back</Link>
         </>
       }
     >
@@ -71,7 +71,7 @@ export function CancelForm({ displayName, apps }: { displayName: string | null; 
       )}
       <form onSubmit={onSubmit} style={{ display: "grid", gap: 14 }}>
         <div>
-          <label htmlFor="cancel-reason" style={labelStyle}>Grund (optional)</label>
+          <label htmlFor="cancel-reason" style={labelStyle}>Reason (optional)</label>
           <input
             id="cancel-reason"
             type="text"
@@ -79,11 +79,11 @@ export function CancelForm({ displayName, apps }: { displayName: string | null; 
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             style={inputStyle}
-            placeholder="z.B. Niche passt nicht mehr"
+            placeholder="e.g. niche shifted, not a fit anymore"
           />
         </div>
         <div>
-          <label htmlFor="cancel-confirm" style={labelStyle}>Tippe AUFLÖSEN zur Bestätigung</label>
+          <label htmlFor="cancel-confirm" style={labelStyle}>Type CANCEL to confirm</label>
           <input
             id="cancel-confirm"
             type="text"
@@ -91,6 +91,7 @@ export function CancelForm({ displayName, apps }: { displayName: string | null; 
             onChange={(e) => setConfirmText(e.target.value)}
             style={inputStyle}
             autoComplete="off"
+            placeholder="CANCEL"
           />
         </div>
         {error && <div style={errorStyle}>{error}</div>}
@@ -105,7 +106,7 @@ export function CancelForm({ displayName, apps }: { displayName: string | null; 
             opacity: busy ? 0.6 : 1,
           }}
         >
-          {busy ? "Löse auf…" : "Vertrag auflösen"}
+          {busy ? "Cancelling…" : "Cancel contract"}
         </button>
       </form>
     </AuthShell>
