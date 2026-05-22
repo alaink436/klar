@@ -62,6 +62,13 @@ export async function POST(req: NextRequest): Promise<Response> {
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
   if (!KEY) return bad("admin not configured", 503);
   if (!ctEqual(readCookie(req, "klar_admin"), KEY)) {
+    // UX: Form-Submit aus dem /admin Browser → redirect zu Login statt JSON-401.
+    // JSON-API-Caller bekommen weiterhin 401 JSON.
+    const accept = req.headers.get("accept") ?? "";
+    if (!accept.includes("application/json")) {
+      const next = encodeURIComponent("/admin?view=inbox");
+      return NextResponse.redirect(new URL(`/admin/login?next=${next}`, req.url), 303);
+    }
     return bad("unauthorized", 401);
   }
 

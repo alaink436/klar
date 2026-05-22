@@ -909,16 +909,19 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
   // approve-form select. If KLAR_ADMIN_APPS is empty, the dropdown still
   // shows but submitting will return "unknown app" — that's the cue to add
   // the app's slug+serviceKey to the env first.
+  // Status-Suffix kommt aus klarApps.ts und macht im Admin sofort sichtbar
+  // welche App-Store-LIVE ist vs noch BUILD/BETA. Wenn ein wired-up app
+  // nicht in KLAR_APPS auftaucht (sollte nicht passieren, KLAR_APPS ist
+  // single-source-of-truth), fällt der Suffix einfach weg.
   const allWiredApps = getApps();
-  // Per-inquiry rendering of the option list: pre-selects the influencer's
-  // target_app if set (via the public form dropdown). Falls back to "wählen"
-  // when the field is missing/empty.
+  const statusBySlug = new Map(KLAR_APPS.map((a) => [a.slug, a.status]));
   const wiredOptionsFor = (target: string | undefined): string =>
     allWiredApps
-      .map(
-        (a) =>
-          `<option value="${esc(a.slug)}"${a.slug === target ? " selected" : ""}>${esc(a.name)}</option>`,
-      )
+      .map((a) => {
+        const status = statusBySlug.get(a.slug);
+        const suffix = status ? ` · ${status}` : "";
+        return `<option value="${esc(a.slug)}"${a.slug === target ? " selected" : ""}>${esc(a.name)}${suffix}</option>`;
+      })
       .join("");
 
   // Onboarding-Link delegated to lib/adminApps.setupLandingUrl() so there is

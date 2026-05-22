@@ -101,15 +101,17 @@ export async function verifyDeviceCookie(
   }
 }
 
-// 10-year cookie. Path=/admin so it doesn't leak to the public site.
+// 10-year cookie. Path=/ damit der Cookie auch an /api/affiliate/{approve,
+// complete} und andere admin-protected API-Routes außerhalb /admin geht.
 // SameSite=Strict means CSRF-safe AND no cookie when arriving via external
 // links — first-visit-from-Twitter still hits the login page, as intended.
+// HttpOnly + Secure halten ihn aus JS und nicht-HTTPS raus.
 export function deviceCookieHeader(value: string): string {
-  return `klar_device=${encodeURIComponent(value)}; HttpOnly; Secure; SameSite=Strict; Path=/admin; Max-Age=${10 * 365 * 24 * 60 * 60}`;
+  return `klar_device=${encodeURIComponent(value)}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${10 * 365 * 24 * 60 * 60}`;
 }
 
 export function deviceCookieClear(): string {
-  return `klar_device=; HttpOnly; Secure; SameSite=Strict; Path=/admin; Max-Age=0`;
+  return `klar_device=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`;
 }
 
 export function newDeviceId(): string {

@@ -180,15 +180,18 @@ const COACHING_OPTS: Opt[] = [
 // App-Slugs für target_app: müssen mit klar_inquiries_target_app_chk DB-constraint
 // matchen + mit den Slugs in lib/klarApps.ts. Wenn du einen neuen Slug addest,
 // hier UND in der DB-Migration ergänzen.
-const TARGET_APPS = [
+// Status-Suffix macht im Dropdown sofort sichtbar welche Apps schon im
+// App Store sind und welche noch im Build/Beta sind.
+type AppOption = { value: string; label: string; status?: string };
+const TARGET_APPS: readonly AppOption[] = [
   { value: "",            label: "any · let klar decide" },
-  { value: "yarn-stash",  label: "Yarn-Stash · knit/crochet" },
-  { value: "trubel",      label: "Trubel · group photos" },
-  { value: "myloo",       label: "MyLoo · gut tracking" },
-  { value: "wavelength",  label: "Wavelength · focus/teams" },
-  { value: "kelva",       label: "Kelva · cycle literacy" },
-  { value: "moto",        label: "ThrottleUp · moto" },
-] as const;
+  { value: "yarn-stash",  label: "Yarn-Stash · knit/crochet",      status: "LIVE" },
+  { value: "trubel",      label: "Trubel · group photos",          status: "LIVE" },
+  { value: "myloo",       label: "MyLoo · gut tracking",           status: "LIVE" },
+  { value: "wavelength",  label: "Wavelength · focus/teams",       status: "LIVE" },
+  { value: "kelva",       label: "Kelva · cycle literacy",         status: "LIVE" },
+  { value: "moto",        label: "ThrottleUp · moto",              status: "LIVE" },
+];
 
 function normalizeAppSlug(raw: string | null): string {
   if (!raw) return "";
@@ -273,7 +276,7 @@ export function AffiliateForm() {
           >
             {TARGET_APPS.map((a) => (
               <option key={a.value || "any"} value={a.value}>
-                {a.label}
+                {a.label}{a.status ? ` · ${a.status}` : ""}
               </option>
             ))}
           </select>
