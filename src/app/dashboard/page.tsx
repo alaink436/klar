@@ -58,44 +58,56 @@ async function loadStatsForApp(slug: string, handle: string): Promise<AppStats |
   if (!app) return null;
   const appName = APP_NAME[slug] ?? slug;
 
+  const h = encodeURIComponent(handle);
+
+  // Wavelength / Trubel / MyLoo / Kelva use influencer_handle directly on
+  // every table. Yarn-Stash + Moto match on an UPPERCASE influencer_code in
+  // referral_clicks (see Auto-Mint Handle-Bridge), but their handle still
+  // populates the field too in the new pipeline.
   // 60s cache: shared across tabs + back-button navigation.
-  const claimRows = await sbGet(
-    app,
-    `influencer_claimable?handle=eq.${encodeURIComponent(handle)}&select=matured_share_eur_cents,paid_eur_cents,claimable_eur_cents`,
-    { revalidate: 60 },
-  );
-  const claim = (claimRows[0] as {
-    matured_share_eur_cents?: number;
-    paid_eur_cents?: number;
-    claimable_eur_cents?: number;
-  }) ?? {};
+  const [convRows, paidRows, clickRows, refRows] = await Promise.all([
+    sbGet(
+      app,
+      `referral_conversions?influencer_handle=eq.${h}&select=influencer_share_cents`,
+      { revalidate: 60 },
+    ),
+    sbGet(
+      app,
+      `influencer_payout_items?influencer_handle=eq.${h}&status=eq.paid&select=amount_cents`,
+      { revalidate: 60 },
+    ),
+    sbGet(
+      app,
+      `referral_clicks?influencer_handle=eq.${h}&select=id`,
+      { revalidate: 60 },
+    ),
+    sbGet(
+      app,
+      `referrals?influencer_handle=eq.${h}&select=id,confirmed_at`,
+      { revalidate: 60 },
+    ),
+  ]);
 
-  const clickRows = await sbGet(
-    app,
-    `referral_clicks?or=(influencer_handle.eq.${encodeURIComponent(handle)},influencer_code.eq.${encodeURIComponent(handle.toUpperCase())})&select=id`,
-    { revalidate: 60 },
+  const earnedCents = (convRows as Array<{ influencer_share_cents?: number }>).reduce(
+    (s, r) => s + Number(r.influencer_share_cents ?? 0),
+    0,
   );
-
-  const refRows = await sbGet(
-    app,
-    `referrals?influencer_handle=eq.${encodeURIComponent(handle)}&select=id,status`,
-    { revalidate: 60 },
+  const paidCents = (paidRows as Array<{ amount_cents?: number }>).reduce(
+    (s, r) => s + Number(r.amount_cents ?? 0),
+    0,
   );
-  const installs = refRows.length;
-  const conversions = (refRows as Array<{ status: string }>).filter(
-    (r) => r.status === "converted" || r.status === "active",
-  ).length;
+  const claimableCents = Math.max(0, earnedCents - paidCents);
 
   return {
     slug,
     appName,
     handle,
-    matured_cents: Number(claim.matured_share_eur_cents ?? 0),
-    paid_cents: Number(claim.paid_eur_cents ?? 0),
-    claimable_cents: Number(claim.claimable_eur_cents ?? 0),
+    matured_cents: earnedCents,
+    paid_cents: paidCents,
+    claimable_cents: claimableCents,
     clicks: clickRows.length,
-    installs,
-    conversions,
+    installs: refRows.length,
+    conversions: convRows.length,
   };
 }
 
