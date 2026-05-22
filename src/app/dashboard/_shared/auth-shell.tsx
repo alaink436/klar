@@ -7,6 +7,49 @@
 
 import Link from "next/link";
 
+// Klar wordmark used on auth + cancel screens. Pure typography, no PNG,
+// so it stays sharp at any zoom level and avoids loading an extra image.
+// Declared BEFORE AuthShell so it's reachable from within AuthShell's JSX
+// without relying on function-hoisting subtleties under SWC transforms.
+export function KlarWordmark({ size = "md" }: { size?: "sm" | "md" }) {
+  const fontSize = size === "sm" ? 18 : 24;
+  return (
+    <Link
+      href="/"
+      style={{
+        display: "inline-flex",
+        alignItems: "baseline",
+        gap: 6,
+        textDecoration: "none",
+        color: "var(--fg)",
+        letterSpacing: -0.4,
+      }}
+    >
+      <span
+        style={{
+          fontFamily: "var(--font-display, system-ui, sans-serif)",
+          fontWeight: 600,
+          fontSize,
+          color: "var(--fg)",
+        }}
+      >
+        Klar
+      </span>
+      <span
+        style={{
+          fontFamily: "var(--font-editorial, Georgia, serif)",
+          fontStyle: "italic",
+          fontWeight: 400,
+          fontSize: fontSize * 0.7,
+          color: "var(--fg-3)",
+        }}
+      >
+        affiliate
+      </span>
+    </Link>
+  );
+}
+
 export function AuthShell({
   eyebrow,
   title,
@@ -117,46 +160,6 @@ export function AuthShell({
   );
 }
 
-// Klar wordmark used on auth + cancel screens. Pure typography, no PNG,
-// so it stays sharp at any zoom level and avoids loading an extra image.
-export function KlarWordmark({ size = "md" }: { size?: "sm" | "md" }) {
-  const fontSize = size === "sm" ? 18 : 24;
-  return (
-    <Link
-      href="/"
-      style={{
-        display: "inline-flex",
-        alignItems: "baseline",
-        gap: 6,
-        textDecoration: "none",
-        color: "var(--fg)",
-        letterSpacing: -0.4,
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "var(--font-display, system-ui, sans-serif)",
-          fontWeight: 600,
-          fontSize,
-          color: "var(--fg)",
-        }}
-      >
-        Klar
-      </span>
-      <span
-        style={{
-          fontFamily: "var(--font-editorial, Georgia, serif)",
-          fontStyle: "italic",
-          fontWeight: 400,
-          fontSize: fontSize * 0.7,
-          color: "var(--fg-3)",
-        }}
-      >
-        affiliate
-      </span>
-    </Link>
-  );
-}
 
 export const inputStyle: React.CSSProperties = {
   width: "100%",

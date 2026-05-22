@@ -16,11 +16,18 @@ const URL =
 const ANON = process.env.NEXT_PUBLIC_KLAR_INBOX_ANON_KEY ?? "";
 
 export async function middleware(req: NextRequest) {
+  // Forward the path to server components so the sidebar can highlight
+  // the active nav item without prop-drilling through every page.
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-pathname", req.nextUrl.pathname);
+
   // No env? Let the request through unchanged. The dashboard pages will
   // render the "service unavailable" state on their own.
-  if (!ANON) return NextResponse.next();
+  if (!ANON) {
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
 
-  const res = NextResponse.next({ request: { headers: req.headers } });
+  const res = NextResponse.next({ request: { headers: requestHeaders } });
 
   const sb = createServerClient(URL, ANON, {
     cookies: {
