@@ -8,8 +8,9 @@
 // A best-effort write on mount covers Android/desktop (no gesture needed).
 //
 // Visual identity = the "Atelier" design system from the Yarn-Stash app
-// (constants/theme.ts), with the official app icon (/icons/yarnstash.webp)
-// as the brand anchor and a warm bone surface that mirrors the in-app feel.
+// (constants/theme.ts), composed as a hand-bound paper card on a warm
+// stitched surface: paper-grain background, washi-tape header, the knitting
+// mascot lifted above the card, and the official app icon as the brand mark.
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -17,7 +18,7 @@ import Image from "next/image";
 // Atelier palette — verbatim from Yarn-Stash app constants/theme.ts.
 const T = {
   bone: "#FAF6F0",
-  paper: "#FFFFFF",
+  paper: "#FFFDF8",
   ink: "#1E1A17",
   mute: "#756B62",
   faint: "#A8A099",
@@ -26,15 +27,13 @@ const T = {
   roseSoft: "#F2DCD8",
   roseInk: "#7E2A38",
   sand: "#EBE0CE",
+  sandDeep: "#D9C7A8",
   chip: "#F2EDE5",
+  thread: "#8A6E55",
 };
 
 // Yarn-Stash iOS App Store ID (live since 2026-05-19).
 const APP_STORE_URL = "https://apps.apple.com/app/id6761712550";
-// Hard fallback in case the clipboard promise never settles (shouldn't ever
-// happen — iOS without gesture rejects fast, Android/desktop resolves in
-// 50-200ms). Auto-redirect normally fires right after the clipboard write
-// completes, not on this timer.
 const FORCE_REDIRECT_MS = 2000;
 
 function storeUrl(code: string): string {
@@ -55,13 +54,12 @@ export function InstallClient({ code }: { code: string }) {
     } catch {
       /* ignore */
     }
-    // Redirect IMMEDIATELY after the clipboard write settles — that's the
-    // fastest path that still guarantees the code lands on the device.
-    // iOS without gesture rejects instantly (~10ms), Android/desktop resolves
-    // in 50-200ms, so the user perceives a near-instant App Store handoff.
+    // ?preview disables auto-redirect so the page can be screenshot in dev.
+    if (typeof window !== 'undefined' && window.location.search.includes('preview')) {
+      return;
+    }
     const clipboardP = code ? writeClipboard().catch(() => undefined) : Promise.resolve();
     void clipboardP.then(() => go());
-    // Hard fallback in the impossible case the promise never settles.
     const t = setTimeout(() => go(), FORCE_REDIRECT_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,138 +95,286 @@ export function InstallClient({ code }: { code: string }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background:
-          `radial-gradient(circle at 80% 0%, ${T.roseSoft} 0%, transparent 50%), ` +
-          `radial-gradient(circle at 0% 100%, ${T.sand} 0%, transparent 55%), ${T.bone}`,
-        color: T.ink,
-        padding: 24,
+        padding: "24px 18px",
         position: "relative",
+        overflow: "hidden",
+        color: T.ink,
+        background: T.bone,
+        // Hand-felted paper grain: layered noise + warm sand wash. The wash
+        // pools at the corners so the centre breathes. No gradient on the
+        // surface itself — the colour shifts come from radial bleeds only.
+        backgroundImage:
+          `radial-gradient(ellipse 70% 50% at 12% 0%, ${T.roseSoft} 0%, transparent 65%),` +
+          `radial-gradient(ellipse 60% 60% at 100% 100%, ${T.sandDeep}55 0%, transparent 60%),` +
+          `radial-gradient(circle at 50% 50%, transparent 0%, ${T.sand}22 100%)`,
       }}
     >
+      {/* Stitched grid – horizontal dashed thread running across the page
+          gives the felt-board texture without needing a photographic BG. */}
       <div
+        aria-hidden
         style={{
-          maxWidth: 440,
-          width: "100%",
-          textAlign: "center",
-          background: T.paper,
-          border: `1px solid ${T.hair}`,
-          borderRadius: 32,
-          padding: "44px 32px 32px",
-          boxShadow:
-            "0 1px 0 rgba(255,255,255,0.6) inset, 0 24px 60px -20px rgba(40,30,24,0.12)",
+          position: "absolute",
+          inset: 0,
+          backgroundImage:
+            `repeating-linear-gradient(0deg, transparent 0 36px, ${T.thread}0a 36px 37px),` +
+            `repeating-linear-gradient(90deg, transparent 0 36px, ${T.thread}08 36px 37px)`,
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Knitting mascot — large, off-axis, peeking from behind the card. The
+          mascot is the brand. App-icons follow inside the card. */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: "calc(50% - 230px)",
+          top: "calc(50% - 240px)",
+          width: 200,
+          height: 200,
+          transform: "rotate(-6deg)",
+          opacity: 0.95,
+          pointerEvents: "none",
+          filter: "drop-shadow(0 18px 22px rgba(80, 50, 40, 0.18))",
         }}
       >
-        <div
+        <Image
+          src="/affiliate-mascots/yarnstash/cat_knitting.png"
+          alt=""
+          fill
+          sizes="200px"
+          style={{ objectFit: "contain" }}
+          priority
+        />
+      </div>
+      {/* Tiny yarn-ball companion bottom-right */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          right: "calc(50% - 240px)",
+          bottom: "calc(50% - 220px)",
+          width: 130,
+          height: 130,
+          transform: "rotate(8deg)",
+          opacity: 0.9,
+          pointerEvents: "none",
+          filter: "drop-shadow(0 14px 20px rgba(80, 50, 40, 0.18))",
+        }}
+      >
+        <Image
+          src="/affiliate-mascots/yarnstash/cat_yarn_ball.png"
+          alt=""
+          fill
+          sizes="130px"
+          style={{ objectFit: "contain" }}
+        />
+      </div>
+
+      <article
+        style={{
+          position: "relative",
+          maxWidth: 420,
+          width: "100%",
+          background: T.paper,
+          borderRadius: 2,
+          padding: "44px 28px 30px",
+          boxShadow:
+            `0 0 0 1px ${T.hair},` +
+            `0 2px 0 ${T.sand},` +
+            `0 24px 60px -22px rgba(60, 30, 24, 0.28),` +
+            `0 8px 18px -10px rgba(60, 30, 24, 0.18)`,
+          transform: "rotate(-0.4deg)",
+        }}
+      >
+        {/* Washi-tape strip across the top of the card. Slightly off-centre
+            and tilted so it reads as placed, not generated. */}
+        <span
+          aria-hidden
           style={{
-            width: 92,
-            height: 92,
-            margin: "0 auto 16px",
-            borderRadius: 22,
-            overflow: "hidden",
-            boxShadow: `0 14px 36px -10px rgba(184, 74, 92, 0.45), 0 0 0 1px ${T.hair}`,
-            position: "relative",
+            position: "absolute",
+            top: -12,
+            left: "42%",
+            width: 120,
+            height: 26,
+            background: `repeating-linear-gradient(45deg, ${T.roseSoft} 0 6px, ${T.rose}33 6px 12px)`,
+            border: `1px solid ${T.hair}`,
+            transform: "translateX(-50%) rotate(-3.5deg)",
+            opacity: 0.85,
+            boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
+          }}
+        />
+        {/* Stitched border — dotted line just inside the paper edge, like a
+            hand-bound notebook. */}
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 8,
+            border: `1.5px dashed ${T.sandDeep}`,
+            borderRadius: 1,
+            pointerEvents: "none",
+            opacity: 0.55,
+          }}
+        />
+
+        {/* Eyebrow row: official app-icon (small, anchored left) + invite chip
+            (right). Asymmetric, no centered icon-tile stack. */}
+        <header
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            marginBottom: 22,
           }}
         >
-          <Image
-            src="/icons/yarnstash.webp"
-            alt="My Yarn Stash"
-            fill
-            sizes="92px"
-            style={{ objectFit: "cover" }}
-            priority
-          />
-        </div>
-
-        {code && (
-          <div
+          <span
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              padding: "5px 12px",
-              borderRadius: 999,
-              background: T.roseSoft,
-              color: T.roseInk,
-              fontSize: 10.5,
-              fontWeight: 700,
-              letterSpacing: 1.4,
-              textTransform: "uppercase",
-              margin: "0 0 14px",
-              fontFamily:
-                "var(--ys-display), 'Gloock', Georgia, serif",
+              width: 44,
+              height: 44,
+              borderRadius: 11,
+              overflow: "hidden",
+              boxShadow: `0 6px 14px -4px ${T.rose}66, 0 0 0 1px ${T.hair}`,
+              position: "relative",
+              flexShrink: 0,
             }}
           >
-            <span style={{ width: 5, height: 5, borderRadius: 5, background: T.rose }} />
-            Empfehlung · {code}
-          </div>
-        )}
+            <Image
+              src="/icons/yarnstash.webp"
+              alt="My Yarn Stash icon"
+              fill
+              sizes="44px"
+              style={{ objectFit: "cover" }}
+              priority
+            />
+          </span>
+          {code ? (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "4px 9px 4px 10px",
+                background: T.roseSoft,
+                color: T.roseInk,
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: 1.6,
+                textTransform: "uppercase",
+                fontFamily: "var(--ys-display), Georgia, serif",
+                border: `1px solid ${T.rose}33`,
+              }}
+            >
+              <span style={{ width: 5, height: 5, borderRadius: 5, background: T.rose }} />
+              Empf. · {code}
+            </span>
+          ) : (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: 2,
+                textTransform: "uppercase",
+                color: T.thread,
+                fontFamily: "var(--ys-editorial), Georgia, serif",
+                fontStyle: "italic",
+              }}
+            >
+              No. 0 · Atelier
+            </span>
+          )}
+        </header>
 
+        {/* Headline. Left-aligned, italic accent on the editorial line, hard
+            line-break for typographic rhythm. */}
         <h1
           style={{
             fontFamily: "var(--ys-display), 'Gloock', Georgia, serif",
-            fontSize: 36,
+            fontSize: 42,
             fontWeight: 400,
-            margin: "0 0 8px",
-            letterSpacing: -0.4,
+            margin: "0 0 6px",
+            letterSpacing: -0.6,
             color: T.ink,
-            lineHeight: 1.05,
+            lineHeight: 0.98,
           }}
         >
-          My Yarn Stash
+          My Yarn
+          <br />
+          Stash
+          <span style={{ color: T.rose }}>.</span>
         </h1>
         <p
           style={{
             fontFamily: "var(--ys-editorial), 'Newsreader', Georgia, serif",
             fontStyle: "italic",
-            fontSize: 17,
+            fontSize: 18,
             color: T.rose,
-            margin: "0 0 16px",
+            margin: "0 0 20px",
             letterSpacing: 0.1,
           }}
         >
           stash. match. knit.
         </p>
+
         <p
           style={{
-            fontSize: 14.5,
-            color: T.mute,
-            margin: "0 0 26px",
+            fontFamily: "var(--ys-editorial), 'Newsreader', Georgia, serif",
+            fontSize: 15.5,
+            color: T.ink,
+            margin: "0 0 24px",
             lineHeight: 1.55,
-            maxWidth: 320,
-            marginLeft: "auto",
-            marginRight: "auto",
+            maxWidth: 34 * 9,
           }}
         >
-          Dein Garn-Stash, deine Projekte und passende Anleitungen. Scan das
-          Etikett, Vision-AI macht den Rest.
+          Dein Garn, deine Projekte, passende Anleitungen. Scan das Etikett,
+          Vision-AI macht den Rest.
         </p>
 
-        <div
+        {/* Numbered features — list, not pills. Each feature reads like a
+            line in a sewing pattern. */}
+        <ol
           style={{
-            display: "flex",
-            justifyContent: "center",
-            flexWrap: "wrap",
-            gap: 6,
-            marginBottom: 26,
+            listStyle: "none",
+            padding: 0,
+            margin: "0 0 28px",
+            display: "grid",
+            gap: 10,
+            color: T.ink,
+            fontSize: 13.5,
+            fontFamily: "var(--ys-editorial), Georgia, serif",
           }}
         >
-          {["Ravelry-Match", "Wrapper-Scan", "Foto-First"].map((feat) => (
-            <span
-              key={feat}
+          {[
+            ["01", "Ravelry-Match auf Knopfdruck"],
+            ["02", "Wrapper-Scan via Kamera"],
+            ["03", "Foto-first, kein Tippen"],
+          ].map(([num, label]) => (
+            <li
+              key={num}
               style={{
-                fontSize: 11,
-                color: T.mute,
-                background: T.chip,
-                border: `1px solid ${T.hair}`,
-                padding: "5px 10px",
-                borderRadius: 999,
-                fontWeight: 500,
+                display: "grid",
+                gridTemplateColumns: "auto 1fr",
+                gap: 12,
+                alignItems: "baseline",
               }}
             >
-              {feat}
-            </span>
+              <span
+                style={{
+                  fontFamily: "var(--ys-display), Georgia, serif",
+                  fontSize: 11,
+                  fontWeight: 400,
+                  color: T.rose,
+                  letterSpacing: 1.8,
+                }}
+              >
+                {num}
+              </span>
+              <span>{label}</span>
+            </li>
           ))}
-        </div>
+        </ol>
 
         <button
           type="button"
@@ -236,55 +382,83 @@ export function InstallClient({ code }: { code: string }) {
           disabled={redirecting}
           style={{
             width: "100%",
-            padding: "16px 24px",
-            background: redirecting
-              ? T.roseInk
-              : `linear-gradient(135deg, ${T.rose} 0%, ${T.roseInk} 100%)`,
-            color: "white",
-            border: "none",
-            borderRadius: 16,
-            fontFamily: "system-ui, -apple-system, sans-serif",
-            fontSize: 16,
-            fontWeight: 600,
-            letterSpacing: 0.2,
+            padding: "14px 22px",
+            background: redirecting ? T.roseInk : T.rose,
+            color: T.paper,
+            border: `2px solid ${T.ink}`,
+            borderRadius: 0,
+            fontFamily: "var(--ys-display), 'Gloock', Georgia, serif",
+            fontSize: 17,
+            fontWeight: 400,
+            letterSpacing: 0.4,
             cursor: redirecting ? "wait" : "pointer",
-            transition: "background 160ms ease",
-            boxShadow: `0 14px 28px -10px ${T.rose}`,
+            transition: "transform 90ms ease, box-shadow 90ms ease",
+            boxShadow: `4px 4px 0 ${T.ink}`,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+          onMouseDown={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.transform =
+              "translate(2px, 2px)";
+            (e.currentTarget as HTMLButtonElement).style.boxShadow =
+              `2px 2px 0 ${T.ink}`;
+          }}
+          onMouseUp={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.transform = "";
+            (e.currentTarget as HTMLButtonElement).style.boxShadow =
+              `4px 4px 0 ${T.ink}`;
           }}
         >
-          {redirecting ? "App Store wird geöffnet…" : "Im App Store öffnen"}
-        </button>
-
-        {code && (
-          <p
+          <span>{redirecting ? "App Store…" : "Im App Store öffnen"}</span>
+          <span
+            aria-hidden
             style={{
-              fontSize: 12.5,
-              color: T.faint,
-              margin: "16px 0 0",
-              lineHeight: 1.55,
+              fontFamily: "var(--ys-editorial), Georgia, serif",
+              fontStyle: "italic",
+              fontSize: 16,
+              opacity: 0.85,
             }}
           >
-            Tippe auf öffnen, dann wird deine Empfehlung der Installation
-            automatisch zugeordnet.
-          </p>
-        )}
+            →
+          </span>
+        </button>
 
         <p
           style={{
-            fontSize: 11,
-            color: T.faint,
-            margin: "24px 0 0",
-            fontWeight: 600,
-            letterSpacing: 1,
+            fontSize: 11.5,
+            color: T.mute,
+            margin: "18px 0 0",
+            lineHeight: 1.55,
+            fontFamily: "var(--ys-editorial), Georgia, serif",
+          }}
+        >
+          {code
+            ? "Tippe öffnen, die Empfehlung wird der Installation automatisch zugeordnet."
+            : "iPhone und iPad. Auch ohne Empfehlungscode."}
+        </p>
+
+        {/* Footer line — like a printed colophon at the bottom of a zine. */}
+        <footer
+          style={{
+            marginTop: 28,
+            paddingTop: 14,
+            borderTop: `1px dashed ${T.sandDeep}`,
+            display: "flex",
+            justifyContent: "space-between",
+            fontSize: 10,
+            color: T.thread,
+            letterSpacing: 1.6,
             textTransform: "uppercase",
-            fontFamily:
-              "var(--ys-editorial), 'Newsreader', Georgia, serif",
+            fontFamily: "var(--ys-editorial), Georgia, serif",
             fontStyle: "italic",
           }}
         >
-          Für iPhone und iPad
-        </p>
-      </div>
+          <span>Atelier · iPhone &amp; iPad</span>
+          <span>{code || "v1"}</span>
+        </footer>
+      </article>
     </main>
   );
 }
