@@ -173,6 +173,7 @@ function shell(view: string, apps: AdminApp[], flash: string | null, main: strin
       ${item("bookings", "Bookings", ICON.calendar)}
       ${item("cal", "Cal Admin", ICON.calendar)}
       ${item("analytics", "Analytics", ICON.analytics, "/admin/analytics")}
+      ${item("settings", "Einstellungen", ICON.lock, "/admin/settings")}
       <div class="navsec">Affiliate</div>
       ${item("revenue", "Einnahmen", ICON.revenue)}
       ${item("payouts", "Auszahlungen", ICON.payouts)}
