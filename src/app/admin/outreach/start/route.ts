@@ -106,18 +106,30 @@ export async function POST(req: NextRequest): Promise<Response> {
     return back(req, `Start fehlgeschlagen: ${msg.slice(0, 160)}`);
   }
 
-  // Fire-and-forget the n8n Wave-Consumer webhook. We don't await it —
+  // Fire-and-forget the n8n Wave-Consumer webhook. We don't await it,
   // the workflow itself can take minutes (Apify sync-runs + Brevo loop)
   // and Vercel functions cap at ~60s. The consumer updates run.status
-  // → 'running' → 'done'/'failed', the UI polls.
+  // 'running' -> 'done'/'failed', the UI polls.
+  //
+  // S32: the n8n Webhook is now header-auth protected via
+  // KLAR_N8N_WEBHOOK_SECRET. Without that env-var n8n returns 401 and the
+  // run hangs in status='queued' until the admin notices.
   const hookUrl =
     process.env.KLAR_OUTREACH_WEBHOOK_URL ??
     "https://alaink365.app.n8n.cloud/webhook/klar-outreach-wave";
+  const webhookSecret = process.env.KLAR_N8N_WEBHOOK_SECRET ?? "";
   void fetch(hookUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "X-Klar-Webhook-Secret": webhookSecret,
+    },
     body: JSON.stringify({ run_id: row.id }),
-  }).catch((e) => console.warn("wave webhook fire error:", e));
+  })
+    .then((r) => {
+      if (!r.ok) console.warn(`wave webhook ${r.status}: run ${row.id} not picked up`);
+    })
+    .catch((e) => console.warn("wave webhook fire error:", e));
 
   return back(
     req,

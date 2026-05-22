@@ -33,6 +33,7 @@ import {
   newDeviceId,
 } from "../../../lib/deviceCookie";
 import { fetchInvite, markInviteUsed } from "../../../lib/adminSettings";
+import { clientIp, rateLimit } from "../../../lib/apiGuards";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -178,6 +179,24 @@ export async function GET(req: Request): Promise<Response> {
 export async function POST(req: Request): Promise<Response> {
   if (!KEY() || !TOTP_SECRET() || !DEVICE_SECRET()) return setupHint();
 
+  // S32: per-IP rate-limit on TOTP attempts. Brute-forcing a 6-digit code
+  // is 1e6 possibilities, at network speed minutes of work. 5 attempts per
+  // 5min window keeps the realistic attacker out without locking out a
+  // human who fat-fingers the code.
+  const ip = clientIp(req);
+  const rl = rateLimit("admin_totp", ip, 5, 5 * 60 * 1000);
+  if (!rl.ok) {
+    const deviceRaw = readCookie(req, "klar_device");
+    const knownDevice = await verifyDeviceCookie(deviceRaw, DEVICE_SECRET());
+    const body = renderForm({
+      knownDeviceName: knownDevice ? knownDevice.name : null,
+      err: `Zu viele Versuche. Bitte in ${rl.retryAfterSeconds}s erneut versuchen.`,
+    });
+    const headers = new Headers(body.headers);
+    headers.set("Retry-After", String(rl.retryAfterSeconds));
+    return new Response(await body.text(), { status: 429, headers });
+  }
+
   const form = await req.formData();
   const totp = String(form.get("totp") ?? "").trim();
   const keyInput = String(form.get("key") ?? "");
@@ -187,9 +206,9 @@ export async function POST(req: Request): Promise<Response> {
   const deviceRaw = readCookie(req, "klar_device");
   const knownDevice = await verifyDeviceCookie(deviceRaw, DEVICE_SECRET());
 
-  // TOTP is required on every path — known device, new device with admin-key,
+  // TOTP is required on every path: known device, new device with admin-key,
   // new device with invite token. The TOTP shared secret is the only thing
-  // we never delegate, so a leaked invite alone can't sign you in.
+  // we never delegate, so a leaked invite alone cannot sign you in.
   const totpOk = await verifyTOTP(TOTP_SECRET(), totp);
   if (!totpOk) {
     return renderForm({

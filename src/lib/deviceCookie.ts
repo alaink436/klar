@@ -63,6 +63,19 @@ export async function signDeviceCookie(payload: DevicePayload, secret: string): 
   return `${head}.${b64urlEncode(sig)}`;
 }
 
+// S32: hard expiry on the device cookie. The cookie header still says
+// Max-Age=10y so the browser hangs on to it, but the server rejects cookies
+// older than DEVICE_COOKIE_MAX_AGE_SECONDS at validation time. Result:
+// stolen cookies stop working after a year even if KLAR_DEVICE_SECRET is
+// never rotated. Override via KLAR_DEVICE_COOKIE_MAX_AGE_DAYS.
+const DEFAULT_DEVICE_COOKIE_MAX_AGE_DAYS = 365;
+function deviceCookieMaxAgeSeconds(): number {
+  const raw = process.env.KLAR_DEVICE_COOKIE_MAX_AGE_DAYS;
+  const n = raw ? Number(raw) : NaN;
+  const days = Number.isFinite(n) && n > 0 ? n : DEFAULT_DEVICE_COOKIE_MAX_AGE_DAYS;
+  return Math.floor(days * 24 * 60 * 60);
+}
+
 export async function verifyDeviceCookie(
   raw: string,
   secret: string,
@@ -93,6 +106,11 @@ export async function verifyDeviceCookie(
       typeof obj.name !== "string" ||
       typeof obj.issuedAt !== "number"
     ) {
+      return null;
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const age = now - obj.issuedAt;
+    if (age < 0 || age > deviceCookieMaxAgeSeconds()) {
       return null;
     }
     return obj;

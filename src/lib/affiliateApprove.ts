@@ -71,6 +71,54 @@ async function patchInquiry(
   }
 }
 
+// S32: idempotency guard. Atomic CAS-style claim of the inquiry: only the
+// caller that flips status='new' -> 'processing' is allowed to proceed.
+// Double-click / retry will see 0 affected rows and bail out cleanly
+// instead of minting a second token + sending a second mail.
+async function claimInquiry(inquiryId: string): Promise<boolean> {
+  if (!KLAR_INBOX_KEY) throw new Error("KLAR_INBOX_SERVICE_KEY not set");
+  const res = await fetch(
+    `${KLAR_INBOX_URL}/rest/v1/klar_inquiries?id=eq.${encodeURIComponent(inquiryId)}&status=eq.new`,
+    {
+      method: "PATCH",
+      headers: {
+        apikey: KLAR_INBOX_KEY,
+        Authorization: `Bearer ${KLAR_INBOX_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify({ status: "processing" }),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`claimInquiry PATCH ${res.status}: ${text.slice(0, 200)}`);
+  }
+  const arr = (await res.json().catch(() => [])) as unknown;
+  return Array.isArray(arr) && arr.length === 1;
+}
+
+// Best-effort revert when create_influencer_setup fails after we claimed
+// the row; lets the admin retry without a manual SQL touch.
+async function unclaimInquiry(inquiryId: string): Promise<void> {
+  if (!KLAR_INBOX_KEY) return;
+  await fetch(
+    `${KLAR_INBOX_URL}/rest/v1/klar_inquiries?id=eq.${encodeURIComponent(inquiryId)}&status=eq.processing`,
+    {
+      method: "PATCH",
+      headers: {
+        apikey: KLAR_INBOX_KEY,
+        Authorization: `Bearer ${KLAR_INBOX_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({ status: "new" }),
+    },
+  ).catch(() => {
+    /* swallow: caller already handles the original error */
+  });
+}
+
 async function sendOnboardingMail(args: {
   to: string;
   appSlug: string;
@@ -102,7 +150,7 @@ async function sendOnboardingMail(args: {
   <p style="font-size:12px;color:#6B6B6B;margin:0 0 8px">${fallback}</p>
   <p style="font-size:12px;color:#6B6B6B;margin:0 0 24px;word-break:break-all"><a href="${args.landingUrl}" style="color:#6B6B6B">${args.landingUrl}</a></p>
   <hr style="border:none;border-top:1px solid #E4E4DD;margin:24px 0"/>
-  <p style="font-size:13px;color:#6B6B6B;margin:0">— Alain, Klar Studio<br/><a href="https://getklar.org" style="color:#6B6B6B">getklar.org</a></p>
+  <p style="font-size:13px;color:#6B6B6B;margin:0">Alain, Klar Studio<br/><a href="https://getklar.org" style="color:#6B6B6B">getklar.org</a></p>
 </div></body></html>`;
   try {
     const res = await fetch("https://api.brevo.com/v3/smtp/email", {
@@ -142,6 +190,21 @@ export async function approveAffiliateCore(args: ApproveArgs): Promise<ApproveRe
   const sharePct = Math.round(args.sharePct ?? 50);
   const shareMonths = Math.round(args.shareMonths ?? 24);
 
+  // S32: idempotency. Atomic CAS-claim the inquiry; only one approver wins.
+  // Failure modes:
+  //   - inquiry doesn't exist OR status != 'new': claimed=false, 409-equiv.
+  //   - claim PATCH itself errors: bubble up, caller surfaces 502.
+  let claimed: boolean;
+  try {
+    claimed = await claimInquiry(args.inquiryId);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, error: `claim inquiry failed: ${msg}` };
+  }
+  if (!claimed) {
+    return { ok: false, error: "inquiry already invited or processing" };
+  }
+
   let setup;
   try {
     setup = await createInfluencerSetup(app, {
@@ -155,6 +218,8 @@ export async function approveAffiliateCore(args: ApproveArgs): Promise<ApproveRe
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    // Best-effort revert so the admin can retry.
+    await unclaimInquiry(args.inquiryId);
     return { ok: false, error: `create_influencer_setup failed: ${msg}` };
   }
 
