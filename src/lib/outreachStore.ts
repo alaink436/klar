@@ -55,6 +55,19 @@ export interface OutreachTarget {
   last_mail_at: string | null;
   created_at: string;
   updated_at: string;
+  // v3 n8n-fields (Migration klar_outreach_targets_v3_n8n_fields) — written
+  // by the n8n Influencer-Outreach workflows after the Sheet → Supabase cut.
+  contact_email: string | null;
+  audience_size: string | null;          // "A" | "B" | "C" cohort label
+  mail_status: string | null;            // mail1_sent | mail2_sent | replied_auto | mail2_skipped
+  mail1_subject: string | null;
+  mail1_sent_at: string | null;
+  mail2_subject: string | null;
+  mail2_sent_at: string | null;
+  reply_subject: string | null;
+  reply_reason: string | null;           // auto-responder | loop-guard | manual
+  onboarding_token: string | null;
+  onboarding_link: string | null;
 }
 
 export interface OutreachStats {

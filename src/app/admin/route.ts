@@ -346,7 +346,19 @@ async function appView(app: AdminApp): Promise<string> {
     sbGet(app, "influencer_payout_batches?select=id,period_start,period_end,status,item_count,total_amount_cents&order=created_at.desc&limit=8"),
   ]);
   if (inf.length === 0 && claim.length === 0 && batches.length === 0)
-    return `<h1>${esc(app.name)}</h1><p class="sub muted">Für diese App ist noch kein Affiliate-Schema in Supabase ausgerollt, darum gibt es noch keine Daten.</p>`;
+    return `<h1>${esc(app.name)}</h1>
+      <p class="sub">Noch keine Affiliates aktiv für ${esc(app.name)}. Schema ist ausgerollt und bereit.</p>
+      <div class="card" style="margin-top:18px;padding:20px;max-width:560px">
+        <div class="k" style="margin-bottom:8px">So kommt der erste Affiliate rein</div>
+        <ol class="muted" style="margin:0 0 14px 18px;padding:0;line-height:1.7;font-size:13px">
+          <li>Influencer füllt das Formular auf <a class="applink" href="https://getklar.org/#affiliate" target="_blank" rel="noopener">getklar.org/#affiliate</a> aus.</li>
+          <li>Anfrage landet in der <a class="applink" href="/admin?view=inbox&amp;type=affiliate">Inbox</a> mit Approve-Form.</li>
+          <li>App wählen, Handle &amp; Share-% setzen, Onboarding-Link generieren und versenden.</li>
+          <li>Sobald der Influencer das Setup abschließt, taucht er hier auf.</li>
+        </ol>
+        <a class="btn" href="/admin?view=inbox&amp;type=affiliate" style="display:inline-block">Zur Inbox →</a>
+        <a class="btn ghost" href="/admin?view=outreach" style="display:inline-block;margin-left:8px">Outreach-Tracker →</a>
+      </div>`;
   const active = inf.filter((i) => i.status === "active").length;
   const suspended = inf.filter((i) => i.status === "suspended" || i.status === "banned").length;
   const pending = inf.filter((i) => i.status === "pending").length;
@@ -887,32 +899,29 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
       ? esc(s)
       : d.toLocaleString("de-CH", { dateStyle: "medium", timeStyle: "short" });
   };
-  const detail = (r: Inquiry) =>
-    (r.type === "affiliate"
+
+  // Per-card details as label/value-pairs (vs. flat string joined by middots
+  // in the old table layout). Empty values are skipped — `why` and `brief`
+  // get extra room because they are usually multi-sentence.
+  const detailPairs = (r: Inquiry): Array<[string, string | undefined, boolean]> =>
+    r.type === "affiliate"
       ? [
-          r.handle && `handle: ${r.handle}`,
-          r.audience && `audience: ${r.audience}`,
-          r.platforms && `plat: ${r.platforms}`,
-          r.why && `why: ${r.why}`,
+          ["Handle", r.handle, false],
+          ["Audience", r.audience, false],
+          ["Plattformen", r.platforms, false],
+          ["Warum", r.why, true],
         ]
       : [
-          r.name && `name: ${r.name}`,
-          r.project && `project: ${r.project}`,
-          r.budget && `budget: ${r.budget}`,
-          r.brief && `brief: ${r.brief}`,
-        ]
-    )
-      .filter(Boolean)
-      .join(" · ");
+          ["Name", r.name, false],
+          ["Projekt", r.project, false],
+          ["Budget", r.budget, false],
+          ["Brief", r.brief, true],
+        ];
 
   // Apps that are wired up (KLAR_ADMIN_APPS env). Used to populate the
   // approve-form select. If KLAR_ADMIN_APPS is empty, the dropdown still
   // shows but submitting will return "unknown app" — that's the cue to add
   // the app's slug+serviceKey to the env first.
-  // Status-Suffix kommt aus klarApps.ts und macht im Admin sofort sichtbar
-  // welche App-Store-LIVE ist vs noch BUILD/BETA. Wenn ein wired-up app
-  // nicht in KLAR_APPS auftaucht (sollte nicht passieren, KLAR_APPS ist
-  // single-source-of-truth), fällt der Suffix einfach weg.
   const allWiredApps = getApps();
   const statusBySlug = new Map(KLAR_APPS.map((a) => [a.slug, a.status]));
   const wiredOptionsFor = (target: string | undefined): string =>
@@ -925,31 +934,35 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
       .join("");
 
   // Onboarding-Link delegated to lib/adminApps.setupLandingUrl() so there is
-  // exactly one place that knows the per-app host. The old in-line table
-  // here drifted from the canonical one (myloo.app vs myloo.org) which
-  // would have rendered dead admin links for the wrong app.
+  // exactly one place that knows the per-app host.
   const setupLinkFor = (slug: string, token: string): string => setupLandingUrl(slug, token);
 
-  const approveForm = (r: Inquiry): string => {
+  // Action-block per card: either the approved-link readout (if already
+  // invited/active) or a collapsible approve-form (only for affiliate type
+  // and only if still actionable). Collapsible defaults to open for "new"
+  // so the admin sees the form immediately on first contact.
+  const actionBlock = (r: Inquiry): string => {
     if (r.type !== "affiliate") return "";
 
-    // Already invited (or active): show the setup-link so the admin can
-    // re-copy it and send it again if needed.
     if ((r.status === "invited" || r.status === "approved" || r.status === "active") && r.approved_app && r.approved_code) {
       const link = setupLinkFor(r.approved_app, r.approved_code);
       const isLive = r.status === "active";
-      return `<tr class="approved-row"><td colspan="6" style="padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--line)">
-        <span class="pill" style="background:${isLive ? "#dcfce7" : "#dbeafe"};color:${isLive ? "#166534" : "#1e40af"};border:1px solid ${isLive ? "#bbf7d0" : "#bfdbfe"};font-weight:600">${isLive ? "✓ active" : "→ invited"} · ${esc(r.approved_app)}</span>
-        <a class="applink" style="margin-left:10px;font-family:ui-monospace,monospace;font-size:12px" href="${link}" target="_blank" rel="noopener">${link} ↗</a>
-        <button type="button" class="btn" style="margin-left:8px;padding:4px 10px;font-size:11px" onclick="navigator.clipboard.writeText('${link}').then(()=>this.textContent='✓ copied').catch(()=>this.textContent='copy failed')">Copy link</button>
-        ${r.approved_at ? `<span class="muted" style="margin-left:10px;font-size:12px">${fmt(r.approved_at)}</span>` : ""}
-      </td></tr>`;
+      return `<div style="margin-top:14px;padding:12px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="pill" style="background:${isLive ? "#dcfce7" : "#dbeafe"};color:${isLive ? "#166534" : "#1e40af"};border:1px solid ${isLive ? "#bbf7d0" : "#bfdbfe"};font-weight:600">${isLive ? "✓ active" : "→ invited"} · ${esc(r.approved_app)}</span>
+          <a class="applink" style="font-family:ui-monospace,monospace;font-size:11px;word-break:break-all;flex:1;min-width:200px" href="${link}" target="_blank" rel="noopener">${link} ↗</a>
+          <button type="button" class="btn ghost" style="padding:5px 11px;font-size:11px;flex-shrink:0" onclick="navigator.clipboard.writeText('${link}').then(()=>this.textContent='✓ kopiert').catch(()=>this.textContent='copy failed')">Copy link</button>
+        </div>
+        ${r.approved_at ? `<div class="muted" style="margin-top:6px;font-size:11px">Approved ${fmt(r.approved_at)}</div>` : ""}
+      </div>`;
     }
 
     if (!r.id) return "";
     const displayName = r.handle || (r.email ?? "").split("@")[0] || "";
-    return `<tr class="approve-row"><td colspan="6" style="padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--line)">
-      <form method="POST" action="/admin/approve" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
+    const isNew = r.status === "new";
+    return `<details style="margin-top:14px"${isNew ? " open" : ""}>
+      <summary style="cursor:pointer;padding:8px 0;font-size:11px;color:var(--fg-2);font-weight:700;text-transform:uppercase;letter-spacing:0.6px;user-select:none">▸ Approve · Onboarding-Link generieren</summary>
+      <form method="POST" action="/admin/approve" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:14px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;margin-top:6px">
         <input type="hidden" name="inquiry_id" value="${esc(r.id)}"/>
         <input type="hidden" name="email" value="${esc(r.email ?? "")}"/>
         <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">
@@ -985,43 +998,68 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
           Months
           <input type="number" name="share_months" min="1" max="60" step="1" value="24" style="margin-top:3px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:13px;width:70px"/>
         </label>
-        <button type="submit" class="btn" style="padding:8px 16px;font-size:13px">Generate onboarding link →</button>
+        <button type="submit" class="btn" style="padding:8px 16px;font-size:13px">Onboarding-Link →</button>
       </form>
-    </td></tr>`;
+    </details>`;
+  };
+
+  // Per-card status pill (top right corner). "new" affiliate gets a vivid
+  // amber-yellow so unread requests catch the eye in a long list.
+  const statusPillFor = (r: Inquiry): string => {
+    if (r.status === "active") return `<span class="pill" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-weight:600">✓ active</span>`;
+    if (r.status === "invited" || r.status === "approved") return `<span class="pill" style="background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;font-weight:600">→ invited</span>`;
+    if (r.status === "new") return `<span class="pill" style="background:#fef9c3;color:#854d0e;border:1px solid #fde047;font-weight:600">• neu</span>`;
+    return `<span class="pill">${esc(r.status ?? "—")}</span>`;
+  };
+
+  // Type-Badge with category-specific tint so affiliate vs. consulting is
+  // distinguishable at a glance independent of source/status.
+  const typePillFor = (t: string | undefined): string => {
+    if (t === "affiliate") return `<span class="pill" style="background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:0.6px">Affiliate</span>`;
+    if (t === "consulting") return `<span class="pill" style="background:#fce7f3;color:#9d174d;border:1px solid #f9a8d4;font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:0.6px">Consulting</span>`;
+    return `<span class="pill" style="font-size:10px">${esc(t ?? "—")}</span>`;
+  };
+
+  const renderCard = (r: Inquiry): string => {
+    const details = detailPairs(r)
+      .filter(([, v]) => v && String(v).trim())
+      .map(([k, v, isLong]) => `<div style="display:flex;gap:10px;font-size:12.5px;line-height:1.5;align-items:${isLong ? "flex-start" : "baseline"}">
+        <span class="muted" style="min-width:90px;flex-shrink:0;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;padding-top:${isLong ? "3px" : "0"}">${esc(k)}</span>
+        <span style="color:var(--fg);flex:1;${isLong ? "white-space:pre-wrap;word-wrap:break-word" : ""}">${esc(v!)}</span>
+      </div>`)
+      .join("");
+
+    return `<div class="card" style="padding:18px 20px;margin:0">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          ${typePillFor(r.type)}
+          ${sourcePill(r.source)}
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          ${statusPillFor(r)}
+          <span class="muted" style="font-size:11px;white-space:nowrap">${fmt(r.created_at)}</span>
+        </div>
+      </div>
+      <div style="margin-bottom:12px;font-size:14px"><a class="applink" href="mailto:${esc(r.email)}" style="font-weight:600">${esc(r.email)}</a></div>
+      <div style="display:flex;flex-direction:column;gap:6px">${details || `<span class="muted" style="font-size:12px">keine weiteren Angaben</span>`}</div>
+      ${actionBlock(r)}
+    </div>`;
   };
 
   const body = rows.length
-    ? rows
-        .map((r) => {
-          const isLive = r.status === "active";
-          const isInvited = r.status === "invited" || r.status === "approved";
-          const statusPill = isLive
-            ? `<span class="pill" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-weight:600">active</span>`
-            : isInvited
-            ? `<span class="pill" style="background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;font-weight:600">invited</span>`
-            : `<span class="pill ${r.status === "new" ? "live" : ""}">${esc(r.status ?? "")}</span>`;
-          return `<tr>
-        <td class="muted" style="white-space:nowrap">${fmt(r.created_at)}</td>
-        <td><span class="pill ${r.status === "new" && r.type === "affiliate" ? "live" : ""}">${esc(r.type)}</span></td>
-        <td>${sourcePill(r.source)}</td>
-        <td><a class="applink" href="mailto:${esc(r.email)}">${esc(r.email)}</a></td>
-        <td class="muted" style="font-size:12px;max-width:480px">${esc(detail(r))}</td>
-        <td>${statusPill}</td>
-      </tr>${approveForm(r)}`;
-        })
-        .join("")
-    : `<tr><td colspan="6" class="muted">keine Anfragen in dieser Auswahl. ${effectiveType !== "all" || effectiveSource !== "all" ? `<a class="applink" href="/admin?view=inbox">Filter zurücksetzen</a>` : ""}</td></tr>`;
+    ? `<div style="display:flex;flex-direction:column;gap:14px;margin-top:6px">${rows.map(renderCard).join("")}</div>`
+    : `<div class="card" style="padding:30px;text-align:center"><span class="muted">keine Anfragen in dieser Auswahl.${effectiveType !== "all" || effectiveSource !== "all" ? ` <a class="applink" href="/admin?view=inbox">Filter zurücksetzen</a>` : ""}</span></div>`;
 
   const consultingHint = effectiveType === "consulting"
     ? `<p class="sub muted" style="margin:0 0 16px;font-size:13px">Consulting-Calls aus Cal.com (consulting + coaching event types) erscheinen unter <a class="applink" href="/admin?view=bookings">Bookings</a>. Hier nur die schriftlichen Anfragen vom Kontaktformular.</p>`
     : "";
 
-  return `<h1>Inbox</h1><p class="sub">Affiliate- und Consulting-Anfragen, gefiltert nach Typ und Quelle. Affiliate-Zeilen ohne Onboarding-Link haben darunter ein Formular: App wählen, Handle/Sprache prüfen, <em>Generate onboarding link</em> klicken — generiert einen 7-Tage-Setup-Token im App-Supabase und zeigt dir den Link zum Versenden an den Influencer.</p>
+  return `<h1>Inbox</h1><p class="sub">Affiliate- und Consulting-Anfragen, gefiltert nach Typ und Quelle. Affiliate-Karten haben den <em>Approve</em>-Klappbereich für den Onboarding-Link &mdash; bei neuen Anfragen ist er aufgeklappt.</p>
     ${typeTabs}
     ${sourceFilters}
     ${consultingHint}
     ${cards}
-    <table><thead><tr><th>Wann</th><th>Typ</th><th>Quelle</th><th>Email</th><th>Details</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>`;
+    ${body}`;
 }
 
 async function bookingsView(): Promise<string> {
