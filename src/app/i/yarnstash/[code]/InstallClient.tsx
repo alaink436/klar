@@ -107,26 +107,27 @@ export function InstallClient({ code }: { code: string }) {
         position: "relative",
         overflow: "hidden",
         color: T.ink,
-        background: T.bone,
-        // Hand-felted paper grain: layered noise + warm sand wash. The wash
-        // pools at the corners so the centre breathes. No gradient on the
-        // surface itself — the colour shifts come from radial bleeds only.
+        // Real cable-knit texture as the page bg (vierzehn.png — the same
+        // diagonal-cable swatch the user wanted to see behind the card). The
+        // image is photographic 600x600, so we let cover scale it to the
+        // viewport. A warm rose wash on top keeps the brand identity.
+        backgroundColor: T.bone,
         backgroundImage:
-          `radial-gradient(ellipse 70% 50% at 12% 0%, ${T.roseSoft} 0%, transparent 65%),` +
-          `radial-gradient(ellipse 60% 60% at 100% 100%, ${T.sandDeep}55 0%, transparent 60%),` +
-          `radial-gradient(circle at 50% 50%, transparent 0%, ${T.sand}22 100%)`,
+          `linear-gradient(135deg, ${T.roseSoft}66 0%, ${T.sand}33 50%, ${T.sandDeep}55 100%),` +
+          `url('/img/yarnstash-knit/vierzehn.png')`,
+        backgroundSize: "auto, cover",
+        backgroundPosition: "center, center",
+        backgroundRepeat: "no-repeat",
       }}
     >
-      {/* Stitched grid – horizontal dashed thread running across the page
-          gives the felt-board texture without needing a photographic BG. */}
+      {/* Soft vignette so the card's paper edges read against the knit. */}
       <div
         aria-hidden
         style={{
           position: "absolute",
           inset: 0,
-          backgroundImage:
-            `repeating-linear-gradient(0deg, transparent 0 36px, ${T.thread}0a 36px 37px),` +
-            `repeating-linear-gradient(90deg, transparent 0 36px, ${T.thread}08 36px 37px)`,
+          background:
+            `radial-gradient(ellipse 80% 70% at 50% 50%, transparent 0%, ${T.bone}99 65%, ${T.bone}cc 100%)`,
           pointerEvents: "none",
         }}
       />
