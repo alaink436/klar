@@ -550,18 +550,6 @@ function StepWelcome({ brand, go, handle }: { brand: Brand; go: () => void; hand
         <StreamCardsForBrand brand={brand} />
       </div>
 
-      <a className="aff-linkrow" href="#" onClick={(e) => e.preventDefault()}>
-        <div>
-          <div className="lr-label">PDF · 4 Seiten</div>
-          <div className="lr-title">{brand.pdfTitle} <span className="italic">herunterladen</span></div>
-          <div style={{ fontSize: 12, color: "var(--aff-fg-3)", marginTop: 4, fontFamily: "var(--font-body)" }}>{brand.pdfHint}</div>
-        </div>
-        <span style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-          <DocIcon style={{ color: "var(--aff-fg)" }} />
-          <span className="lr-arrow">↓</span>
-        </span>
-      </a>
-
       <div className="aff-section">
         <span className="aff-eyebrow">Rechne selbst</span>
         <h3>Was springt für dich <span className="italic">raus?</span></h3>
@@ -623,15 +611,6 @@ function StepTracking({ brand, go, prev }: { brand: Brand; go: () => void; prev:
       </div>
 
       <AttributionDiagram brand={brand} />
-
-      <a className="aff-linkrow" href="#" onClick={(e) => e.preventDefault()}>
-        <div>
-          <div className="lr-label">Live</div>
-          <div className="lr-title">Deine <span className="italic">Statistiken</span></div>
-          <div style={{ fontSize: 12, color: "var(--aff-fg-3)", marginTop: 4 }}>Klicks, Installs, Käufe, Provision. Aktualisiert alle 6 Stunden.</div>
-        </div>
-        <ChartIcon style={{ color: "var(--aff-fg)" }} />
-      </a>
 
       <div className="aff-section">
         <span className="aff-eyebrow">Schutz-Mechanismen</span>

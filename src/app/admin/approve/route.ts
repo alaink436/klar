@@ -19,6 +19,79 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ctEqual, readCookie } from "@/app/admin/_shared";
 import { getApp, createInfluencerSetup, setupLandingUrl } from "@/lib/adminApps";
 
+// Brevo SMTP for the auto-onboarding-mail beim Approve. Skip silently wenn
+// kein API-Key gesetzt — Admin kann den Link weiterhin manuell senden.
+const BREVO_API_KEY = process.env.BREVO_API_KEY ?? "";
+const APP_LABEL: Record<string, string> = {
+  "yarn-stash": "Yarn-Stash",
+  trubel: "Trubel",
+  myloo: "MyLoo",
+  wavelength: "Wavelength",
+  kelva: "Kelva",
+  moto: "ThrottleUp",
+};
+
+async function sendOnboardingMail(args: {
+  to: string;
+  appSlug: string;
+  handle: string;
+  landingUrl: string;
+  language: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  if (!BREVO_API_KEY) return { sent: false, error: "no BREVO_API_KEY" };
+  const appName = APP_LABEL[args.appSlug] ?? args.appSlug;
+  const isEN = args.language === "en";
+  const subject = isEN
+    ? `Your ${appName} affiliate setup is ready, @${args.handle}`
+    : `Dein ${appName}-Affiliate-Setup ist bereit, @${args.handle}`;
+  const greeting = isEN ? "Hi" : "Hallo";
+  const intro = isEN
+    ? `welcome to the ${appName} affiliate program. Click below to finish your setup (payout method, country, tax status). Link is valid for 7 days.`
+    : `willkommen im ${appName}-Affiliate-Programm. Klick unten um dein Setup abzuschliessen (Auszahlung, Land, Steuerstatus). Der Link ist 7 Tage gültig.`;
+  const cta = isEN ? "Complete setup" : "Setup abschliessen";
+  const sigName = "Alain";
+  const sigOrg = "Klar Studio";
+  const fallback = isEN
+    ? `Or paste this URL into your browser: ${args.landingUrl}`
+    : `Oder kopier diese URL in deinen Browser: ${args.landingUrl}`;
+  const html = `<!doctype html><html><body style="margin:0;padding:0;background:#FAFAF7;font-family:-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',Arial,sans-serif;color:#1A1A1A;line-height:1.55">
+<div style="max-width:560px;margin:0 auto;padding:32px 24px">
+  <div style="font-family:'Geist','Inter',sans-serif;font-weight:800;font-size:28px;letter-spacing:-0.02em;margin-bottom:24px">Klar<span style="color:#A8A8A0">.</span></div>
+  <h1 style="font-size:22px;font-weight:600;margin:0 0 16px;letter-spacing:-0.01em">${subject}</h1>
+  <p style="font-size:15px;margin:0 0 24px;color:#404040">${greeting} ${args.handle},</p>
+  <p style="font-size:15px;margin:0 0 28px;color:#404040">${intro}</p>
+  <p style="margin:0 0 28px"><a href="${args.landingUrl}" style="display:inline-block;padding:12px 22px;background:#1A1A1A;color:#FAFAF7;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px">${cta} →</a></p>
+  <p style="font-size:12px;color:#6B6B6B;margin:0 0 8px">${fallback}</p>
+  <p style="font-size:12px;color:#6B6B6B;margin:0 0 24px;word-break:break-all"><a href="${args.landingUrl}" style="color:#6B6B6B">${args.landingUrl}</a></p>
+  <hr style="border:none;border-top:1px solid #E4E4DD;margin:24px 0"/>
+  <p style="font-size:13px;color:#6B6B6B;margin:0">— ${sigName}, ${sigOrg}<br/><a href="https://getklar.org" style="color:#6B6B6B">getklar.org</a></p>
+</div></body></html>`;
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: { "api-key": BREVO_API_KEY, "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        sender: { name: "Klar Studio", email: "alain@getklar.org" },
+        to: [{ email: args.to }],
+        subject,
+        htmlContent: html,
+        replyTo: { email: "alain@getklar.org", name: "Alain · Klar Studio" },
+        tags: ["affiliate-onboarding", `app:${args.appSlug}`],
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.warn(`[/admin/approve] brevo mail ${res.status}: ${text.slice(0, 200)}`);
+      return { sent: false, error: `brevo ${res.status}` };
+    }
+    return { sent: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn("[/admin/approve] brevo mail threw", msg);
+    return { sent: false, error: msg };
+  }
+}
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -146,6 +219,17 @@ export async function POST(req: NextRequest): Promise<Response> {
     );
   }
 
+  // 3) Auto-send onboarding-mail via Brevo. Best-effort — wenn's failed,
+  // Approve gilt trotzdem als erfolgreich, Admin sieht das Resultat im
+  // flash und kann den Link manuell per Copy-Button senden.
+  const mailResult = await sendOnboardingMail({
+    to: email,
+    appSlug,
+    handle,
+    landingUrl,
+    language,
+  });
+
   const accept = req.headers.get("accept") ?? "";
   if (accept.includes("application/json")) {
     return NextResponse.json({
@@ -155,7 +239,15 @@ export async function POST(req: NextRequest): Promise<Response> {
       handle: setup.handle,
       expires_at: setup.setup_token_expires_at,
       landing_url: landingUrl,
+      mail_sent: mailResult.sent,
+      mail_error: mailResult.error ?? null,
     });
   }
-  return NextResponse.redirect(new URL("/admin?view=inbox", req.url), 303);
+  const flash = mailResult.sent
+    ? `@${handle} approved · mail sent`
+    : `@${handle} approved · mail NOT sent (${mailResult.error ?? "no brevo"})`;
+  return NextResponse.redirect(
+    new URL(`/admin?view=inbox&msg=${encodeURIComponent(flash)}`, req.url),
+    303,
+  );
 }
