@@ -1373,10 +1373,13 @@ async function templatesView(): Promise<string> {
   // Apify-Token Status: only env-presence-check, never expose the value.
   const apifyTokenPresent = Boolean(process.env.APIFY_API_TOKEN);
 
-  const cards = `<div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+  const m1Count = templates.filter((t) => t.mail1_subject && t.mail1_body).length;
+  const m2Count = templates.filter((t) => t.mail2_subject && t.mail2_body).length;
+  const cards = `<div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
     <div class="card"><div class="k">Apify-Token</div><div class="v" style="font-size:18px">${apifyTokenPresent ? "✓ in Vercel" : "in n8n-Cred"}</div><div class="s">${apifyTokenPresent ? "KLAR_APIFY_TOKEN env gesetzt" : "via httpHeaderAuth Cred l8T8zGn0SrQSd4ws"}</div></div>
     <div class="card"><div class="k">Templates</div><div class="v">${templates.length}</div><div class="s">App × Sprache (6 Apps × DE/EN)</div></div>
-    <div class="card"><div class="k">Vollständig</div><div class="v">${templates.filter((t) => t.mail1_subject && t.mail1_body).length}</div><div class="s">mit Mail-1 Subject + Body</div></div>
+    <div class="card"><div class="k">Mail-1</div><div class="v">${m1Count}</div><div class="s">Soft Open komplett</div></div>
+    <div class="card"><div class="k">Mail-2</div><div class="v">${m2Count}</div><div class="s">Auto-Reply komplett</div></div>
   </div>`;
 
   const rows = KLAR_APPS.flatMap((appMeta) => {
@@ -1388,9 +1391,14 @@ async function templatesView(): Promise<string> {
     return tpls.map((t) => {
       const hashtagsStr = (t.hashtags ?? []).join(", ");
       const m1Done = Boolean(t.mail1_subject && t.mail1_body);
-      const doneBadge = m1Done
-        ? `<span class="pill" style="background:#dcfce7;color:#166534;border-color:#bbf7d066;font-size:9px;font-weight:600">✓ Mail-1</span>`
-        : `<span class="pill" style="background:#fef9c3;color:#854d0e;border-color:#fde04766;font-size:9px;font-weight:600">leer</span>`;
+      const m2Done = Boolean(t.mail2_subject && t.mail2_body);
+      const m1Badge = m1Done
+        ? `<span class="pill" style="background:#dcfce7;color:#166534;border-color:#bbf7d066;font-size:9px;font-weight:600">✓ M1</span>`
+        : `<span class="pill" style="background:#fef9c3;color:#854d0e;border-color:#fde04766;font-size:9px;font-weight:600">M1 leer</span>`;
+      const m2Badge = m2Done
+        ? `<span class="pill" style="background:#dcfce7;color:#166534;border-color:#bbf7d066;font-size:9px;font-weight:600">✓ M2</span>`
+        : `<span class="pill" style="background:#fef9c3;color:#854d0e;border-color:#fde04766;font-size:9px;font-weight:600">M2 leer</span>`;
+      const doneBadge = `<span style="display:inline-flex;gap:4px">${m1Badge}${m2Badge}</span>`;
       return `<tr data-row-id="${esc(appMeta.slug)}-${esc(t.language)}">
         <td><button type="button" class="btn ghost" onclick="this.closest('tbody').querySelector('[data-edit-for=&quot;${esc(appMeta.slug)}-${esc(t.language)}&quot;]').style.display=this.closest('tbody').querySelector('[data-edit-for=&quot;${esc(appMeta.slug)}-${esc(t.language)}&quot;]').style.display==='none'?'table-row':'none';" style="padding:2px 7px;font-size:11px;margin-right:6px">▸</button><strong>${esc(appMeta.name)}</strong><div class="muted" style="font-size:11px">${esc(appMeta.slug)}</div></td>
         <td><span class="pill" style="font-size:10px;text-transform:uppercase">${esc(t.language)}</span></td>
@@ -1448,7 +1456,7 @@ async function templatesView(): Promise<string> {
       <thead><tr><th>App</th><th>Lang</th><th>Status</th><th>Hashtags</th><th>Mail-1 Subject</th><th>Updated</th></tr></thead>
       <tbody>${rows || `<tr><td colspan="6" class="muted">keine Templates</td></tr>`}</tbody>
     </table>
-    <p class="sub muted" style="margin-top:24px;font-size:12px">⚠️ Aktuell liest der n8n Wave-Consumer Mail-Subject/Body noch aus der Welle-Config (Run-Row), nicht aus dieser Tabelle. Phase 3d nächste Session verdrahtet das per-target Template-Read.</p>`;
+    <p class="sub muted" style="margin-top:24px;font-size:12px">✓ Der n8n Wave-Consumer liest diese Templates pro App live aus der DB. Editierst du hier ein Subject oder Body, nutzt die nächste Welle automatisch den neuen Text — pro App ihr eigenes. Custom-Override im Welle-Form ist möglich (überschreibt App-Defaults für die ganze Welle).</p>`;
 }
 
 // ============================================================
