@@ -388,6 +388,7 @@ export interface OutreachRun {
   status: OutreachRunStatus;
   apps: string[];
   platforms: string[];          // "tiktok" | "instagram"
+  size_buckets: string[];       // "nano" | "micro" | "mid" | "macro"
   count_per_app: number;
   niche: string | null;
   mail_subject: string | null;
@@ -405,6 +406,7 @@ export interface OutreachRun {
 export interface CreateRunInput {
   apps: string[];
   platforms: string[];
+  size_buckets?: string[];
   count_per_app: number;
   niche?: string | null;
   mail_subject?: string | null;
@@ -419,6 +421,7 @@ export async function createOutreachRun(input: CreateRunInput): Promise<Outreach
   const body = {
     apps: input.apps,
     platforms: input.platforms,
+    size_buckets: input.size_buckets ?? ["micro", "mid"],
     count_per_app: input.count_per_app,
     niche: input.niche ?? null,
     mail_subject: input.mail_subject ?? null,

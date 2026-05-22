@@ -556,9 +556,8 @@ async function outreachView(
   const app = filterApp && filterApp !== "all" ? filterApp : "all";
   const q = query.trim().slice(0, 80);
 
-  const [stats, perApp, rows, runs] = await Promise.all([
+  const [stats, rows, runs] = await Promise.all([
     getOutreachStats(),
-    getOutreachPerAppStats(),
     listOutreachTargets({ platform, status, app, query: q, limit: 200 }),
     listOutreachRuns(10),
   ]);
@@ -635,30 +634,6 @@ async function outreachView(
       return `/admin?${parts.join("&")}`;
     })()}" class="${!autoRefresh ? "on" : ""}" title="Kein Auto-Refresh (Scroll-stabil)">Pause</a>
   </div>`;
-
-  // Per-App-Stats-Tabelle
-  const perAppMap = new Map(perApp.map((p) => [p.app, p]));
-  const perAppRows = KLAR_APPS.map((meta) => {
-    const r = perAppMap.get(meta.slug);
-    if (!r) return `<tr>
-      <td><a class="applink" href="${buildFilterHref(platform, status, meta.slug)}">${esc(meta.name)}</a></td>
-      <td colspan="7" class="muted" style="font-style:italic">noch keine Targets</td>
-    </tr>`;
-    return `<tr>
-      <td><a class="applink" href="${buildFilterHref(platform, status, meta.slug)}">${esc(meta.name)}</a></td>
-      <td class="r">${r.total}</td>
-      <td class="r"><span class="muted">${r.queued}</span></td>
-      <td class="r">${r.contacted}<div class="muted" style="font-size:10px">${r.contacted_last_7d} (7d)</div></td>
-      <td class="r">${r.replied}</td>
-      <td class="r"><strong>${r.converted}</strong></td>
-      <td class="r">${r.mails_total}</td>
-      <td class="r"><span class="muted">${r.declined + r.dead}</span></td>
-    </tr>`;
-  }).join("");
-  const perAppTable = `<table>
-    <thead><tr><th>App</th><th class="r">Total</th><th class="r">Queued</th><th class="r">Kontaktiert</th><th class="r">Repl.</th><th class="r">Conv.</th><th class="r">Mails</th><th class="r">Tot/Dead</th></tr></thead>
-    <tbody>${perAppRows}</tbody>
-  </table>`;
 
   // Add-Target-Form
   const appCheckboxes = KLAR_APPS
@@ -821,53 +796,89 @@ Cheers,
 Alain
 getklar.org`;
 
-  const waveForm = `<details open style="background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;padding:18px 22px;margin-bottom:24px;box-shadow:var(--shadow-sm)">
-    <summary style="cursor:pointer;font-weight:700;font-size:15px;color:var(--fg);user-select:none;font-family:var(--font-display);letter-spacing:-0.01em">🚀 Welle starten</summary>
-    <form method="POST" action="/admin/outreach/start" id="wave-form" style="margin-top:18px;display:flex;flex-direction:column;gap:16px">
+  // Size-Bucket-Picker (multi-select chips). Maps to follower-ranges in
+  // the n8n format-nodes: nano 1k-10k, micro 10k-50k, mid 50k-500k,
+  // macro 500k+. Default micro+mid (the proven cold-DM sweet spot).
+  const sizeBuckets: Array<{ value: string; label: string; range: string; defaultOn: boolean }> = [
+    { value: "nano",  label: "Nano",  range: "1-10k",   defaultOn: false },
+    { value: "micro", label: "Micro", range: "10-50k",  defaultOn: true  },
+    { value: "mid",   label: "Mid",   range: "50-500k", defaultOn: true  },
+    { value: "macro", label: "Macro", range: "500k+",   defaultOn: false },
+  ];
+  const sizeChips = sizeBuckets
+    .map((b) => `<label class="wave-pick" style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:8px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:12px;cursor:pointer;min-width:78px">
+      <input type="checkbox" name="size_buckets" value="${esc(b.value)}"${b.defaultOn ? " checked" : ""} class="wave-size-chk" style="margin:0"/>
+      <span style="font-weight:600">${esc(b.label)}</span>
+      <span class="muted" style="font-size:10px;font-family:var(--font-mono)">${esc(b.range)}</span>
+    </label>`).join("");
+
+  const waveForm = `<section style="background:var(--surface);border:1px solid var(--line-strong);border-radius:14px;padding:24px 28px;margin-bottom:32px;box-shadow:var(--shadow-sm)">
+    <h2 style="margin:0 0 4px;font-family:var(--font-display);font-weight:800;font-size:22px;letter-spacing:-0.02em;text-transform:none;color:var(--fg)">Welle starten</h2>
+    <p class="muted" style="margin:0 0 22px;font-size:13px">Apify scraped die gewählten Plattformen, Apps und Größen-Buckets, schickt Mail-1 via Brevo, trackt alles in der DB. Templates pro App lädst du unten oder unter <a class="applink" href="/admin?view=templates">Templates</a>.</p>
+    <form method="POST" action="/admin/outreach/start" id="wave-form" style="display:flex;flex-direction:column;gap:22px">
       <div>
-        <div class="k" style="margin-bottom:8px">Apps (Multi-Select, nur LIVE)</div>
+        <div class="k" style="margin-bottom:10px">Apps <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">Multi-Select, nur LIVE</span></div>
         <div style="display:flex;flex-wrap:wrap;gap:8px">${waveAppCheckboxes}</div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
         <div>
-          <div class="k" style="margin-bottom:8px">Plattformen</div>
-          <div style="display:flex;gap:8px">
-            <label class="wave-pick" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:12px;cursor:pointer">
+          <div class="k" style="margin-bottom:10px">Plattformen</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <label class="wave-pick" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:13px;cursor:pointer">
               <input type="checkbox" name="platforms" value="tiktok" checked class="wave-plat-chk" style="margin:0"/>TikTok
             </label>
-            <label class="wave-pick" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:12px;cursor:pointer">
+            <label class="wave-pick" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:13px;cursor:pointer">
               <input type="checkbox" name="platforms" value="instagram" checked class="wave-plat-chk" style="margin:0"/>Instagram
             </label>
           </div>
         </div>
+        <div>
+          <div class="k" style="margin-bottom:10px">Größen</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">${sizeChips}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 240px;gap:24px;align-items:end">
         <label style="display:flex;flex-direction:column">
-          <span class="k" style="margin-bottom:6px">Pro App</span>
-          <input type="number" name="count_per_app" min="1" max="500" value="20" id="wave-count" style="padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:14px;font-variant-numeric:tabular-nums"/>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+            <span class="k">Anzahl pro App</span>
+            <span id="wave-count-display" style="font-family:var(--font-display);font-weight:800;font-size:28px;line-height:1;letter-spacing:-0.02em;color:var(--fg);font-variant-numeric:tabular-nums">20</span>
+          </div>
+          <input type="range" name="count_per_app" min="5" max="100" step="5" value="20" id="wave-count" class="wave-slider" style="width:100%;accent-color:var(--fg);cursor:pointer"/>
+          <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10px;color:var(--fg-4);margin-top:4px">
+            <span>5</span><span>25</span><span>50</span><span>75</span><span>100</span>
+          </div>
         </label>
         <label style="display:flex;flex-direction:column">
-          <span class="k" style="margin-bottom:6px">Niche-Keyword (optional)</span>
-          <input type="text" name="niche" maxlength="80" placeholder="yarn, coach, moto…" style="padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:14px"/>
+          <span class="k" style="margin-bottom:6px">Niche-Keyword</span>
+          <input type="text" name="niche" maxlength="80" placeholder="optional, z.B. yarn" style="padding:9px 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--bg);color:var(--fg);font-size:13px"/>
         </label>
       </div>
-      <label style="display:flex;flex-direction:column">
-        <span class="k" style="margin-bottom:6px">Mail-Subject</span>
-        <input type="text" name="mail_subject" maxlength="200" value="${esc(defaultMailSubject)}" style="padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:14px;font-family:var(--font-mono)"/>
-      </label>
-      <label style="display:flex;flex-direction:column">
-        <span class="k" style="margin-bottom:6px">Mail-Body <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">{{name}}, {{handle}}, {{app_name}} werden pro Target ersetzt</span></span>
-        <textarea name="mail_body" rows="14" style="padding:10px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-body);resize:vertical;line-height:1.5">${esc(defaultMailBody)}</textarea>
-      </label>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding-top:8px;border-top:1px solid var(--line);flex-wrap:wrap">
-        <div style="display:flex;flex-direction:column;gap:4px">
-          <div id="wave-cost" class="muted" style="font-family:var(--font-mono);font-size:12px">
-            <span class="k" style="margin-right:8px">Schätzung</span>
-            <span id="wave-cost-display">— Apps + Plattformen wählen</span>
-          </div>
+
+      <details id="wave-mail-details" style="border:1px solid var(--line);border-radius:8px;background:var(--surface-2)">
+        <summary style="cursor:pointer;padding:12px 16px;font-size:13px;color:var(--fg-2);font-weight:600;user-select:none;display:flex;justify-content:space-between;align-items:center">
+          <span><span style="opacity:0.5">▸</span> Mail bearbeiten <span class="muted" style="font-weight:400;font-size:11px;margin-left:8px">(default: pro App eigenes Template aus der DB)</span></span>
+          <span id="wave-mail-summary" class="muted" style="font-size:11px;font-family:var(--font-mono)">geschlossen = App-Default</span>
+        </summary>
+        <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:14px">
+          <label style="display:flex;flex-direction:column">
+            <span class="k" style="margin-bottom:6px">Mail-Subject</span>
+            <input type="text" name="mail_subject" maxlength="200" value="${esc(defaultMailSubject)}" style="padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-mono)"/>
+          </label>
+          <label style="display:flex;flex-direction:column">
+            <span class="k" style="margin-bottom:6px">Mail-Body <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">{{name}}, {{handle}}, {{app_name}} werden pro Target ersetzt</span></span>
+            <textarea name="mail_body" rows="14" style="padding:10px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-body);resize:vertical;line-height:1.5">${esc(defaultMailBody)}</textarea>
+          </label>
           <div id="wave-template-status" class="muted" style="font-family:var(--font-mono);font-size:11px;font-style:italic"></div>
         </div>
-        <button type="submit" class="btn" style="padding:10px 18px;font-size:14px">🚀 Welle starten →</button>
+      </details>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap">
+        <div id="wave-cost" class="muted" style="font-family:var(--font-mono);font-size:12px">
+          <span class="k" style="margin-right:8px">Schätzung</span>
+          <span id="wave-cost-display">— Apps + Plattformen wählen</span>
+        </div>
+        <button type="submit" class="btn" style="padding:11px 22px;font-size:14px">Welle starten →</button>
       </div>
-      <p class="muted" style="margin:0;font-size:11px">Templates pro App (Hashtags + Mail-1/2) bearbeitest du unter <a class="applink" href="/admin?view=templates">Templates</a>. Wenn du <strong>genau eine App</strong> auswählst, werden Subject + Body hier automatisch aus dem App-Default vor-geladen — kannst sie pro Welle überschreiben.</p>
     </form>
     <script>
       (function(){
@@ -875,76 +886,91 @@ getklar.org`;
         if (!f) return;
         var display = document.getElementById('wave-cost-display');
         var tplStatus = document.getElementById('wave-template-status');
+        var mailDetails = document.getElementById('wave-mail-details');
+        var mailSummary = document.getElementById('wave-mail-summary');
+        var countDisplay = document.getElementById('wave-count-display');
         var subjectInput = f.querySelector('input[name="mail_subject"]');
         var bodyInput = f.querySelector('textarea[name="mail_body"]');
         var initialSubject = subjectInput ? subjectInput.value : '';
         var initialBody = bodyInput ? bodyInput.value : '';
         var lastLoadedKey = '';
+        var mailDirty = false;
 
         function calc(){
           var apps = f.querySelectorAll('input.wave-app-chk:checked').length;
           var plats = f.querySelectorAll('input.wave-plat-chk:checked').length;
           var n = parseInt((f.querySelector('input[name="count_per_app"]')||{}).value || '0', 10) || 0;
+          if (countDisplay) countDisplay.textContent = String(n);
           var total = apps * plats * n;
-          // Apify rough estimate ~$0.001 per profile lookup. Real cost
-          // depends on actor + compute time; refined post-run via Apify
-          // getActor pricing API.
           var usd = total * 0.001;
           if (total === 0) { display.textContent = '— Apps + Plattformen wählen'; return; }
           display.innerHTML = '~' + total.toLocaleString() + ' Profile · <strong>≈ $' + usd.toFixed(2) + '</strong> Apify-Kosten';
         }
 
+        function updateMailSummary(){
+          if (!mailSummary || !subjectInput || !bodyInput) return;
+          if (mailDirty) {
+            mailSummary.textContent = '✎ custom override aktiv';
+          } else if (mailDetails && mailDetails.open) {
+            mailSummary.textContent = 'geöffnet — nicht editiert';
+          } else {
+            mailSummary.textContent = 'geschlossen = App-Default';
+          }
+        }
+
         function loadTemplate(){
           var picked = Array.from(f.querySelectorAll('input.wave-app-chk:checked')).map(function(c){return c.value;});
           if (!subjectInput || !bodyInput) return;
-
-          // Multi-app: switch back to default text + indicate the situation.
           if (picked.length !== 1) {
-            tplStatus.textContent = picked.length > 1
-              ? '⚠️ Multi-App: Subject/Body wird auf alle Apps angewendet (Platzhalter {{app_name}} pro Target ersetzt)'
+            if (tplStatus) tplStatus.textContent = picked.length > 1
+              ? '⚠️ Multi-App: jede App nutzt ihr eigenes DB-Template, ausser du bearbeitest Subject/Body hier'
               : '';
             return;
           }
-
           var app = picked[0];
-          var lang = 'de'; // default; future: small select if needed
+          var lang = 'de';
           var key = app + '|' + lang;
           if (key === lastLoadedKey) return;
-
-          tplStatus.textContent = '⏳ lade Template ' + app + '/' + lang + '…';
+          if (tplStatus) tplStatus.textContent = '⏳ lade Template ' + app + '/' + lang + '…';
           fetch('/admin/templates/get?app=' + encodeURIComponent(app) + '&language=' + encodeURIComponent(lang), { credentials: 'same-origin' })
             .then(function(r){ return r.ok ? r.json() : null; })
             .then(function(tpl){
               if (!tpl) {
-                tplStatus.textContent = '⚠️ Kein Template für ' + app + '/' + lang + ' — Welle nutzt den aktuellen Form-Inhalt';
+                if (tplStatus) tplStatus.textContent = '⚠️ Kein Template für ' + app + '/' + lang;
                 return;
               }
-              // Only overwrite if the field is currently the initial default
-              // (no manual edits yet) — otherwise leave the admin's tweaks.
-              var subjEmptyOrDefault = !subjectInput.value || subjectInput.value === initialSubject;
-              var bodyEmptyOrDefault = !bodyInput.value || bodyInput.value === initialBody;
-              if (subjEmptyOrDefault && tpl.mail1_subject) {
-                subjectInput.value = tpl.mail1_subject;
-                initialSubject = tpl.mail1_subject;
-              }
-              if (bodyEmptyOrDefault && tpl.mail1_body) {
-                bodyInput.value = tpl.mail1_body;
-                initialBody = tpl.mail1_body;
+              if (!mailDirty) {
+                if (tpl.mail1_subject) { subjectInput.value = tpl.mail1_subject; initialSubject = tpl.mail1_subject; }
+                if (tpl.mail1_body) { bodyInput.value = tpl.mail1_body; initialBody = tpl.mail1_body; }
               }
               lastLoadedKey = key;
-              tplStatus.innerHTML = '✓ Template <strong>' + app + '/' + lang + '</strong> geladen' + (tpl.mail1_subject ? '' : ' (Subject leer — App-Editor noch nicht befüllt)');
+              if (tplStatus) tplStatus.innerHTML = '✓ Template <strong>' + app + '/' + lang + '</strong> geladen' + (tpl.mail1_subject ? '' : ' (Subject leer)');
             })
             .catch(function(e){
-              tplStatus.textContent = '⚠️ Template-Load fehlgeschlagen: ' + e.message;
+              if (tplStatus) tplStatus.textContent = '⚠️ Template-Load fehlgeschlagen: ' + e.message;
             });
         }
 
-        f.addEventListener('change', function(ev){ calc(); if (ev.target && ev.target.classList && ev.target.classList.contains('wave-app-chk')) loadTemplate(); });
+        // Track mail edits so we know whether to overwrite on app change.
+        function markDirty(){
+          if (!subjectInput || !bodyInput) return;
+          mailDirty = (subjectInput.value !== initialSubject) || (bodyInput.value !== initialBody);
+          updateMailSummary();
+        }
+        if (subjectInput) subjectInput.addEventListener('input', markDirty);
+        if (bodyInput) bodyInput.addEventListener('input', markDirty);
+        if (mailDetails) mailDetails.addEventListener('toggle', updateMailSummary);
+
+        f.addEventListener('change', function(ev){
+          calc();
+          if (ev.target && ev.target.classList && ev.target.classList.contains('wave-app-chk')) loadTemplate();
+        });
         f.addEventListener('input', calc);
         calc();
+        updateMailSummary();
       })();
     </script>
-  </details>`;
+  </section>`;
 
   // Run-History compact-Tabelle (letzte 10 Runs)
   const runStatusPill = (s: OutreachRun["status"]): string => {
@@ -978,10 +1004,10 @@ getklar.org`;
   return `${refreshMeta}<h1>Outreach</h1>
     <p class="sub">Influencer-Outreach-Tracker. <em>Queued → DM gesendet → Antwort → Converted</em>. Auto-Refresh ${autoRefresh ? "alle 15s" : "aus"}, Daten aus Supabase anime-vault.</p>
     ${cards}
-    <h2>Pro App</h2>
-    ${perAppTable}
     ${waveForm}
+    <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
     ${runsTable}
+    <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
     ${addForm}
     <h2>Filter</h2>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center">

@@ -64,6 +64,13 @@ export async function POST(req: NextRequest): Promise<Response> {
   );
   if (platforms.length === 0) return back(req, "Mindestens eine Plattform auswählen");
 
+  // size_buckets: multi-select chips (nano/micro/mid/macro). Each maps to
+  // a follower-range in the n8n format-nodes.
+  const ALLOWED_BUCKETS = new Set(["nano", "micro", "mid", "macro"]);
+  const rawBuckets = form.getAll("size_buckets").map((v) => String(v).trim().toLowerCase());
+  const sizeBuckets = Array.from(new Set(rawBuckets.filter((b) => ALLOWED_BUCKETS.has(b))));
+  if (sizeBuckets.length === 0) return back(req, "Mindestens eine Größe auswählen (Nano/Micro/Mid/Macro)");
+
   const countRaw = String(form.get("count_per_app") ?? "").trim();
   const count = Number(countRaw);
   if (!isFinite(count) || count < COUNT_MIN || count > COUNT_MAX || !Number.isInteger(count)) {
@@ -87,6 +94,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     row = await createOutreachRun({
       apps,
       platforms,
+      size_buckets: sizeBuckets,
       count_per_app: count,
       niche,
       mail_subject: mailSubject,
