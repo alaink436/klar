@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect, FormEvent } from "react";
-import { useSearchParams } from "next/navigation";
 
 // Submissions are persisted server-side into Supabase via /api/inquiry
 // (durable, visible in /admin). No more fire-and-forget email.
@@ -204,14 +203,29 @@ function normalizeAppSlug(raw: string | null): string {
 
 export function AffiliateForm() {
   const [state, setState] = useState<SubmitState>("idle");
-  const searchParams = useSearchParams();
-  const preselectedApp = normalizeAppSlug(searchParams?.get("app") ?? null);
-  const [targetApp, setTargetApp] = useState<string>(preselectedApp);
+  // window.location statt useSearchParams() — letzteres braucht <Suspense>
+  // beim Static-Prerender und brach den Vercel-Build. Initial state ist
+  // leer (= "any"), useEffect updated client-side aus der URL.
+  const [targetApp, setTargetApp] = useState<string>("");
+  const [preselectedApp, setPreselectedApp] = useState<string>("");
 
-  // Wenn der User die URL ändert (zB Back-Button), Pre-Selection respektieren.
   useEffect(() => {
-    setTargetApp(normalizeAppSlug(searchParams?.get("app") ?? null));
-  }, [searchParams]);
+    const read = () => {
+      if (typeof window === "undefined") return;
+      const params = new URLSearchParams(window.location.search);
+      const slug = normalizeAppSlug(params.get("app"));
+      setTargetApp(slug);
+      setPreselectedApp(slug);
+    };
+    read();
+    // Hash/URL-Updates (Back-Button + Anchor-Klick aus page.tsx)
+    window.addEventListener("popstate", read);
+    window.addEventListener("hashchange", read);
+    return () => {
+      window.removeEventListener("popstate", read);
+      window.removeEventListener("hashchange", read);
+    };
+  }, []);
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
