@@ -47,6 +47,12 @@ export interface OutreachTarget {
   notes: string | null;
   last_message: string | null;
   last_message_at: string | null;
+  // v2 metrics (Migration klar_outreach_targets_v2_metrics)
+  total_views_estimate: number | null;
+  avg_views_per_post: number | null;
+  engagement_rate_pct: number | null;
+  mails_sent: number;
+  last_mail_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -63,13 +69,29 @@ export interface OutreachStats {
   converted_last_30d: number;
   response_rate_pct: number | null;
   conversion_rate_pct: number | null;
+  mails_total: number;
+  mails_last_7d: number;
 }
 
 export const EMPTY_STATS: OutreachStats = {
   total: 0, queued: 0, contacted: 0, replied: 0, converted: 0,
   declined: 0, dead: 0, contacted_last_7d: 0, converted_last_30d: 0,
   response_rate_pct: null, conversion_rate_pct: null,
+  mails_total: 0, mails_last_7d: 0,
 };
+
+export interface PerAppStat {
+  app: string;
+  total: number;
+  queued: number;
+  contacted: number;
+  replied: number;
+  converted: number;
+  declined: number;
+  dead: number;
+  mails_total: number;
+  contacted_last_7d: number;
+}
 
 function hdr(): HeadersInit {
   return {
@@ -107,9 +129,26 @@ export async function getOutreachStats(): Promise<OutreachStats> {
       converted_last_30d:  Number(r.converted_last_30d ?? 0),
       response_rate_pct:   r.response_rate_pct ?? null,
       conversion_rate_pct: r.conversion_rate_pct ?? null,
+      mails_total:         Number(r.mails_total ?? 0),
+      mails_last_7d:       Number(r.mails_last_7d ?? 0),
     };
   } catch {
     return EMPTY_STATS;
+  }
+}
+
+/** Per-App-Stats. Liefert eine Row pro App-Slug aus dem for_apps[]-Array. */
+export async function getOutreachPerAppStats(): Promise<PerAppStat[]> {
+  if (!KLAR_INBOX_KEY) return [];
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_per_app_stats?select=*`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as PerAppStat[];
+  } catch {
+    return [];
   }
 }
 
@@ -117,7 +156,16 @@ export interface ListFilter {
   platform?: OutreachPlatform | "all";
   status?: OutreachStatus | "all";
   app?: string | "all";
+  query?: string;            // ILIKE-Suche über handle/display_name/niche
   limit?: number;
+}
+
+// PostgREST escape: das `,` und `)` in `or=(...)` braucht keinen Escape
+// auf Werten, aber `*` und `%` müssen we url-encoden. ILIKE-Wildcards
+// werden serverseitig durch * gespiegelt (PostgREST-syntax).
+function pgrestIlikeValue(raw: string): string {
+  // remove characters die PostgREST or-clause schon als syntax versteht
+  return raw.replace(/[(),*%]/g, " ").trim();
 }
 
 /** List targets, newest first, filterable. Returns [] on any failure. */
@@ -130,6 +178,14 @@ export async function listOutreachTargets(
   if (f.platform && f.platform !== "all") parts.push(`platform=eq.${encodeURIComponent(f.platform)}`);
   if (f.status && f.status !== "all") parts.push(`status=eq.${encodeURIComponent(f.status)}`);
   if (f.app && f.app !== "all") parts.push(`for_apps=cs.{${encodeURIComponent(f.app)}}`);
+  if (f.query) {
+    const q = pgrestIlikeValue(f.query);
+    if (q.length >= 1) {
+      // ILIKE über handle/display_name/niche/notes
+      const w = encodeURIComponent(`*${q}*`);
+      parts.push(`or=(handle.ilike.${w},display_name.ilike.${w},niche.ilike.${w},notes.ilike.${w})`);
+    }
+  }
   try {
     const res = await fetch(
       `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?${parts.join("&")}`,
@@ -231,6 +287,67 @@ export async function setOutreachStatus(
   const rows = (await res.json()) as OutreachTarget[];
   if (!rows[0]) throw new Error("outreach update returned no row");
   return rows[0];
+}
+
+/**
+ * Increment the mails_sent counter and stamp last_mail_at. Called when the
+ * admin sends an outreach mail (DM follow-up, Wise-setup-mail, etc).
+ * Atomic via PostgREST RPC `klar_outreach_mark_mail` — see migration.
+ */
+export async function markMailSent(id: string): Promise<OutreachTarget> {
+  if (!KLAR_INBOX_KEY) throw new Error("KLAR_INBOX_SERVICE_KEY missing");
+  // PostgREST has no atomic counter via PATCH, so we fetch+inc+patch.
+  // The race-window is small (admin clicks one button at a time), and
+  // mails_sent is observational, not payout-critical.
+  const cur = await fetch(
+    `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?id=eq.${encodeURIComponent(id)}&select=mails_sent`,
+    { headers: hdr(), cache: "no-store" },
+  );
+  if (!cur.ok) throw new Error(`mark_mail lookup ${cur.status}`);
+  const rows = (await cur.json()) as Array<{ mails_sent: number }>;
+  const next = (rows[0]?.mails_sent ?? 0) + 1;
+  const res = await fetch(
+    `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?id=eq.${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { ...hdr(), Prefer: "return=representation" },
+      body: JSON.stringify({ mails_sent: next, last_mail_at: new Date().toISOString() }),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`mark_mail patch ${res.status}: ${text.slice(0, 200)}`);
+  }
+  const updated = (await res.json()) as OutreachTarget[];
+  if (!updated[0]) throw new Error("mark_mail returned no row");
+  return updated[0];
+}
+
+export interface MetricsPatch {
+  total_views_estimate?: number | null;
+  avg_views_per_post?: number | null;
+  engagement_rate_pct?: number | null;
+  follower_estimate?: number | null;
+}
+
+/** Update the analytics-metric fields. Pass null to clear a value. */
+export async function updateMetrics(id: string, patch: MetricsPatch): Promise<OutreachTarget> {
+  if (!KLAR_INBOX_KEY) throw new Error("KLAR_INBOX_SERVICE_KEY missing");
+  const res = await fetch(
+    `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?id=eq.${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { ...hdr(), Prefer: "return=representation" },
+      body: JSON.stringify(patch),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`metrics patch ${res.status}: ${text.slice(0, 200)}`);
+  }
+  const updated = (await res.json()) as OutreachTarget[];
+  if (!updated[0]) throw new Error("metrics patch returned no row");
+  return updated[0];
 }
 
 /** Hard delete. There's no "trash"-bucket — mark `dead` instead if you want

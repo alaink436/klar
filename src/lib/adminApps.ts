@@ -145,6 +145,146 @@ export interface InfluencerSetupRow {
   app: string | null;
 }
 
+// Shape map: which apps use Shape B (influencer_codes table) vs Shape A
+// (referrals.influencer_handle direct). See AFFILIATE-ARCHITECTURE.md.
+const SHAPE_B_APPS = new Set(["yarn-stash", "kelva", "moto"]);
+
+export interface InfluencerRow {
+  id: string;
+  handle: string;
+  display_name: string | null;
+  contact_email: string | null;
+  status: string;
+  payout_method: string | null;
+  payout_email: string | null;
+  payout_iban: string | null;
+  share_pct: number | null;
+  share_months: number | null;
+  share_percent: number | null;   // older schema field (Wavelength etc)
+  promo_code: string | null;
+  country: string | null;
+  language: string | null;
+  setup_token: string | null;
+  setup_token_expires_at: string | null;
+  tax_status: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
+/** List influencers in an app's Supabase. service-role bypasses RLS. */
+export async function listInfluencers(app: AdminApp): Promise<InfluencerRow[]> {
+  try {
+    const res = await fetch(
+      `${app.supabaseUrl}/rest/v1/influencers?select=*&order=created_at.desc&limit=500`,
+      {
+        headers: {
+          apikey: app.serviceKey,
+          Authorization: `Bearer ${app.serviceKey}`,
+          Accept: "application/json",
+        },
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as InfluencerRow[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Suspend / reactivate / soft-ban an influencer. Status must be one of the
+ * values used by affiliate-ingest's payout-gate (`active` keeps the influencer
+ * earning, `suspended`/`banned` mark new events as counts_for_payout=false,
+ * existing matured events still pay out for cleanliness).
+ *
+ * For Shape-B apps the matching influencer_codes row's status is mirrored too
+ * so capture_referral / apply_referral_code skip the code at install-time.
+ */
+export async function setInfluencerStatus(
+  app: AdminApp,
+  handle: string,
+  newStatus: "active" | "suspended" | "banned" | "paused",
+): Promise<{ ok: boolean; error?: string }> {
+  // 1) influencers.status — present in every app
+  const r1 = await fetch(
+    `${app.supabaseUrl}/rest/v1/influencers?handle=eq.${encodeURIComponent(handle)}`,
+    {
+      method: "PATCH",
+      headers: {
+        apikey: app.serviceKey,
+        Authorization: `Bearer ${app.serviceKey}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({ status: newStatus }),
+    },
+  );
+  if (!r1.ok) {
+    const text = await r1.text().catch(() => "");
+    return { ok: false, error: `influencers ${r1.status}: ${text.slice(0, 200)}` };
+  }
+  // 2) Shape B: mirror to influencer_codes.status. PostgREST returns 200 with
+  // zero rows if no matching codes exist — no error.
+  if (SHAPE_B_APPS.has(app.slug)) {
+    const codeStatus = newStatus === "active" ? "active" : "inactive";
+    const r2 = await fetch(
+      `${app.supabaseUrl}/rest/v1/influencer_codes?handle=eq.${encodeURIComponent(handle)}`,
+      {
+        method: "PATCH",
+        headers: {
+          apikey: app.serviceKey,
+          Authorization: `Bearer ${app.serviceKey}`,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({ status: codeStatus }),
+      },
+    );
+    // Don't fail the whole call if codes-table is missing/different schema —
+    // the influencers.status flip is the authoritative payout gate.
+    if (!r2.ok) {
+      const text = await r2.text().catch(() => "");
+      console.warn(`[setInfluencerStatus] codes mirror failed ${r2.status}: ${text.slice(0, 200)}`);
+    }
+  }
+  return { ok: true };
+}
+
+/** Hard delete an influencer. Use only for test rows; production should
+ * `setInfluencerStatus('banned')` instead so existing referrals + payout
+ * history stay intact. */
+export async function hardDeleteInfluencer(
+  app: AdminApp,
+  handle: string,
+): Promise<{ ok: boolean; error?: string }> {
+  // Foreign-keys point to influencers from referral_revenue_events,
+  // referrals, influencer_payout_items, influencer_codes. PostgREST DELETE
+  // will fail if any of them exist; that's OK, we tell the admin.
+  if (SHAPE_B_APPS.has(app.slug)) {
+    // delete codes first (cascade-source for some shapes)
+    await fetch(
+      `${app.supabaseUrl}/rest/v1/influencer_codes?handle=eq.${encodeURIComponent(handle)}`,
+      {
+        method: "DELETE",
+        headers: { apikey: app.serviceKey, Authorization: `Bearer ${app.serviceKey}` },
+      },
+    ).catch(() => undefined);
+  }
+  const res = await fetch(
+    `${app.supabaseUrl}/rest/v1/influencers?handle=eq.${encodeURIComponent(handle)}`,
+    {
+      method: "DELETE",
+      headers: { apikey: app.serviceKey, Authorization: `Bearer ${app.serviceKey}` },
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    return { ok: false, error: `delete ${res.status}: ${text.slice(0, 200)}` };
+  }
+  return { ok: true };
+}
+
 export async function createInfluencerSetup(
   app: AdminApp,
   args: {

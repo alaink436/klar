@@ -9,15 +9,17 @@
 //
 // Env: KLAR_ADMIN_KEY, KLAR_ADMIN_APPS (JSON registry, see lib/adminApps).
 
-import { getApps, sbGet, setupLandingUrl, type AdminApp } from "../../lib/adminApps";
+import { getApps, sbGet, setupLandingUrl, listInfluencers, type AdminApp, type InfluencerRow } from "../../lib/adminApps";
 import { KLAR_APPS, type KlarAppMeta } from "../../lib/klarApps";
 import {
   getOutreachStats,
+  getOutreachPerAppStats,
   listOutreachTargets,
   isOutreachConfigured,
   type OutreachPlatform,
   type OutreachStatus,
   type OutreachTarget,
+  type PerAppStat,
 } from "../../lib/outreachStore";
 import {
   STYLE,
@@ -336,20 +338,22 @@ async function revenueView(apps: AdminApp[]): Promise<string> {
 
 async function appView(app: AdminApp): Promise<string> {
   const [inf, claim, batches] = await Promise.all([
-    sbGet(app, "influencers?select=handle,status"),
+    listInfluencers(app),
     sbGet(app, "influencer_claimable?select=handle,status,payout_method,matured_share_eur_cents,paid_eur_cents,claimable_eur_cents,unnormalized_events&order=claimable_eur_cents.desc"),
     sbGet(app, "influencer_payout_batches?select=id,period_start,period_end,status,item_count,total_amount_cents&order=created_at.desc&limit=8"),
   ]);
   if (inf.length === 0 && claim.length === 0 && batches.length === 0)
     return `<h1>${esc(app.name)}</h1><p class="sub muted">Für diese App ist noch kein Affiliate-Schema in Supabase ausgerollt, darum gibt es noch keine Daten.</p>`;
-  const active = inf.filter((i: any) => i.status === "active").length;
+  const active = inf.filter((i) => i.status === "active").length;
+  const suspended = inf.filter((i) => i.status === "suspended" || i.status === "banned").length;
+  const pending = inf.filter((i) => i.status === "pending").length;
   const open = claim.reduce((s: number, c: any) => s + Number(c.claimable_eur_cents ?? 0), 0);
   const ids = batches.map((b: any) => b.id);
   const items = ids.length
     ? await sbGet(app, `influencer_payout_items?batch_id=in.(${ids.join(",")})&select=batch_id,influencer_handle,amount_cents,payout_method,status,provider_ref,provider_error&order=created_at.desc`)
     : [];
   const cards = `<div class="cards">
-    <div class="card"><div class="k">Affiliates</div><div class="v">${inf.length}</div><div class="s">${active} aktiv</div></div>
+    <div class="card"><div class="k">Affiliates</div><div class="v">${inf.length}</div><div class="s">${active} aktiv${suspended ? ` · ${suspended} suspendiert` : ""}${pending ? ` · ${pending} pending` : ""}</div></div>
     <div class="card"><div class="k">Offen</div><div class="v">${eur(open)}</div><div class="s">gereift, netto Refunds</div></div>
     <div class="card"><div class="k">Batches</div><div class="v">${batches.length}</div></div>
   </div>`;
@@ -367,8 +371,87 @@ async function appView(app: AdminApp): Promise<string> {
       ${can ? `<form method="POST" action="/admin/dispatch" style="margin:11px 0"><input type="hidden" name="app" value="${esc(app.slug)}"/><input type="hidden" name="batch_id" value="${esc(b.id)}"/><button class="btn" type="submit">Via Wise vorbereiten</button></form>` : ""}
       <table style="margin-top:8px"><thead><tr><th>Handle</th><th class="r">Betrag</th><th>Methode</th><th>Status</th><th>Ref</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }).join("");
-  return `<h1>${esc(app.name)}</h1><p class="sub">Affiliate-Salden und Auszahlungen für ${esc(app.name)}.</p>${cards}
+  // Influencer-Liste mit Suspend/Activate/Hard-Delete-Aktionen
+  const infStatusPill = (st: string): string => {
+    const map: Record<string, { bg: string; fg: string }> = {
+      active:    { bg: "#dcfce7", fg: "#166534" },
+      pending:   { bg: "#fef3c7", fg: "#92400e" },
+      suspended: { bg: "#fee2e2", fg: "#991b1b" },
+      banned:    { bg: "#fee2e2", fg: "#991b1b" },
+      paused:    { bg: "#e5e5e5", fg: "#525252" },
+      terminated:{ bg: "#e5e5e5", fg: "#525252" },
+    };
+    const c = map[st] ?? { bg: "#e0e7ff", fg: "#3730a3" };
+    return `<span class="pill" style="background:${c.bg};color:${c.fg};border-color:${c.fg}22;font-weight:600">${esc(st)}</span>`;
+  };
+  const infActions = (i: InfluencerRow): string => {
+    const slug = esc(app.slug);
+    const handle = esc(i.handle);
+    // active → suspend / banned
+    // suspended/banned → reactivate
+    const buttons: string[] = [];
+    if (i.status === "active" || i.status === "pending") {
+      buttons.push(`<form method="POST" action="/admin/influencer/suspend" style="display:inline" onsubmit="return confirm('Suspend @${handle}? Bestehende Payouts laufen aus, neue Events kriegen counts_for_payout=false.');">
+        <input type="hidden" name="app" value="${slug}"/>
+        <input type="hidden" name="handle" value="${handle}"/>
+        <input type="hidden" name="status" value="suspended"/>
+        <button type="submit" class="btn ghost" style="padding:3px 9px;font-size:11px;color:var(--danger)">Suspend</button>
+      </form>`);
+      buttons.push(`<form method="POST" action="/admin/influencer/suspend" style="display:inline" onsubmit="return confirm('PERMANENT BAN für @${handle}? Wie Suspend, aber als bleibend markiert.');">
+        <input type="hidden" name="app" value="${slug}"/>
+        <input type="hidden" name="handle" value="${handle}"/>
+        <input type="hidden" name="status" value="banned"/>
+        <button type="submit" class="btn ghost" style="padding:3px 9px;font-size:11px;color:var(--danger)">Ban</button>
+      </form>`);
+    }
+    if (i.status === "suspended" || i.status === "banned" || i.status === "paused") {
+      buttons.push(`<form method="POST" action="/admin/influencer/suspend" style="display:inline">
+        <input type="hidden" name="app" value="${slug}"/>
+        <input type="hidden" name="handle" value="${handle}"/>
+        <input type="hidden" name="status" value="active"/>
+        <button type="submit" class="btn ghost" style="padding:3px 9px;font-size:11px;color:var(--success)">Reaktivieren</button>
+      </form>`);
+    }
+    // Hard delete nur erlauben wenn pending (kein referral/event history yet)
+    if (i.status === "pending") {
+      buttons.push(`<form method="POST" action="/admin/influencer/delete" style="display:inline" onsubmit="return confirm('HART LÖSCHEN @${handle}? Geht nur wenn keine referrals/events existieren. Bei Active/Suspended bitte ban statt delete.');">
+        <input type="hidden" name="app" value="${slug}"/>
+        <input type="hidden" name="handle" value="${handle}"/>
+        <button type="submit" class="btn ghost" style="padding:3px 9px;font-size:11px;color:var(--danger)" title="Hard delete">✕</button>
+      </form>`);
+    }
+    return buttons.join(" ");
+  };
+  const infRows = inf.length === 0
+    ? `<tr><td colspan="6" class="muted">noch keine Affiliates onboarded für ${esc(app.name)}</td></tr>`
+    : inf.map((i) => {
+        const sharePct = i.share_pct ?? i.share_percent ?? null;
+        const setupExpired = i.setup_token && i.setup_token_expires_at
+          ? new Date(i.setup_token_expires_at).getTime() < Date.now()
+          : false;
+        const setupBadge = i.status === "pending" && i.setup_token
+          ? setupExpired
+            ? `<span class="pill" style="background:#fee2e2;color:#991b1b;font-size:9px">Token expired</span>`
+            : `<span class="pill" style="background:#dbeafe;color:#1e40af;font-size:9px">invited</span>`
+          : "";
+        return `<tr>
+          <td>${esc(i.handle)}<div class="muted" style="font-size:11px">${esc(i.display_name ?? "")}${i.promo_code ? ` · code <strong>${esc(i.promo_code)}</strong>` : ""}</div></td>
+          <td>${infStatusPill(i.status)} ${setupBadge}</td>
+          <td>${esc(i.contact_email ?? "—")}</td>
+          <td>${esc(i.payout_method ?? "—")}<div class="muted" style="font-size:11px">${esc(i.country ?? "")}</div></td>
+          <td class="r">${sharePct !== null ? `${sharePct}%` : "—"}${i.share_months ? `<div class="muted" style="font-size:11px">${i.share_months}mo</div>` : ""}</td>
+          <td class="r" style="white-space:nowrap">${infActions(i)}</td>
+        </tr>`;
+      }).join("");
+
+  return `<h1>${esc(app.name)}</h1><p class="sub">Affiliate-Salden, Auszahlungen und Affiliates für ${esc(app.name)}.</p>${cards}
     <form method="POST" action="/admin/reconcile" style="margin:0 0 18px"><input type="hidden" name="app" value="${esc(app.slug)}"/><button class="btn ghost" type="submit">Status aktualisieren · Wise nach DB</button></form>
+    <h2>Affiliates <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${inf.length} Einträge</span></h2>
+    <table>
+      <thead><tr><th>Handle</th><th>Status</th><th>Email</th><th>Auszahlung</th><th class="r">Share</th><th class="r">Aktionen</th></tr></thead>
+      <tbody>${infRows}</tbody>
+    </table>
+    <h2>Salden + Conversions</h2>
     <table><thead><tr><th>Handle</th><th>Status</th><th>Methode</th><th class="r">Gereift</th><th class="r">Bezahlt</th><th class="r">Offen</th><th class="c">FX</th></tr></thead><tbody>${claimRows}</tbody></table>
     <h2>Batches</h2>${batchHtml || `<p class="muted">noch keine Batches (pg_cron baut am 1. des Monats)</p>`}`;
 }
@@ -426,13 +509,23 @@ const TARGET_STATUS_ORDER: OutreachStatus[] = [
   "queued", "dm_sent", "replied", "converted", "declined", "dead",
 ];
 
+function fmtBigNum(n: number | null | undefined): string {
+  if (n === null || n === undefined) return "—";
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1000) return `${(n / 1000).toFixed(0)}k`;
+  return String(n);
+}
+
 async function outreachView(
   filterPlatform: string,
   filterStatus: string,
   filterApp: string,
+  query: string,
+  autoRefresh: boolean,
 ): Promise<string> {
   if (!isOutreachConfigured()) {
-    return `<h1>Outreach</h1><p class="sub muted">Outreach-Tracker braucht <span class="warn">KLAR_INBOX_SERVICE_KEY</span> in Vercel (anime-vault Service-Role). Tabelle <code>klar_outreach_targets</code> ist via Migration <code>klar_outreach_targets_v1</code> bereits angelegt.</p>`;
+    return `<h1>Outreach</h1><p class="sub muted">Outreach-Tracker braucht <span class="warn">KLAR_INBOX_SERVICE_KEY</span> in Vercel (anime-vault Service-Role). Tabelle <code>klar_outreach_targets</code> ist via Migration <code>klar_outreach_targets_v1</code> + <code>v2_metrics</code> angelegt.</p>`;
   }
 
   const platform = (["tiktok", "instagram"].includes(filterPlatform) ? filterPlatform : "all") as
@@ -441,27 +534,38 @@ async function outreachView(
     ? (filterStatus as OutreachStatus)
     : "all";
   const app = filterApp && filterApp !== "all" ? filterApp : "all";
+  const q = query.trim().slice(0, 80);
 
-  const [stats, rows] = await Promise.all([
+  const [stats, perApp, rows] = await Promise.all([
     getOutreachStats(),
-    listOutreachTargets({ platform, status, app, limit: 200 }),
+    getOutreachPerAppStats(),
+    listOutreachTargets({ platform, status, app, query: q, limit: 200 }),
   ]);
 
-  // KPI-Cards
+  // Auto-refresh meta-tag (15s). Toggle via ?ar=0.
+  // Wird inline am Anfang der Outreach-View ausgespuckt — Next legt das in
+  // den Head dank React 19 Document-Metadata-Hoisting.
+  const refreshMeta = autoRefresh
+    ? `<meta http-equiv="refresh" content="15"/>`
+    : "";
+
+  // KPI-Cards (jetzt mit Mail-Counter)
   const cards = `<div class="cards">
     <div class="card"><div class="k">Total</div><div class="v">${stats.total}</div><div class="s">Targets im Tracker</div></div>
     <div class="card"><div class="k">Queued</div><div class="v">${stats.queued}</div><div class="s">noch nicht kontaktiert</div></div>
-    <div class="card"><div class="k">DM gesendet (7d)</div><div class="v">${stats.contacted_last_7d}</div><div class="s">letzte Woche</div></div>
+    <div class="card"><div class="k">Mails (7d)</div><div class="v">${stats.mails_last_7d}</div><div class="s">${stats.mails_total} gesamt rausgeschickt</div></div>
     <div class="card"><div class="k">Antworten</div><div class="v">${stats.replied + stats.converted + stats.declined}</div><div class="s">${stats.response_rate_pct ?? "—"}% Response-Rate</div></div>
     <div class="card"><div class="k">Converted (30d)</div><div class="v">${stats.converted_last_30d}</div><div class="s">${stats.conversion_rate_pct ?? "—"}% Conversion-Rate</div></div>
   </div>`;
 
-  // Filter-Strip
+  // Filter-Strip: hält query+autoRefresh-Param mit
   const buildFilterHref = (p: string, s: string, a: string): string => {
     const parts: string[] = ["view=outreach"];
     if (p !== "all") parts.push(`p=${encodeURIComponent(p)}`);
     if (s !== "all") parts.push(`s=${encodeURIComponent(s)}`);
     if (a !== "all") parts.push(`a=${encodeURIComponent(a)}`);
+    if (q) parts.push(`q=${encodeURIComponent(q)}`);
+    if (!autoRefresh) parts.push(`ar=0`);
     return `/admin?${parts.join("&")}`;
   };
   const segPlatform = `<div class="seg">
@@ -477,6 +581,63 @@ async function outreachView(
   const segApp = `<div class="seg" style="flex-wrap:wrap">
     ${appOptions.map((a) => `<a href="${buildFilterHref(platform, status, a)}" class="${app === a ? "on" : ""}">${esc(a === "all" ? "Alle Apps" : a)}</a>`).join("")}
   </div>`;
+
+  // Such-Form (GET, sendet alle vorhandenen Filter mit, Reload via meta-refresh
+  // bleibt sticky weil URL state der single-source-of-truth ist)
+  const searchForm = `<form method="GET" action="/admin" style="display:flex;gap:8px;align-items:center;flex:1;max-width:480px">
+    <input type="hidden" name="view" value="outreach"/>
+    ${platform !== "all" ? `<input type="hidden" name="p" value="${esc(platform)}"/>` : ""}
+    ${status !== "all" ? `<input type="hidden" name="s" value="${esc(status)}"/>` : ""}
+    ${app !== "all" ? `<input type="hidden" name="a" value="${esc(app)}"/>` : ""}
+    ${!autoRefresh ? `<input type="hidden" name="ar" value="0"/>` : ""}
+    <input type="search" name="q" value="${esc(q)}" placeholder="Suche handle / display name / niche / notes…" maxlength="80" style="flex:1;padding:8px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--fg);font-size:13px"/>
+    <button type="submit" class="btn ghost" style="padding:7px 12px;font-size:12px">Suchen</button>
+    ${q ? `<a href="${buildFilterHref(platform, status, app).replace(/&?q=[^&]*/, "")}" class="btn ghost" style="padding:7px 10px;font-size:12px">×</a>` : ""}
+  </form>`;
+
+  // Auto-Refresh Toggle
+  const refreshToggle = `<div class="seg" style="margin-left:auto">
+    <a href="${(() => {
+      const parts: string[] = ["view=outreach"];
+      if (platform !== "all") parts.push(`p=${encodeURIComponent(platform)}`);
+      if (status !== "all") parts.push(`s=${encodeURIComponent(status)}`);
+      if (app !== "all") parts.push(`a=${encodeURIComponent(app)}`);
+      if (q) parts.push(`q=${encodeURIComponent(q)}`);
+      return `/admin?${parts.join("&")}`;
+    })()}" class="${autoRefresh ? "on" : ""}" title="Auto-Refresh alle 15 Sekunden">15s ⟲</a>
+    <a href="${(() => {
+      const parts: string[] = ["view=outreach", "ar=0"];
+      if (platform !== "all") parts.push(`p=${encodeURIComponent(platform)}`);
+      if (status !== "all") parts.push(`s=${encodeURIComponent(status)}`);
+      if (app !== "all") parts.push(`a=${encodeURIComponent(app)}`);
+      if (q) parts.push(`q=${encodeURIComponent(q)}`);
+      return `/admin?${parts.join("&")}`;
+    })()}" class="${!autoRefresh ? "on" : ""}" title="Manueller Refresh">Pause</a>
+  </div>`;
+
+  // Per-App-Stats-Tabelle
+  const perAppMap = new Map(perApp.map((p) => [p.app, p]));
+  const perAppRows = KLAR_APPS.map((meta) => {
+    const r = perAppMap.get(meta.slug);
+    if (!r) return `<tr>
+      <td><a class="applink" href="${buildFilterHref(platform, status, meta.slug)}">${esc(meta.name)}</a></td>
+      <td colspan="7" class="muted" style="font-style:italic">noch keine Targets</td>
+    </tr>`;
+    return `<tr>
+      <td><a class="applink" href="${buildFilterHref(platform, status, meta.slug)}">${esc(meta.name)}</a></td>
+      <td class="r">${r.total}</td>
+      <td class="r"><span class="muted">${r.queued}</span></td>
+      <td class="r">${r.contacted}<div class="muted" style="font-size:10px">${r.contacted_last_7d} (7d)</div></td>
+      <td class="r">${r.replied}</td>
+      <td class="r"><strong>${r.converted}</strong></td>
+      <td class="r">${r.mails_total}</td>
+      <td class="r"><span class="muted">${r.declined + r.dead}</span></td>
+    </tr>`;
+  }).join("");
+  const perAppTable = `<table>
+    <thead><tr><th>App</th><th class="r">Total</th><th class="r">Queued</th><th class="r">Kontaktiert</th><th class="r">Repl.</th><th class="r">Conv.</th><th class="r">Mails</th><th class="r">Tot/Dead</th></tr></thead>
+    <tbody>${perAppRows}</tbody>
+  </table>`;
 
   // Add-Target-Form
   const appCheckboxes = KLAR_APPS
@@ -537,7 +698,7 @@ async function outreachView(
     </script>
   </details>`;
 
-  // Targets-Tabelle
+  // Targets-Tabelle (mit Mail-Counter + Views + Engagement + Edit-Metrics)
   const targetRow = (t: OutreachTarget): string => {
     const profile = t.profile_url
       ? `<a href="${esc(t.profile_url)}" target="_blank" rel="noopener" class="applink">@${esc(t.handle)}</a>`
@@ -566,35 +727,66 @@ async function outreachView(
       </form>`,
     ).join(" ");
 
+    // Mail-Sent counter + Button. Counter clickbar = Inkrement.
+    const mailForm = `<form method="POST" action="/admin/outreach/mark-mail" style="display:inline" title="${t.mails_sent} Mail(s) bisher${t.last_mail_at ? `, zuletzt ${fmtRelative(t.last_mail_at)}` : ""}">
+      <input type="hidden" name="id" value="${esc(t.id)}"/>
+      <button type="submit" class="btn ghost" style="padding:4px 9px;font-size:11px">✉ ${t.mails_sent}</button>
+    </form>`;
+
     const deleteForm = `<form method="POST" action="/admin/outreach/delete" style="display:inline" onsubmit="return confirm('Lead @${esc(t.handle)} löschen?')">
       <input type="hidden" name="id" value="${esc(t.id)}"/>
       <button type="submit" class="btn ghost" style="padding:4px 9px;font-size:11px;color:var(--danger)" title="Hard delete">✕</button>
     </form>`;
 
-    return `<tr>
-      <td>${profile}<div class="muted" style="font-size:11px;margin-top:2px">${esc(t.display_name ?? "")} ${t.niche ? `· ${esc(t.niche)}` : ""}</div></td>
+    return `<tr data-row-id="${esc(t.id)}">
+      <td><button type="button" class="btn ghost" onclick="this.closest('tbody').querySelector('[data-edit-for=&quot;${esc(t.id)}&quot;]').style.display=this.closest('tbody').querySelector('[data-edit-for=&quot;${esc(t.id)}&quot;]').style.display==='none'?'table-row':'none';" style="padding:2px 7px;font-size:11px;margin-right:6px" title="Metriken bearbeiten">▸</button>${profile}<div class="muted" style="font-size:11px;margin-top:2px">${esc(t.display_name ?? "")} ${t.niche ? `· ${esc(t.niche)}` : ""}</div></td>
       <td><span class="pill" style="font-size:10px">${esc(PLATFORM_LABEL[t.platform])}</span></td>
       <td class="r">${fmtFollowers(t.follower_estimate)}</td>
+      <td class="r"><span title="Total Views">${fmtBigNum(t.total_views_estimate)}</span>${t.avg_views_per_post ? `<div class="muted" style="font-size:10px">Ø ${fmtBigNum(t.avg_views_per_post)}/post</div>` : ""}${t.engagement_rate_pct ? `<div class="muted" style="font-size:10px">${t.engagement_rate_pct}% eng.</div>` : ""}</td>
       <td>${apps}</td>
       <td>${statusPill(t.status)}<div class="muted" style="font-size:10px;margin-top:2px">${fmtRelative(t.updated_at)}</div></td>
-      <td class="r" style="white-space:nowrap">${actionForms} ${deleteForm}</td>
-    </tr>`;
+      <td class="r" style="white-space:nowrap">${actionForms} ${mailForm} ${deleteForm}</td>
+    </tr>
+    <tr data-edit-for="${esc(t.id)}" style="display:none"><td colspan="7" style="padding:8px 14px;background:var(--surface-2)">
+      <form method="POST" action="/admin/outreach/update-metrics" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">
+        <input type="hidden" name="id" value="${esc(t.id)}"/>
+        <label style="display:flex;flex-direction:column">Follower
+          <input type="number" name="follower_estimate" min="0" max="100000000" value="${t.follower_estimate ?? ""}" style="margin-top:3px;padding:5px 8px;border:1px solid var(--line-strong);border-radius:5px;background:var(--bg);color:var(--fg);font-size:12px;width:110px"/>
+        </label>
+        <label style="display:flex;flex-direction:column">Total-Views
+          <input type="number" name="total_views_estimate" min="0" max="100000000000" value="${t.total_views_estimate ?? ""}" style="margin-top:3px;padding:5px 8px;border:1px solid var(--line-strong);border-radius:5px;background:var(--bg);color:var(--fg);font-size:12px;width:130px"/>
+        </label>
+        <label style="display:flex;flex-direction:column">Ø Views/Post
+          <input type="number" name="avg_views_per_post" min="0" max="100000000" value="${t.avg_views_per_post ?? ""}" style="margin-top:3px;padding:5px 8px;border:1px solid var(--line-strong);border-radius:5px;background:var(--bg);color:var(--fg);font-size:12px;width:110px"/>
+        </label>
+        <label style="display:flex;flex-direction:column">Engagement %
+          <input type="number" name="engagement_rate_pct" min="0" max="100" step="0.01" value="${t.engagement_rate_pct ?? ""}" style="margin-top:3px;padding:5px 8px;border:1px solid var(--line-strong);border-radius:5px;background:var(--bg);color:var(--fg);font-size:12px;width:90px"/>
+        </label>
+        <button type="submit" class="btn" style="padding:5px 11px;font-size:11px">Speichern</button>
+      </form>
+      ${t.notes ? `<div style="margin-top:10px;color:var(--fg-3);font-size:12px;font-family:var(--font-body);font-style:italic">${esc(t.notes)}</div>` : ""}
+    </td></tr>`;
   };
-
   const tableBody = rows.length === 0
-    ? `<tr><td colspan="6" class="muted">Keine Targets in dieser Auswahl. ${(platform !== "all" || status !== "all" || app !== "all") ? `<a class="applink" href="/admin?view=outreach">Filter zurücksetzen</a>` : "Füg einen mit dem Formular oben hinzu."}</td></tr>`
+    ? `<tr><td colspan="7" class="muted">Keine Targets in dieser Auswahl. ${(platform !== "all" || status !== "all" || app !== "all" || q) ? `<a class="applink" href="/admin?view=outreach">Filter zurücksetzen</a>` : "Füg einen mit dem Formular oben hinzu."}</td></tr>`
     : rows.map(targetRow).join("");
 
-  return `<h1>Outreach</h1>
-    <p class="sub">Influencer-Outreach-Tracker. Status-Lifecycle <em>Queued → DM gesendet → Antwort → Converted</em>. Alles in Supabase (anime-vault, RLS-locked, service-role-only).</p>
+  return `${refreshMeta}<h1>Outreach</h1>
+    <p class="sub">Influencer-Outreach-Tracker. <em>Queued → DM gesendet → Antwort → Converted</em>. Auto-Refresh ${autoRefresh ? "alle 15s" : "aus"}, Daten aus Supabase anime-vault.</p>
     ${cards}
+    <h2>Pro App</h2>
+    ${perAppTable}
     ${addForm}
     <h2>Filter</h2>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px">${segPlatform}${segStatus}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center">
+      ${searchForm}
+      ${refreshToggle}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px">${segPlatform}${segStatus}</div>
     <div style="margin-bottom:18px">${segApp}</div>
-    <h2>Targets <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${rows.length} angezeigt</span></h2>
+    <h2>Targets <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${rows.length} angezeigt${q ? ` · Suche: <em>${esc(q)}</em>` : ""}</span></h2>
     <table>
-      <thead><tr><th>Lead</th><th>Plattform</th><th class="r">Follower</th><th>Apps</th><th>Status</th><th class="r">Aktionen</th></tr></thead>
+      <thead><tr><th>Lead</th><th>Plattform</th><th class="r">Follower</th><th class="r">Views</th><th>Apps</th><th>Status</th><th class="r">Aktionen</th></tr></thead>
       <tbody>${tableBody}</tbody>
     </table>`;
 }
@@ -1067,7 +1259,10 @@ export async function GET(req: Request): Promise<Response> {
     const p = url.searchParams.get("p") ?? "all";
     const s = url.searchParams.get("s") ?? "all";
     const a = url.searchParams.get("a") ?? "all";
-    main = await outreachView(p, s, a);
+    const q = url.searchParams.get("q") ?? "";
+    // Auto-Refresh default-on; ?ar=0 schaltet es aus (persistiert via URL state)
+    const ar = (url.searchParams.get("ar") ?? "1") !== "0";
+    main = await outreachView(p, s, a, q, ar);
   }
   else if (view === "inbox") {
     const typeFilter = url.searchParams.get("type") ?? "all";
