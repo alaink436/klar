@@ -557,11 +557,12 @@ async function outreachView(
   const app = filterApp && filterApp !== "all" ? filterApp : "all";
   const q = query.trim().slice(0, 80);
 
-  const [stats, rows, runs, costSummary] = await Promise.all([
+  const [stats, rows, runs, costSummary, allTargets] = await Promise.all([
     getOutreachStats(),
     listOutreachTargets({ platform, status, app, query: q, limit: 200 }),
     listOutreachRuns(10),
     getOutreachCostSummary(),
+    listOutreachTargets({ platform: "all", status: "all", app: "all", limit: 500 }),
   ]);
 
   // Auto-refresh meta-tag (15s). Off by default — toggle via ?ar=1.
@@ -1052,6 +1053,101 @@ getklar.org`;
       <tbody>${runRows}</tbody>
     </table>`;
 
+  // ===== Targets nach App + Status (Angefragt / Reply / Angenommen) =====
+  // Per-App-Buckets bündeln die Pipeline-Outputs in den drei Kern-States
+  // die der Admin sehen will: wer wurde kontaktiert, wer hat geantwortet,
+  // wer ist Affiliate geworden. Targets mit mehreren for_apps[]-Slugs
+  // erscheinen in jedem zugehörigen App-Block.
+  type Bucket = "angefragt" | "reply" | "angenommen";
+  const targetBucket = (t: OutreachTarget): Bucket | null => {
+    if (t.status === "converted") return "angenommen";
+    if (t.status === "replied") return "reply";
+    if (t.mail_status === "mail1_sent" || t.mail_status === "mail2_sent" || t.status === "dm_sent") return "angefragt";
+    return null; // queued / declined / dead → hier nicht zeigen
+  };
+  const byAppBucket = new Map<string, Record<Bucket, OutreachTarget[]>>();
+  for (const meta of KLAR_APPS) {
+    byAppBucket.set(meta.slug, { angefragt: [], reply: [], angenommen: [] });
+  }
+  for (const t of allTargets) {
+    const b = targetBucket(t);
+    if (!b) continue;
+    for (const slug of (t.for_apps ?? [])) {
+      const bucket = byAppBucket.get(slug);
+      if (bucket) bucket[b].push(t);
+    }
+  }
+  // sort each bucket newest-touched first
+  const newestFirst = (a: OutreachTarget, b: OutreachTarget) => {
+    const ax = new Date(a.last_message_at || a.mail1_sent_at || a.updated_at).getTime();
+    const bx = new Date(b.last_message_at || b.mail1_sent_at || b.updated_at).getTime();
+    return bx - ax;
+  };
+  for (const bucket of byAppBucket.values()) {
+    bucket.angefragt.sort(newestFirst);
+    bucket.reply.sort(newestFirst);
+    bucket.angenommen.sort(newestFirst);
+  }
+
+  const renderInfluencerMini = (t: OutreachTarget): string => {
+    const sentRel = t.mail1_sent_at ? fmtRelative(t.mail1_sent_at) : "";
+    const fLabel = t.follower_estimate
+      ? (t.follower_estimate >= 1_000_000
+          ? `${(t.follower_estimate / 1_000_000).toFixed(1)}M`
+          : t.follower_estimate >= 1_000
+            ? `${Math.round(t.follower_estimate / 1_000)}k`
+            : String(t.follower_estimate))
+      : "";
+    const profileLink = t.profile_url
+      ? `<a class="applink" href="${esc(t.profile_url)}" target="_blank" rel="noopener" style="font-weight:600">@${esc(t.handle)}</a>`
+      : `<span style="font-weight:600">@${esc(t.handle)}</span>`;
+    const platIcon = t.platform === "tiktok" ? "TT" : "IG";
+    return `<div style="padding:8px 10px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px">
+      <div style="min-width:0;flex:1">
+        <div style="display:flex;gap:6px;align-items:center">
+          ${profileLink}
+          <span class="pill" style="font-size:8px;padding:1px 5px">${platIcon}</span>
+          ${fLabel ? `<span class="muted" style="font-size:10px;font-family:var(--font-mono)">${esc(fLabel)}</span>` : ""}
+        </div>
+        ${t.contact_email ? `<div class="muted" style="font-size:10px;margin-top:1px;font-family:var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.contact_email)}</div>` : ""}
+      </div>
+      <div class="muted" style="font-size:10px;white-space:nowrap;text-align:right">${esc(sentRel)}</div>
+    </div>`;
+  };
+
+  const renderBucketCol = (label: string, items: OutreachTarget[], emoji: string): string => `
+    <div style="background:var(--surface);border:1px solid var(--line);border-radius:8px;min-height:120px">
+      <div style="padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline">
+        <span class="k">${emoji} ${esc(label)}</span>
+        <span style="font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--fg)">${items.length}</span>
+      </div>
+      ${items.length === 0
+        ? `<div class="muted" style="padding:12px;font-style:italic;font-size:11px">keine Einträge</div>`
+        : items.slice(0, 8).map(renderInfluencerMini).join("") +
+          (items.length > 8 ? `<div class="muted" style="padding:8px 12px;font-size:11px">+ ${items.length - 8} weitere</div>` : "")}
+    </div>`;
+
+  const targetsByAppSection = `<h2 style="margin-top:32px">Targets nach App</h2>
+    <p class="sub muted" style="margin:0 0 18px;font-size:12px">Influencer aus der Pipeline pro App gruppiert, nach Status: Angefragt → Reply → Angenommen. Targets mit mehreren App-Tags erscheinen in jedem Block. Top 8 pro Spalte angezeigt.</p>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      ${KLAR_APPS.map((meta) => {
+        const bucket = byAppBucket.get(meta.slug)!;
+        const total = bucket.angefragt.length + bucket.reply.length + bucket.angenommen.length;
+        const isOpen = total > 0;
+        return `<details ${isOpen ? "open" : ""} style="background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px 18px">
+          <summary style="cursor:pointer;font-size:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center;user-select:none">
+            <span>${esc(meta.name)} <span class="muted" style="font-weight:400;font-size:11px;margin-left:6px">${esc(meta.slug)}</span></span>
+            <span class="muted" style="font-family:var(--font-mono);font-size:11px">${bucket.angefragt.length} angefragt · ${bucket.reply.length} reply · ${bucket.angenommen.length} angenommen</span>
+          </summary>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:14px">
+            ${renderBucketCol("Angefragt", bucket.angefragt, "✉")}
+            ${renderBucketCol("Reply", bucket.reply, "↩")}
+            ${renderBucketCol("Angenommen", bucket.angenommen, "✓")}
+          </div>
+        </details>`;
+      }).join("")}
+    </div>`;
+
   // Cost-Tracker: aktueller Stand der Monatskosten + Brevo-Daily-Counter
   // mit Progress-Bars gegen die Free-Tier-Limits.
   const apifyUsed = costSummary.month_apify_actual_usd || costSummary.month_apify_estimate_usd;
@@ -1096,6 +1192,8 @@ getklar.org`;
     ${waveForm}
     <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
     ${runsTable}
+    <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
+    ${targetsByAppSection}
     <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
     ${addForm}
     <h2>Filter</h2>
