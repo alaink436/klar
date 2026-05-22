@@ -70,6 +70,9 @@ interface Inquiry {
   approved_app?: string;
   approved_code?: string;
   approved_at?: string;
+  // S30d: Influencer-Wunsch-App aus dem Public-Form-Dropdown (pre-selection
+  // bei /admin/inbox approve-form, plus visible chip in der Inbox-Tabelle).
+  target_app?: string;
 }
 
 // Known source values + readable labels + Pill-color tokens. Falls back to
@@ -906,9 +909,17 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
   // approve-form select. If KLAR_ADMIN_APPS is empty, the dropdown still
   // shows but submitting will return "unknown app" — that's the cue to add
   // the app's slug+serviceKey to the env first.
-  const wiredApps = getApps()
-    .map((a) => `<option value="${esc(a.slug)}">${esc(a.name)}</option>`)
-    .join("");
+  const allWiredApps = getApps();
+  // Per-inquiry rendering of the option list: pre-selects the influencer's
+  // target_app if set (via the public form dropdown). Falls back to "wählen"
+  // when the field is missing/empty.
+  const wiredOptionsFor = (target: string | undefined): string =>
+    allWiredApps
+      .map(
+        (a) =>
+          `<option value="${esc(a.slug)}"${a.slug === target ? " selected" : ""}>${esc(a.name)}</option>`,
+      )
+      .join("");
 
   // Onboarding-Link delegated to lib/adminApps.setupLandingUrl() so there is
   // exactly one place that knows the per-app host. The old in-line table
@@ -939,10 +950,10 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
         <input type="hidden" name="inquiry_id" value="${esc(r.id)}"/>
         <input type="hidden" name="email" value="${esc(r.email ?? "")}"/>
         <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">
-          App
+          App ${r.target_app ? `<span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">· wish: ${esc(r.target_app)}</span>` : ""}
           <select name="app" required style="margin-top:3px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:13px">
-            <option value="" disabled selected>— wählen —</option>
-            ${wiredApps}
+            <option value="" ${r.target_app ? "" : "disabled selected"}>— wählen —</option>
+            ${wiredOptionsFor(r.target_app)}
           </select>
         </label>
         <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">

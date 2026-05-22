@@ -100,6 +100,14 @@ export async function POST(req: Request): Promise<Response> {
     row.audience = str(payload.audience, 200) || null;
     row.platforms = str(payload.platforms, 300) || null;
     row.why = str(payload.why, 8000) || null;
+    // Influencer's app pre-selection (optional). Validated against the
+    // DB check-constraint klar_inquiries_target_app_chk — invalid values
+    // get dropped silently rather than failing the whole insert.
+    const rawTarget = str(payload.target_app, 40);
+    const VALID_APPS = new Set([
+      "trubel", "myloo", "wavelength", "yarn-stash", "kelva", "moto",
+    ]);
+    if (VALID_APPS.has(rawTarget)) row.target_app = rawTarget;
   } else {
     row.name = str(payload.name, 200) || null;
     row.project = str(payload.project, 200) || null;

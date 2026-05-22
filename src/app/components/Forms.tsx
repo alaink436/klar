@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
 
 // Submissions are persisted server-side into Supabase via /api/inquiry
 // (durable, visible in /admin). No more fire-and-forget email.
@@ -177,8 +178,40 @@ const COACHING_OPTS: Opt[] = [
 ];
 
 /* ───────────────────────────── AFFILIATE ───────────────────────────── */
+// App-Slugs für target_app: müssen mit klar_inquiries_target_app_chk DB-constraint
+// matchen + mit den Slugs in lib/klarApps.ts. Wenn du einen neuen Slug addest,
+// hier UND in der DB-Migration ergänzen.
+const TARGET_APPS = [
+  { value: "",            label: "any · let klar decide" },
+  { value: "yarn-stash",  label: "Yarn-Stash · knit/crochet" },
+  { value: "trubel",      label: "Trubel · group photos" },
+  { value: "myloo",       label: "MyLoo · gut tracking" },
+  { value: "wavelength",  label: "Wavelength · focus/teams" },
+  { value: "kelva",       label: "Kelva · cycle literacy" },
+  { value: "moto",        label: "ThrottleUp · moto" },
+] as const;
+
+function normalizeAppSlug(raw: string | null): string {
+  if (!raw) return "";
+  const v = raw.trim().toLowerCase();
+  // Akzeptiere auch die brand-keys "yarnstash" / "throttleup" als Aliase
+  // damit URL-Params von beiden Naming-Konventionen funktionieren.
+  if (v === "yarnstash") return "yarn-stash";
+  if (v === "throttleup") return "moto";
+  if (TARGET_APPS.some((a) => a.value === v)) return v;
+  return "";
+}
+
 export function AffiliateForm() {
   const [state, setState] = useState<SubmitState>("idle");
+  const searchParams = useSearchParams();
+  const preselectedApp = normalizeAppSlug(searchParams?.get("app") ?? null);
+  const [targetApp, setTargetApp] = useState<string>(preselectedApp);
+
+  // Wenn der User die URL ändert (zB Back-Button), Pre-Selection respektieren.
+  useEffect(() => {
+    setTargetApp(normalizeAppSlug(searchParams?.get("app") ?? null));
+  }, [searchParams]);
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -191,6 +224,7 @@ export function AffiliateForm() {
       audience: String(fd.get("audience") || ""),
       platforms: String(fd.get("platforms") || ""),
       why: String(fd.get("why") || ""),
+      target_app: String(fd.get("target_app") || ""),
       company: String(fd.get("company") || ""),
     });
     setState(ok ? "success" : "error");
@@ -205,12 +239,43 @@ export function AffiliateForm() {
       </Sent>
     );
 
+  const selectedLabel = TARGET_APPS.find((a) => a.value === targetApp)?.label
+    ?? TARGET_APPS[0].label;
+
   return (
     <form
       onSubmit={onSubmit}
       className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"
     >
       <Honeypot />
+      <label className="sm:col-span-2 flex flex-col gap-1">
+        <span className="label">applying for</span>
+        <div className="relative">
+          <select
+            name="target_app"
+            value={targetApp}
+            onChange={(e) => setTargetApp(e.target.value)}
+            className="field appearance-none w-full pr-10 cursor-pointer"
+          >
+            {TARGET_APPS.map((a) => (
+              <option key={a.value || "any"} value={a.value}>
+                {a.label}
+              </option>
+            ))}
+          </select>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 label"
+          >
+            ▾
+          </span>
+        </div>
+        {preselectedApp && targetApp === preselectedApp && (
+          <span className="label" style={{ marginTop: 4 }}>
+            ↳ pre-selected from link · {selectedLabel}
+          </span>
+        )}
+      </label>
       <input
         required
         type="email"
@@ -231,7 +296,7 @@ export function AffiliateForm() {
       />
       <textarea
         name="why"
-        placeholder="what app / why klar / niche"
+        placeholder="why klar / niche / which audience"
         className="field field-textarea sm:col-span-2"
       />
       <button

@@ -305,6 +305,13 @@ export default function Home() {
                     {app.status}
                   </span>
                   <span className="label hidden md:inline">{app.buildNote}</span>
+                  <Link
+                    href={`/?app=${app.slug}#affiliate`}
+                    className="label brut-line-thin px-2 py-1 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition"
+                    aria-label={`Become an affiliate for ${app.name}`}
+                  >
+                    affiliate →
+                  </Link>
                 </div>
               </article>
             ))}
