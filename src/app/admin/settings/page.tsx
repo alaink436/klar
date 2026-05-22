@@ -305,7 +305,6 @@ export default async function SettingsPage({
     ${navItem("bookings", "Bookings", ICON.calendar, false)}
     ${navItem("cal", "Cal Admin", ICON.calendar, false)}
     ${navItem("analytics", "Analytics", ICON.analytics, false, "/admin/analytics")}
-    ${navItem("settings", "Einstellungen", ICON.lock, true, "/admin/settings")}
     <div class="navsec">Affiliate</div>
     ${navItem("revenue", "Einnahmen", ICON.revenue, false)}
     ${appLinks() || `<span class="nav muted"><span class="d">${ICON.app}</span>keine Apps</span>`}
@@ -313,6 +312,7 @@ export default async function SettingsPage({
     ${navItem("outreach", "Outreach", ICON.outreach, false)}
     <a class="nav" href="https://cal.getklar.org" target="_blank" rel="noopener"><span class="d">${ICON.calendar}</span>Cal in neuem Tab <span style="margin-left:auto;font-size:10px;opacity:.6">↗</span></a>
     <div class="spacer"></div>
+    ${navItem("settings", "Einstellungen", ICON.lock, true, "/admin/settings")}
     <a class="nav logout" href="/admin/logout"><span class="d">${ICON.logout}</span>Logout</a>
   `;
 

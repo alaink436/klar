@@ -173,7 +173,6 @@ function shell(view: string, apps: AdminApp[], flash: string | null, main: strin
       ${item("bookings", "Bookings", ICON.calendar)}
       ${item("cal", "Cal Admin", ICON.calendar)}
       ${item("analytics", "Analytics", ICON.analytics, "/admin/analytics")}
-      ${item("settings", "Einstellungen", ICON.lock, "/admin/settings")}
       <div class="navsec">Affiliate</div>
       ${item("revenue", "Einnahmen", ICON.revenue)}
       ${item("payouts", "Auszahlungen", ICON.payouts)}
@@ -182,6 +181,7 @@ function shell(view: string, apps: AdminApp[], flash: string | null, main: strin
       ${item("outreach", "Outreach", ICON.outreach)}
       <a class="nav" href="https://cal.getklar.org" target="_blank" rel="noopener"><span class="d">${ICON.calendar}</span>Cal in neuem Tab <span style="margin-left:auto;font-size:10px;opacity:.6">↗</span></a>
       <div class="spacer"></div>
+      ${item("settings", "Einstellungen", ICON.lock, "/admin/settings")}
       <a class="nav logout" href="/admin/logout"><span class="d">${ICON.logout}</span>Logout</a>
     </aside>
     <main class="main">
