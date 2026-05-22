@@ -10,6 +10,8 @@
     "affiliates:setup": "node scripts/setup-affiliates.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.106.1",
     "framer-motion": "^12.38.0",
     "gray-matter": "^4.0.3",
     "next": "16.2.4",
