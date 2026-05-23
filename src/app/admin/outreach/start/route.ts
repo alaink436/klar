@@ -86,53 +86,96 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (mailBody.length < 20) return back(req, "Mail-Body zu kurz");
 
   // Server-side cost-estimate mirror of the client-side JS calc.
-  const profileLookups = apps.length * platforms.length * count;
-  const costEstimateUsd = Math.round(profileLookups * APIFY_USD_PER_PROFILE * 10000) / 10000;
+  // Cost is per-app because we split multi-app submits into N separate runs
+  // (one row per app) so the wave-consumer pipeline never has to mix
+  // app-specific hashtags or PDFs in a single Apify batch.
+  const profileLookupsPerApp = platforms.length * count;
+  const costEstimatePerApp =
+    Math.round(profileLookupsPerApp * APIFY_USD_PER_PROFILE * 10000) / 10000;
 
-  let row: Awaited<ReturnType<typeof createOutreachRun>>;
-  try {
-    row = await createOutreachRun({
-      apps,
-      platforms,
-      size_buckets: sizeBuckets,
-      count_per_app: count,
-      niche,
-      mail_subject: mailSubject,
-      mail_body: mailBody,
-      cost_estimate_usd: costEstimateUsd,
-    });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return back(req, `Start fehlgeschlagen: ${msg.slice(0, 160)}`);
-  }
-
-  // Fire-and-forget the n8n Wave-Consumer webhook. We don't await it,
-  // the workflow itself can take minutes (Apify sync-runs + Brevo loop)
-  // and Vercel functions cap at ~60s. The consumer updates run.status
-  // 'running' -> 'done'/'failed', the UI polls.
-  //
-  // S32: the n8n Webhook is now header-auth protected via
-  // KLAR_N8N_WEBHOOK_SECRET. Without that env-var n8n returns 401 and the
-  // run hangs in status='queued' until the admin notices.
+  // S32-eve: when multiple apps are selected, split into N separate single-app
+  // runs that show up as N rows in the "Letzte Wellen" table. Each row gets
+  // its own n8n execution so per-app hashtags, PDFs and follower filters
+  // never collide. We dispatch the N webhooks in parallel — n8n + Apify
+  // handle the concurrency internally, and each run's backstop fires
+  // independently.
   const hookUrl =
     process.env.KLAR_OUTREACH_WEBHOOK_URL ??
     "https://alaink365.app.n8n.cloud/webhook/klar-outreach-wave";
   const webhookSecret = process.env.KLAR_N8N_WEBHOOK_SECRET ?? "";
-  void fetch(hookUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Klar-Webhook-Secret": webhookSecret,
-    },
-    body: JSON.stringify({ run_id: row.id }),
-  })
-    .then((r) => {
-      if (!r.ok) console.warn(`wave webhook ${r.status}: run ${row.id} not picked up`);
-    })
-    .catch((e) => console.warn("wave webhook fire error:", e));
 
+  function fireWebhook(runId: string): void {
+    void fetch(hookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Klar-Webhook-Secret": webhookSecret,
+      },
+      body: JSON.stringify({ run_id: runId }),
+    })
+      .then((r) => {
+        if (!r.ok) console.warn(`wave webhook ${r.status}: run ${runId} not picked up`);
+      })
+      .catch((e) => console.warn("wave webhook fire error:", e));
+  }
+
+  // Single-app path: keep behaviour identical (one row, one webhook).
+  if (apps.length === 1) {
+    let row: Awaited<ReturnType<typeof createOutreachRun>>;
+    try {
+      row = await createOutreachRun({
+        apps,
+        platforms,
+        size_buckets: sizeBuckets,
+        count_per_app: count,
+        niche,
+        mail_subject: mailSubject,
+        mail_body: mailBody,
+        cost_estimate_usd: costEstimatePerApp,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return back(req, `Start fehlgeschlagen: ${msg.slice(0, 160)}`);
+    }
+    fireWebhook(row.id);
+    return back(
+      req,
+      `Welle ${row.id.slice(0, 8)} gestartet: ${apps[0]} × ${platforms.length} Plattformen × ${count} = ~${profileLookupsPerApp} Profile, est $${costEstimatePerApp.toFixed(2)}.`,
+    );
+  }
+
+  // Multi-app path: create one row per app, dispatch a webhook each. The
+  // override-detection in n8n's Build Job List runs per-row so a user-edited
+  // mail_subject/body becomes a wave_override for every spawned run.
+  const created: Array<{ id: string; app: string }> = [];
+  const failed: Array<{ app: string; error: string }> = [];
+  for (const app of apps) {
+    try {
+      const row = await createOutreachRun({
+        apps: [app],
+        platforms,
+        size_buckets: sizeBuckets,
+        count_per_app: count,
+        niche,
+        mail_subject: mailSubject,
+        mail_body: mailBody,
+        cost_estimate_usd: costEstimatePerApp,
+      });
+      created.push({ id: row.id, app });
+      fireWebhook(row.id);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      failed.push({ app, error: msg.slice(0, 80) });
+    }
+  }
+  if (created.length === 0) {
+    return back(req, `Start fehlgeschlagen für alle ${apps.length} Apps: ${failed.map((f) => f.app + "=" + f.error).join("; ").slice(0, 200)}`);
+  }
+  const total = created.length;
+  const totalCost = (costEstimatePerApp * total).toFixed(2);
+  const tail = failed.length > 0 ? ` (${failed.length} fehlgeschlagen: ${failed.map((f) => f.app).join(", ")})` : "";
   return back(
     req,
-    `Welle ${row.id.slice(0, 8)} gestartet: ${apps.length} Apps × ${platforms.length} Plattformen × ${count} = ~${profileLookups} Profile, est $${costEstimateUsd.toFixed(2)}.`,
+    `${total} Wellen gestartet (je 1 App, parallel): ${created.map((c) => c.app + " #" + c.id.slice(0, 6)).join(", ")} • je ${platforms.length}×${count} = ${profileLookupsPerApp} Profile • est total $${totalCost}${tail}`,
   );
 }
