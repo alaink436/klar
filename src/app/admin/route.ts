@@ -1043,6 +1043,46 @@ getklar.org`;
   const isStale = (r: OutreachRun) =>
     r.status === "running" && r.started_at &&
     now - new Date(r.started_at).getTime() > STALE_MS;
+
+  // S32-eve: heuristic Phase-Label aus dem existing-state (kein extra DB-Schema).
+  // Mappt status + Alter + targets/mails Counters auf eine kompakte Phase-Indikator.
+  const getPhaseLabel = (r: OutreachRun): { label: string; tone: "wait" | "active" | "done" | "warn" } | null => {
+    if (r.status === "queued") return { label: "queued", tone: "wait" };
+    if (r.status === "done") {
+      const wasBackstop = r.errors && typeof r.errors === "object" && (r.errors as Record<string, unknown>).phase === "backstop";
+      if (wasBackstop) return { label: "0 targets (backstopped)", tone: "warn" };
+      return null; // status pill suffices
+    }
+    if (r.status === "failed" || r.status === "cancelled") return null;
+    if (r.status !== "running" || !r.started_at) return null;
+    const ageSec = (now - new Date(r.started_at).getTime()) / 1000;
+    const added = r.targets_added ?? 0;
+    const sent = r.mails_sent ?? 0;
+    // Wave-Consumer schreibt targets_added/mails_sent erst in Finalize Stats (am Ende),
+    // also brauchen wir Heuristik aus age + die finale counters wenn sie kommen.
+    if (added === 0 && sent === 0) {
+      if (ageSec < 90) return { label: "Apify scraping", tone: "active" };
+      if (ageSec < 60 + STALE_MS / 1000) return { label: "Backstop ETA <60s", tone: "wait" };
+      return { label: "stale", tone: "warn" };
+    }
+    if (added > 0 && sent < added) return { label: `sending mails (${sent}/${added})`, tone: "active" };
+    if (added > 0 && sent === added) return { label: "finalizing", tone: "active" };
+    return null;
+  };
+
+  const phasePill = (r: OutreachRun): string => {
+    const p = getPhaseLabel(r);
+    if (!p) return "";
+    const palette: Record<typeof p.tone, { bg: string; fg: string }> = {
+      wait:   { bg: "#fef9c3", fg: "#854d0e" },
+      active: { bg: "#dbeafe", fg: "#1e40af" },
+      done:   { bg: "#dcfce7", fg: "#166534" },
+      warn:   { bg: "#fed7aa", fg: "#9a3412" },
+    };
+    const c = palette[p.tone];
+    return `<span class="pill" style="background:${c.bg};color:${c.fg};border-color:${c.fg}22;font-weight:500;font-size:9px;margin-top:3px;display:inline-block">${esc(p.label)}</span>`;
+  };
+
   const runStatusPill = (r: OutreachRun): string => {
     const s = r.status;
     if (isStale(r)) {
@@ -1058,6 +1098,10 @@ getklar.org`;
     const c = m[s] ?? { bg: "#e0e7ff", fg: "#3730a3", label: s };
     return `<span class="pill" style="background:${c.bg};color:${c.fg};border-color:${c.fg}22;font-weight:600;font-size:9px">${esc(c.label)}</span>`;
   };
+
+  // Wenn mindestens 1 Welle running ist, hint admin auf den Auto-Refresh-Toggle
+  // (default off, opt-in via ?ar=1; siehe S31-Phase3c2 Scroll-Fix-Note).
+  const hasRunningWave = runs.some((r) => r.status === "running" || r.status === "queued");
 
   const runRow = (r: OutreachRun, idx: number): string => {
     const hasDetail = Boolean(
@@ -1101,16 +1145,23 @@ getklar.org`;
         <td class="r">${r.count_per_app}/App</td>
         <td class="r">${r.cost_estimate_usd != null ? "$" + Number(r.cost_estimate_usd).toFixed(2) : "—"}${r.cost_actual_usd != null ? `<div class="muted" style="font-size:10px">actual $${Number(r.cost_actual_usd).toFixed(2)}</div>` : ""}</td>
         <td class="r">${r.targets_added} / ${r.mails_sent} ✉<div class="muted" style="font-size:10px">${durationStr === "—" ? "" : durationStr}</div></td>
-        <td>${runStatusPill(r)}</td>
+        <td>${runStatusPill(r)}${phasePill(r) ? `<div>${phasePill(r)}</div>` : ""}</td>
       </tr>${detailRow}`;
   };
 
   const runRows = runs.length === 0
     ? `<tr><td colspan="7" class="muted" style="font-style:italic">noch keine Wellen gestartet</td></tr>`
     : runs.map(runRow).join("");
+  const refreshHint = hasRunningWave
+    ? `<div style="font-size:11px;color:var(--fg-2);margin:8px 0 4px;padding:6px 10px;background:#dbeafe;border-radius:6px;border:1px solid #93c5fd33;display:inline-block">
+        Eine Welle ist running. Auto-Refresh aktivieren um Progress live zu sehen:
+        <a class="applink" href="?view=outreach&amp;ar=1" style="font-weight:600;margin-left:4px">15s ⟲ ein</a>
+      </div>`
+    : "";
   const runsTable = `<h2>Letzte Wellen</h2>
+    ${refreshHint}
     <table>
-      <thead><tr><th>Wann</th><th>Apps</th><th>Platforms</th><th class="r">Count</th><th class="r">Cost</th><th class="r">Output / Dauer</th><th>Status</th></tr></thead>
+      <thead><tr><th>Wann</th><th>Apps</th><th>Platforms</th><th class="r">Count</th><th class="r">Cost</th><th class="r">Output / Dauer</th><th>Status / Phase</th></tr></thead>
       <tbody>${runRows}</tbody>
     </table>`;
 
