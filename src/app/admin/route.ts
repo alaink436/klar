@@ -259,33 +259,50 @@ async function overview(apps: AdminApp[]): Promise<string> {
   }
 
   const rows = await Promise.all(apps.map(async (app) => {
-    const [inf, claim] = await Promise.all([
+    const [inf, claim, outreach] = await Promise.all([
       sbGet(app, "influencers?select=status"),
       sbGet(app, "influencer_claimable?select=claimable_eur_cents,unnormalized_events"),
+      listOutreachTargets({ platform: "all", status: "all", app: app.slug, limit: 500 }),
     ]);
-    const onboarded = inf.length > 0 || claim.length > 0;
+    const onboarded = inf.length > 0 || claim.length > 0 || outreach.length > 0;
     const active = inf.filter((i: any) => i.status === "active").length;
     const open = claim.reduce((s: number, c: any) => s + Number(c.claimable_eur_cents ?? 0), 0);
     const fx = claim.reduce((s: number, c: any) => s + Number(c.unnormalized_events ?? 0), 0);
-    return { app, onboarded, total: inf.length, active, open, fx };
+    // S32-eve: per-app outreach bucket counters so the admin sees at a glance
+    // how many influencers are mid-funnel for each app from the overview page.
+    let angefragt = 0, reply = 0, angenommen = 0;
+    for (const t of outreach) {
+      if (t.status === "converted") angenommen++;
+      else if (t.status === "replied") reply++;
+      else if (t.mail_status === "mail1_sent" || t.mail_status === "mail2_sent" || t.status === "dm_sent") angefragt++;
+    }
+    return { app, onboarded, total: inf.length, active, open, fx, angefragt, reply, angenommen };
   }));
   const totalOpen = rows.reduce((s, r) => s + r.open, 0);
   const totalAff = rows.reduce((s, r) => s + r.total, 0);
+  const totalAngefragt = rows.reduce((s, r) => s + r.angefragt, 0);
+  const totalReply = rows.reduce((s, r) => s + r.reply, 0);
   const cards = `<div class="cards">
     <div class="card"><div class="k">Apps verdrahtet</div><div class="v">${rows.length}/${KLAR_APPS.length}</div><div class="s">${rows.filter(r=>r.onboarded).length} mit Daten</div></div>
     <div class="card"><div class="k">Affiliates gesamt</div><div class="v">${totalAff}</div></div>
+    <div class="card"><div class="k">Im Outreach</div><div class="v">${totalAngefragt}</div><div class="s">${totalReply} mit Reply</div></div>
     <div class="card"><div class="k">Offen gesamt</div><div class="v">${eur(totalOpen)}</div><div class="s">netto, gereift</div></div>
   </div>`;
-  const tbl = `<table><thead><tr><th>App</th><th class="r">Affiliates</th><th class="r">Aktiv</th><th class="r">Offen (${esc(REPORTING_CURRENCY)})</th><th class="c">FX</th><th></th></tr></thead><tbody>
+  const pill = (n: number, bg: string, fg: string): string => n === 0
+    ? `<span class="muted">0</span>`
+    : `<span class="pill" style="background:${bg};color:${fg};border-color:${fg}22;font-weight:600">${n}</span>`;
+  const tbl = `<table><thead><tr><th>App</th><th class="r">Affiliates</th><th class="r">Aktiv</th><th class="c">✉ Angefragt</th><th class="c">↩ Reply</th><th class="c">✓ Angenommen</th><th class="r">Offen (${esc(REPORTING_CURRENCY)})</th><th></th></tr></thead><tbody>
     ${rows.map((r) => `<tr>
       <td><a class="applink" href="/admin?view=${esc(r.app.slug)}">${esc(r.app.name)}</a> ${r.onboarded ? "" : `<span class="pill">nicht ausgerollt</span>`}</td>
       <td class="r">${r.total}</td><td class="r">${r.active}</td>
+      <td class="c">${pill(r.angefragt, "#dbeafe", "#1e40af")}</td>
+      <td class="c">${pill(r.reply, "#fef9c3", "#854d0e")}</td>
+      <td class="c">${pill(r.angenommen, "#dcfce7", "#166534")}</td>
       <td class="r">${eur(r.open)}</td>
-      <td class="c">${r.fx > 0 ? `<span class="warn">${r.fx}</span>` : "ok"}</td>
       <td class="r"><a class="pill" href="/admin?view=${esc(r.app.slug)}">öffnen</a></td>
     </tr>`).join("")}
   </tbody></table>`;
-  return `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick. Wähl eine verdrahtete App fürs Affiliate-Detail.</p>${tabs}<h2>Affiliate-Stand</h2>${cards}${tbl}`;
+  return `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick. Wähl eine verdrahtete App fürs Affiliate-Detail.</p>${tabs}<h2>Affiliate-Stand · Outreach-Funnel</h2>${cards}${tbl}`;
 }
 
 async function revenueView(apps: AdminApp[]): Promise<string> {
