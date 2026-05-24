@@ -26,6 +26,7 @@ import {
   type AppMailTemplate,
   type PerAppStat,
 } from "../../lib/outreachStore";
+import { getApifyAccountStatus } from "../../lib/apifyAccount";
 import {
   STYLE,
   ICON,
@@ -635,12 +636,13 @@ async function outreachView(
   const app = filterApp && filterApp !== "all" ? filterApp : "all";
   const q = query.trim().slice(0, 80);
 
-  const [stats, rows, runs, costSummary, allTargets] = await Promise.all([
+  const [stats, rows, runs, costSummary, allTargets, apifyAccount] = await Promise.all([
     getOutreachStats(),
     listOutreachTargets({ platform, status, app, query: q, limit: 200 }),
     listOutreachRuns(10),
     getOutreachCostSummary(),
     listOutreachTargets({ platform: "all", status: "all", app: "all", limit: 500 }),
+    getApifyAccountStatus(),
   ]);
 
   // Auto-refresh meta-tag (15s). Off by default — toggle via ?ar=1.
@@ -1284,28 +1286,72 @@ getklar.org`;
       }).join("")}
     </div>`;
 
-  // Cost-Tracker: aktueller Stand der Monatskosten + Brevo-Daily-Counter
-  // mit Progress-Bars gegen die Free-Tier-Limits.
+  // Apify-Account-Card: live aus Apify API (GET /v2/users/me/limits).
+  // Zeigt Account-Wide-Spend des aktuellen Billing-Cycle (alle Apify-Aktoren,
+  // nicht nur Klar-Wellen) + Cap aus dem Paid-Plan. Wenn Token fehlt:
+  // fallback-Card mit Hinweis. 5min Cache via next.revalidate (siehe lib).
+  const apifyAccCap = apifyAccount.max_monthly_usage_usd;
+  const apifyAccPct = apifyAccCap && apifyAccCap > 0
+    ? Math.min(100, Math.round((apifyAccount.monthly_usage_usd / apifyAccCap) * 100))
+    : 0;
+  const apifyAccColor = apifyAccPct >= 90 ? "#dc2626" : apifyAccPct >= 70 ? "#d97706" : "#16a34a";
+  const fmtCycle = (iso: string | null): string => {
+    if (!iso) return "?";
+    const d = new Date(iso);
+    return `${String(d.getUTCDate()).padStart(2,"0")}.${String(d.getUTCMonth()+1).padStart(2,"0")}.`;
+  };
+  const klarWelleShare = apifyAccount.monthly_usage_usd > 0
+    ? Math.round(((costSummary.month_apify_actual_usd || costSummary.month_apify_estimate_usd) / apifyAccount.monthly_usage_usd) * 100)
+    : null;
+  const apifyAccCard = `<section style="background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;padding:18px 22px;margin-bottom:14px;box-shadow:var(--shadow-sm)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
+      <h2 style="margin:0;font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-0.01em;text-transform:none;color:var(--fg)">Apify-Account ${apifyAccount.ok ? "" : `<span class="muted" style="font-size:10px;font-weight:400;margin-left:8px">(${apifyAccount.reason})</span>`}</h2>
+      <span class="muted" style="font-size:11px;font-family:var(--font-mono)">${apifyAccount.ok ? `Cycle ${fmtCycle(apifyAccount.cycle_start)} – ${fmtCycle(apifyAccount.cycle_end)}` : "live aus GET /v2/users/me/limits"}</span>
+    </div>
+    ${apifyAccount.ok ? `<div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-bottom:6px">
+        <span class="k">Spend diesen Cycle <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">alle Aktoren, nicht nur Klar</span></span>
+        <span style="font-family:var(--font-mono);color:var(--fg);font-size:14px"><strong>$${apifyAccount.monthly_usage_usd.toFixed(2)}</strong>${apifyAccCap ? ` / $${apifyAccCap.toFixed(0)} Plan-Cap` : " <span class=\"muted\" style=\"font-size:10px;font-weight:400\">(kein Cap gesetzt)</span>"}</span>
+      </div>
+      ${apifyAccCap ? `<div style="height:10px;background:var(--surface-2);border-radius:5px;overflow:hidden">
+        <div style="height:100%;width:${apifyAccPct}%;background:${apifyAccColor};transition:width .3s"></div>
+      </div>
+      <div class="muted" style="font-size:10px;margin-top:4px;display:flex;justify-content:space-between">
+        <span>${apifyAccPct}% des Plan-Caps</span>
+        ${klarWelleShare !== null ? `<span>Klar-Wellen-Anteil ~${klarWelleShare}% ($${(costSummary.month_apify_actual_usd || costSummary.month_apify_estimate_usd).toFixed(2)})</span>` : ""}
+      </div>` : `<div class="muted" style="font-size:10px;margin-top:4px">Pay-as-you-go ohne Cap. Du kannst in der Apify-Console unter Settings &rarr; Limits einen monthly cap setzen.</div>`}
+      ${apifyAccount.compute_units_used !== null && apifyAccount.compute_units_max ? `<div class="muted" style="font-size:10px;margin-top:8px;font-family:var(--font-mono)">Compute-Units: ${apifyAccount.compute_units_used.toLocaleString()} / ${apifyAccount.compute_units_max.toLocaleString()} CU</div>` : ""}
+      ${apifyAccCap && apifyAccPct >= 70 ? `<p style="font-size:11px;margin:10px 0 0;color:${apifyAccColor};font-style:italic">${apifyAccPct >= 90 ? "Plan-Cap fast erreicht: " : "Plan-Cap wird knapp: "}weitere Wellen oder andere Apify-Aktoren können den Cap sprengen. <a href="https://console.apify.com/billing/limits" target="_blank" style="color:inherit">Cap in Apify-Console anpassen</a>.</p>` : ""}
+    </div>` : `<div class="muted" style="font-size:12px">
+      Apify-Account-Status nicht abrufbar.
+      ${apifyAccount.reason === "no-token" ? "<code>APIFY_API_TOKEN</code> in Vercel env-vars fehlt." : ""}
+      ${apifyAccount.reason === "http-error" ? "Apify-API gab Fehler zurück (Token gültig?)." : ""}
+      ${apifyAccount.reason === "exception" ? "Netzwerk-Fehler beim Lookup." : ""}
+    </div>`}
+  </section>`;
+
+  // Klar-Wellen-Cost-Tracker: nur die Klar-Wellen-Anteile aus klar_outreach_runs.
+  // Free-Tier-Bezug ist raus (User hat Paid-Plan). Brevo bleibt bei 300/Tag.
   const apifyUsed = costSummary.month_apify_actual_usd || costSummary.month_apify_estimate_usd;
-  const apifyPct = Math.min(100, Math.round((apifyUsed / costSummary.apify_free_tier_usd) * 100));
-  const apifyColor = apifyPct >= 90 ? "#dc2626" : apifyPct >= 70 ? "#d97706" : "#16a34a";
+  const actualPct = costSummary.month_apify_estimate_usd > 0
+    ? Math.round((costSummary.month_apify_actual_usd / costSummary.month_apify_estimate_usd) * 100)
+    : null;
   const brevoPct = Math.min(100, Math.round((costSummary.brevo_today_count / costSummary.brevo_free_daily_cap) * 100));
   const brevoColor = brevoPct >= 90 ? "#dc2626" : brevoPct >= 70 ? "#d97706" : "#16a34a";
   const costCard = `<section style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 22px;margin-bottom:24px">
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
-      <h2 style="margin:0;font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-0.01em;text-transform:none;color:var(--fg)">Kosten diesen Monat</h2>
+      <h2 style="margin:0;font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-0.01em;text-transform:none;color:var(--fg)">Klar-Wellen diesen Monat</h2>
       <span class="muted" style="font-size:11px;font-family:var(--font-mono)">${costSummary.month_runs_count} Wellen · ${costSummary.month_targets_added} Targets · ${costSummary.month_mails_sent} Mails</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
       <div>
         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;margin-bottom:6px">
-          <span class="k">Apify</span>
-          <span style="font-family:var(--font-mono);color:var(--fg)"><strong>$${apifyUsed.toFixed(2)}</strong> / $${costSummary.apify_free_tier_usd.toFixed(2)} Free-Tier</span>
+          <span class="k">Apify-Cost <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">nur Klar-Wellen</span></span>
+          <span style="font-family:var(--font-mono);color:var(--fg)"><strong>$${apifyUsed.toFixed(2)}</strong> <span class="muted" style="font-size:10px;font-weight:400">${costSummary.month_apify_actual_usd > 0 ? "actual via usageTotalUsd" : "estimate"}</span></span>
         </div>
-        <div style="height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden">
-          <div style="height:100%;width:${apifyPct}%;background:${apifyColor};transition:width .3s"></div>
+        <div class="muted" style="font-size:10px;margin-top:4px">
+          Estimate $${costSummary.month_apify_estimate_usd.toFixed(2)} · Actual $${costSummary.month_apify_actual_usd.toFixed(2)}${actualPct !== null ? ` (${actualPct}% des Estimates)` : ""}
         </div>
-        <div class="muted" style="font-size:10px;margin-top:4px">${costSummary.month_apify_actual_usd > 0 ? "actual" : "estimate"} · ${apifyPct}% Cap</div>
       </div>
       <div>
         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;margin-bottom:6px">
@@ -1318,11 +1364,12 @@ getklar.org`;
         <div class="muted" style="font-size:10px;margin-top:4px">${costSummary.month_mails_sent} Mails gesamt diesen Monat · ${brevoPct}% Tages-Cap</div>
       </div>
     </div>
-    ${apifyPct >= 70 || brevoPct >= 70 ? `<p class="muted" style="font-size:11px;margin:12px 0 0;font-style:italic">${apifyPct >= 70 ? "⚠ Apify-Free-Tier wird knapp — weitere große Wellen kosten echtes Geld. Apify-Dashboard → Usage." : ""}${brevoPct >= 70 ? "⚠ Brevo-Tages-Cap wird knapp — morgen wieder fresh." : ""}</p>` : ""}
+    ${brevoPct >= 70 ? `<p class="muted" style="font-size:11px;margin:12px 0 0;font-style:italic">Brevo-Tages-Cap wird knapp, morgen wieder fresh.</p>` : ""}
   </section>`;
 
   return `${refreshMeta}<h1>Outreach</h1>
     <p class="sub">Influencer-Outreach-Tracker. <em>Queued → DM gesendet → Antwort → Converted</em>. Auto-Refresh ${autoRefresh ? "alle 15s" : "aus"}, Daten aus Supabase anime-vault.</p>
+    ${apifyAccCard}
     ${cards}
     ${costCard}
     ${waveForm}
