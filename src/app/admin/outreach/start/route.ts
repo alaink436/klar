@@ -23,10 +23,16 @@ const COUNT_MAX = 500;
 const SUBJECT_MAX = 200;
 const BODY_MAX = 10000;
 const NICHE_MAX = 80;
-// Apify rough pricing: profile-scraper ~$0.50 per 1000 lookups. We use
-// $0.001 per profile as conservative estimate; will be refined when the
-// n8n consumer reports apify_run cost back into cost_actual_usd.
-const APIFY_USD_PER_PROFILE = 0.001;
+// Apify pricing 2026-04 (verified docs): IG-Hashtag-Scraper $1.90/1k results +
+// IG-Profile-Scraper $1.60/1k profiles → with the wave-consumer's 3x scrape /
+// 2x profile oversampling that's ~$0.009 per requested target. TikTok-Scraper
+// (clockworks) $5.00/1k results → ~$0.010 per target with 2x oversampling.
+// smallBucket-only (nano/micro) raises the hashtag-scrape 10x → ~$0.020/IG-target.
+// n8n consumer writes the real Apify usageTotalUsd back into cost_actual_usd,
+// these constants are the up-front estimate only.
+const APIFY_USD_PER_TARGET_IG = 0.009;
+const APIFY_USD_PER_TARGET_IG_SMALL = 0.020;
+const APIFY_USD_PER_TARGET_TIKTOK = 0.010;
 
 function back(req: NextRequest, msg: string): Response {
   return NextResponse.redirect(
@@ -90,8 +96,12 @@ export async function POST(req: NextRequest): Promise<Response> {
   // (one row per app) so the wave-consumer pipeline never has to mix
   // app-specific hashtags or PDFs in a single Apify batch.
   const profileLookupsPerApp = platforms.length * count;
-  const costEstimatePerApp =
-    Math.round(profileLookupsPerApp * APIFY_USD_PER_PROFILE * 10000) / 10000;
+  const smallBucketOnly =
+    sizeBuckets.length > 0 && sizeBuckets.every((b) => b === "nano" || b === "micro");
+  const igPerTarget = smallBucketOnly ? APIFY_USD_PER_TARGET_IG_SMALL : APIFY_USD_PER_TARGET_IG;
+  const igCost = platforms.includes("instagram") ? count * igPerTarget : 0;
+  const ttCost = platforms.includes("tiktok") ? count * APIFY_USD_PER_TARGET_TIKTOK : 0;
+  const costEstimatePerApp = Math.round((igCost + ttCost) * 10000) / 10000;
 
   // S32-eve: when multiple apps are selected, split into N separate single-app
   // runs that show up as N rows in the "Letzte Wellen" table. Each row gets

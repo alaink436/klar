@@ -979,13 +979,20 @@ getklar.org`;
 
         function calc(){
           var apps = f.querySelectorAll('input.wave-app-chk:checked').length;
-          var plats = f.querySelectorAll('input.wave-plat-chk:checked').length;
+          var igChecked = !!f.querySelector('input.wave-plat-chk[value="instagram"]:checked');
+          var ttChecked = !!f.querySelector('input.wave-plat-chk[value="tiktok"]:checked');
+          var plats = (igChecked?1:0) + (ttChecked?1:0);
           var n = parseInt((f.querySelector('input[name="count_per_app"]')||{}).value || '0', 10) || 0;
           if (countDisplay) countDisplay.textContent = String(n);
           var total = apps * plats * n;
-          var usd = total * 0.001;
           if (total === 0) { display.textContent = '— Apps + Plattformen wählen'; return; }
-          display.innerHTML = '~' + total.toLocaleString() + ' Profile · <strong>≈ $' + usd.toFixed(2) + '</strong> Apify-Kosten';
+          // Apify pricing 2026-04: IG (Hashtag $1.90/1k + Profile $1.60/1k) ~$0.009 per requested target with 3x/2x oversample.
+          // TikTok (clockworks $5/1k) ~$0.010 per target with 2x oversample. smallBucket (nano/micro only) raises IG-scrape 10x → ~$0.020/IG-target.
+          var buckets = Array.from(f.querySelectorAll('input.wave-size-chk:checked')).map(function(c){return c.value;});
+          var smallBucket = buckets.length > 0 && buckets.every(function(b){ return b === 'nano' || b === 'micro'; });
+          var perIg = smallBucket ? 0.020 : 0.009;
+          var usd = apps * ((igChecked ? n*perIg : 0) + (ttChecked ? n*0.010 : 0));
+          display.innerHTML = '~' + total.toLocaleString() + ' Profile · <strong>≈ $' + usd.toFixed(2) + '</strong> Apify-Kosten' + (smallBucket ? ' <span class="muted" style="font-size:10px">(Nano/Micro = 10x scrape)</span>' : '');
         }
 
         function updateMailSummary(){
