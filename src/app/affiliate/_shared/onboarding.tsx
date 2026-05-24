@@ -661,7 +661,8 @@ function StepTracking({ brand, go, prev, t = getMessages("de"), lang }: { brand:
 // ── Step 3 · Payout ─────────────────────────────────────────────────────────
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-function StepPayout({ brand, go, prev, state, setState, onSubmit, t = getMessages("de") }: { brand: Brand; go: () => void; prev: () => void; state: PayoutState; setState: (s: PayoutState) => void; onSubmit?: (s: PayoutState) => Promise<void>; t?: Messages }) {
+function StepPayout({ brand, go, prev, state, setState, onSubmit, t = getMessages("de"), lang = "de" }: { brand: Brand; go: () => void; prev: () => void; state: PayoutState; setState: (s: PayoutState) => void; onSubmit?: (s: PayoutState) => Promise<void>; t?: Messages; lang?: Lang }) {
+  const agreementUrl = lang === "es" ? "/legal/affiliate-agreement-es" : lang === "en" ? "/legal/affiliate-agreement-en" : "/legal/affiliate-agreement";
   const f = state;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -770,7 +771,7 @@ function StepPayout({ brand, go, prev, state, setState, onSubmit, t = getMessage
           <span className="box" />
           <span className="ctext">
             {t.agreementCheckBefore}
-            <a href="/legal/affiliate-agreement" target="_blank" rel="noopener noreferrer" style={{ color: "var(--aff-fg)", textDecoration: "underline", textUnderlineOffset: 2 }}>
+            <a href={agreementUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--aff-fg)", textDecoration: "underline", textUnderlineOffset: 2 }}>
               {t.agreementCheckLink}
             </a>
             {t.agreementCheckAfter("v1.0")}
@@ -981,7 +982,7 @@ export function OnboardingShell({ brand: brandKey, handle, onSubmit, initialStep
     switch (key) {
       case "welcome":  return <StepWelcome brand={brand} go={next} handle={handle} t={t} lang={lang} />;
       case "tracking": return <StepTracking brand={brand} go={next} prev={prev} t={t} lang={lang} />;
-      case "payout":   return <StepPayout brand={brand} go={next} prev={prev} state={payout} setState={setPayout} onSubmit={onSubmit} t={t} />;
+      case "payout":   return <StepPayout brand={brand} go={next} prev={prev} state={payout} setState={setPayout} onSubmit={onSubmit} t={t} lang={lang} />;
       case "live":     return <StepLive brand={brand} state={payout} handle={handle} t={t} lang={lang} />;
       default:         return null;
     }
