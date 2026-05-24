@@ -1,0 +1,214 @@
+{
+  "app": {
+    "key": "yarnstash",
+    "name": "My Yarn Stash",
+    "domain": "yarnstash.app",
+    "platforms": "iOS + Android",
+    "premium_price_usd_monthly": 4.99,
+    "premium_price_usd_yearly": 29.99,
+    "extra_stream": "Awin shop commissions on in-app yarn purchases (Knit Picks, Minerva — publisher 2797044)",
+    "monetisation": "recurring Premium subscription + Awin shop commission share",
+    "monetisation_de": "wiederkehrende Premium-Subscription + Awin-Shop-Provisions-Share",
+    "live_status": "App Store live since May 2026, Awin postback in end-to-end verification"
+  },
+  "brief": {
+    "headline": "My Yarn Stash",
+    "tagline": "Photo of the yarn label, AI auto-fills everything, matches to Ravelry patterns from your stash. Plus shop commissions.",
+    "what_it_is": "My Yarn Stash is an iOS + Android app for hobby knitters and crocheters. Photograph the yarn label, AI extracts material, yardage, needle recommendation, manufacturer and colour. The app then matches Ravelry patterns the user can actually knit with their current stash. Plus: project tracking, FO logbook (finished objects), pattern-match history, and group sharing for knit circles. Two revenue rails for the affiliate: 50% on Premium subs AND a share of Awin shop commissions when the referred user buys yarn in-app.",
+    "who_for": "Hobby knitters, crocheters and fibre artists from beginners with a single shelf to power users with several hundred labels. Audience skews ~90% female, high purchasing power, EU + US + UK + AU. Creators who sit well: pattern designers, KnittingTok and CrochetTok creators, indie yarn dyers, stash-tour reel makers, finished-project carousels, granny-square content.",
+    "features": [
+      "Vision-AI label scan: material, yardage, needle recommendation, manufacturer, colourway and weight extracted from a single label photo.",
+      "Pattern matching: stash items matched against Ravelry patterns, the user sees \"patterns I can knit right now from my stash\".",
+      "Project tracking + FO logbook: in-progress projects with photo, finished objects archive, yardage actually used.",
+      "Group sharing for knit circles: 1 small group on Free (5 members), unlimited groups on Premium.",
+      "Awin in-app shop rail: deep-linked Knit Picks and Minerva purchases, no separate browser flow.",
+      "Discover tab for pattern designers: designers can list their patterns, reach the stash audience directly."
+    ],
+    "business_model_lines": [
+      "Two revenue streams: recurring Premium subscription + Awin shop commission share.",
+      "Premium pricing: 4.99 USD / month or 29.99 USD / year, no annual discount, no free trial (live-trial-on-paywall).",
+      "Free tier is generous: 30 yarn items, 1 group up to 5 members, manual entry + photo scan, pattern-match search.",
+      "Premium unlocks: unlimited stash, unlimited groups / members, AI pattern-match recommendations, advanced project tracking.",
+      "Shop rail: Klar earns ~5-10% Awin commission on basket; affiliates earn a share of that for the 24-month attribution window."
+    ],
+    "why_this_works": "Ravelry's mobile app is genuinely dead since the 2020 redesign disaster — 10M+ users without a native solution. My Yarn Stash fills the gap with better UX and AI auto-fill that nothing else offers. The pattern-match feature solves a real \"stash blindness\" pain. Two revenue rails mean affiliates earn on subs AND on every yarn purchase their referred user makes — knitters re-buy yarn every 3-6 weeks, so the Awin tail compounds meaningfully over 12-24 months."
+  },
+  "playbook": {
+    "en": {
+      "subtitle": "for knitting and crochet creators",
+      "hero_quote": "Photo of the yarn label in, app extracts everything, matches with Ravelry patterns from your stash. Earn from what you already share.",
+      "sixty_seconds_intro": "My Yarn Stash is an iOS + Android app for hobby knitters and crocheters. Photograph the yarn label, AI extracts material, yardage, needle recommendation, manufacturer and colour. The app then matches Ravelry patterns you can actually knit with YOUR stash. Plus: project tracking, FO logbook (finished objects), pattern-match history, and group sharing for knit circles. App Store live since May 2026 (Apple-approved).",
+      "why_this_works": "Ravelry's mobile app is dead (the 2020+ redesign disaster), 10M+ users without a native solution. We fill the gap with better UX and AI auto-fill.",
+      "free_vs_premium": [
+        "Free: 30 yarn items in the stash, 1 group with 5 members, manual entry + photo scan, pattern-match search.",
+        "Premium (4.99 USD/month or 29.99 USD/year): unlimited stash, unlimited groups / members, AI pattern-match recommendations, advanced project tracking.",
+        "Dual affiliate rail: 50% Premium sub share + Awin shop commission share on in-app yarn purchases (Knit Picks, Minerva, more shops in Q3 2026).",
+        "Free Lifetime Premium for onboarded affiliates (no posting obligation)."
+      ],
+      "audience_fit_good": [
+        "Pattern designers (IG, 50k-700k, very high — real tool need).",
+        "KnittingTok creators (TikTok, 50k-500k).",
+        "CrochetTok creators (TikTok, 100k-1M).",
+        "Indie yarn dyers (IG, 20k-200k, co-promo path).",
+        "Yarn-shop owners (IG, 10k-50k, medium — commercial bias).",
+        "EU knit-DE #strickenmachtglücklich (IG, 5k-30k, loyal smaller market)."
+      ],
+      "audience_fit_poor": [
+        "Generic craft accounts without yarn-specific focus.",
+        "Sewing / quilting creators (different niche, low cross-over).",
+        "Macro Ravelry-rooted accounts loyal to Ravelry brand (resistance to alternatives)."
+      ],
+      "reel_hooks": [
+        {
+          "label": "Faceless content (yarn + UI as hero)",
+          "items": [
+            "Screen recording \"I scanned my entire stash\" — 45s, time-lapse scan of 100 labels, app auto-fills, cut to pattern-match list \"23 patterns I can knit RIGHT NOW\".",
+            "Aesthetic stash tour (hands only) — 30s, pull 5 beautiful skeins, scan each, ASMR knitting-needle sound, \"the app I wish existed in 2020\".",
+            "Comparison \"Ravelry app vs My Yarn Stash\" — 60s side-by-side screen recording.",
+            "Label magic-reveal — 15s top-down shot, camera over label, cut to app screen with auto-fill, \"yeah it does ALL that from one photo\".",
+            "WIP-Wednesday compilation — 5-7 WIPs (hands / yarn shots), app logo on slide 1, lo-fi knitting sound."
+          ]
+        },
+        {
+          "label": "UGC / your voice (knitter trust)",
+          "items": [
+            "Selfie stash tour with reveal — 90s, you in knitting room with stash visible, \"184 skeins, no clue what I can knit, watch this\", cut to pattern-match.",
+            "\"Meet my stash through the app\" — 60s, voiceover with origin stories of 3-5 skeins, app scans while you talk.",
+            "FO reveal with yarn origin — 30s, \"made from 4 skeins I scanned 6 months ago\", cut to app project view.",
+            "Pattern-designer cross-promo — \"Here's how I match my patterns to your stash\", demo your patterns in Discover tab.",
+            "Indie yarn-dyer co-promo — shared reel/carousel, both parties post, both have affiliate links."
+          ]
+        }
+      ],
+      "story_ideas": [
+        "Education story: label scan demo + sticker \"this is how I track my stash now\" + link sticker.",
+        "Social proof: \"23 patterns I can knit from my stash tonight\" screenshot + link.",
+        "Direct ask: selfie story, \"1 month Premium with my link\" + link sticker."
+      ],
+      "carousel_ideas": [
+        "\"5 knitting apps you actually need\" (My Yarn Stash on slide 1, no hard sell).",
+        "\"How I scan a 200-skein stash in 10 minutes\" (process carousel, slide 7 = affiliate link).",
+        "\"Stash blindness solved\" (problem-to-solution carousel)."
+      ],
+      "posting_cadence": "Knitting audience: highest engagement Sun + Mon evenings (\"plan-my-knit-week\" mood) and Wed evenings (WIP-Wednesday). 1-2 reels per week works at micro / mid tier. Pattern-designer posts perform any day. Always pair a reel with a story + link sticker that runs 24 hours.",
+      "conversion_math": "Micro pattern designer (15k IG, 1 reel): 8,000 views x 2% CTR = 160 clicks, 35% install = 56 installs, 8% Premium = 4-5 subs, 14 months x 4.99 USD x 50% = ~140-180 USD sub-rail per reel, PLUS Awin tail (typical knitter re-buys every 3-6 weeks) = +50-200 USD shop commission over 12 months. Mid-tier KnittingTok (100k, 1 stash tour): 80,000 views x 1.5% CTR = 1,200 clicks, 30% install = 360 installs, 6% Premium = 22 subs, ~770 USD sub-rail (cap ~1,300 USD) + 200-800 USD Awin tail. Pattern-designer macro (250k, 1 pattern launch): reach 120,000, 8% Premium conv = 43 subs, ~1,500 USD sub-rail (cap ~2,580 USD) + 500-2,000 USD Awin tail. Conservative combined estimate: 200-3,000 USD per clip depending on reach.",
+      "tracking_model_lines": [
+        "Two rails. Primary: getklar.org/i/yarnstash/[yourhandle] — sub rail, 50% rev-share on Premium for 24 months.",
+        "Shop rail (Awin): when your referred user buys yarn in-app via Knit Picks / Minerva, Awin tracks the conversion, commission flows into your Awin account.",
+        "Android (sub rail): install referrer passes handle natively, deterministic.",
+        "iOS warm: Universal Link with handle.",
+        "iOS cold (~99% of creator traffic): signed-token clipboard deferred-deeplink, live-verified via Wavelength.",
+        "Power: both rails are independent and add up."
+      ],
+      "onboarding_steps": [
+        "Click the personal link from Mail 2 (valid 7 days).",
+        "Choose pay method, activate Free Lifetime Premium.",
+        "Separate step: connect your Awin account (free, publisher 2797044 if you want to attach to our Klar ID).",
+        "Dashboard at getklar.org/dashboard via magic link — shows both rails separately."
+      ],
+      "dashboard_lines": [
+        "Sub rail: clicks per day / week / month, installs split, active Premium subs.",
+        "Awin rail: in-app yarn purchases tracked by your handle, commission share visible.",
+        "Claimable + paid + carry-over + next payout date + refund pipeline (sub rail).",
+        "Awin payout pipeline runs on Awin's own monthly schedule."
+      ],
+      "brand_assets": "Logo, app screenshots, stash-tour B-roll, pattern-match UI snippets and ready-made captions: getklar.org/i/yarnstash/brand-assets (link goes live with your onboarding mail).",
+      "faq": [
+        ["How do the two rails work in practice?", "Sub rail: 50% of every Premium sub coming through your link, for 24 months. Shop rail: Awin commission on every yarn purchase your referred user makes in-app (Knit Picks + Minerva initially, more shops in Q3 2026)."],
+        ["Do I need an Awin account?", "Yes, for the shop rail. We help with setup in the onboarding call. Awin account is free."],
+        ["Pattern-designer bonus — can I feature my patterns in the app?", "Yes. You give us your pattern list (Ravelry link), we add it to the Discover tab. Both sides win: your patterns reach the stash audience, you earn extra."],
+        ["Disclosure duty?", "Yes. Rev-share + shop affiliate = paid recommendation. #ad / #sponsored / IG \"Paid Partnership\". FTC + EU + UWG."],
+        ["What if Premium pricing changes?", "You continue to earn 50% on the then-current price."],
+        ["Can I get a flat fee on top?", "Yes. Mid-tier creators 100-500 USD per post, macros 500-2,000 USD. Discuss in the intro call."]
+      ]
+    },
+    "de": {
+      "subtitle": "für Strick- und Häkel-Creator",
+      "hero_quote": "Foto vom Garn-Label rein, App extrahiert alles, matched mit Ravelry-Patterns aus deinem Stash. Verdien an Content den du eh schon teilst.",
+      "sixty_seconds_intro": "My Yarn Stash ist eine iOS + Android-App für Hobby-Stricker:innen und Häkler:innen. Foto vom Garn-Label, KI extrahiert Material, Yardage, Nadel-Empfehlung, Hersteller und Farbe. Die App matched dann Ravelry-Patterns, die du tatsächlich mit DEINEM Stash stricken kannst. Plus: Projekt-Tracking, FO-Logbuch (Finished Objects), Pattern-Match-Historie und Group-Sharing für Strick-Zirkel. App-Store-LIVE seit Mai 2026 (Apple-approved).",
+      "why_this_works": "Ravelry's Mobile-App ist tot (Redesign-Desaster seit 2020+), 10M+ User ohne native Lösung. Wir füllen die Lücke mit besserem UX + KI-Auto-Fill.",
+      "free_vs_premium": [
+        "Free: 30 Garn-Items im Stash, 1 Gruppe mit 5 Mitgliedern, manuelle Eingabe + Foto-Scan, Pattern-Match-Suche.",
+        "Premium (4,99 USD/Monat oder 29,99 USD/Jahr): unbegrenzt Stash, unbegrenzt Gruppen / Mitglieder, KI-Pattern-Match-Empfehlungen, erweitertes Projekt-Tracking.",
+        "Dual-Affiliate-Rail: 50% Premium-Sub-Share + Awin-Shop-Provisions-Share auf In-App-Garn-Käufe (Knit Picks, Minerva, mehr Shops Q3 2026).",
+        "Free Lifetime Premium für onboarded Affiliates (kein Posting-Zwang)."
+      ],
+      "audience_fit_good": [
+        "Pattern-Designer (IG, 50k-700k, sehr hoch — echter Tool-Need).",
+        "KnittingTok-Creator (TikTok, 50k-500k).",
+        "CrochetTok-Creator (TikTok, 100k-1M).",
+        "Indie-Yarn-Dyer (IG, 20k-200k, Co-Promo-Pfad).",
+        "Yarn-Shop-Owner (IG, 10k-50k, mittel — commercial Bias).",
+        "EU Strick-DE #strickenmachtglücklich (IG, 5k-30k, loyal kleinerer Markt)."
+      ],
+      "audience_fit_poor": [
+        "Generische Craft-Accounts ohne Yarn-Fokus.",
+        "Sewing / Quilting-Creator (andere Niche, wenig Cross-over).",
+        "Macro Ravelry-loyale Accounts (Resistance gegen Alternativen)."
+      ],
+      "reel_hooks": [
+        {
+          "label": "Faceless Content (Garn + UI als Hero)",
+          "items": [
+            "Screen-Recording \"Ich habe meinen ganzen Stash gescannt\" — 45s, Time-Lapse Scan von 100 Labels, App auto-fills, Cut auf Pattern-Match-Liste \"23 Patterns die ich JETZT stricken kann\".",
+            "Aesthetic Stash-Tour (nur Hände) — 30s, 5 schöne Knäuel ziehen, jedes scannen, ASMR-Strick-Nadel-Sound, \"die App die ich mir 2020 gewünscht hätte\".",
+            "Comparison \"Ravelry-App vs My Yarn Stash\" — 60s Side-by-Side Screen-Recording.",
+            "Label-Magic-Reveal — 15s Top-down-Shot, Kamera übers Label, Cut auf App-Screen mit Auto-Fill, \"ja, das alles aus einem Foto\".",
+            "WIP-Wednesday-Compilation — 5-7 WIPs (Hände / Garn-Shots), App-Logo auf Slide 1, Lo-Fi-Strick-Sound."
+          ]
+        },
+        {
+          "label": "UGC / Deine Stimme (Knitter-Trust)",
+          "items": [
+            "Selfie-Stash-Tour mit Reveal — 90s, du im Strick-Raum mit sichtbarem Stash, \"184 Knäuel, keine Ahnung was ich stricken kann, watch this\", Cut auf Pattern-Match.",
+            "\"Meet my stash through the app\" — 60s, Voiceover mit Origin-Stories von 3-5 Knäueln, App scannt während du redest.",
+            "FO-Reveal mit Garn-Origin — 30s, \"gemacht aus 4 Knäueln die ich vor 6 Monaten gescannt habe\", Cut auf App-Projekt-View.",
+            "Pattern-Designer-Cross-Promo — \"Hier matche ich meine Patterns auf deinen Stash\", Demo deine Patterns in Discover-Tab.",
+            "Indie-Yarn-Dyer-Co-Promo — geteiltes Reel/Carousel, beide posten, beide haben Affiliate-Links."
+          ]
+        }
+      ],
+      "story_ideas": [
+        "Education-Story: Label-Scan-Demo + Sticker \"so tracke ich jetzt meinen Stash\" + Link-Sticker.",
+        "Social-Proof: \"23 Patterns die ich heute Abend aus meinem Stash stricken kann\" Screenshot + Link.",
+        "Direct-Ask: Selfie-Story, \"1 Monat Premium mit meinem Link\" + Link-Sticker."
+      ],
+      "carousel_ideas": [
+        "\"5 Strick-Apps die du wirklich brauchst\" (My Yarn Stash Slide 1, kein Hard-Sell).",
+        "\"Wie ich einen 200-Knäuel-Stash in 10 Minuten scanne\" (Process-Carousel, Slide 7 = Affiliate-Link).",
+        "\"Stash-Blindness gelöst\" (Problem-to-Solution-Carousel)."
+      ],
+      "posting_cadence": "Strick-Audience: höchstes Engagement So + Mo abends (\"plan-meine-Strick-Woche\"-Mood) und Mi abends (WIP-Wednesday). 1-2 Reels pro Woche funktionieren auf Mikro/Mid-Tier. Pattern-Designer-Posts laufen jeden Tag. Immer Reel mit 24h-Story + Link-Sticker pairen.",
+      "conversion_math": "Mikro Pattern-Designer (15k IG, 1 Reel): 8.000 Views x 2% CTR = 160 Klicks, 35% Install = 56 Installs, 8% Premium = 4-5 Subs, 14 Mo x 4,99 USD x 50% = ~140-180 USD Sub-Rail pro Reel, PLUS Awin-Tail (typische Knitter:in kauft alle 3-6 Wochen) = +50-200 USD Shop-Provision über 12 Monate. Mid-Tier KnittingTok (100k, 1 Stash-Tour): 80.000 Views x 1,5% CTR = 1.200 Klicks, 30% Install = 360 Installs, 6% Premium = 22 Subs, ~770 USD Sub-Rail (Cap ~1.300 USD) + 200-800 USD Awin-Tail. Pattern-Designer Macro (250k, 1 Pattern-Launch): Reach 120.000, 8% Premium-Conv = 43 Subs, ~1.500 USD Sub-Rail (Cap ~2.580 USD) + 500-2.000 USD Awin-Tail. Conservative Combined-Estimate: 200-3.000 USD pro Clip je nach Reach.",
+      "tracking_model_lines": [
+        "Zwei Rails. Primary: getklar.org/i/yarnstash/[handle] — Sub-Rail, 50% Rev-Share auf Premium für 24 Monate.",
+        "Shop-Rail (Awin): wenn dein referenzierter User Garn in-App via Knit Picks / Minerva kauft, Awin trackt die Conversion, Provision fließt in dein Awin-Account.",
+        "Android (Sub-Rail): Install-Referrer gibt Handle nativ weiter, deterministisch.",
+        "iOS warm: Universal-Link mit Handle.",
+        "iOS cold (~99% des Creator-Traffic): signed-Token Clipboard-Deferred-Deeplink, live-verifiziert via Wavelength.",
+        "Power: beide Rails sind unabhängig und addieren sich."
+      ],
+      "onboarding_steps": [
+        "Klick den persönlichen Link aus Mail 2 (7 Tage gültig).",
+        "Pay-Method wählen, Free Lifetime Premium aktivieren.",
+        "Separater Schritt: dein Awin-Account verbinden (kostenlos, Publisher 2797044 falls du an unsere Klar-ID anhängen willst).",
+        "Dashboard auf getklar.org/dashboard via Magic-Link — zeigt beide Rails getrennt."
+      ],
+      "dashboard_lines": [
+        "Sub-Rail: Klicks pro Tag / Woche / Monat, Installs-Split, aktive Premium-Subs.",
+        "Awin-Rail: In-App-Garn-Käufe nach deinem Handle getrackt, Provisions-Share sichtbar.",
+        "Claimable + Paid + Carry-over + nächster Auszahlungs-Termin + Refund-Pipeline (Sub-Rail).",
+        "Awin-Payout-Pipeline läuft auf Awins eigenem Monats-Schedule."
+      ],
+      "brand_assets": "Logo, App-Screenshots, Stash-Tour-B-Roll, Pattern-Match-UI-Snippets und fertige Captions: getklar.org/i/yarnstash/brand-assets (Link wird mit deinem Onboarding-Mail aktiv).",
+      "faq": [
+        ["Wie funktionieren die zwei Rails in der Praxis?", "Sub-Rail: 50% jeder Premium-Sub die über deinen Link kommt, für 24 Monate. Shop-Rail: Awin-Provision auf jeden Garn-Kauf den dein referenzierter User in-App macht (Knit Picks + Minerva initial, mehr Shops Q3 2026)."],
+        ["Brauche ich ein Awin-Account?", "Ja, für die Shop-Rail. Wir helfen beim Setup im Onboarding-Call. Awin-Account ist kostenlos."],
+        ["Pattern-Designer-Bonus — kann ich meine Patterns in der App featuren?", "Ja. Du gibst uns deine Pattern-Liste (Ravelry-Link), wir fügen sie zum Discover-Tab. Beide Seiten gewinnen: deine Patterns erreichen die Stash-Audience, du verdienst extra."],
+        ["Kennzeichnungspflicht?", "Ja. Rev-Share + Shop-Affiliate = bezahlte Empfehlung. #ad / #Werbung / IG \"Paid Partnership\". FTC + EU + UWG."],
+        ["Was wenn Premium-Preis sich ändert?", "Du verdienst weiter 50% auf den dann aktuellen Preis."],
+        ["Kann ich eine Flat-Fee on-top kriegen?", "Ja. Mid-Tier 100-500 USD pro Post, Macros 500-2.000 USD. Im Intro-Call diskutieren."]
+      ]
+    }
+  }
+}

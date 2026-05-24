@@ -1,0 +1,186 @@
+{
+  "app": {
+    "key": "wavelength",
+    "name": "On Wavelength",
+    "domain": "onwavelength.space",
+    "platforms": "iOS + Android",
+    "premium_price_eur_monthly": 5,
+    "premium_price_eur_yearly": 40,
+    "monetisation": "single recurring subscription",
+    "monetisation_de": "einzelne wiederkehrende Subscription",
+    "audience_constraint": "INT — keine Plattform-Beschränkung"
+  },
+  "brief": {
+    "headline": "On Wavelength",
+    "tagline": "Group calendar with heatmap voting plus a sport-coach workflow for 8 sports.",
+    "what_it_is": "On Wavelength is a calendar app for iOS and Android with a feature that does not exist cleanly anywhere else: heatmap voting for group dates. Everyone in the circle taps their available times, the app computes the best shared slot, no \"when works for you\" ping-pong in the group chat. The second pillar is a full sport-coach workflow for 8 sports (soccer, volleyball, basketball, handball, hockey, badminton, tennis, running): plan trainings + matches, manage lineups, track live attendance, browse a drill library.",
+    "who_for": "Two distinct audiences. Audience A: amateur sport coaches across the 8 sports above plus run clubs (highest converter, 3-5% reel-views to install). Audience B: flatshares, friend groups, families and productivity-curious creators with a real group-coordination problem (broader reach, ~0.5-1% conversion). Creators who sit well: garage-coach build-in-public, study-with-me reels, flatshare lifestyle accounts, drill-library TikTokers.",
+    "features": [
+      "Heatmap voting: every member taps their available times, the app shows the best shared slot per week without group-chat back-and-forth.",
+      "Group calendar with colour-coded members and shared events (cooking, cleaning, brunch, game night).",
+      "Sport-team management: plan trainings + matches + lineups, track live attendance, push session reminders.",
+      "Drill library: searchable collection across all 8 sports, combine drills into a session in 4 minutes.",
+      "Season planner: enter matches once, duplicate trainings, import the player list, planning a full season in 20 minutes.",
+      "Multi-group support: a coach with several teams plus a private flatshare circle in one app, no profile switching."
+    ],
+    "business_model_lines": [
+      "Single revenue stream: recurring Premium subscription.",
+      "Pricing: ~5 EUR / month or ~40 EUR / year (ASC live, May 2026).",
+      "Free tier: full heatmap voting, single calendar, one small group up to 4 members.",
+      "Premium unlocks: unlimited groups, sport-team workspace, drill library, live attendance, season planner."
+    ],
+    "why_this_works": "Sport coaches have an everyday pain (no-shows, lineup chaos, drill planning) and convert above average. A single coach brings 8-16 active users on average, so coach attribution compounds. The productivity / flatshare audience converts weaker but reach is much larger, which keeps the funnel filled between coach campaigns. Heatmap voting is the demo-able \"only-here\" feature that always pulls in screen-recording content."
+  },
+  "playbook": {
+    "en": {
+      "subtitle": "for creators who plan together (sport coach, flatshare, productivity)",
+      "hero_quote": "Plan smarter, together. Earn from what you share anyway.",
+      "sixty_seconds_intro": "On Wavelength is an iOS + Android calendar app with two pillars: heatmap voting for group dates (everyone taps when they are free, the app picks the best slot, group chat stays quiet) and a full sport-coach workflow for 8 sports (soccer, volleyball, basketball, handball, hockey, badminton, tennis, running) covering trainings, matches, lineups, live attendance and a drill library.",
+      "why_this_works": "\"When works for you?\" group chats die quietly. Coaches lose 5 min per session asking \"who is not here?\". Wavelength replaces both with one tap.",
+      "free_vs_premium": [
+        "Free: heatmap voting on 1 group up to 4 members, single calendar.",
+        "Premium (~5 EUR/m or ~40 EUR/y): unlimited groups, sport-team workspace (drills, lineups, attendance), season planner.",
+        "Free Lifetime Premium for onboarded affiliates (no posting obligation)."
+      ],
+      "audience_fit_good": [
+        "Amateur sport coaches across the 8 sports + run-club coaches.",
+        "Productivity / calendar creators with a group-coordination angle.",
+        "Flatshare / roommate / family lifestyle accounts (#flatshare, #wgleben).",
+        "Study-with-me + group-study creators."
+      ],
+      "audience_fit_poor": [
+        "Solo productivity (Notion-template accounts) — Wavelength is a group tool.",
+        "US high-school football (TeamSnap dominates).",
+        "Pro sport coaches (enterprise tools)."
+      ],
+      "reel_hooks_sport": [
+        "\"Stop wasting your warmup yelling 'who is not here'\" — live attendance demo, 3 players tap-tap-tap.",
+        "\"How I plan a full season in 20 minutes\" — screen-rec: enter matches, duplicate trainings, import player list.",
+        "\"The drill library that saved my Tuesday trainings\" — flip through the drill library, build a session in 4 minutes.",
+        "\"POV: you are the coach with the group chat from hell\" — comedic 50-notification chaos, smash-cut to heatmap.",
+        "\"This replaced my whiteboard\" — before/after, lineup editor from the bus."
+      ],
+      "reel_hooks_productivity": [
+        "\"The one app my flat actually uses\" — show the weekly plan with colour-coded roommates.",
+        "\"How we finally find dates as a flatshare\" — six screenshots step-by-step.",
+        "\"5 apps that saved my coaching season\" — Wavelength on slide 1, no hard sell."
+      ],
+      "story_ideas": [
+        "Education story: heatmap screenshot + sticker \"THE feature I need most\" + link sticker.",
+        "Social proof: team selfie after training, caption \"we plan all our sessions here\", @onwavelength tag.",
+        "Direct ask: selfie mode, \"use my link for 1 month free Premium\" (lifetime Premium for you, 1-month trial for your audience)."
+      ],
+      "carousel_ideas": [
+        "\"5 apps that saved my coaching season\" (Wavelength on slide 1, no hard sell).",
+        "\"How we finally find dates as a flatshare\" (step-by-step screenshots, slide 6 = affiliate link in caption).",
+        "\"Tools every amateur coach needs\" (Wavelength + 4 generic tools, you as the trusted voice)."
+      ],
+      "posting_cadence": "Sport-coach audience: highest engagement Tue + Thu 7-9pm CET (post-training, pre-bed scroll). Sat morning for match-day content. Productivity audience: Mon + Wed 8-10am CET or Sun evening 6-8pm \"plan-the-week\" mood. Frequency: 1 reel per week is enough for affiliate conversion. 1 story on top with link sticker brings 30-50% of conversions empirically.",
+      "conversion_math": "50% revenue share, 24 months per attributed user. Premium ~5 EUR/m or ~40 EUR/y. Example sport-coach reel (50k followers): 30,000 views x 1.2% CTR = 360 clicks, 40% install = 144 installs, 5% convert to Premium = 7 subs, ~300-400 EUR over 12-24 months from one reel. Example productivity reel (100k followers): 60,000 views x 1.5% CTR = 900 clicks, 35% install = 315 installs, 4% convert = 12 subs, ~360-450 EUR over 12 months. Example drill TikToker (250k): 180,000 views x 0.8% CTR = 1,440 clicks, 30% install = 432 installs, 6% convert = 26 subs, ~1,500 EUR over 12 months from ONE reel.",
+      "tracking_model_lines": [
+        "Your link onwavelength.space/i/[yourhandle] works on any platform (IG bio, TikTok bio, story sticker, video description).",
+        "Person taps link: we log click + source.",
+        "Person installs: Android uses Google install-referrer (deterministic), iOS warm install uses Universal Link (deterministic), iOS cold install (~99% of influencer traffic) uses a signed-token clipboard deferred-deeplink — proven functional, live verified, no Branch.io.",
+        "Person subscribes to Premium: 50% of net revenue (after Apple/Google cut) is credited to your handle for 24 months from that user's first paid month.",
+        "30-day refund holdback before any payout becomes claimable (Apple/Google refund window protection)."
+      ],
+      "onboarding_steps": [
+        "Click the personal link from Mail 2 (valid 7 days).",
+        "Land on onwavelength.space/affiliate/[your-token].",
+        "Fill in: display name + handle, Wise payout details, country (for tax docs), billing address.",
+        "Get your personal tracking link by mail + dashboard unlock.",
+        "Free Lifetime Premium activation code mailed to you. No posting obligation, no expiry."
+      ],
+      "dashboard_lines": [
+        "Live at getklar.org/dashboard (magic-link login).",
+        "Per day / week / month: clicks, installs (Android / iOS-warm / iOS-cold split), active Premium subs from your bucket.",
+        "Claimable EUR + paid EUR + next payout date.",
+        "Refund holdback pipeline + per-app earnings funnel."
+      ],
+      "brand_assets": "Logo, app screenshots, B-roll footage, colour palette and ready-made caption snippets: getklar.org/i/wavelength/brand-assets (link goes live with your onboarding mail).",
+      "faq": [
+        ["What if I want Free Lifetime Premium but do not want to post?", "Fine. Premium is sent anyway. We never market in your name. Your link stays ready whenever you decide to post."],
+        ["Can I use the link in multiple posts?", "Yes. It is YOUR link, for 24 months per conversion. More posts = more conversions = more payout. No volume cap."],
+        ["What if I lose interest after 6 months?", "We let it rest. Subs that came in during those 6 months continue to be paid out until each user reaches the 24-month mark."],
+        ["Can I negotiate a flat fee on top?", "Yes. Mid-tier creators $150-800 per post, macros $800+ (DACH CPMs lower). Rev-share stays on top. Reply to discuss."],
+        ["What happens if Premium pricing changes?", "You continue to earn 50% on the then-current price. If we raise from 5 EUR to 7 EUR, you get 50% of 7 EUR."],
+        ["Disclosure duty?", "Yes, rev-share counts as a paid recommendation. Use #ad / #sponsored / IG \"Paid Partnership\". Otherwise warning-letter risk for you and us (FTC + EU law)."]
+      ]
+    },
+    "de": {
+      "subtitle": "für Creator die zusammen planen (Sport-Coach, WG, Produktivität)",
+      "hero_quote": "Smarter zusammen planen. Verdien an dem was du eh schon teilst.",
+      "sixty_seconds_intro": "On Wavelength ist eine iOS + Android Kalender-App mit zwei Säulen: Heatmap-Voting für Gruppen-Termine (jeder tippt seine freien Zeiten, App pickt den besten Slot, Gruppen-Chat bleibt still) und ein voller Sport-Coach-Workflow für 8 Sportarten (Fußball, Volleyball, Basketball, Handball, Hockey, Badminton, Tennis, Laufen) mit Trainings, Matches, Aufstellungen, Live-Anwesenheit und Drill-Bibliothek.",
+      "why_this_works": "\"Wann passt's bei dir?\"-Gruppen-Chats sterben leise. Coaches verlieren 5 min pro Session mit \"wer ist heute nicht da?\". Wavelength ersetzt beides mit einem Tap.",
+      "free_vs_premium": [
+        "Free: Heatmap-Voting auf 1 Gruppe bis 4 Mitglieder, ein einzelner Kalender.",
+        "Premium (~5 EUR/Monat oder ~40 EUR/Jahr): unbegrenzt Gruppen, Sport-Team-Workspace (Drills, Aufstellungen, Anwesenheit), Saison-Planer.",
+        "Free Lifetime Premium für onboarded Affiliates (kein Posting-Zwang)."
+      ],
+      "audience_fit_good": [
+        "Amateur-Sport-Coaches in den 8 Sportarten + Lauf-Clubs.",
+        "Produktivitäts-/Kalender-Creator mit Gruppen-Koordinations-Angle.",
+        "WG-/Mitbewohner-/Familien-Lifestyle (#wgleben, #flatshare).",
+        "Study-with-me + Gruppen-Lern-Creators."
+      ],
+      "audience_fit_poor": [
+        "Solo-Produktivität (Notion-Template-Accounts) — Wavelength ist ein Gruppen-Tool.",
+        "US-High-School-Football (TeamSnap dominiert).",
+        "Profi-Sport-Coaches (Enterprise-Tools)."
+      ],
+      "reel_hooks_sport": [
+        "\"Stop deine Warmup mit 'wer ist nicht da?' zu verschwenden\" — Live-Anwesenheit-Demo, 3 Spieler tap-tap-tap.",
+        "\"Wie ich eine ganze Saison in 20 Minuten plane\" — Screen-Rec: Matches eintragen, Trainings duplizieren, Spielerliste importieren.",
+        "\"Die Drill-Bibliothek die meine Dienstags-Trainings gerettet hat\" — durch die Drill-Bibliothek scrollen, Session in 4 Minuten zusammenbauen.",
+        "\"POV: du bist der Coach mit dem Gruppen-Chat aus der Hölle\" — Comedy-Take mit 50 Notifications, Cut zu Heatmap.",
+        "\"Das hat mein Whiteboard ersetzt\" — Vorher/Nachher, Aufstellungs-Editor aus dem Bus."
+      ],
+      "reel_hooks_produktivity": [
+        "\"Die eine App die meine WG tatsächlich nutzt\" — Wochenplan mit farbcodierten Mitbewohnern.",
+        "\"Wie wir endlich Termine als WG finden\" — sechs Screenshots step-by-step.",
+        "\"5 Apps die meine Coaching-Saison gerettet haben\" — Wavelength auf Slide 1, kein Hard-Sell."
+      ],
+      "story_ideas": [
+        "Education-Story: Heatmap-Screenshot + Sticker \"DAS Feature das ich am meisten brauche\" + Link-Sticker.",
+        "Social-Proof: Team-Selfie nach Training, Caption \"wir planen all unsere Sessions hier\", @onwavelength taggen.",
+        "Direct-Ask: Selfie-Mode, \"nutz meinen Link für 1 Monat Premium gratis\" (Lifetime Premium für dich, 1-Monat-Trial für deine Audience)."
+      ],
+      "carousel_ideas": [
+        "\"5 Apps die meine Coaching-Saison gerettet haben\" (Wavelength Slide 1, kein Hard-Sell).",
+        "\"Wie wir endlich Termine als WG finden\" (Step-by-step Screenshots, Slide 6 = Affiliate-Link in Caption).",
+        "\"Tools die jeder Amateur-Coach braucht\" (Wavelength + 4 generische Tools, du als Trusted Voice)."
+      ],
+      "posting_cadence": "Sport-Coach-Audience: höchstes Engagement Di + Do 19-21h MEZ (nach-Training, vor-Bett-Scroll). Samstag morgen für Match-Day-Content. Produktivitäts-Audience: Mo + Mi 8-10h MEZ oder Sonntag-Abend 18-20h \"plan-die-Woche\"-Mood. Frequenz: 1 Reel pro Woche reicht für Affiliate-Conversion. 1 Story oben mit Link-Sticker bringt empirisch 30-50% der Conversions.",
+      "conversion_math": "50% Revenue-Share, 24 Monate pro attribuiertem User. Premium ~5 EUR/m oder ~40 EUR/y. Beispiel Sport-Coach-Reel (50k Follower): 30,000 Views x 1,2% CTR = 360 Clicks, 40% Install = 144 Installs, 5% Premium-Conversion = 7 Subs, ~300-400 EUR über 12-24 Monate aus einem Reel. Beispiel Produktivitäts-Reel (100k Follower): 60,000 Views x 1,5% CTR = 900 Clicks, 35% Install = 315 Installs, 4% Conversion = 12 Subs, ~360-450 EUR über 12 Monate. Beispiel Drill-TikToker (250k): 180,000 Views x 0,8% CTR = 1,440 Clicks, 30% Install = 432 Installs, 6% Conversion = 26 Subs, ~1,500 EUR über 12 Monate aus EINEM Reel.",
+      "tracking_model_lines": [
+        "Dein Link onwavelength.space/i/[handle] funktioniert auf jeder Plattform (IG-Bio, TikTok-Bio, Story-Sticker, Video-Description).",
+        "Person tippt den Link: wir loggen Click + Source.",
+        "Person installiert: Android nutzt Google Install-Referrer (deterministisch), iOS-warm nutzt Universal-Link (deterministisch), iOS-cold (~99% des Influencer-Traffic) nutzt signed-Token Clipboard-Deferred-Deeplink — bewiesen funktional, live verifiziert, kein Branch.io nötig.",
+        "Person abonniert Premium: 50% des Netto-Umsatzes (nach Apple-/Google-Cut) wird deinem Handle gutgeschrieben, 24 Monate ab dem ersten bezahlten Monat dieses Users.",
+        "30 Tage Refund-Holdback bevor irgendwas claimable wird (Apple-/Google-Refund-Fenster-Schutz)."
+      ],
+      "onboarding_steps": [
+        "Klick den persönlichen Link aus Mail 2 (7 Tage gültig).",
+        "Du landest auf onwavelength.space/affiliate/[dein-token].",
+        "Du füllst aus: Display-Name + Handle, Wise-Payout-Details, Land (Steuer-Dokumente), Rechnungsadresse.",
+        "Du bekommst deinen persönlichen Tracking-Link per Mail + Dashboard-Zugang.",
+        "Free Lifetime Premium Activation-Code per Mail. Kein Posting-Zwang, kein Ablauf."
+      ],
+      "dashboard_lines": [
+        "Live auf getklar.org/dashboard (Magic-Link-Login).",
+        "Pro Tag / Woche / Monat: Clicks, Installs (Android / iOS-warm / iOS-cold getrennt), aktive Premium-Subs aus deinem Bucket.",
+        "Claimable EUR + Paid EUR + nächstes Payout-Datum.",
+        "Refund-Holdback-Pipeline + per-App Earnings-Funnel."
+      ],
+      "brand_assets": "Logo, App-Screenshots, B-Roll-Footage, Farbpalette und fertige Caption-Snippets: getklar.org/i/wavelength/brand-assets (Link wird mit deinem Onboarding-Mail aktiv).",
+      "faq": [
+        ["Was wenn ich Free Lifetime Premium will, aber nichts posten?", "Passt. Premium kommt trotzdem. Wir vermarkten nicht in deinem Namen. Dein Link bleibt verfügbar falls du später doch posten willst."],
+        ["Kann ich den Link in mehreren Posts nutzen?", "Ja. Es ist DEIN Link, für 24 Monate pro Conversion. Mehr Posts = mehr Conversions = mehr Payout. Kein Volume-Cap."],
+        ["Was wenn ich nach 6 Monaten das Interesse verliere?", "Wir lassen es ruhen. Subs die in den 6 Monaten reinkamen werden weiterhin ausgezahlt bis jeder User seine 24 Monate erreicht."],
+        ["Kann ich eine Flat-Fee on-top verhandeln?", "Ja. Mid-Tier-Creator 150-800 EUR pro Post, Macros 800+ (DACH-CPMs niedriger). Rev-Share bleibt obendrauf. Per Reply diskutieren."],
+        ["Was wenn sich Premium-Pricing ändert?", "Du verdienst weiter 50% auf den jeweils aktuellen Preis. Wenn wir von 5 EUR auf 7 EUR erhöhen, bekommst du 50% von 7 EUR."],
+        ["Kennzeichnungspflicht?", "Ja, Rev-Share zählt als bezahlte Empfehlung. Nutze #ad / #Werbung / IG \"Paid Partnership\". Sonst Abmahn-Risiko für dich und uns (UWG, FTC)."]
+      ]
+    }
+  }
+}

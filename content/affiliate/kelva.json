@@ -1,0 +1,215 @@
+{
+  "app": {
+    "key": "kelva",
+    "name": "Kelva",
+    "domain": "kelva.space",
+    "platforms": "iOS + Android",
+    "premium_price_usd_yearly": 29.99,
+    "monetisation": "annual Premium subscription",
+    "monetisation_de": "Jahres-Premium-Subscription",
+    "audience_constraint": "DACH + EU. §437 / §438 BGB are DE-specific (consumer warranty law), legal copy currently DE + EN. App UI internally supports DE / EN / ES / FR / IT.",
+    "live_status": "App Store live since May 2026 (Apple-approved)"
+  },
+  "brief": {
+    "headline": "Kelva",
+    "tagline": "Mail-inbox-connected receipt, warranty and subscription manager for DACH households.",
+    "what_it_is": "Kelva is an iOS + Android app for DACH + EU that digitally manages receipts, warranties and subscriptions. The user connects multiple mail addresses (read-only), incoming mail lands directly in Kelva, gets parsed by AI or a quick manual scan, the user classifies it (invoice, warranty, subscription, contract) and sets reminders. The overview holds all receipts, warranties and subs in one place, plus an optional vault for important documents. With household sharing, a family opens a shared inbox — everyone sees what is going on, priorities split, nothing falls through the cracks.",
+    "who_for": "DACH + EU adults 25-55, families with substantial device inventory, hands-on DIY types, consumer-conscious. Currently DACH-focused due to §437 / §438 BGB and UWG compliance — legal copy is DE + EN. Creators who sit well: DACH lawyer TikTokers (consumer law), savings-tip creators (#sparen, #finanzen), family-organisation IGers, lifehack DACH creators, small DACH tech reviewers.",
+    "features": [
+      "Mail-inbox parsing: connect multiple mail addresses read-only, AI auto-classifies invoices, warranties, subscriptions, contracts; or quick manual scan.",
+      "Warranty deadline calculation: §437 / §438 BGB auto-computed expiry date per device, manufacturer warranty lookup on top.",
+      "Push reminders: 30 / 7 / 1 day before warranty expires or subscription auto-renews.",
+      "Household sharing: shared family inbox, everyone sees the same overview, priorities can be split per member.",
+      "Optional document vault: store warranty PDFs, contracts, manuals in one secure place.",
+      "Snap-to-Done: mark a receipt as handled in one tap once you've claimed / cancelled."
+    ],
+    "business_model_lines": [
+      "Single revenue stream: annual Premium subscription.",
+      "Pricing: 29.99 USD / year (no monthly plan currently).",
+      "Free tier is generous: manual receipt entry + photo scan, push reminders 30 / 7 / 1 day before expiry, Snap-to-Done, §438 auto-calculation, manufacturer warranty lookup, household sharing.",
+      "Premium unlocks: AI-based email inbound classification (email scan mode off / warranty-only / all), advanced family features.",
+      "Market scope: DACH primary (legal compliance baked in), EU secondary; not targeting US currently."
+    ],
+    "why_this_works": "DACH consumers genuinely lose money to expired warranties and forgotten subs every year. The §437 / §438 BGB clock — the consumer-warranty deadline that almost no one tracks correctly — is a concrete pain point that Kelva calculates automatically. Lawyer TikTokers and savings-tip creators have built-in authority for this audience, the demo (mail inbox to organised dashboard) is visually strong, and the household-sharing feature gives family-content creators a unique angle. The 29.99 USD annual price point converts at above-average rates because the alternative (one missed warranty claim = 200-500 EUR lost) is concrete."
+  },
+  "playbook": {
+    "en": {
+      "subtitle": "for DACH creators in consumer / saving / lifehack space",
+      "hero_quote": "Connect mail inbox, app parses receipts automatically. Earn from content your audience already needs.",
+      "sixty_seconds_intro": "Kelva is an iOS + Android app for DACH + EU that digitally manages receipts, warranties and subscriptions. You connect multiple mail addresses (read-only), incoming mail lands directly in Kelva, gets parsed by AI or a quick manual scan, you classify it (invoice, warranty, sub, contract) and set reminders. The overview holds all receipts, warranties and subs in one place, plus an optional vault for important documents. With household sharing you open a shared family inbox — everyone sees what is going on, priorities are split, nothing falls through the cracks.",
+      "why_this_works": "Overflowing inboxes, subs you only notice when they debit, warranty receipts in a shoebox. Three inboxes, no overview. Kelva is the single place that does all three.",
+      "free_vs_premium": [
+        "Free: manual receipt entry + photo scan, push reminder 30 / 7 / 1 day before expiry, Snap-to-Done, §438 auto-calculation, manufacturer warranty lookup, household sharing.",
+        "Premium (29.99 USD/year): AI-based email-inbound classification (email scan mode off / warranty-only / all) + advanced family features.",
+        "Free Lifetime Premium for onboarded affiliates (no posting obligation).",
+        "Annual-only pricing — no monthly plan."
+      ],
+      "audience_fit_good": [
+        "Lawyer TikTokers in consumer law (50k-1M, very high — authority + demo fit).",
+        "Savings-tip creators (#sparen, #finanzen) IG/TikTok, 10k-100k, high (purchasing audience).",
+        "Family-organisation IGers, 5k-50k, very high (loyal, engaged).",
+        "Lifehack DACH TikTok, 30k-300k, medium (broad reach).",
+        "Small DACH tech reviewers IG/YT, 5k-50k, medium (device angle).",
+        "Family-mom influencers IG, 10k-100k, high (inventory pain is real)."
+      ],
+      "audience_fit_poor": [
+        "US / UK / INT creators — Kelva is DACH-rights-specific currently, legal compliance not transferable.",
+        "Crypto / finance speculation crowd (wrong tone).",
+        "Anti-establishment lifestyle (Kelva is fundamentally pro-consumer-law)."
+      ],
+      "reel_hooks": [
+        {
+          "label": "Faceless content (DACH lifehack demos)",
+          "items": [
+            "Screen recording \"mail in, app parses everything\" — 30s app screen only, email inbound pops up, AI classifies, you assign, reminder set.",
+            "B-roll family inbox + voiceover — 45s, B-roll of overflowing mail + receipt shoebox, voice: \"order confirmations, warranty mails, subs you forgot, no overview\", cut to Kelva dashboard.",
+            "§437 BGB explanation with app demo — 60s, static slide with BGB paragraph, voiceover: \"device breaks after 18 months, you still have 6 months of warranty, who remembers when they bought it?\", cut to Kelva with auto-calculated deadline.",
+            "Comparison \"Excel vs Kelva\" — 30s split-screen, left: 47-device Excel nobody maintains, right: Kelva with family inbox + push reminder.",
+            "Claim-letter reveal (roadmap feature, tease) — 20s, \"dryer broken — 1 tap → legally sound §437 letter ready to send\" (note: don't promise as immediately available, tease as upcoming)."
+          ]
+        },
+        {
+          "label": "UGC / your voice (DACH authority)",
+          "items": [
+            "Lawyer explainer clip \"§437 BGB in practice\" — 60s, you in lawyer setting, \"three sentences §437 — repair, replacement, withdrawal, which deadline applies? most don't know\", cut to Kelva demo. (Lawyers: respect BORA, don't suggest concrete legal advice in the Kelva context.)",
+            "Family vlog \"How I manage our receipts\" — 90s, your normal family vlog format, Kelva as 10-second beat, demo household sharing.",
+            "\"What happens when your dryer breaks after 18 months\" — 75s scenario, without Kelva = receipt search for hours, with Kelva = 3 taps with date + warranty status + next steps.",
+            "Savings-coach persona \"How I don't lose 200 EUR a year\" — 60s, \"last month I missed an expired warranty — 280 EUR gone, here's the app that would have caught it\".",
+            "Household-sharing demo with real family — 90s, you + partner / kids at the table, demo household sharing."
+          ]
+        }
+      ],
+      "story_ideas": [
+        "Education story: §437 / §438 BGB explainer slide + sticker \"the clock most people miss\" + link sticker.",
+        "Social proof: Kelva dashboard screenshot, caption \"this is now our family inbox for everything paper-y\".",
+        "Direct ask: selfie story, \"1 year Premium with my link\" + link sticker."
+      ],
+      "carousel_ideas": [
+        "\"5 apps every DACH household needs\" (Kelva on slide 1, no hard sell).",
+        "\"How I claimed back a 320 EUR warranty\" (case-study carousel, slide 6 = affiliate link).",
+        "\"Subscription cleanup: 47 to 12 in one weekend\" (process carousel)."
+      ],
+      "posting_cadence": "DACH lifehack audience: highest engagement Sun evening (\"plan-the-week\") and Wed evening (\"midweek-organise\"). Lawyer TikTokers: any day, edutainment performs best 7-10pm CET. 1 reel per week is plenty. Stories with link sticker on weekends bring the bulk of conversions.",
+      "conversion_math": "Micro lawyer TikToker (50k followers, 1 reel): 25,000 views x 2% CTR = 500 clicks, 30% install = 150 installs, 8% Premium = 12 subs, 12 months attribution x 29.99 USD x 50% = ~180 USD per reel. Mid-tier savings-tip (80k IG, 1 reel): 40,000 views x 1.5% CTR = 600 clicks, 30% install = 180 installs, 7% Premium = 13 subs, ~195 USD per reel. Macro family-mom (300k IG, 1 carousel): reach 120,000 x 1.2% CTR = 1,440 clicks, 25% install = 360 installs, 6% Premium = 22 subs, ~330 USD per post. Annual pricing means lower per-month math but higher LTV up-front. DACH consumer-law content has above-average save / share rate which compounds.",
+      "tracking_model_lines": [
+        "Your link kelva.space/i/[yourhandle] works on any platform.",
+        "Android: Google Play install referrer passes handle natively, deterministic.",
+        "iOS warm: Universal Link with handle.",
+        "iOS cold (~99% of creator traffic): signed-token clipboard deferred-deeplink, live-verified via Wavelength.",
+        "On first app open: optional \"Invited by @[handle]? Yes / No\" confirmer for clean attribution.",
+        "RevenueCat webhook fires on annual Premium purchase, 50% credited (24-month window for any renewals)."
+      ],
+      "onboarding_steps": [
+        "Click the personal link from Mail 2 (valid 7 days).",
+        "Land on kelva.space/affiliate/[your-token].",
+        "Fill in: handle, Wise payout details, country (tax docs), billing address.",
+        "Free Lifetime Premium activated on your Kelva account.",
+        "Dashboard at getklar.org/dashboard via magic link."
+      ],
+      "dashboard_lines": [
+        "Clicks per day / week / month.",
+        "Installs split (Android / iOS-warm / iOS-cold).",
+        "Active Premium subs in your bucket.",
+        "Claimable + paid + carry-over + next payout date + refund holdback pipeline."
+      ],
+      "brand_assets": "Logo, app screenshots, §437 / §438 BGB explainer slides, mail-inbox demo footage and ready-made captions: getklar.org/i/kelva/brand-assets (link goes live with your onboarding mail).",
+      "faq": [
+        ["Is this only for Germany or all of DACH?", "Legal copy and the §437 / §438 BGB clock are DE-specific. App UI works in DE / EN / ES / FR / IT. Practical audience: DE + AT primarily, CH where applicable. Other EU markets work for general receipt / sub management but the warranty calculation is DE-anchored."],
+        ["Can I post in English?", "Yes for the international DACH audience (expats, English-speaking creators in DE). For pure English-speaking outside DACH the legal angle does not translate, please skip that frame."],
+        ["Lawyer compliance — what can I say?", "Educate about §437 / §438 BGB in general terms. Do NOT give specific legal advice through the Kelva context (BORA risk). \"App calculates the deadline\" is fine. \"App writes your claim letter\" is roadmap, don't promise as live."],
+        ["Disclosure duty?", "Yes. Rev-share = paid recommendation. #ad / #Werbung / IG \"Paid Partnership\". UWG §5a mandatory in DACH."],
+        ["Flat fee on top?", "Mid+ yes, 150-500 EUR per reel. Macro depends on audience-fit, 500-1,500 EUR negotiable for clear lifehack / savings-tip creators."],
+        ["What if Premium pricing changes?", "You continue to earn 50% on the then-current price."]
+      ]
+    },
+    "de": {
+      "subtitle": "für DACH-Creator im Verbraucher / Spar / Lifehack-Bereich",
+      "hero_quote": "Mail-Postfach verbinden, App parst Belege automatisch. Verdien an Content den deine Audience eh braucht.",
+      "sixty_seconds_intro": "Kelva ist eine iOS + Android-App für DACH + EU, die Belege, Garantien und Abos digital managed. Du verbindest mehrere Mail-Adressen mit der App (read-only), eingehende Mails landen direkt in Kelva, werden per KI oder schnellem manuellen Scan ausgelesen, du ordnest sie zu (Rechnung, Garantie, Abo, Vertrag) und setzt Reminder. In der Übersicht hast du alle Belege, Garantien und Abos an einem Ort, plus einen optionalen Tresor für wichtige Dokumente. Mit Haushalts-Sharing kannst du einen gemeinsamen Familien-Inbox eröffnen — jeder sieht was läuft, ihr teilt Prioritäten auf, nichts geht mehr durch die Lappen.",
+      "why_this_works": "Überquellende Postfächer, Abos die du nur durch die Buchung merkst, Garantie-Belege im Schuhkarton. Drei Postfächer, keine Übersicht. Kelva ist der eine Ort der das alles macht.",
+      "free_vs_premium": [
+        "Free: manuelle Beleg-Eingabe + Foto-Scan, Push-Reminder 30 / 7 / 1 Tag vor Ablauf, Snap-to-Done, §438 Auto-Kalkulation, Hersteller-Garantie-Lookup, Haushalts-Sharing.",
+        "Premium (29,99 USD/Jahr): KI-basierte Email-Inbound-Klassifikation (Email-Scan-Mode off / warranty-only / all) + erweiterte Familien-Features.",
+        "Free Lifetime Premium für onboarded Affiliates (kein Posting-Zwang).",
+        "Annual-only Pricing — kein Monats-Plan."
+      ],
+      "audience_fit_good": [
+        "Anwalt-TikToker im Verbraucherrecht (50k-1M, sehr hoch — Authority + Demo-Fit).",
+        "Spartipp-Creator (#sparen, #finanzen) IG/TikTok, 10k-100k, hoch (kaufkräftige Audience).",
+        "Familien-Organisations-IGer, 5k-50k, sehr hoch (loyal, engaged).",
+        "Lifehack DACH TikTok, 30k-300k, mittel (broad Reach).",
+        "Kleine DACH Tech-Reviewer IG/YT, 5k-50k, mittel (Device-Angle).",
+        "Family-Mom-Influencer IG, 10k-100k, hoch (Inventory-Pain ist real)."
+      ],
+      "audience_fit_poor": [
+        "US / UK / INT-Creator — Kelva ist aktuell DACH-Rechts-spezifisch, Compliance nicht übertragbar.",
+        "Krypto / Finanz-Spekulations-Crowd (falscher Tone).",
+        "Anti-Establishment-Lifestyle (Kelva ist fundamental pro-Verbraucherrecht)."
+      ],
+      "reel_hooks": [
+        {
+          "label": "Faceless Content (DACH-Lifehack-Demos)",
+          "items": [
+            "Screen-Recording \"Mail rein, App parst alles\" — 30s nur App-Screen, Email-Inbound-View popped up, KI klassifiziert, du ordnest zu, Reminder gesetzt.",
+            "B-Roll Familien-Postfach + Voiceover — 45s, B-Roll von überquellenden Mail-Postfächern + Beleg-Schuhkarton, Voice: \"Bestellbestätigungen, Garantie-Mails, vergessene Abos, keine Übersicht\", Cut auf Kelva-Dashboard.",
+            "§437-BGB-Erklärung mit App-Demo — 60s, statisches Slide mit BGB-Paragraph, Voiceover: \"Gerät kaputt nach 18 Monaten, du hast noch 6 Monate Garantie, wer merkt sich wann er gekauft hat?\", Cut auf Kelva mit Auto-Deadline.",
+            "Comparison \"Excel vs Kelva\" — 30s Split-Screen, links: 47-Geräte-Excel den keiner pflegt, rechts: Kelva mit Family-Inbox + Push-Reminder.",
+            "Claim-Letter-Reveal (Roadmap-Feature, teasen) — 20s, \"Trockner kaputt — 1 Tap → legal-sicheres §437-Schreiben ready zum Senden\" (Hinweis: nicht als sofort verfügbar versprechen, als upcoming teasen)."
+          ]
+        },
+        {
+          "label": "UGC / Deine Stimme (DACH-Authority)",
+          "items": [
+            "Anwalt-Explainer-Clip \"§437 BGB in der Praxis\" — 60s, du im Anwalts-Setting, \"drei Sätze §437 — Nachbesserung, Ersatz, Rücktritt, welche Frist? die meisten wissen es nicht\", Cut auf Kelva-Demo. (Anwälte: BORA respektieren, keine konkrete Rechtsberatung im Kelva-Kontext.)",
+            "Family-Vlog \"Wie ich unsere Belege manage\" — 90s, dein normales Familien-Vlog-Format, Kelva als 10-Sekunden-Beat, Haushalts-Sharing demonstrieren.",
+            "\"Was passiert wenn dein Trockner nach 18 Monaten kaputt geht\" — 75s Szenario, ohne Kelva = stundenlange Beleg-Suche, mit Kelva = 3 Taps mit Datum + Garantie-Status + nächste Schritte.",
+            "Sparcoach-Persona \"So verliere ich nicht 200 EUR pro Jahr\" — 60s, \"letzten Monat eine abgelaufene Garantie verpasst — 280 EUR weg, hier ist die App die das gefangen hätte\".",
+            "Haushalts-Sharing-Demo mit echter Familie — 90s, du + Partner / Kids am Tisch, Haushalts-Sharing-Feature zeigen."
+          ]
+        }
+      ],
+      "story_ideas": [
+        "Education-Story: §437 / §438 BGB Explainer-Slide + Sticker \"die Uhr die die meisten verpassen\" + Link-Sticker.",
+        "Social-Proof: Kelva-Dashboard-Screenshot, Caption \"das ist jetzt unsere Familien-Inbox für alles Papierhafte\".",
+        "Direct-Ask: Selfie-Story, \"1 Jahr Premium mit meinem Link\" + Link-Sticker."
+      ],
+      "carousel_ideas": [
+        "\"5 Apps die jeder DACH-Haushalt braucht\" (Kelva Slide 1, kein Hard-Sell).",
+        "\"Wie ich 320 EUR Garantie zurückgeholt habe\" (Case-Study-Carousel, Slide 6 = Affiliate-Link).",
+        "\"Abo-Cleanup: 47 auf 12 in einem Wochenende\" (Process-Carousel)."
+      ],
+      "posting_cadence": "DACH-Lifehack-Audience: höchstes Engagement So Abend (\"plan-die-Woche\") und Mi Abend (\"Midweek-Organize\"). Anwalt-TikToker: jeden Tag, Edutainment performt am besten 19-22h MEZ. 1 Reel pro Woche reicht. Stories mit Link-Sticker am Wochenende bringen das Gros der Conversions.",
+      "conversion_math": "Mikro-Anwalt-TikToker (50k Follower, 1 Reel): 25.000 Views x 2% CTR = 500 Klicks, 30% Install = 150 Installs, 8% Premium = 12 Subs, 12 Monate Attribution x 29,99 USD x 50% = ~180 USD pro Reel. Mid-Tier Spartipp (80k IG, 1 Reel): 40.000 Views x 1,5% CTR = 600 Klicks, 30% Install = 180 Installs, 7% Premium = 13 Subs, ~195 USD pro Reel. Macro Family-Mom (300k IG, 1 Carousel): Reach 120.000 x 1,2% CTR = 1.440 Klicks, 25% Install = 360 Installs, 6% Premium = 22 Subs, ~330 USD pro Post. Annual-Pricing bedeutet niedrigere Per-Month-Math aber höherer LTV up-front. DACH-Verbraucherrecht-Content hat überdurchschnittliche Save-/Share-Rate die compoundet.",
+      "tracking_model_lines": [
+        "Dein Link kelva.space/i/[handle] funktioniert auf jeder Plattform.",
+        "Android: Google Play Install-Referrer gibt Handle nativ weiter, deterministisch.",
+        "iOS warm: Universal-Link mit Handle.",
+        "iOS cold (~99% des Creator-Traffic): signed-Token Clipboard-Deferred-Deeplink, live-verifiziert via Wavelength.",
+        "Beim ersten App-Öffnen: optionaler \"Invited by @[handle]? Yes / No\"-Confirmer für saubere Attribution.",
+        "RevenueCat-Webhook feuert beim jährlichen Premium-Kauf, 50% gutgeschrieben (24-Monate-Window für Renewals)."
+      ],
+      "onboarding_steps": [
+        "Klick den persönlichen Link aus Mail 2 (7 Tage gültig).",
+        "Du landest auf kelva.space/affiliate/[dein-token].",
+        "Du gibst ein: Handle, Wise-Payout-Details, Land (Steuer-Doku), Rechnungsadresse.",
+        "Free Lifetime Premium auf deinem Kelva-Account aktiv.",
+        "Dashboard auf getklar.org/dashboard via Magic-Link."
+      ],
+      "dashboard_lines": [
+        "Klicks pro Tag / Woche / Monat.",
+        "Installs-Split (Android / iOS-warm / iOS-cold).",
+        "Aktive Premium-Subs in deinem Topf.",
+        "Claimable + Paid + Carry-over + nächster Auszahlungs-Termin + Refund-Holdback-Pipeline."
+      ],
+      "brand_assets": "Logo, App-Screenshots, §437 / §438 BGB Explainer-Slides, Mail-Inbox-Demo-Footage und fertige Captions: getklar.org/i/kelva/brand-assets (Link wird mit deinem Onboarding-Mail aktiv).",
+      "faq": [
+        ["Ist das nur für Deutschland oder ganz DACH?", "Legal-Copy und §437 / §438-BGB-Uhr sind DE-spezifisch. App-UI funktioniert in DE / EN / ES / FR / IT. Praktische Audience: DE + AT primär, CH wo zutreffend. Andere EU-Märkte funktionieren für general Belege / Abo-Management aber die Garantie-Kalkulation ist DE-verankert."],
+        ["Kann ich auf Englisch posten?", "Ja für die internationale DACH-Audience (Expats, Englisch-sprechende Creator in DE). Für rein Englisch-sprechend außerhalb DACH funktioniert der Legal-Angle nicht, dann den Frame weglassen."],
+        ["Anwalt-Compliance — was kann ich sagen?", "Allgemein über §437 / §438 BGB educaten. Bitte KEINE konkrete Rechtsberatung im Kelva-Kontext (BORA-Risk). \"App rechnet die Frist aus\" ist OK. \"App schreibt dein Reklamations-Schreiben\" ist Roadmap, nicht als live versprechen."],
+        ["Kennzeichnungspflicht?", "Ja. Rev-Share = bezahlte Empfehlung. #ad / #Werbung / IG \"Paid Partnership\". UWG §5a zwingend in DACH."],
+        ["Flat-Fee on-top?", "Mid+ ja, 150-500 EUR pro Reel. Macro je nach Audience-Fit, 500-1.500 EUR verhandelbar für klare Lifehack- / Spartipp-Creator."],
+        ["Was wenn Premium-Preis sich ändert?", "Du verdienst weiter 50% auf den dann aktuellen Preis."]
+      ]
+    }
+  }
+}
