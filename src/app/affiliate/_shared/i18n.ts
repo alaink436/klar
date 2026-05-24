@@ -117,7 +117,9 @@ export interface Messages {
   taxOptionUnknown: string;
   invoiceCheckMain: string;
   invoiceCheckHint: string;
-  agreementCheckMain: (version: string) => string;
+  agreementCheckBefore: string;
+  agreementCheckLink: string;
+  agreementCheckAfter: (version: string) => string;
   agreementCheckHint: (pct: number, months: number, streamWord: string) => string;
   payoutSavingBtn: string;
   payoutSubmitBtn: string;
@@ -171,6 +173,12 @@ export interface Messages {
   followerHint: string;
   pmSuffix: string; // "pro Monat"
   perInstallCohort: string; // "pro Install-Cohort"
+
+  // Calculator stream-2 notes (per-kind formula breakdown)
+  calcS2NoteYarn: (shoppers: string, basket: number, ratePct: string) => string;
+  calcS2NoteAlbum: (buyers: string, basket: number, ratePct: string) => string;
+  calcS2HintYarn: string;
+  calcS2HintAlbum: string;
 }
 
 const de: Messages = {
@@ -266,7 +274,9 @@ const de: Messages = {
   taxOptionUnknown: "Privatperson, ohne Gewerbe",
   invoiceCheckMain: "Ich kann eine Rechnung mit ausgewiesener MwSt ausstellen.",
   invoiceCheckHint: "Falls nicht, übernehmen wir die Gutschrift automatisch für dich.",
-  agreementCheckMain: (version) => `Ich akzeptiere die Affiliate-Bedingungen der Version ${version}.`,
+  agreementCheckBefore: "Ich akzeptiere die ",
+  agreementCheckLink: "Affiliate-Bedingungen",
+  agreementCheckAfter: (version) => ` der Version ${version}.`,
   agreementCheckHint: (pct, months, streamWord) => `${pct} % ${streamWord}, ${months} Monate Attribution, 30 Tage Refund-Holdback, monatliche Auszahlung ab 50 €. IP und Zeitstempel werden für den Audit-Trail gespeichert.`,
   payoutSavingBtn: "Speichere…",
   payoutSubmitBtn: "Affiliate-Setup abschließen",
@@ -315,6 +325,11 @@ const de: Messages = {
   followerHint: "",
   pmSuffix: "pro Monat",
   perInstallCohort: "pro Install-Cohort",
+
+  calcS2NoteYarn: (shoppers, basket, ratePct) => `${shoppers} aktive Garn-Käufer × ${basket} € Korb × ${ratePct} %`,
+  calcS2NoteAlbum: (buyers, basket, ratePct) => `${buyers} Album-Käufer × ${basket} € × ${ratePct} %`,
+  calcS2HintYarn: "7,5 % Shop-Provision × 50 % Affiliate-Anteil = 3,75 % vom Korb",
+  calcS2HintAlbum: "Einmalverkauf, 50 % Anteil pro Album",
 };
 
 const es: Messages = {
@@ -410,7 +425,9 @@ const es: Messages = {
   taxOptionUnknown: "Persona privada, sin actividad",
   invoiceCheckMain: "Puedo emitir una factura con IVA declarado.",
   invoiceCheckHint: "Si no, generamos automáticamente la nota de abono.",
-  agreementCheckMain: (version) => `Acepto las Condiciones de Afiliado de la versión ${version}.`,
+  agreementCheckBefore: "Acepto las ",
+  agreementCheckLink: "Condiciones de Afiliado",
+  agreementCheckAfter: (version) => ` de la versión ${version}.`,
   agreementCheckHint: (pct, months, streamWord) => `${pct} % ${streamWord}, ${months} meses de atribución, 30 días de retención por reembolso, pago mensual a partir de 50 €. IP y timestamp se guardan para el audit-trail.`,
   payoutSavingBtn: "Guardando…",
   payoutSubmitBtn: "Completar setup de afiliada",
@@ -459,6 +476,11 @@ const es: Messages = {
   followerHint: "",
   pmSuffix: "al mes",
   perInstallCohort: "por cohorte de instalación",
+
+  calcS2NoteYarn: (shoppers, basket, ratePct) => `${shoppers} compradoras activas de lana × ${basket} € cesta × ${ratePct} %`,
+  calcS2NoteAlbum: (buyers, basket, ratePct) => `${buyers} compradores de álbum × ${basket} € × ${ratePct} %`,
+  calcS2HintYarn: "7,5 % de comisión de tienda × 50 % parte afiliada = 3,75 % de la cesta",
+  calcS2HintAlbum: "Venta única, 50 % de comisión por álbum",
 };
 
 // EN-Translation as a near-mirror of DE — used for cross-checks and to keep

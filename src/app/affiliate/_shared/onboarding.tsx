@@ -114,22 +114,23 @@ function IconPanel({ brand, tagline }: { brand: Brand; tagline?: string }) {
 }
 
 // ── Stream cards summary (top of Step 1) ────────────────────────────────────
-function StreamCardsForBrand({ brand }: { brand: Brand }) {
+function StreamCardsForBrand({ brand, t = getMessages("de") }: { brand: Brand; t?: Messages }) {
   const months = brand.attributionMonths || 12;
   const s2 = brand.secondStream;
   const isSub = /\/mo|\/m/i.test(brand.productPrice);
+  const s2Title = s2?.kind === "yarn-shop" ? t.streamTitleYarn : t.streamTitleAlbum;
   return (
     <div className={`aff-streams-grid${s2 ? "" : " single"}`}>
       <div className="aff-stream-card">
         <span className="stream-num">①</span>
-        <div className="stream-eyebrow">{isSub ? "Premium-Abos" : "Premium-Verkäufe"}</div>
+        <div className="stream-eyebrow">{isSub ? t.streamEyebrowSub : t.streamEyebrowOneShot}</div>
         <div className="stream-title">
-          {brand.commissionPct} % <span className="italic">{isSub ? "der Sub." : "pro Verkauf."}</span>
+          {brand.commissionPct} % <span className="italic">{isSub ? t.streamTitleSubTail : t.streamTitleOneShotTail}</span>
         </div>
         <div className="stream-detail">
           {isSub
-            ? <>Pro Premium-Kauf bekommst du <b>{brand.commissionPct} %</b> der Sub-Einnahmen, <b>{months} Monate lang</b>. {brand.productPrice ? `Sub-Preis ${brand.productPrice}.` : ""}</>
-            : <>Pro Premium-Verkauf bekommst du <b>{brand.commissionPct} %</b> des Verkaufspreises. {brand.productPrice ? `Preis ${brand.productPrice}.` : ""} <b>{months} Monate Cookie-Window</b>.</>}
+            ? t.streamDetailSub(brand.commissionPct, months, brand.productPrice)
+            : t.streamDetailOneShot(brand.commissionPct, months, brand.productPrice)}
         </div>
       </div>
       {s2 ? (
@@ -137,14 +138,10 @@ function StreamCardsForBrand({ brand }: { brand: Brand }) {
           <span className="stream-num">②</span>
           <div className="stream-eyebrow">{s2.sublabel || s2.label}</div>
           <div className="stream-title">
-            {s2.kind === "yarn-shop"
-              ? <>Anteil an <span className="italic">Garn-Käufen.</span></>
-              : <>Anteil an <span className="italic">Album-Käufen.</span></>}
+            {s2Title.plain}<span className="italic">{s2Title.italic}</span>
           </div>
           <div className="stream-detail">
-            {s2.kind === "yarn-shop"
-              ? <>Jedes Mal wenn dein User Garn über die In-App Shop-Links kauft, bekommst du einen Anteil an unserer Awin-Provision.{" "}<b>Bei Strick-Audiences meist der größere Stream</b>, weil Stricker:innen regelmäßig nachkaufen.</>
-              : <>Wenn dein User ein 4k-Album kauft, bekommst du <b>50 % des Verkaufspreises</b>. One-Shot, ideal für Event-Trigger wie Hochzeiten oder Festivals.</>}
+            {s2.kind === "yarn-shop" ? t.streamDetailYarn : t.streamDetailAlbum}
           </div>
         </div>
       ) : null}
@@ -281,7 +278,7 @@ function useTweenNumber(value: number, duration = 280): number {
 }
 
 // ── Calculator ──────────────────────────────────────────────────────────────
-function Calculator({ brand }: { brand: Brand }) {
+function Calculator({ brand, t = getMessages("de") }: { brand: Brand; t?: Messages }) {
   const [views, setViews] = useState(50000);
   const [convPct, setConvPct] = useState(10);
   const s2 = brand.secondStream;
@@ -306,15 +303,18 @@ function Calculator({ brand }: { brand: Brand }) {
 
   let streamTwo = 0;
   let streamTwoNote = "";
+  let streamTwoHint = "";
   if (s2) {
     if (s2.kind === "yarn-shop") {
       const shoppers = Math.round(installs * (s2Rate / 100));
       streamTwo = shoppers * s2Basket * s2.commissionRate;
-      streamTwoNote = `${shoppers.toLocaleString("de-DE")} aktive Garn-Käufer × ${s2Basket} € Korb × ${(s2.commissionRate * 100).toFixed(2).replace(".", ",")} %`;
+      streamTwoNote = t.calcS2NoteYarn(shoppers.toLocaleString("de-DE"), s2Basket, (s2.commissionRate * 100).toFixed(2).replace(".", ","));
+      streamTwoHint = t.calcS2HintYarn;
     } else if (s2.kind === "album-buy") {
       const albumBuyers = Math.round(installs * (s2Rate / 100));
       streamTwo = albumBuyers * s2Basket * s2.commissionRate;
-      streamTwoNote = `${albumBuyers.toLocaleString("de-DE")} Album-Käufer × ${s2Basket} € × ${(s2.commissionRate * 100).toFixed(0)} %`;
+      streamTwoNote = t.calcS2NoteAlbum(albumBuyers.toLocaleString("de-DE"), s2Basket, (s2.commissionRate * 100).toFixed(0));
+      streamTwoHint = t.calcS2HintAlbum;
     }
   }
 
@@ -326,48 +326,48 @@ function Calculator({ brand }: { brand: Brand }) {
     <div className="aff-calc">
       <div className="slider-row">
         <div className="slider-head">
-          <span className="name">Views pro Monat &middot; alle Posts zusammen</span>
-          <NumInput value={views} setValue={setViews} min={1000} max={5_000_000} ariaLabel="Views pro Monat" />
+          <span className="name">{t.calcViewsLabel}</span>
+          <NumInput value={views} setValue={setViews} min={1000} max={5_000_000} ariaLabel={t.calcViewsAria} />
         </div>
-        <LogSlider value={views} setValue={setViews} min={1000} max={5_000_000} ticks={[1000, 10000, 100000, 1_000_000, 5_000_000]} ariaLabel="Views pro Monat" />
+        <LogSlider value={views} setValue={setViews} min={1000} max={5_000_000} ticks={[1000, 10000, 100000, 1_000_000, 5_000_000]} ariaLabel={t.calcViewsAria} />
       </div>
 
       <div className="stream-divider" style={{ marginTop: 4 }}>
-        <span className="label"><span className="plus">①</span>STREAM &middot; {brand.streamLabel || "Premium-Abos"}</span>
+        <span className="label"><span className="plus">①</span>{t.calcStreamLabel(brand.streamLabel || (isSub ? t.streamEyebrowSub : t.streamEyebrowOneShot))}</span>
         <span className="line" />
       </div>
       <div className="stream-sub">
         {isSub
-          ? `${brand.productPrice} · ${brand.commissionPct} % an dich, ${months} Monate lang.`
-          : `${brand.productPrice} · ${brand.commissionPct} % an dich pro Verkauf.`}
+          ? t.calcSubSummary(brand.productPrice, brand.commissionPct, months)
+          : t.calcOneShotSummary(brand.productPrice, brand.commissionPct)}
       </div>
 
       <div className="slider-row">
         <div className="slider-head">
-          <span className="name">Premium-Conversion nach Install</span>
+          <span className="name">{t.calcConvLabel}</span>
           <span className="valgroup">
-            <NumInput value={convPct} setValue={setConvPct} min={3} max={15} ariaLabel="Premium-Conversion" width={48} />
+            <NumInput value={convPct} setValue={setConvPct} min={3} max={15} ariaLabel={t.calcConvAria} width={48} />
             <span className="unit">%</span>
           </span>
         </div>
-        <LinSlider value={convPct} setValue={setConvPct} min={3} max={15} step={1} ticks={[3, 6, 9, 12, 15]} unit=" %" ariaLabel="Premium-Conversion" />
+        <LinSlider value={convPct} setValue={setConvPct} min={3} max={15} step={1} ticks={[3, 6, 9, 12, 15]} unit=" %" ariaLabel={t.calcConvAria} />
       </div>
 
       <div className="mini-rows">
-        <span><span className="arrow">→</span> Bio-Klicks <i>(Annahme {(BIO_CTR * 100).toFixed(1).replace(".", ",")} % der Views)</i></span>
+        <span><span className="arrow">→</span> {t.calcMiniBioClicks((BIO_CTR * 100).toFixed(1).replace(".", ","))}</span>
         <span className="v">{fmt(clicks)}</span>
-        <span><span className="arrow">→</span> Installs <i>(Annahme {Math.round(INSTALL_RATE * 100)} % der Klicks)</i></span>
+        <span><span className="arrow">→</span> {t.calcMiniInstalls(Math.round(INSTALL_RATE * 100))}</span>
         <span className="v">{fmt(installs)}</span>
-        <span><span className="arrow">→</span> Premium-Käufer <i>({convPct} % Conv)</i></span>
+        <span><span className="arrow">→</span> {t.calcMiniBuyers(convPct)}</span>
         <span className="v">{fmt(buyers)}</span>
         <span><span className="arrow">→</span> {brand.productPriceShort || brand.productPrice} &times; {brand.commissionPct} %</span>
-        <span className="v">{fmt(streamOne)} €{isSub ? "/mo" : ""}</span>
+        <span className="v">{fmt(streamOne)} €{isSub ? t.calcSlash : ""}</span>
       </div>
 
       {s2 ? (
         <>
           <div className="stream-divider" style={{ marginTop: 6 }}>
-            <span className="label"><span className="plus">②</span>STREAM &middot; {s2.label}</span>
+            <span className="label"><span className="plus">②</span>{t.calcStreamLabel(s2.label)}</span>
             <span className="line" />
           </div>
           <div className="stream-sub">{s2.sublabel}</div>
@@ -395,11 +395,11 @@ function Calculator({ brand }: { brand: Brand }) {
           </div>
 
           <p className="formula-hint" style={{ marginTop: -4 }}>
-            <b>{streamTwoNote}</b> &nbsp;&middot;&nbsp; {s2.hint}
+            <b>{streamTwoNote}</b> &nbsp;&middot;&nbsp; {streamTwoHint}
           </p>
 
           <div className="mini-rows">
-            <span><span className="arrow">→</span> Stream 2 {s2.recurring ? "pro Monat" : "pro Install-Cohort"}</span>
+            <span><span className="arrow">→</span> {s2.recurring ? t.calcMiniS2Recurring : t.calcMiniS2OneShot}</span>
             <span className="v">{fmt(streamTwo)} €</span>
           </div>
         </>
@@ -408,16 +408,16 @@ function Calculator({ brand }: { brand: Brand }) {
       <div className="total-pop">
         <span className="tp-label">
           {s2
-            ? <>{isSub ? "Gesamt monatlich an dich" : "Gesamt pro Cohort"} <small>Stream 1 + Stream 2</small></>
+            ? <>{isSub ? t.calcTotalLabelSubTwoStreams : t.calcTotalLabelOneShotTwoStreams} <small>{t.calcTotalSubStreams}</small></>
             : isSub
-              ? <>monatlich an dich <small>{months} Monate lang</small></>
-              : <>pro Cohort an dich <small>One-Shot Premium-Verkauf</small></>}
+              ? <>{t.calcTotalLabelSub} <small>{t.calcTotalLabelMonthsHint(months)}</small></>
+              : <>{t.calcTotalLabelOneShot} <small>{t.calcOneShotHint}</small></>}
         </span>
-        <span className="tp-value">{fmt(totalTween)} €{isSub ? <span className="small">/ mo</span> : null}</span>
+        <span className="tp-value">{fmt(totalTween)} €{isSub ? <span className="small">{t.calcSlash}</span> : null}</span>
       </div>
 
       <p className="formula-hint" style={{ textAlign: "center" }}>
-        Lifetime pro Install-Cohort (×&nbsp;{months}&nbsp;Monate): <b>{fmt(total * months)} €</b>
+        {t.calcLifetimeHint(months, `${fmt(total * months)} €`)}
       </p>
     </div>
   );
@@ -462,9 +462,9 @@ function NumberBadge({ x, y, n }: { x: number; y: number; n: string }) {
   );
 }
 
-function AttributionDiagram({ brand }: { brand: Brand }) {
+function AttributionDiagram({ brand, t = getMessages("de") }: { brand: Brand; t?: Messages }) {
   return (
-    <figure className="aff-attr-diagram" aria-label={`Attribution-Flow für ${brand.name}`}>
+    <figure className="aff-attr-diagram" aria-label={`Attribution-Flow ${brand.name}`}>
       <svg viewBox="0 0 480 460" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style={{ width: "100%", display: "block" }}>
         <defs>
           <marker id="aend" markerWidth="6" markerHeight="6" refX="4" refY="3" orient="auto" markerUnits="strokeWidth">
@@ -476,9 +476,9 @@ function AttributionDiagram({ brand }: { brand: Brand }) {
         <path d="M 378 188 Q 250 240 102 268" fill="none" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" markerEnd="url(#aend)" style={{ stroke: "var(--aff-fg)" }} />
         <path d="M 138 335 Q 240 388 342 335" fill="none" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" markerEnd="url(#aend)" style={{ stroke: "var(--aff-fg)" }} />
 
-        <StickerLabel x={240} y={48} rot={-2} text="60 d" />
-        <StickerLabel x={250} y={230} rot={4}  text="deeplink" italic />
-        <StickerLabel x={240} y={400} rot={-2} text="30 d" />
+        <StickerLabel x={240} y={48} rot={-2} text={t.diagramRefundLabel} />
+        <StickerLabel x={250} y={230} rot={4}  text={t.diagramRedirectLabel} italic />
+        <StickerLabel x={240} y={400} rot={-2} text={t.diagramReleaseLabel} />
 
         <PhoneFrame x={100} y={110}>
           <circle cx="-20" cy="-44" r="5" style={{ fill: "var(--aff-bg-elev)", stroke: "var(--aff-fg)", strokeWidth: 0.8 }} />
@@ -502,7 +502,7 @@ function AttributionDiagram({ brand }: { brand: Brand }) {
           ))}
         </PhoneFrame>
         <NumberBadge x={48} y={56} n="01" />
-        <TileCaption x={100} y={198} text="Du teilst den Link." />
+        <TileCaption x={100} y={198} text={t.diagramStep1Caption} />
 
         <g transform="translate(380,118)">
           <line x1="0" y1="-72" x2="0" y2="-50" style={{ stroke: "var(--aff-fg)", strokeWidth: 1.5, strokeLinecap: "round" }} />
@@ -525,7 +525,7 @@ function AttributionDiagram({ brand }: { brand: Brand }) {
           </g>
         </g>
         <NumberBadge x={329} y={56} n="02" />
-        <TileCaption x={380} y={210} text="Sie installieren." />
+        <TileCaption x={380} y={210} text={t.diagramStep2Caption} />
 
         <PhoneFrame x={100} y={335}>
           <path d="M -16 -38 L -10 -28 L 0 -42 L 10 -28 L 16 -38 L 14 -22 L -14 -22 Z" style={{ fill: "var(--aff-fg)", stroke: "var(--aff-fg)", strokeWidth: 1, strokeLinejoin: "round" }} />
@@ -543,7 +543,7 @@ function AttributionDiagram({ brand }: { brand: Brand }) {
           <path d="M 6 43 L 14 43 M 10 39 L 14 43 L 10 47" fill="none" style={{ stroke: "var(--aff-bg)", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" }} />
         </PhoneFrame>
         <NumberBadge x={48} y={281} n="03" />
-        <TileCaption x={100} y={423} text="Sie kaufen Premium." />
+        <TileCaption x={100} y={423} text={t.diagramStep3Caption} />
 
         <g transform="translate(380,335)">
           {[
@@ -562,52 +562,53 @@ function AttributionDiagram({ brand }: { brand: Brand }) {
           <text x="0" y="34" textAnchor="middle" style={{ fontSize: 28, fontFamily: "var(--font-display)", fontWeight: 700, fill: "var(--aff-fg)" }}>€</text>
         </g>
         <NumberBadge x={329} y={281} n="04" />
-        <TileCaption x={380} y={423} text="Du wirst ausgezahlt." />
+        <TileCaption x={380} y={423} text={t.diagramStep4Caption} />
       </svg>
 
       <figcaption style={{ padding: "10px 12px 4px", fontSize: 12, lineHeight: 1.5, color: "var(--aff-fg-3)", textAlign: "center" }}>
-        Vier Stationen, ein Link. 30 Tage Refund-Holdback nach jedem Kauf, danach landet dein Anteil per Wise auf deinem Konto.
+        {t.trackingDiagramCaption}
       </figcaption>
     </figure>
   );
 }
 
 // ── Step 1 · Welcome ────────────────────────────────────────────────────────
-function StepWelcome({ brand, go, handle, t, lang }: { brand: Brand; go: () => void; handle: string; t?: Messages; lang?: Lang }) {
-  void t; void lang;
+function StepWelcome({ brand, go, handle, t = getMessages("de"), lang = "de" }: { brand: Brand; go: () => void; handle: string; t?: Messages; lang?: Lang }) {
+  const tagline = brandText(brand, "handTagline", lang);
+  const titleStreams = brand.secondStream ? t.welcomeTitleTwoStreams : t.welcomeTitleOneStream;
   return (
     <div className="aff-pad aff-stack-lg">
       <div className="aff-stack-md">
         <h1 className="aff-h1">
-          Hi <span className="italic">{handle},</span>
+          {t.welcomeGreet("").replace(/[,\s]+$/, "")} <span className="italic">{handle},</span>
         </h1>
         <p className="aff-lede">
-          Willkommen im {brand.name} Affiliate-Programm. Vier kurze Schritte, dann ist dein Tracking-Link live.
+          {t.welcomeLede(brand.name)}
         </p>
       </div>
 
-      <IconPanel brand={brand} tagline={brand.handTagline} />
+      <IconPanel brand={brand} tagline={tagline} />
 
       <div className="aff-section">
-        <span className="aff-eyebrow">So verdienst du</span>
+        <span className="aff-eyebrow">{t.welcomeEyebrowStreams}</span>
         <h3>
-          {brand.secondStream ? <>Zwei Einkommens-<span className="italic">Ströme.</span></> : <>Dein <span className="italic">Einkommens-Strom.</span></>}
+          {titleStreams.plain}<span className="italic">{titleStreams.italic}</span>
         </h3>
-        <StreamCardsForBrand brand={brand} />
+        <StreamCardsForBrand brand={brand} t={t} />
       </div>
 
       <div className="aff-section">
-        <span className="aff-eyebrow">Rechne selbst</span>
-        <h3>Was springt für dich <span className="italic">raus?</span></h3>
+        <span className="aff-eyebrow">{t.welcomeEyebrowCalc}</span>
+        <h3>{t.welcomeTitleCalc.plain}<span className="italic">{t.welcomeTitleCalc.italic}</span></h3>
         <p style={{ marginBottom: 4 }}>
-          Schieb die Regler auf realistische Werte für deine Audience. Die Rechnung passt sich live an.
+          {t.welcomeCalcSubline}
         </p>
-        <Calculator brand={brand} />
+        <Calculator brand={brand} t={t} />
       </div>
 
       <div className="aff-cta-stack">
         <button className="aff-btn aff-btn-primary" onClick={go}>
-          Weiter <ArrowRight />
+          {t.next} <ArrowRight />
         </button>
       </div>
     </div>
@@ -615,42 +616,42 @@ function StepWelcome({ brand, go, handle, t, lang }: { brand: Brand; go: () => v
 }
 
 // ── Step 2 · Tracking ───────────────────────────────────────────────────────
-function StepTracking({ brand, go, prev, t, lang }: { brand: Brand; go: () => void; prev: () => void; t?: Messages; lang?: Lang }) {
-  void t; void lang;
+function StepTracking({ brand, go, prev, t = getMessages("de"), lang }: { brand: Brand; go: () => void; prev: () => void; t?: Messages; lang?: Lang }) {
+  void lang;
   return (
     <div className="aff-pad aff-stack-lg">
       <div className="aff-stack-md">
-        <h1 className="aff-h1 small">So funktioniert <span className="italic">das Tracking.</span></h1>
+        <h1 className="aff-h1 small">{t.trackingTitle.plain}<span className="italic">{t.trackingTitle.italic}</span></h1>
         <p className="aff-lede">
-          Selbst-attributiert, kein zusätzlicher Tracker auf deiner Seite nötig. Dein Link erkennt dich automatisch wieder, der Rest passiert serverseitig bei uns.
+          {t.trackingLede}
         </p>
       </div>
 
-      <AttributionDiagram brand={brand} />
+      <AttributionDiagram brand={brand} t={t} />
 
       <div className="aff-section">
-        <span className="aff-eyebrow">Schutz-Mechanismen</span>
+        <span className="aff-eyebrow">{t.trackingProtectionEyebrow}</span>
         <ul>
-          <li><span className="mark">✓</span><span>Self-Referral-Block: dein eigener Account zählt nicht</span></li>
-          <li><span className="mark">✓</span><span>Refund-Window 30 Tage, danach ist die Provision sicher</span></li>
-          <li><span className="mark">✓</span><span>IP- und Device-Fingerprint gegen Fraud-Bursts</span></li>
-          <li><span className="mark">✓</span><span>Cookie-loses Fallback per Install-Receipt für iOS 14+</span></li>
+          <li><span className="mark">✓</span><span>{t.trackingProtection1}</span></li>
+          <li><span className="mark">✓</span><span>{t.trackingProtection2}</span></li>
+          <li><span className="mark">✓</span><span>{t.trackingProtection3}</span></li>
+          <li><span className="mark">✓</span><span>{t.trackingProtection4}</span></li>
         </ul>
       </div>
 
       <div className="aff-section">
-        <span className="aff-eyebrow">Werbekennzeichnung</span>
+        <span className="aff-eyebrow">{t.trackingAdEyebrow}</span>
         <p style={{ fontSize: 13.5, color: "var(--aff-fg)" }}>
-          Markiere Affiliate-Content immer als <i>Werbung</i> oder <i>Anzeige</i>. Bei Stories reicht der Sticker, bei Reels und Posts gehört es in die ersten Zeilen der Caption. Das schützt dich und uns.
+          {t.trackingAdBody}
         </p>
       </div>
 
       <div className="aff-btn-row">
-        <button className="aff-btn aff-btn-secondary" onClick={prev} aria-label="Zurück">
+        <button className="aff-btn aff-btn-secondary" onClick={prev} aria-label={t.backAria}>
           <ArrowLeft />
         </button>
         <button className="aff-btn aff-btn-primary" onClick={go}>
-          Weiter <ArrowRight />
+          {t.next} <ArrowRight />
         </button>
       </div>
     </div>
@@ -660,8 +661,7 @@ function StepTracking({ brand, go, prev, t, lang }: { brand: Brand; go: () => vo
 // ── Step 3 · Payout ─────────────────────────────────────────────────────────
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-function StepPayout({ brand, go, prev, state, setState, onSubmit, t }: { brand: Brand; go: () => void; prev: () => void; state: PayoutState; setState: (s: PayoutState) => void; onSubmit?: (s: PayoutState) => Promise<void>; t?: Messages }) {
-  void t;
+function StepPayout({ brand, go, prev, state, setState, onSubmit, t = getMessages("de") }: { brand: Brand; go: () => void; prev: () => void; state: PayoutState; setState: (s: PayoutState) => void; onSubmit?: (s: PayoutState) => Promise<void>; t?: Messages }) {
   const f = state;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -683,7 +683,7 @@ function StepPayout({ brand, go, prev, state, setState, onSubmit, t }: { brand: 
       await onSubmit(f);
       go();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Setup fehlgeschlagen, bitte erneut versuchen.");
+      setError(e instanceof Error ? e.message : t.payoutErrorFallback);
     } finally {
       setBusy(false);
     }
@@ -692,67 +692,67 @@ function StepPayout({ brand, go, prev, state, setState, onSubmit, t }: { brand: 
   return (
     <div className="aff-pad aff-stack-lg">
       <div className="aff-stack-md">
-        <h1 className="aff-h1 small">Wohin geht <span className="italic">das Geld?</span></h1>
+        <h1 className="aff-h1 small">{t.payoutTitle.plain}<span className="italic">{t.payoutTitle.italic}</span></h1>
         <p className="aff-lede">
-          Wir zahlen monatlich aus, sobald 50 € erreicht sind. Beträge darunter laufen in den nächsten Monatslauf. Daten kannst du jederzeit im Dashboard ändern.
+          {t.payoutLede}
         </p>
       </div>
 
       <div className="aff-stack-md">
         <div className="aff-field">
-          <label className="aff-field-label">Anzeigename auf der Rechnung</label>
-          <input className="aff-field-input" value={f.displayName} placeholder="Molly Hartmann" onChange={(e) => set("displayName", e.target.value)} />
+          <label className="aff-field-label">{t.fieldDisplayName}</label>
+          <input className="aff-field-input" value={f.displayName} placeholder={t.fieldDisplayNamePh} onChange={(e) => set("displayName", e.target.value)} />
         </div>
 
         <div className="aff-field">
-          <label className="aff-field-label">Land der Steuerpflicht</label>
+          <label className="aff-field-label">{t.fieldCountry}</label>
           <select className="aff-field-select" value={f.country} onChange={(e) => set("country", e.target.value)}>
-            <option value="">Bitte wählen</option>
-            <option value="DE">Deutschland</option>
-            <option value="AT">Österreich</option>
-            <option value="CH">Schweiz</option>
-            <option value="NL">Niederlande</option>
-            <option value="FR">Frankreich</option>
-            <option value="IT">Italien</option>
-            <option value="ES">Spanien</option>
-            <option value="OTHER">Anderes EU-Land</option>
+            <option value="">{t.fieldCountryPlaceholder}</option>
+            <option value="DE">{t.countryDE}</option>
+            <option value="AT">{t.countryAT}</option>
+            <option value="CH">{t.countryCH}</option>
+            <option value="NL">{t.countryNL}</option>
+            <option value="FR">{t.countryFR}</option>
+            <option value="IT">{t.countryIT}</option>
+            <option value="ES">{t.countryES}</option>
+            <option value="OTHER">{t.countryOTHER}</option>
           </select>
         </div>
 
         <div className="aff-field">
-          <label className="aff-field-label">Auszahlung via Wise</label>
+          <label className="aff-field-label">{t.fieldWiseHeader}</label>
           <p style={{ fontSize: 13, color: "var(--aff-fg-3)", margin: "2px 0 0", lineHeight: 1.45 }}>
-            Wir zahlen aktuell ausschließlich über Wise aus. Du brauchst nur eine E-Mail, die mit deinem Wise-Konto verknüpft ist. Wise leitet das Geld in deine Lokalwährung weiter.
+            {t.fieldWiseBody}
           </p>
         </div>
 
         <div className="aff-field">
-          <label className="aff-field-label">E-Mail deines Wise-Kontos</label>
+          <label className="aff-field-label">{t.fieldWiseEmail}</label>
           <input
             className="aff-field-input"
             type="email"
             autoComplete="email"
             inputMode="email"
             value={f.handle}
-            placeholder="pay@molly.studio"
+            placeholder={t.fieldWiseEmailPh}
             onChange={(e) => set("handle", e.target.value)}
             onBlur={() => setEmailTouched(true)}
             aria-invalid={emailTouched && !emailOk}
           />
           {emailTouched && !emailOk && f.handle.length > 0 ? (
             <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--aff-fg-2)" }}>
-              Bitte gib eine vollständige E-Mail-Adresse ein, die mit deinem Wise-Konto verknüpft ist.
+              {t.fieldEmailInvalid}
             </p>
           ) : null}
         </div>
 
         <div className="aff-field">
-          <label className="aff-field-label">Steuerstatus</label>
+          <label className="aff-field-label">{t.fieldTaxStatus}</label>
           <select className="aff-field-select" value={f.taxStatus} onChange={(e) => set("taxStatus", e.target.value)}>
-            <option value="">Bitte wählen</option>
-            <option value="kleinunternehmer">Kleinunternehmer, keine MwSt</option>
-            <option value="regelbesteuert">Regelbesteuert, mit MwSt</option>
-            <option value="unknown">Privatperson, ohne Gewerbe</option>
+            <option value="">{t.fieldCountryPlaceholder}</option>
+            <option value="kleinunternehmer">{t.taxOptionKleinunt}</option>
+            <option value="regelbesteuert">{t.taxOptionRegel}</option>
+            <option value="unknown">{t.taxOptionUnknown}</option>
           </select>
         </div>
 
@@ -760,8 +760,8 @@ function StepPayout({ brand, go, prev, state, setState, onSubmit, t }: { brand: 
           <input type="checkbox" checked={f.canInvoice} onChange={(e) => set("canInvoice", e.target.checked)} />
           <span className="box" />
           <span className="ctext">
-            Ich kann eine Rechnung mit ausgewiesener MwSt ausstellen.
-            <small>Falls nicht, übernehmen wir die Gutschrift automatisch für dich.</small>
+            {t.invoiceCheckMain}
+            <small>{t.invoiceCheckHint}</small>
           </span>
         </label>
 
@@ -769,9 +769,13 @@ function StepPayout({ brand, go, prev, state, setState, onSubmit, t }: { brand: 
           <input type="checkbox" checked={f.agreementAccepted} onChange={(e) => set("agreementAccepted", e.target.checked)} />
           <span className="box" />
           <span className="ctext">
-            Ich akzeptiere die <a href="/legal/affiliate-agreement" target="_blank" rel="noopener noreferrer" style={{ color: "var(--aff-fg)", textDecoration: "underline", textUnderlineOffset: 2 }}>Affiliate-Bedingungen</a> der Version v1.0.
+            {t.agreementCheckBefore}
+            <a href="/legal/affiliate-agreement" target="_blank" rel="noopener noreferrer" style={{ color: "var(--aff-fg)", textDecoration: "underline", textUnderlineOffset: 2 }}>
+              {t.agreementCheckLink}
+            </a>
+            {t.agreementCheckAfter("v1.0")}
             <small>
-              {brand.commissionPct}&nbsp;%&nbsp;{brand.streamLabel?.toLowerCase().includes("abo") ? "Sub-Anteil" : "Anteil"}, {brand.attributionMonths}&nbsp;Monate Attribution, 30 Tage Refund-Holdback, monatliche Auszahlung ab 50&nbsp;€. IP und Zeitstempel werden für den Audit-Trail gespeichert.
+              {t.agreementCheckHint(brand.commissionPct, brand.attributionMonths, brand.streamLabel?.toLowerCase().includes("abo") ? t.streamWordSub : t.streamWordPerSale)}
             </small>
           </span>
         </label>
@@ -784,24 +788,26 @@ function StepPayout({ brand, go, prev, state, setState, onSubmit, t }: { brand: 
       )}
 
       <div className="aff-btn-row">
-        <button className="aff-btn aff-btn-secondary" onClick={prev} aria-label="Zurück" disabled={busy}>
+        <button className="aff-btn aff-btn-secondary" onClick={prev} aria-label={t.backAria} disabled={busy}>
           <ArrowLeft />
         </button>
         <button className="aff-btn aff-btn-primary" disabled={!valid || busy} onClick={handleNext} style={!valid || busy ? { opacity: 0.6, cursor: busy ? "wait" : "not-allowed", transform: "none", boxShadow: "none" } : undefined}>
-          {busy ? "Speichere…" : <>Affiliate-Setup abschließen <ArrowRight /></>}
+          {busy ? t.payoutSavingBtn : <>{t.payoutSubmitBtn} <ArrowRight /></>}
         </button>
       </div>
 
       <p className="aff-consent">
-        Mit Klick auf <i>abschließen</i> bestätigst du, dass die Angaben korrekt sind und du die <a href="/legal/affiliate-agreement" target="_blank" rel="noopener noreferrer">Affiliate-Bedingungen</a> inklusive der Datenschutz-Hinweise in §05 gelesen hast. Du kannst jederzeit kündigen, ausstehende Provisionen verfallen nicht.
+        {t.payoutConsent}
       </p>
     </div>
   );
 }
 
 // ── Step 4 · Live ───────────────────────────────────────────────────────────
-function StepLive({ brand, state, handle, t, lang }: { brand: Brand; state: PayoutState; handle: string; t?: Messages; lang?: Lang }) {
-  void t; void lang;
+function StepLive({ brand, state, handle, t = getMessages("de"), lang = "de" }: { brand: Brand; state: PayoutState; handle: string; t?: Messages; lang?: Lang }) {
+  const tagline = brandText(brand, "handTagline", lang);
+  const pdfTitle = brandText(brand, "pdfTitle", lang);
+  const pdfHint = brandText(brand, "pdfHint", lang);
   const [copied, setCopied] = useState<string | null>(null);
   const [canShare, setCanShare] = useState(false);
   // Tracking link target depends on the brand. Apps with their own
@@ -826,99 +832,99 @@ function StepLive({ brand, state, handle, t, lang }: { brand: Brand; state: Payo
     try {
       await navigator.share({
         title: `${brand.name} · Affiliate-Link`,
-        text: `Ich nutze ${brand.name} seit ein paar Wochen, hier ist mein Link:`,
+        text: t.liveCaptionLong(brand.name, "").trim(),
         url: trackingUrl,
       });
     } catch (_) { /* user cancel or unsupported, noop */ }
   };
 
-  const captionShort = `Werbung · ${brand.name} App, Link in der Bio. ${trackingUrl}`;
-  const captionLong = `Werbung · Ich nutze ${brand.name} seit ein paar Wochen und mag, wie viel Alltag mir das spart. Wenn du es testen willst: ${trackingUrl}`;
+  const captionShort = t.liveCaptionShort(brand.name, trackingUrl);
+  const captionLong = t.liveCaptionLong(brand.name, trackingUrl);
 
   return (
     <div className="aff-pad aff-stack-lg">
       <div className="aff-stack-md" style={{ textAlign: "center" }}>
         <div className="aff-bigcheck"><CheckIcon /></div>
         <h1 className="aff-h1" style={{ textAlign: "center" }}>
-          Du bist <span className="italic">live ✓</span>
+          {t.liveTitle.plain}<span className="italic">{t.liveTitle.italic}</span>
         </h1>
         <p className="aff-lede" style={{ textAlign: "center" }}>
-          Dein persönlicher Tracking-Link ist scharf. Erste Klicks tauchen innerhalb von 5 Minuten im Dashboard auf. Du brauchst keinen Code, der Link macht alles.
+          {t.liveLede}
         </p>
       </div>
 
-      <IconPanel brand={brand} tagline={brand.handTagline} />
+      <IconPanel brand={brand} tagline={tagline} />
 
       <div className="aff-stack-sm">
-        <div className="aff-eyebrow" style={{ paddingLeft: 4 }}>Dein Tracking-Link</div>
+        <div className="aff-eyebrow" style={{ paddingLeft: 4 }}>{t.liveLinkEyebrow}</div>
         <div className="aff-codeblock">
           <span className="url">{trackingUrl}</span>
           <button className={`aff-copybtn${copied === "url" ? " copied" : ""}`} onClick={() => copy("url", trackingUrl)}>
-            {copied === "url" ? "Kopiert" : "Kopieren"}
+            {copied === "url" ? t.copied : t.copy}
           </button>
         </div>
         {canShare ? (
           <button className="aff-btn aff-btn-secondary" style={{ width: "100%", justifyContent: "center" }} onClick={share}>
-            <ShareIcon /> Link teilen
+            <ShareIcon /> {t.shareLinkBtn}
           </button>
         ) : null}
       </div>
 
       <div className="aff-section">
-        <span className="aff-eyebrow">Werbe-Caption · zum Kopieren</span>
+        <span className="aff-eyebrow">{t.liveCaptionEyebrow}</span>
         <div className="aff-caption-stack">
           <div className="aff-caption-card">
-            <span className="aff-caption-tag">Story / Bio</span>
+            <span className="aff-caption-tag">{t.liveCaptionTagShort}</span>
             <p className="aff-caption-body">{captionShort}</p>
             <button className={`aff-copybtn${copied === "cap-short" ? " copied" : ""}`} onClick={() => copy("cap-short", captionShort)}>
-              {copied === "cap-short" ? "Kopiert" : "Kopieren"}
+              {copied === "cap-short" ? t.copied : t.copy}
             </button>
           </div>
           <div className="aff-caption-card">
-            <span className="aff-caption-tag">Reel / Post</span>
+            <span className="aff-caption-tag">{t.liveCaptionTagLong}</span>
             <p className="aff-caption-body">{captionLong}</p>
             <button className={`aff-copybtn${copied === "cap-long" ? " copied" : ""}`} onClick={() => copy("cap-long", captionLong)}>
-              {copied === "cap-long" ? "Kopiert" : "Kopieren"}
+              {copied === "cap-long" ? t.copied : t.copy}
             </button>
           </div>
         </div>
         <p className="formula-hint" style={{ padding: "0 4px" }}>
-          <i>Werbung</i> oder <i>Anzeige</i> gehört in die ersten Zeilen, dann ist die UWG-Kennzeichnung sauber. Restlichen Text gerne in deinen Voice umschreiben.
+          {t.liveCaptionLegal}
         </p>
       </div>
 
       {brand.assetsDriveUrl ? (
         <a href={brand.assetsDriveUrl} target="_blank" rel="noopener noreferrer" className="aff-resource-card">
-          <span className="aff-resource-eyebrow">{brand.pdfTitle}</span>
-          <span className="aff-resource-title">{brand.pdfHint}</span>
-          <span className="aff-resource-meta">Google Drive · Logos, Screenshots, Playbook-PDF <ExternalIcon /></span>
+          <span className="aff-resource-eyebrow">{pdfTitle}</span>
+          <span className="aff-resource-title">{pdfHint}</span>
+          <span className="aff-resource-meta">{t.liveResourceMeta} <ExternalIcon /></span>
         </a>
       ) : null}
 
       <div className="aff-section">
-        <span className="aff-eyebrow">So teilst du</span>
+        <span className="aff-eyebrow">{t.liveShareEyebrow}</span>
         <div className="aff-share-list">
           <div className="line">
             <span className="icon">i.</span>
-            <span><b>Bio-Link</b>: Setze den Link direkt in deine Instagram- oder TikTok-Bio. Beide Plattformen akzeptieren den Link ohne Redirect.</span>
+            <span>{t.liveShareBio}</span>
           </div>
           <div className="line">
             <span className="icon">ii.</span>
-            <span><b>Stories &amp; Reels</b>: Link-Sticker drauf, Sprachnotiz dazu, fertig. Werbekennzeichnung nicht vergessen.</span>
+            <span>{t.liveShareStory}</span>
           </div>
           <div className="line">
             <span className="icon">iii.</span>
-            <span><b>Captions</b>: Pack den Link auch in die Caption, falls jemand nicht auf die Bio scrollt. Tracking läuft pro Klick, nicht pro Code.</span>
+            <span>{t.liveShareCaption}</span>
           </div>
         </div>
       </div>
 
       <a href="https://getklar.org/dashboard" className="aff-btn aff-btn-primary" style={{ textDecoration: "none" }}>
-        Zu deinem Affiliate-Dashboard <ArrowRight />
+        {t.liveCtaDashboard} <ArrowRight />
       </a>
 
       <p className="aff-consent" style={{ textAlign: "center" }}>
-        Bestätigung an <i>{state.handle || "deine E-Mail"}</i> ist unterwegs. Fragen? <a href="mailto:alain@getklar.org">alain@getklar.org</a>
+        {t.liveFooterMail(state.handle)} <a href="mailto:alain@getklar.org">alain@getklar.org</a>
       </p>
     </div>
   );
