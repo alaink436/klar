@@ -101,10 +101,16 @@
 /* ── Card ─────────────────────────────────────────────────────────────────── */
 .aff-card { background: var(--aff-bg-card); border: 1px solid var(--aff-line); border-radius: var(--aff-radius-lg); overflow: hidden; position: relative; }
 .aff-deck { position: relative; overflow: hidden; }
-.aff-screen { transition: transform 460ms cubic-bezier(0.65, 0, 0.35, 1), opacity 280ms ease; }
-.aff-screen.in { transform: translateX(0); opacity: 1; }
-.aff-screen.exit-left { transform: translateX(-40px); opacity: 0; position: absolute; inset: 0; }
-.aff-screen.exit-right { transform: translateX(40px); opacity: 0; position: absolute; inset: 0; }
+/* Step-Transition: Emil-Speed (~220ms) + iOS-Standard-Easing + Jakub-Blur-Exit für
+   "materializing"-Gefühl. translateX bewusst klein (12px), Exit subtiler als Enter. */
+.aff-screen { transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1), opacity 200ms cubic-bezier(0.32, 0.72, 0, 1), filter 220ms cubic-bezier(0.32, 0.72, 0, 1); }
+.aff-screen.in { transform: translateX(0); opacity: 1; filter: blur(0); }
+.aff-screen.exit-left { transform: translateX(-12px); opacity: 0; filter: blur(3px); position: absolute; inset: 0; }
+.aff-screen.exit-right { transform: translateX(12px); opacity: 0; filter: blur(3px); position: absolute; inset: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .aff-screen { transition: opacity 120ms ease; }
+  .aff-screen.exit-left, .aff-screen.exit-right { transform: none; filter: none; }
+}
 
 /* ── Typography ───────────────────────────────────────────────────────────── */
 .aff-h1 { font-family: var(--font-display), sans-serif; font-weight: 700; font-size: clamp(32px, 5.4vw, 48px); line-height: 1.02; letter-spacing: -0.025em; color: var(--aff-fg); margin: 0; text-wrap: balance; }
@@ -123,9 +129,11 @@
 .aff-section li .mark.num { font-family: var(--font-mono), monospace; color: var(--aff-fg-3); }
 
 /* ── Buttons ──────────────────────────────────────────────────────────────── */
-.aff-btn { appearance: none; border: 1px solid transparent; background: var(--aff-bg-elev); color: var(--aff-fg); padding: 18px 22px; border-radius: var(--aff-radius); font-family: var(--font-body), sans-serif; font-weight: 500; font-size: 16px; letter-spacing: -0.005em; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: transform 120ms ease, background 200ms ease, border-color 200ms ease; width: 100%; }
+.aff-btn { appearance: none; border: 1px solid transparent; background: var(--aff-bg-elev); color: var(--aff-fg); padding: 18px 22px; border-radius: var(--aff-radius); font-family: var(--font-body), sans-serif; font-weight: 500; font-size: 16px; letter-spacing: -0.005em; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: transform 140ms cubic-bezier(0.32, 0.72, 0, 1), background 200ms ease, border-color 200ms ease, box-shadow 200ms ease; width: 100%; }
 .aff-btn:hover:not(:disabled) { transform: translateY(-1px); }
-.aff-btn:active { transform: translateY(0); }
+/* Emil-Pattern: scale(0.97) auf :active für tactile-press, kurze 80ms-Transition damit Press
+   sofort spürbar ist und Release einrastet. */
+.aff-btn:active:not(:disabled) { transform: scale(0.97); transition-duration: 80ms; }
 .aff-btn-primary { background: var(--aff-primary); color: var(--aff-primary-ink); font-weight: 600; }
 .aff-btn-primary:hover:not(:disabled) { background: oklch(0.99 0.002 270); }
 .aff-btn-secondary { background: transparent; color: var(--aff-fg-2); border: 1px solid var(--aff-line); }
@@ -166,10 +174,13 @@
 /* ── Form ─────────────────────────────────────────────────────────────────── */
 .aff-field { display: flex; flex-direction: column; gap: 8px; }
 .aff-field-label { font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--aff-fg-3); }
-.aff-field-input, .aff-field-select { width: 100%; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius-sm); padding: 16px 16px; font-size: 16px; color: var(--aff-fg); transition: border-color 160ms ease, background 160ms ease; }
+.aff-field-input, .aff-field-select { width: 100%; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius-sm); padding: 16px 16px; font-size: 16px; color: var(--aff-fg); transition: border-color 160ms ease, background 160ms ease, box-shadow 200ms cubic-bezier(0.32, 0.72, 0, 1); box-shadow: 0 0 0 3px transparent; }
 .aff-field-input::placeholder { color: var(--aff-fg-4); }
 .aff-field-input:hover, .aff-field-select:hover { border-color: var(--aff-fg-3); }
-.aff-field-input:focus, .aff-field-select:focus { outline: none; border-color: var(--aff-fg); background: oklch(0.10 0.002 270); }
+/* Jakub-Pattern: Box-Shadow-Ring statt nur Border, smoother + adaptiert besser an Dark-BG. */
+.aff-field-input:focus, .aff-field-select:focus { outline: none; border-color: var(--aff-fg); background: oklch(0.10 0.002 270); box-shadow: 0 0 0 3px color-mix(in oklab, var(--aff-fg), transparent 88%); }
+.aff-field-input[aria-invalid="true"] { border-color: var(--aff-accent); }
+.aff-field-input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px color-mix(in oklab, var(--aff-accent), transparent 78%); }
 .aff-field-select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--aff-fg-2) 50%), linear-gradient(135deg, var(--aff-fg-2) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 36px; }
 
 /* ── Segmented ────────────────────────────────────────────────────────────── */
@@ -189,9 +200,21 @@
 /* ── Codeblock ────────────────────────────────────────────────────────────── */
 .aff-codeblock { display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 14px; background: var(--aff-bg-elev); border: 1px dashed var(--aff-line-strong); border-radius: var(--aff-radius-sm); font-family: var(--font-mono), monospace; font-size: 13px; color: var(--aff-fg); }
 .aff-codeblock .url { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--aff-silver); }
-.aff-copybtn { appearance: none; border: 1px solid var(--aff-line-strong); background: var(--aff-bg-card); padding: 7px 10px; border-radius: 6px; font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--aff-fg); cursor: pointer; transition: background 160ms ease; white-space: nowrap; }
+.aff-copybtn { appearance: none; border: 1px solid var(--aff-line-strong); background: var(--aff-bg-card); padding: 7px 10px; border-radius: 6px; font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--aff-fg); cursor: pointer; transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 180ms cubic-bezier(0.32, 0.72, 0, 1); white-space: nowrap; }
 .aff-copybtn:hover { background: var(--aff-fg); color: var(--aff-bg); border-color: var(--aff-fg); }
-.aff-copybtn.copied { background: var(--aff-fg); color: var(--aff-bg); border-color: var(--aff-fg); }
+/* Jakub-Pattern: "Kopiert" mit Blur+Scale-Pop statt hartem Text-Swap. animation überschreibt
+   transform/filter aus :active und triggert bei jedem class-add. */
+.aff-copybtn.copied { background: var(--aff-fg); color: var(--aff-bg); border-color: var(--aff-fg); animation: aff-copy-pop 320ms cubic-bezier(0.16, 1, 0.3, 1); }
+.aff-copybtn:active:not(:disabled) { transform: scale(0.96); transition-duration: 80ms; }
+@keyframes aff-copy-pop {
+  0% { transform: scale(0.92); filter: blur(2px); }
+  55% { transform: scale(1.04); filter: blur(0); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aff-copybtn.copied { animation: none; }
+  .aff-copybtn:active:not(:disabled) { transform: none; }
+}
 
 /* ── Promo (Step 4) — inverted card (white on near-black) ─────────────────── */
 .aff-promo { position: relative; background: var(--aff-fg); color: var(--aff-bg); padding: 30px 28px 28px; border-radius: var(--aff-radius); overflow: hidden; }
@@ -209,6 +232,25 @@
 .aff-share-list .line { display: grid; grid-template-columns: 24px 1fr; gap: 10px; align-items: baseline; font-size: 13.5px; color: var(--aff-fg); line-height: 1.5; }
 .aff-share-list .line .icon { font-family: var(--font-editorial), serif; font-style: italic; color: var(--aff-fg-2); font-weight: 400; font-size: 15px; }
 
+/* ── Werbe-Caption-Cards (Step 4) ─────────────────────────────────────────── */
+.aff-caption-stack { display: flex; flex-direction: column; gap: 10px; }
+.aff-caption-card { display: grid; grid-template-columns: 1fr auto; column-gap: 12px; row-gap: 6px; align-items: end; padding: 14px 14px 12px; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius-sm); }
+.aff-caption-tag { grid-column: 1 / -1; font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--aff-fg-3); }
+.aff-caption-body { grid-column: 1; margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--aff-fg); white-space: pre-wrap; word-break: break-word; }
+.aff-caption-card .aff-copybtn { grid-column: 2; align-self: end; }
+@media (max-width: 480px) {
+  .aff-caption-card { grid-template-columns: 1fr; }
+  .aff-caption-card .aff-copybtn { grid-column: 1; justify-self: end; }
+}
+
+/* ── Resource-Card (Step 4 Playbook-Link) ─────────────────────────────────── */
+.aff-resource-card { display: flex; flex-direction: column; gap: 6px; padding: 18px 18px 16px; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius); text-decoration: none; transition: background 160ms ease, border-color 160ms ease, transform 160ms ease; }
+.aff-resource-card:hover { background: var(--aff-bg-card); border-color: var(--aff-line-strong); transform: translateY(-1px); }
+.aff-resource-eyebrow { font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--aff-fg-3); }
+.aff-resource-title { font-family: var(--font-editorial), serif; font-style: italic; font-size: clamp(18px, 2.4vw, 22px); line-height: 1.25; color: var(--aff-fg); letter-spacing: -0.005em; }
+.aff-resource-meta { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--aff-fg-2); margin-top: 4px; }
+.aff-resource-meta svg { opacity: 0.7; }
+
 /* ── Layout helpers ───────────────────────────────────────────────────────── */
 .aff-pad { padding: 36px 36px 40px; }
 .aff-stack-lg { display: flex; flex-direction: column; gap: 32px; }
@@ -217,8 +259,22 @@
 .aff-cta-stack { display: flex; flex-direction: column; gap: 12px; }
 .aff-footer-note { text-align: center; font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--aff-fg-4); padding-top: 8px; }
 
-.aff-bigcheck { width: 92px; height: 92px; border-radius: 50%; background: var(--aff-bg-elev); border: 1px solid var(--aff-line-strong); color: var(--aff-fg); display: flex; align-items: center; justify-content: center; margin: 0 auto; }
-.aff-bigcheck svg { width: 48px; height: 48px; }
+/* Step 4 Celebration: einzige Stelle wo wir Jhey-Touch erlauben, weil rare + Reward-Moment.
+   Spring-like cubic-bezier mit leichtem Overshoot, Blur signalisiert "Materialisierung". */
+.aff-bigcheck { width: 92px; height: 92px; border-radius: 50%; background: var(--aff-bg-elev); border: 1px solid var(--aff-line-strong); color: var(--aff-fg); display: flex; align-items: center; justify-content: center; margin: 0 auto; animation: aff-bigcheck-in 540ms cubic-bezier(0.16, 1.2, 0.3, 1) both; }
+.aff-bigcheck svg { width: 48px; height: 48px; animation: aff-bigcheck-stroke 480ms 180ms cubic-bezier(0.65, 0, 0.35, 1) both; }
+@keyframes aff-bigcheck-in {
+  0%   { opacity: 0; transform: scale(0.6); filter: blur(8px); }
+  55%  { opacity: 1; filter: blur(0); }
+  100% { transform: scale(1); }
+}
+@keyframes aff-bigcheck-stroke {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aff-bigcheck, .aff-bigcheck svg { animation: none; }
+}
 
 /* ── Calculator (Step 1) ──────────────────────────────────────────────────── */
 .aff-calc { display: flex; flex-direction: column; gap: 22px; padding: 24px 22px 22px; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius); }
@@ -242,16 +298,32 @@
 .aff-calc .stream-divider .label { font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--aff-fg-2); }
 .aff-calc .stream-divider .label .plus { font-family: var(--font-display), sans-serif; font-weight: 600; font-size: 16px; color: var(--aff-fg); margin-right: 6px; line-height: 0; position: relative; top: 2px; }
 .aff-calc .stream-sub { font-family: var(--font-editorial), serif; font-style: italic; font-size: 13px; color: var(--aff-fg-3); margin-top: -8px; margin-bottom: 6px; }
-.aff-calc .total-pop { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 18px 18px 16px; background: var(--aff-fg); color: var(--aff-bg); border-radius: var(--aff-radius-sm); }
+.aff-calc .total-pop { position: sticky; bottom: 12px; z-index: 2; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 20px 22px 18px; background: var(--aff-fg); color: var(--aff-bg); border-radius: var(--aff-radius); overflow: hidden; box-shadow: 0 22px 38px -18px oklch(0 0 0 / 0.6), 0 0 0 1px var(--aff-fg); }
+/* Warm-Amber-Glow als brand-accent shimmer im Hintergrund — niedriger Kontrast,
+   reine Atmosphäre, keine pulsing-loop (Anti-Pattern). */
+.aff-calc .total-pop::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.55;
+  background:
+    radial-gradient(180px 120px at 12% 0%, oklch(0.78 0.10 60 / 0.20) 0%, transparent 70%),
+    radial-gradient(220px 140px at 95% 100%, oklch(0.74 0.12 30 / 0.16) 0%, transparent 70%);
+}
+@media (prefers-reduced-motion: reduce) { .aff-calc .total-pop { position: static; box-shadow: 0 0 0 1px var(--aff-fg); } }
+.aff-calc .total-pop > * { position: relative; z-index: 1; }
 .aff-calc .total-pop .tp-label { font-family: var(--font-editorial), serif; font-style: italic; font-size: 14px; line-height: 1.25; max-width: 55%; }
 .aff-calc .total-pop .tp-label small { display: block; font-family: var(--font-mono), monospace; font-size: 9.5px; font-style: normal; letter-spacing: 0.18em; opacity: 0.65; margin-top: 4px; text-transform: uppercase; }
-.aff-calc .total-pop .tp-value { font-family: var(--font-display), sans-serif; font-weight: 700; font-size: clamp(30px, 7vw, 40px); line-height: 1; letter-spacing: -0.04em; white-space: nowrap; }
-.aff-calc .total-pop .tp-value .small { font-family: var(--font-editorial), serif; font-style: italic; font-weight: 400; font-size: 14px; margin-left: 4px; letter-spacing: 0; opacity: 0.7; }
+.aff-calc .total-pop .tp-value { font-family: var(--font-display), sans-serif; font-weight: 700; font-size: clamp(34px, 7.6vw, 46px); line-height: 1; letter-spacing: -0.045em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.aff-calc .total-pop .tp-value .small { font-family: var(--font-editorial), serif; font-style: italic; font-weight: 400; font-size: 14px; margin-left: 6px; letter-spacing: 0; opacity: 0.75; }
 .aff-calc .formula-hint { font-size: 11.5px; line-height: 1.5; color: var(--aff-fg-3); padding: 0 4px; }
 .aff-calc .formula-hint b { color: var(--aff-fg); font-weight: 600; }
-.aff-calc .mini-rows { display: grid; grid-template-columns: 1fr auto; row-gap: 4px; column-gap: 12px; font-family: var(--font-mono), monospace; font-size: 12px; color: var(--aff-fg-3); padding: 2px 4px 0; }
-.aff-calc .mini-rows .v { color: var(--aff-fg); text-align: right; }
+.aff-calc .mini-rows { display: grid; grid-template-columns: 1fr auto; row-gap: 7px; column-gap: 12px; font-family: var(--font-mono), monospace; font-size: 12.5px; color: var(--aff-fg-3); padding: 14px 16px 12px; background: oklch(0.06 0.002 270); border: 1px solid var(--aff-line); border-radius: var(--aff-radius-sm); }
+.aff-calc .mini-rows .v { color: var(--aff-fg); text-align: right; font-variant-numeric: tabular-nums; }
 .aff-calc .mini-rows .arrow { color: var(--aff-fg-3); margin-right: 4px; }
+/* "(Annahme X)"-Inline-Pill: dezenter italic-Hint statt rohem Kursiv. */
+.aff-calc .mini-rows i { font-family: var(--font-editorial), serif; font-style: italic; font-size: 11.5px; color: var(--aff-fg-4); margin-left: 2px; }
+/* Final-Result-Row (letzte zwei Grid-Cells): Trennlinie + bold, damit Auge die Summe findet. */
+.aff-calc .mini-rows > span:nth-last-child(-n+2) { padding-top: 8px; margin-top: 1px; border-top: 1px dashed var(--aff-line-strong); color: var(--aff-fg); font-weight: 600; }
+.aff-calc .mini-rows > span:nth-last-child(-n+2) .arrow { color: var(--aff-silver); }
+.aff-calc .mini-rows > span:nth-last-child(-n+2) i { color: var(--aff-fg-3); }
 
 /* ── Stream cards ─────────────────────────────────────────────────────────── */
 .aff-streams-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 6px; }

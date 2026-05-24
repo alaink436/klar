@@ -5,7 +5,7 @@
 // one file because they share types + helpers and Next.js bundles them as
 // a single chunk anyway.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Brand, BrandKey, BRANDS, STEPS, StepKey, getTrackingUrl } from "./brands";
 
 // ── Icons ────────────────────────────────────────────────────────────────────
@@ -39,6 +39,16 @@ const ChartIcon = (p: React.SVGProps<SVGSVGElement>) => (
 const CheckIcon = (p: React.SVGProps<SVGSVGElement>) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
     <polyline points="5 12 10 17 19 7"/>
+  </svg>
+);
+const ShareIcon = (p: React.SVGProps<SVGSVGElement>) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M12 3v13"/><path d="M7 8l5-5 5 5"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>
+  </svg>
+);
+const ExternalIcon = (p: React.SVGProps<SVGSVGElement>) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M20 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5"/>
   </svg>
 );
 
@@ -98,17 +108,19 @@ function IconPanel({ brand, tagline }: { brand: Brand; tagline?: string }) {
 function StreamCardsForBrand({ brand }: { brand: Brand }) {
   const months = brand.attributionMonths || 12;
   const s2 = brand.secondStream;
+  const isSub = /\/mo|\/m/i.test(brand.productPrice);
   return (
     <div className={`aff-streams-grid${s2 ? "" : " single"}`}>
       <div className="aff-stream-card">
         <span className="stream-num">①</span>
-        <div className="stream-eyebrow">Premium-Abos</div>
+        <div className="stream-eyebrow">{isSub ? "Premium-Abos" : "Premium-Verkäufe"}</div>
         <div className="stream-title">
-          {brand.commissionPct} % <span className="italic">der Sub.</span>
+          {brand.commissionPct} % <span className="italic">{isSub ? "der Sub." : "pro Verkauf."}</span>
         </div>
         <div className="stream-detail">
-          Pro Premium-Kauf bekommst du <b>{brand.commissionPct} %</b> der Sub-Einnahmen,
-          {" "}<b>{months} Monate lang</b>. {brand.productPrice ? `Sub-Preis ${brand.productPrice}.` : ""}
+          {isSub
+            ? <>Pro Premium-Kauf bekommst du <b>{brand.commissionPct} %</b> der Sub-Einnahmen, <b>{months} Monate lang</b>. {brand.productPrice ? `Sub-Preis ${brand.productPrice}.` : ""}</>
+            : <>Pro Premium-Verkauf bekommst du <b>{brand.commissionPct} %</b> des Verkaufspreises. {brand.productPrice ? `Preis ${brand.productPrice}.` : ""} <b>{months} Monate Cookie-Window</b>.</>}
         </div>
       </div>
       {s2 ? (
@@ -232,17 +244,47 @@ function brandPrice(brand: Brand) {
   return parseFloat(String(brand.productPrice).replace(/[^0-9.,]/g, "").replace(",", ".")) || 0;
 }
 
+// Tween-Number-Hook: interpoliert zwischen prev und next Wert über `duration` ms mit
+// ease-out-cubic. Respektiert prefers-reduced-motion: dann snap-to-value. Wird im
+// Calculator-Total verwendet damit Slider-Bewegung einen flüssigen Euro-Zähler triggert
+// statt harten Sprung. Reine RAF-Implementation, keine externe Dep.
+function useTweenNumber(value: number, duration = 280): number {
+  const [display, setDisplay] = useState(value);
+  const rafRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (typeof window === "undefined") { setDisplay(value); return; }
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) { setDisplay(value); return; }
+    const from = display;
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - t0) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplay(p === 1 ? value : from + (value - from) * eased);
+      if (p < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  // display darf nicht in deps, sonst Endlos-Loop
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, duration]);
+  return display;
+}
+
 // ── Calculator ──────────────────────────────────────────────────────────────
 function Calculator({ brand }: { brand: Brand }) {
-  const [followers, setFollowers] = useState(12000);
-  const [views, setViews] = useState(30000);
-  const [convPct, setConvPct] = useState(9);
+  const [views, setViews] = useState(50000);
+  const [convPct, setConvPct] = useState(10);
   const s2 = brand.secondStream;
   const [s2Rate, setS2Rate] = useState(s2?.defaultRate ?? 0);
   const [s2Basket, setS2Basket] = useState(s2?.defaultBasket ?? 0);
 
-  const BIO_CTR = 0.025;
-  const INSTALL_RATE = 0.40;
+  // Annahmen offen ausgewiesen (siehe formula-hint unter den mini-rows). Realistisch
+  // für gut-getargetete Creator: 3,5 % Bio-CTR (Hook-driven Captions schaffen 3-5 %),
+  // 28 % Install-aus-Klick (Branchenwert für Lifestyle/Utility iOS mit poliertem
+  // Store-Listing liegt in 25-35 %). Bleibt deutlich unter "Show"-Werten (40 %+).
+  const BIO_CTR = 0.035;
+  const INSTALL_RATE = 0.28;
 
   const clicks = Math.round(views * BIO_CTR);
   const installs = Math.round(clicks * INSTALL_RATE);
@@ -268,21 +310,11 @@ function Calculator({ brand }: { brand: Brand }) {
   }
 
   const total = streamOne + streamTwo;
+  const totalTween = useTweenNumber(total);
   const fmt = (n: number) => Math.round(n).toLocaleString("de-DE");
-
-  // Suppress unused-var warning for followers (slider influences views indirectly via UX expectation)
-  void followers;
 
   return (
     <div className="aff-calc">
-      <div className="slider-row">
-        <div className="slider-head">
-          <span className="name">Follower auf Instagram &middot; TikTok</span>
-          <NumInput value={followers} setValue={setFollowers} min={500} max={1_000_000} ariaLabel="Follower-Anzahl" />
-        </div>
-        <LogSlider value={followers} setValue={setFollowers} min={500} max={1_000_000} ticks={[500, 5000, 50000, 500000, 1_000_000]} ariaLabel="Follower-Anzahl" />
-      </div>
-
       <div className="slider-row">
         <div className="slider-head">
           <span className="name">Views pro Monat &middot; alle Posts zusammen</span>
@@ -313,11 +345,11 @@ function Calculator({ brand }: { brand: Brand }) {
       </div>
 
       <div className="mini-rows">
-        <span><span className="arrow">→</span> Bio-Klicks (2,5 % der Views)</span>
+        <span><span className="arrow">→</span> Bio-Klicks <i>(Annahme {(BIO_CTR * 100).toFixed(1).replace(".", ",")} % der Views)</i></span>
         <span className="v">{fmt(clicks)}</span>
-        <span><span className="arrow">→</span> Installs (40 % der Klicks)</span>
+        <span><span className="arrow">→</span> Installs <i>(Annahme {Math.round(INSTALL_RATE * 100)} % der Klicks)</i></span>
         <span className="v">{fmt(installs)}</span>
-        <span><span className="arrow">→</span> Premium-Käufer ({convPct} %)</span>
+        <span><span className="arrow">→</span> Premium-Käufer <i>({convPct} % Conv)</i></span>
         <span className="v">{fmt(buyers)}</span>
         <span><span className="arrow">→</span> {brand.productPriceShort || brand.productPrice} &times; {brand.commissionPct} %</span>
         <span className="v">{fmt(streamOne)} €{isSub ? "/mo" : ""}</span>
@@ -366,9 +398,13 @@ function Calculator({ brand }: { brand: Brand }) {
 
       <div className="total-pop">
         <span className="tp-label">
-          {s2 ? <>Gesamt monatlich an dich <small>Stream 1 + Stream 2</small></> : <>monatlich an dich {isSub ? <small>{months} Monate lang</small> : null}</>}
+          {s2
+            ? <>{isSub ? "Gesamt monatlich an dich" : "Gesamt pro Cohort"} <small>Stream 1 + Stream 2</small></>
+            : isSub
+              ? <>monatlich an dich <small>{months} Monate lang</small></>
+              : <>pro Cohort an dich <small>One-Shot Premium-Verkauf</small></>}
         </span>
-        <span className="tp-value">{fmt(total)} €<span className="small">/ mo</span></span>
+        <span className="tp-value">{fmt(totalTween)} €{isSub ? <span className="small">/ mo</span> : null}</span>
       </div>
 
       <p className="formula-hint" style={{ textAlign: "center" }}>
@@ -521,7 +557,7 @@ function AttributionDiagram({ brand }: { brand: Brand }) {
       </svg>
 
       <figcaption style={{ padding: "10px 12px 4px", fontSize: 12, lineHeight: 1.5, color: "var(--aff-fg-3)", textAlign: "center" }}>
-        Vier Stationen, ein Link. Awin prüft 30 Tage gegen Refunds, danach landet dein Anteil per Stripe-Connect auf deinem Konto.
+        Vier Stationen, ein Link. 30 Tage Refund-Holdback nach jedem Kauf, danach landet dein Anteil per Wise auf deinem Konto.
       </figcaption>
     </figure>
   );
@@ -559,37 +595,6 @@ function StepWelcome({ brand, go, handle }: { brand: Brand; go: () => void; hand
         <Calculator brand={brand} />
       </div>
 
-      <AccSection tag={`001 // was ist ${brand.short.toLowerCase()}.`} title={<>was ist <span className="italic">{brand.short}</span>.</>} pitch="60-sec breakdown">
-        <p style={{ fontSize: 15, lineHeight: 1.6, color: "var(--aff-fg-2)", margin: 0 }}>
-          Ein <i>{brand.productLine}</i>. Native iOS-App, designed in Europa, ohne Tracker, mit klarer Premium-Logik. Deine Audience bekommt ein Tool das aussieht und sich anfühlt wie für sie gebaut.
-        </p>
-      </AccSection>
-
-      <AccSection tag="002 // passt zu audience." title={<>passt zu deiner <span className="italic">audience.</span></>} pitch="4 niches that convert">
-        <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
-          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>✦</span><span>{brand.audience}, die Tools statt Hacks suchen</span></li>
-          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>✦</span><span>Mobile-first, kein Login auf Web nötig, kein Account-Stress</span></li>
-          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>✦</span><span>Hoher Wiederwert, App wird täglich geöffnet</span></li>
-          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>✦</span><span>Premium-Conversion liegt im Schnitt bei 8 bis 12 Prozent</span></li>
-        </ul>
-      </AccSection>
-
-      <AccSection tag="003 // content-ideen." title={<>content-<span className="italic">ideen.</span></>} pitch="3 reels-formats">
-        <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
-          <li style={{ display: "grid", gridTemplateColumns: "22px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12, color: "var(--aff-fg-3)" }}>01</span><span>Stash-Tour Reel mit Voice-over, 30 bis 45 Sekunden</span></li>
-          <li style={{ display: "grid", gridTemplateColumns: "22px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12, color: "var(--aff-fg-3)" }}>02</span><span>Vorher-Nachher Foto: Chaos zu sortiertem Atelier</span></li>
-          <li style={{ display: "grid", gridTemplateColumns: "22px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12, color: "var(--aff-fg-3)" }}>03</span><span>Honest-Review im Vlog-Stil mit Link in der Caption</span></li>
-        </ul>
-      </AccSection>
-
-      <AccSection tag="004 // was du sonst bekommst." title={<>was du <span className="italic">sonst</span> bekommst.</>} pitch="link, dashboard, payout">
-        <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
-          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>€</span><span><b>Persönlicher Tracking-Link</b>, Attribution serverseitig, kein Code nötig</span></li>
-          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>€</span><span><b>Live-Dashboard</b> mit Klicks, Installs, Käufen, Auszahlungen</span></li>
-          <li style={{ display: "grid", gridTemplateColumns: "18px 1fr", gap: 12, alignItems: "baseline", fontSize: 15, lineHeight: 1.55, color: "var(--aff-fg)" }}><span style={{ color: "var(--aff-fg-3)" }}>€</span><span><b>Auszahlung monatlich</b> per Wise</span></li>
-        </ul>
-      </AccSection>
-
       <div className="aff-cta-stack">
         <button className="aff-btn aff-btn-primary" onClick={go}>
           Weiter <ArrowRight />
@@ -606,7 +611,7 @@ function StepTracking({ brand, go, prev }: { brand: Brand; go: () => void; prev:
       <div className="aff-stack-md">
         <h1 className="aff-h1 small">So funktioniert <span className="italic">das Tracking.</span></h1>
         <p className="aff-lede">
-          DIY-Attribution, kein Awin-Pixel auf deiner Seite nötig. Dein Link erkennt dich automatisch wieder, der Rest passiert serverseitig.
+          Selbst-attributiert, kein zusätzlicher Tracker auf deiner Seite nötig. Dein Link erkennt dich automatisch wieder, der Rest passiert serverseitig bei uns.
         </p>
       </div>
 
@@ -642,15 +647,18 @@ function StepTracking({ brand, go, prev }: { brand: Brand; go: () => void; prev:
 }
 
 // ── Step 3 · Payout ─────────────────────────────────────────────────────────
-function StepPayout({ go, prev, state, setState, onSubmit }: { go: () => void; prev: () => void; state: PayoutState; setState: (s: PayoutState) => void; onSubmit?: (s: PayoutState) => Promise<void> }) {
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function StepPayout({ brand, go, prev, state, setState, onSubmit }: { brand: Brand; go: () => void; prev: () => void; state: PayoutState; setState: (s: PayoutState) => void; onSubmit?: (s: PayoutState) => Promise<void> }) {
   const f = state;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailTouched, setEmailTouched] = useState(false);
   const set = <K extends keyof PayoutState>(k: K, v: PayoutState[K]) => setState({ ...f, [k]: v });
+  const emailOk = EMAIL_RE.test(f.handle.trim());
   const valid = f.displayName.trim().length > 1
-    && f.handle.length > 1
+    && emailOk
     && f.country
-    && /@/.test(f.handle)
     && f.taxStatus
     && f.agreementAccepted;
 
@@ -674,7 +682,7 @@ function StepPayout({ go, prev, state, setState, onSubmit }: { go: () => void; p
       <div className="aff-stack-md">
         <h1 className="aff-h1 small">Wohin geht <span className="italic">das Geld?</span></h1>
         <p className="aff-lede">
-          Wir zahlen monatlich aus, sobald 25 € erreicht sind. Du kannst die Daten später jederzeit im Dashboard ändern.
+          Wir zahlen monatlich aus, sobald 50 € erreicht sind. Beträge darunter laufen in den nächsten Monatslauf. Daten kannst du jederzeit im Dashboard ändern.
         </p>
       </div>
 
@@ -708,7 +716,22 @@ function StepPayout({ go, prev, state, setState, onSubmit }: { go: () => void; p
 
         <div className="aff-field">
           <label className="aff-field-label">E-Mail deines Wise-Kontos</label>
-          <input className="aff-field-input" value={f.handle} placeholder="pay@molly.studio" onChange={(e) => set("handle", e.target.value)} />
+          <input
+            className="aff-field-input"
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            value={f.handle}
+            placeholder="pay@molly.studio"
+            onChange={(e) => set("handle", e.target.value)}
+            onBlur={() => setEmailTouched(true)}
+            aria-invalid={emailTouched && !emailOk}
+          />
+          {emailTouched && !emailOk && f.handle.length > 0 ? (
+            <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--aff-fg-2)" }}>
+              Bitte gib eine vollständige E-Mail-Adresse ein, die mit deinem Wise-Konto verknüpft ist.
+            </p>
+          ) : null}
         </div>
 
         <div className="aff-field">
@@ -735,7 +758,9 @@ function StepPayout({ go, prev, state, setState, onSubmit }: { go: () => void; p
           <span className="box" />
           <span className="ctext">
             Ich akzeptiere die <a href="/legal/affiliate-agreement" target="_blank" rel="noopener noreferrer" style={{ color: "var(--aff-fg)", textDecoration: "underline", textUnderlineOffset: 2 }}>Affiliate-Bedingungen</a> der Version v1.0.
-            <small>50&nbsp;% Sub-Anteil, 24 Monate Attribution, 30 Tage Refund-Holdback, monatliche Auszahlung ab 50&nbsp;EUR. IP und Zeitstempel werden für den Audit-Trail gespeichert.</small>
+            <small>
+              {brand.commissionPct}&nbsp;%&nbsp;{brand.streamLabel?.toLowerCase().includes("abo") ? "Sub-Anteil" : "Anteil"}, {brand.attributionMonths}&nbsp;Monate Attribution, 30 Tage Refund-Holdback, monatliche Auszahlung ab 50&nbsp;€. IP und Zeitstempel werden für den Audit-Trail gespeichert.
+            </small>
           </span>
         </label>
       </div>
@@ -756,7 +781,7 @@ function StepPayout({ go, prev, state, setState, onSubmit }: { go: () => void; p
       </div>
 
       <p className="aff-consent">
-        Mit Klick auf <i>abschließen</i> bestätigst du, dass die Angaben korrekt sind und du die <a href="#">Affiliate-Bedingungen</a> sowie die <a href="#"> Datenschutzerklärung</a> gelesen hast. Du kannst jederzeit kündigen, ausstehende Provisionen verfallen nicht.
+        Mit Klick auf <i>abschließen</i> bestätigst du, dass die Angaben korrekt sind und du die <a href="/legal/affiliate-agreement" target="_blank" rel="noopener noreferrer">Affiliate-Bedingungen</a> inklusive der Datenschutz-Hinweise in §05 gelesen hast. Du kannst jederzeit kündigen, ausstehende Provisionen verfallen nicht.
       </p>
     </div>
   );
@@ -765,6 +790,7 @@ function StepPayout({ go, prev, state, setState, onSubmit }: { go: () => void; p
 // ── Step 4 · Live ───────────────────────────────────────────────────────────
 function StepLive({ brand, state, handle }: { brand: Brand; state: PayoutState; handle: string }) {
   const [copied, setCopied] = useState<string | null>(null);
+  const [canShare, setCanShare] = useState(false);
   // Tracking link target depends on the brand. Apps with their own
   // tracking-landing domain (wavelength, kelva, trubel, myloo) keep pointing
   // there. Apps without a sister domain (yarn-stash, throttleup) land on
@@ -773,11 +799,28 @@ function StepLive({ brand, state, handle }: { brand: Brand; state: PayoutState; 
   const slug = handle.replace(/^@/, "").toLowerCase().replace(/[^a-z0-9_.-]/g, "") || "creator";
   const trackingUrl = getTrackingUrl(brand.key, slug);
 
+  useEffect(() => {
+    setCanShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
+  }, []);
+
   const copy = (key: string, value: string) => {
     try { navigator.clipboard.writeText(value); } catch (_) { /* noop */ }
     setCopied(key);
     setTimeout(() => setCopied(null), 1400);
   };
+
+  const share = async () => {
+    try {
+      await navigator.share({
+        title: `${brand.name} · Affiliate-Link`,
+        text: `Ich nutze ${brand.name} seit ein paar Wochen, hier ist mein Link:`,
+        url: trackingUrl,
+      });
+    } catch (_) { /* user cancel or unsupported, noop */ }
+  };
+
+  const captionShort = `Werbung · ${brand.name} App, Link in der Bio. ${trackingUrl}`;
+  const captionLong = `Werbung · Ich nutze ${brand.name} seit ein paar Wochen und mag, wie viel Alltag mir das spart. Wenn du es testen willst: ${trackingUrl}`;
 
   return (
     <div className="aff-pad aff-stack-lg">
@@ -801,7 +844,43 @@ function StepLive({ brand, state, handle }: { brand: Brand; state: PayoutState; 
             {copied === "url" ? "Kopiert" : "Kopieren"}
           </button>
         </div>
+        {canShare ? (
+          <button className="aff-btn aff-btn-secondary" style={{ width: "100%", justifyContent: "center" }} onClick={share}>
+            <ShareIcon /> Link teilen
+          </button>
+        ) : null}
       </div>
+
+      <div className="aff-section">
+        <span className="aff-eyebrow">Werbe-Caption · zum Kopieren</span>
+        <div className="aff-caption-stack">
+          <div className="aff-caption-card">
+            <span className="aff-caption-tag">Story / Bio</span>
+            <p className="aff-caption-body">{captionShort}</p>
+            <button className={`aff-copybtn${copied === "cap-short" ? " copied" : ""}`} onClick={() => copy("cap-short", captionShort)}>
+              {copied === "cap-short" ? "Kopiert" : "Kopieren"}
+            </button>
+          </div>
+          <div className="aff-caption-card">
+            <span className="aff-caption-tag">Reel / Post</span>
+            <p className="aff-caption-body">{captionLong}</p>
+            <button className={`aff-copybtn${copied === "cap-long" ? " copied" : ""}`} onClick={() => copy("cap-long", captionLong)}>
+              {copied === "cap-long" ? "Kopiert" : "Kopieren"}
+            </button>
+          </div>
+        </div>
+        <p className="formula-hint" style={{ padding: "0 4px" }}>
+          <i>Werbung</i> oder <i>Anzeige</i> gehört in die ersten Zeilen, dann ist die UWG-Kennzeichnung sauber. Restlichen Text gerne in deinen Voice umschreiben.
+        </p>
+      </div>
+
+      {brand.assetsDriveUrl ? (
+        <a href={brand.assetsDriveUrl} target="_blank" rel="noopener noreferrer" className="aff-resource-card">
+          <span className="aff-resource-eyebrow">{brand.pdfTitle}</span>
+          <span className="aff-resource-title">{brand.pdfHint}</span>
+          <span className="aff-resource-meta">Google Drive · Logos, Screenshots, Playbook-PDF <ExternalIcon /></span>
+        </a>
+      ) : null}
 
       <div className="aff-section">
         <span className="aff-eyebrow">So teilst du</span>
@@ -833,9 +912,9 @@ function StepLive({ brand, state, handle }: { brand: Brand; state: PayoutState; 
 }
 
 // ── Onboarding Shell (main export) ──────────────────────────────────────────
-export function OnboardingShell({ brand: brandKey, handle, onSubmit }: { brand: BrandKey; handle: string; onSubmit?: (s: PayoutState) => Promise<void> }) {
+export function OnboardingShell({ brand: brandKey, handle, onSubmit, initialStep = 0 }: { brand: BrandKey; handle: string; onSubmit?: (s: PayoutState) => Promise<void>; initialStep?: number }) {
   const brand = BRANDS[brandKey];
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(initialStep);
   const [dir, setDir] = useState(1);
   const [renderStep, setRenderStep] = useState(0);
   const [phase, setPhase] = useState<"in" | "out">("in");
@@ -882,7 +961,7 @@ export function OnboardingShell({ brand: brandKey, handle, onSubmit }: { brand: 
     switch (key) {
       case "welcome":  return <StepWelcome brand={brand} go={next} handle={handle} />;
       case "tracking": return <StepTracking brand={brand} go={next} prev={prev} />;
-      case "payout":   return <StepPayout go={next} prev={prev} state={payout} setState={setPayout} onSubmit={onSubmit} />;
+      case "payout":   return <StepPayout brand={brand} go={next} prev={prev} state={payout} setState={setPayout} onSubmit={onSubmit} />;
       case "live":     return <StepLive brand={brand} state={payout} handle={handle} />;
       default:         return null;
     }
