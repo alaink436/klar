@@ -39,7 +39,7 @@ export default function MyLooSetupPage({ params }: { params: Promise<{ token: st
 
   if (!data) return <Status expired />;
   if (data.status === "active") return <Status alreadyDoneHandle={data.handle} />;
-  return <SetupClient token={token} handle={data.handle} displayName={data.display_name ?? ""} />;
+  return <SetupClient token={token} handle={data.handle} displayName={data.display_name ?? ""} language={data.language ?? "de"} />;
 }
 
 function Status({ alreadyDoneHandle, expired }: { alreadyDoneHandle?: string; expired?: boolean }) {

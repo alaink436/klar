@@ -23,6 +23,16 @@ export interface SecondStream {
   recurring: boolean;
 }
 
+/** Localized brand strings — strings that change per language. brand.name and
+ *  brand.short stay identical across languages (App-Names are brand-identity).
+ *  Falls back to DE root field when a key is missing for the target lang. */
+export interface BrandI18n {
+  handTagline?: string;
+  pdfTitle?: string;
+  pdfHint?: string;
+  vibe?: string;
+}
+
 export interface Brand {
   key: BrandKey;
   name: string;
@@ -50,6 +60,17 @@ export interface Brand {
   domain: string;
   handTagline: string;
   secondStream?: SecondStream;
+  /** Optional per-language overrides for localized strings. */
+  i18n?: { en?: BrandI18n; es?: BrandI18n };
+}
+
+/** Resolves a localized brand string with DE fallback. */
+export function brandText(brand: Brand, key: keyof BrandI18n, lang: "de" | "en" | "es"): string {
+  if (lang !== "de") {
+    const v = brand.i18n?.[lang]?.[key];
+    if (typeof v === "string") return v;
+  }
+  return brand[key] as string;
 }
 
 export type BrandKey = "yarnstash" | "throttleup" | "wavelength" | "kelva" | "trubel" | "myloo";
@@ -102,6 +123,19 @@ export const BRANDS: Record<BrandKey, Brand> = {
     pdfHint: "Hook-Formate, Reels-Skripte, 30-Tage-Kalender",
     domain: "yarn-stash.app",
     handTagline: "willkommen ✿",
+    i18n: {
+      es: {
+        handTagline: "bienvenida ✿",
+        pdfTitle: "Playbook estratégico",
+        pdfHint: "Formatos de hook, scripts de Reels, calendario de 30 días",
+        vibe: "Atelier cálido, paper-flooded, italic editorial",
+      },
+      en: {
+        handTagline: "welcome ✿",
+        pdfTitle: "Strategy Playbook",
+        pdfHint: "Hook formats, Reels scripts, 30-day calendar",
+      },
+    },
     secondStream: {
       kind: "yarn-shop",
       label: "Garn-Provisionen",
@@ -139,6 +173,14 @@ export const BRANDS: Record<BrandKey, Brand> = {
     pdfHint: "Build-Story Hooks, Garage-B-Roll, Spec-Drop-Framework",
     domain: "throttleup.app",
     handTagline: "let it rip",
+    i18n: {
+      es: {
+        handTagline: "dale gas",
+        pdfTitle: "Creator Playbook",
+        pdfHint: "Build-Story Hooks, garage B-roll, framework de spec-drop",
+        vibe: "Taller de garaje, brutalismo mecánico",
+      },
+    },
   },
   wavelength: {
     key: "wavelength",
@@ -161,6 +203,14 @@ export const BRANDS: Record<BrandKey, Brand> = {
     pdfHint: "Productivity hooks, before/after carousels, weekly retro template",
     domain: "wavelength.so",
     handTagline: "stay in flow",
+    i18n: {
+      es: {
+        handTagline: "fluye",
+        pdfTitle: "Creator Brief",
+        pdfHint: "Hooks de productividad, carruseles antes/después, plantilla de retro semanal",
+        vibe: "Productividad calma, SaaS dark moderno",
+      },
+    },
   },
   kelva: {
     key: "kelva",
@@ -183,6 +233,14 @@ export const BRANDS: Record<BrandKey, Brand> = {
     pdfHint: "Long-form caption frames, soft-launch script, science-backed angles",
     domain: "kelva.app",
     handTagline: "a gentler signal",
+    i18n: {
+      es: {
+        handTagline: "una señal más suave",
+        pdfTitle: "Editorial Brief",
+        pdfHint: "Frames de caption largos, script de soft-launch, ángulos con base científica",
+        vibe: "Calma editorial, limpio tipo Apple Health, glass premium",
+      },
+    },
   },
   trubel: {
     key: "trubel",
@@ -205,6 +263,14 @@ export const BRANDS: Record<BrandKey, Brand> = {
     pdfHint: "Stitch hooks, screenshot-meme frames, in-app cap captures",
     domain: "trubel.club",
     handTagline: "lets gooo",
+    i18n: {
+      es: {
+        handTagline: "vamos ya",
+        pdfTitle: "Sticker Pack & Brief",
+        pdfHint: "Hooks de stitch, frames de screenshot-meme, capturas in-app",
+        vibe: "Cutout zine Y2K, fiesta, collage de stickers",
+      },
+    },
     secondStream: {
       kind: "album-buy",
       label: "4k-Album-Käufe",
@@ -242,6 +308,14 @@ export const BRANDS: Record<BrandKey, Brand> = {
     pdfHint: "Sensitive-topic framing, day-in-life scripts, privacy claims sheet",
     domain: "myloo.health",
     handTagline: "with care",
+    i18n: {
+      es: {
+        handTagline: "con cuidado",
+        pdfTitle: "Quiet Creator Brief",
+        pdfHint: "Encuadre para temas sensibles, scripts day-in-life, hoja de claims de privacidad",
+        vibe: "Editorial ligero, privacy-first, limpio tipo Apple Health",
+      },
+    },
   },
 };
 

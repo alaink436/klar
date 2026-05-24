@@ -8,10 +8,12 @@
 import { OnboardingShell } from "../../_shared/onboarding";
 import type { PayoutState } from "../../_shared/onboarding";
 import { BRANDS } from "../../_shared/brands";
+import { normalizeLang } from "../../_shared/i18n";
 
 const BRAND = BRANDS.trubel;
 
-export function SetupClient({ token, handle, displayName }: { token: string; handle: string; displayName: string }) {
+export function SetupClient({ token, handle, displayName, language }: { token: string; handle: string; displayName: string; language?: string }) {
+  const lang = normalizeLang(language);
   void displayName;
   async function onSubmit(form: PayoutState) {
     const res = await fetch("/api/affiliate/complete", {
@@ -34,5 +36,5 @@ export function SetupClient({ token, handle, displayName }: { token: string; han
     if (!res.ok || !j?.ok) throw new Error(j?.error || `HTTP ${res.status}`);
   }
 
-  return <OnboardingShell brand="trubel" handle={`@${handle}`} onSubmit={onSubmit} />;
+  return <OnboardingShell brand="trubel" handle={`@${handle}`} onSubmit={onSubmit} lang={lang} />;
 }

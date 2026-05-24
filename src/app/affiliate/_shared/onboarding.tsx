@@ -6,7 +6,8 @@
 // a single chunk anyway.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Brand, BrandKey, BRANDS, STEPS, StepKey, getTrackingUrl } from "./brands";
+import { Brand, BrandKey, BRANDS, STEPS, StepKey, getTrackingUrl, brandText } from "./brands";
+import { getMessages, type Lang, type Messages } from "./i18n";
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 const ArrowRight = (p: React.SVGProps<SVGSVGElement>) => (
@@ -66,18 +67,26 @@ export interface PayoutState {
 }
 
 // ── Top frame (icon header + progress bars + step label) ───────────────────
-function Topframe({ brand, step }: { brand: Brand; step: number }) {
+function stepLabel(t: Messages, key: StepKey): string {
+  switch (key) {
+    case "welcome": return t.stepWelcome;
+    case "tracking": return t.stepTracking;
+    case "payout": return t.stepPayout;
+    case "live": return t.stepLive;
+  }
+}
+function Topframe({ brand, step, t, lang }: { brand: Brand; step: number; t: Messages; lang: Lang }) {
+  const vibeText = brandText(brand, "vibe", lang);
   return (
     <div className="aff-topframe">
       <div className="aff-icon-header">
         <div className="icon-tile">
-          {/* App icon — same one used on getklar.org, no per-brand quirk. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={brand.iconUrl} alt={`${brand.name} icon`} />
         </div>
         <div className="icon-meta">
           <div className="app-name">{brand.name}</div>
-          <div className="app-meta">Klar Affiliate <span className="dot">●</span> {brand.vibe.split(",")[0]}</div>
+          <div className="app-meta">{t.brandSubline} <span className="dot">●</span> {vibeText.split(",")[0]}</div>
         </div>
       </div>
       <div className="aff-steps">
@@ -86,8 +95,8 @@ function Topframe({ brand, step }: { brand: Brand; step: number }) {
         ))}
       </div>
       <div className="aff-steplabel">
-        <span className="name">{STEPS[step].label}</span>
-        <span className="count">Step {String(step + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")}</span>
+        <span className="name">{stepLabel(t, STEPS[step].key)}</span>
+        <span className="count">{t.stepShort} {String(step + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")}</span>
       </div>
     </div>
   );
@@ -564,7 +573,8 @@ function AttributionDiagram({ brand }: { brand: Brand }) {
 }
 
 // ── Step 1 · Welcome ────────────────────────────────────────────────────────
-function StepWelcome({ brand, go, handle }: { brand: Brand; go: () => void; handle: string }) {
+function StepWelcome({ brand, go, handle, t, lang }: { brand: Brand; go: () => void; handle: string; t?: Messages; lang?: Lang }) {
+  void t; void lang;
   return (
     <div className="aff-pad aff-stack-lg">
       <div className="aff-stack-md">
@@ -605,7 +615,8 @@ function StepWelcome({ brand, go, handle }: { brand: Brand; go: () => void; hand
 }
 
 // ── Step 2 · Tracking ───────────────────────────────────────────────────────
-function StepTracking({ brand, go, prev }: { brand: Brand; go: () => void; prev: () => void }) {
+function StepTracking({ brand, go, prev, t, lang }: { brand: Brand; go: () => void; prev: () => void; t?: Messages; lang?: Lang }) {
+  void t; void lang;
   return (
     <div className="aff-pad aff-stack-lg">
       <div className="aff-stack-md">
@@ -649,7 +660,8 @@ function StepTracking({ brand, go, prev }: { brand: Brand; go: () => void; prev:
 // ── Step 3 · Payout ─────────────────────────────────────────────────────────
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-function StepPayout({ brand, go, prev, state, setState, onSubmit }: { brand: Brand; go: () => void; prev: () => void; state: PayoutState; setState: (s: PayoutState) => void; onSubmit?: (s: PayoutState) => Promise<void> }) {
+function StepPayout({ brand, go, prev, state, setState, onSubmit, t }: { brand: Brand; go: () => void; prev: () => void; state: PayoutState; setState: (s: PayoutState) => void; onSubmit?: (s: PayoutState) => Promise<void>; t?: Messages }) {
+  void t;
   const f = state;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -788,7 +800,8 @@ function StepPayout({ brand, go, prev, state, setState, onSubmit }: { brand: Bra
 }
 
 // ── Step 4 · Live ───────────────────────────────────────────────────────────
-function StepLive({ brand, state, handle }: { brand: Brand; state: PayoutState; handle: string }) {
+function StepLive({ brand, state, handle, t, lang }: { brand: Brand; state: PayoutState; handle: string; t?: Messages; lang?: Lang }) {
+  void t; void lang;
   const [copied, setCopied] = useState<string | null>(null);
   const [canShare, setCanShare] = useState(false);
   // Tracking link target depends on the brand. Apps with their own
@@ -912,8 +925,9 @@ function StepLive({ brand, state, handle }: { brand: Brand; state: PayoutState; 
 }
 
 // ── Onboarding Shell (main export) ──────────────────────────────────────────
-export function OnboardingShell({ brand: brandKey, handle, onSubmit, initialStep = 0 }: { brand: BrandKey; handle: string; onSubmit?: (s: PayoutState) => Promise<void>; initialStep?: number }) {
+export function OnboardingShell({ brand: brandKey, handle, onSubmit, initialStep = 0, lang = "de" }: { brand: BrandKey; handle: string; onSubmit?: (s: PayoutState) => Promise<void>; initialStep?: number; lang?: Lang }) {
   const brand = BRANDS[brandKey];
+  const t = getMessages(lang);
   const [step, setStep] = useState(initialStep);
   const [dir, setDir] = useState(1);
   const [renderStep, setRenderStep] = useState(0);
@@ -959,14 +973,14 @@ export function OnboardingShell({ brand: brandKey, handle, onSubmit, initialStep
   const ActiveStep = useMemo(() => {
     const key: StepKey = STEPS[renderStep].key;
     switch (key) {
-      case "welcome":  return <StepWelcome brand={brand} go={next} handle={handle} />;
-      case "tracking": return <StepTracking brand={brand} go={next} prev={prev} />;
-      case "payout":   return <StepPayout brand={brand} go={next} prev={prev} state={payout} setState={setPayout} onSubmit={onSubmit} />;
-      case "live":     return <StepLive brand={brand} state={payout} handle={handle} />;
+      case "welcome":  return <StepWelcome brand={brand} go={next} handle={handle} t={t} lang={lang} />;
+      case "tracking": return <StepTracking brand={brand} go={next} prev={prev} t={t} lang={lang} />;
+      case "payout":   return <StepPayout brand={brand} go={next} prev={prev} state={payout} setState={setPayout} onSubmit={onSubmit} t={t} />;
+      case "live":     return <StepLive brand={brand} state={payout} handle={handle} t={t} lang={lang} />;
       default:         return null;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renderStep, brand, payout, handle]);
+  }, [renderStep, brand, payout, handle, lang]);
 
   const screenClass = phase === "in" ? "aff-screen in" : (dir > 0 ? "aff-screen exit-left" : "aff-screen exit-right");
 
@@ -974,7 +988,7 @@ export function OnboardingShell({ brand: brandKey, handle, onSubmit, initialStep
     <div className="aff-stage">
       <BgStage />
       <div className="aff-shell">
-        <Topframe brand={brand} step={step} />
+        <Topframe brand={brand} step={step} t={t} lang={lang} />
         <div className="aff-card">
           <div className="aff-deck">
             <div className={screenClass} key={renderStep}>

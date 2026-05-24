@@ -11,11 +11,13 @@
 import { OnboardingShell } from "../../_shared/onboarding";
 import type { PayoutState } from "../../_shared/onboarding";
 import { BRANDS } from "../../_shared/brands";
+import { normalizeLang } from "../../_shared/i18n";
 
 const BRAND = BRANDS.yarnstash;
 
-export function SetupClient({ token, handle, displayName }: { token: string; handle: string; displayName: string }) {
+export function SetupClient({ token, handle, displayName, language }: { token: string; handle: string; displayName: string; language?: string }) {
   void displayName;
+  const lang = normalizeLang(language);
   async function onSubmit(form: PayoutState) {
     const res = await fetch("/api/affiliate/complete", {
       method: "POST",
@@ -37,5 +39,5 @@ export function SetupClient({ token, handle, displayName }: { token: string; han
     if (!res.ok || !j?.ok) throw new Error(j?.error || `HTTP ${res.status}`);
   }
 
-  return <OnboardingShell brand="yarnstash" handle={`@${handle}`} onSubmit={onSubmit} />;
+  return <OnboardingShell brand="yarnstash" handle={`@${handle}`} onSubmit={onSubmit} lang={lang} />;
 }
