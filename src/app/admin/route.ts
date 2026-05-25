@@ -1016,15 +1016,21 @@ getklar.org`;
           if (countDisplay) countDisplay.textContent = String(n);
           var total = apps * langs * plats * n;
           if (total === 0) { display.textContent = '— Apps + Plattformen wählen'; return; }
-          // Apify pricing 2026-04: IG (Hashtag $1.90/1k + Profile $1.60/1k) ~$0.009 per requested target with 3x/2x oversample.
-          // TikTok (clockworks $5/1k) ~$0.010 per target with 2x oversample. smallBucket (nano/micro only) raises IG-scrape 10x → ~$0.020/IG-target.
+          // Apify pricing 2026-05 (live-verified): IG $0.0023/item, TikTok FLAT $45/mo rental + compute.
+          // Post-S41 scrape caps in n8n: IG-Hashtag.resultsLimit = ceil(n*1.2) max 30 (smallBucket 1.8/45),
+          // IG-Profile.resultsLimit = 1 per username, TT.resultsPerPage = min(n+5, 25).
           var buckets = Array.from(f.querySelectorAll('input.wave-size-chk:checked')).map(function(c){return c.value;});
           var smallBucket = buckets.length > 0 && buckets.every(function(b){ return b === 'nano' || b === 'micro'; });
-          var perIg = smallBucket ? 0.020 : 0.009;
-          var usdPerWave = ((igChecked ? n*perIg : 0) + (ttChecked ? n*0.010 : 0));
+          var scrape = smallBucket ? Math.min(Math.ceil(n*1.8), 45) : Math.min(Math.ceil(n*1.2), 30);
+          var igUsd = igChecked ? (scrape * 0.0023 + Math.ceil(scrape * 0.7) * 0.0023) : 0;
+          var ttUsd = ttChecked ? 0.30 : 0;  // compute only; $45/mo rental shown account-wide
+          var usdPerWave = igUsd + ttUsd;
           var usd = apps * langs * usdPerWave;
           var waves = apps * langs;
-          display.innerHTML = waves + ' Wellen · ~' + total.toLocaleString() + ' Profile · <strong>≈ $' + usd.toFixed(2) + '</strong> Apify' + (smallBucket ? ' <span class="muted" style="font-size:10px">(Nano/Micro = 10x scrape)</span>' : '') + (langs > 1 ? ' <span class="muted" style="font-size:10px">(' + apps + ' App × ' + langs + ' Region)</span>' : '');
+          window.__waveCostUsd = usd;  // submit-handler reads this for confirm-dialog
+          var smallNote = smallBucket ? ' <span class="muted" style="font-size:10px">(scrape '+scrape+')</span>' : '';
+          var langNote = langs > 1 ? ' <span class="muted" style="font-size:10px">(' + apps + ' App × ' + langs + ' Region)</span>' : '';
+          display.innerHTML = waves + ' Wellen · ~' + total.toLocaleString() + ' Profile · <strong>≈ $' + usd.toFixed(2) + '</strong> Apify' + smallNote + langNote;
         }
 
         function updateMailSummary(){
@@ -1090,6 +1096,26 @@ getklar.org`;
           if (ev.target && ev.target.classList && (ev.target.classList.contains('wave-app-chk') || ev.target.classList.contains('wave-lang-chk'))) loadTemplate();
         });
         f.addEventListener('input', calc);
+        // Cost-confirm guard. Server-side mirror in start/route.ts rejects
+        // submits >= $2 without cost_confirmed=1, so we always set the hidden
+        // field when the admin clicks through the confirm-dialog.
+        f.addEventListener('submit', function(ev){
+          var usd = window.__waveCostUsd || 0;
+          var hidden = f.querySelector('input[name="cost_confirmed"]');
+          if (!hidden) {
+            hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'cost_confirmed';
+            f.appendChild(hidden);
+          }
+          if (usd >= 2.00) {
+            var ok = window.confirm('Diese Welle kostet geschätzt $' + usd.toFixed(2) + ' Apify-Spend. Wirklich starten?');
+            if (!ok) { ev.preventDefault(); return; }
+            hidden.value = '1';
+          } else {
+            hidden.value = '';
+          }
+        });
         calc();
         updateMailSummary();
       })();

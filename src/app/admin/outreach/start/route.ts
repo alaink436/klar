@@ -23,16 +23,42 @@ const COUNT_MAX = 500;
 const SUBJECT_MAX = 200;
 const BODY_MAX = 10000;
 const NICHE_MAX = 80;
-// Apify pricing 2026-04 (verified docs): IG-Hashtag-Scraper $1.90/1k results +
-// IG-Profile-Scraper $1.60/1k profiles → with the wave-consumer's 3x scrape /
-// 2x profile oversampling that's ~$0.009 per requested target. TikTok-Scraper
-// (clockworks) $5.00/1k results → ~$0.010 per target with 2x oversampling.
-// smallBucket-only (nano/micro) raises the hashtag-scrape 10x → ~$0.020/IG-target.
-// n8n consumer writes the real Apify usageTotalUsd back into cost_actual_usd,
-// these constants are the up-front estimate only.
-const APIFY_USD_PER_TARGET_IG = 0.009;
-const APIFY_USD_PER_TARGET_IG_SMALL = 0.020;
-const APIFY_USD_PER_TARGET_TIKTOK = 0.010;
+// Apify pricing 2026-05 (verified live via /v2/acts/.../pricingInfos):
+//   apify/instagram-hashtag-scraper: PRICE_PER_DATASET_ITEM, $0.0023/item
+//   apify/instagram-profile-scraper: PRICE_PER_DATASET_ITEM, $0.0023/item
+//   clockworks/tiktok-scraper:       FLAT_PRICE_PER_MONTH,   $45/mo rental
+//                                    + platform compute on top
+// After the S41 cost-cut, n8n-Wave-Consumer caps the scrape inputs:
+//   IG-Hashtag.resultsLimit = ceil(count * 1.2), max 30  (smallBucket: 1.8 / 45)
+//   IG-Profile.resultsLimit = 1 per username
+//   TikTok.resultsPerPage   = min(count + 5, 25)
+// The TT $45/mo rental is shown account-wide on the Apify-Account-Card and
+// NOT charged per wave; per-wave we estimate only the platform compute.
+// n8n consumer writes the real Apify usageTotalUsd back into cost_actual_usd
+// — these constants are the up-front estimate only.
+const APIFY_PRICE_PER_IG_ITEM_USD = 0.0023;
+const APIFY_TT_COMPUTE_PER_RUN_USD = 0.30; // typical compute charge per TT run after S41 cap
+// Hard cap above which the form-submit requires a confirm-dialog. Beyond
+// this, the admin must actively acknowledge the spend.
+const COST_CONFIRM_USD = 2.00;
+
+/** Estimated USD for one IG wave-row (1 app, IG only). Mirrors the n8n
+ *  scrape-limit so the UI number matches actual usage to within ~15 %. */
+function igCostPerWave(count: number, smallBucket: boolean): number {
+  const scrape = smallBucket
+    ? Math.min(Math.ceil(count * 1.8), 45)
+    : Math.min(Math.ceil(count * 1.2), 30);
+  // IG-Hashtag returns up to `scrape` posts. IG-Profile then fans out to
+  // ~0.7 × scrape unique usernames (1 item each, resultsLimit=1).
+  return scrape * APIFY_PRICE_PER_IG_ITEM_USD
+       + Math.ceil(scrape * 0.7) * APIFY_PRICE_PER_IG_ITEM_USD;
+}
+
+/** Estimated USD for one TT wave-row. TT rental is monthly-flat (~$45),
+ *  shown account-wide elsewhere; per-wave only the platform compute. */
+function ttCostPerWave(_count: number): number {
+  return APIFY_TT_COMPUTE_PER_RUN_USD;
+}
 
 function back(req: NextRequest, msg: string): Response {
   return NextResponse.redirect(
@@ -102,17 +128,29 @@ export async function POST(req: NextRequest): Promise<Response> {
   const mailBody = String(form.get("mail_body") ?? "").trim().slice(0, BODY_MAX);
   if (mailBody.length < 20) return back(req, "Mail-Body zu kurz");
 
-  // Server-side cost-estimate mirror of the client-side JS calc.
-  // Cost is per-app because we split multi-app submits into N separate runs
-  // (one row per app) so the wave-consumer pipeline never has to mix
-  // app-specific hashtags or PDFs in a single Apify batch.
+  // Server-side cost-estimate. Mirrors the n8n scrape-limits (S41 cost-cut)
+  // and matches the client-side JS calc() in admin/route.ts. Cost is per
+  // (app, language) wave-row because each pair fans out to one separate
+  // n8n execution.
   const profileLookupsPerApp = platforms.length * count;
   const smallBucketOnly =
     sizeBuckets.length > 0 && sizeBuckets.every((b) => b === "nano" || b === "micro");
-  const igPerTarget = smallBucketOnly ? APIFY_USD_PER_TARGET_IG_SMALL : APIFY_USD_PER_TARGET_IG;
-  const igCost = platforms.includes("instagram") ? count * igPerTarget : 0;
-  const ttCost = platforms.includes("tiktok") ? count * APIFY_USD_PER_TARGET_TIKTOK : 0;
+  const igCost = platforms.includes("instagram") ? igCostPerWave(count, smallBucketOnly) : 0;
+  const ttCost = platforms.includes("tiktok") ? ttCostPerWave(count) : 0;
   const costEstimatePerApp = Math.round((igCost + ttCost) * 10000) / 10000;
+  // Total across all (app, language) combinations the form submitted.
+  const totalCombos = apps.length * languages.length;
+  const totalEstimateUsd = Math.round(costEstimatePerApp * totalCombos * 100) / 100;
+  // Hard guard: require ?confirm=1 once the wave is expensive. The UI
+  // surfaces a confirm-dialog at the same threshold so this fires only if
+  // someone bypasses the dialog (curl, replayed form). Skipping the dialog
+  // costs real Apify-USD so we explicitly fail-closed here.
+  if (totalEstimateUsd >= COST_CONFIRM_USD) {
+    const confirmFlag = String(form.get("cost_confirmed") ?? "").trim();
+    if (confirmFlag !== "1") {
+      return back(req, `Estimate $${totalEstimateUsd.toFixed(2)} liegt über dem Cost-Confirm-Limit ($${COST_CONFIRM_USD.toFixed(2)}). Bitte im Formular bestätigen.`);
+    }
+  }
 
   // S32-eve + S40: cross-product apps × languages. Each (app, lang) pair gets
   // its own wave-row so per-app hashtags + per-lang mail-templates never
