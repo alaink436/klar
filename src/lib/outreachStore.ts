@@ -381,6 +381,8 @@ export async function deleteOutreachTarget(id: string): Promise<void> {
 
 export type OutreachRunStatus = "queued" | "running" | "done" | "failed" | "cancelled";
 
+export type OutreachLang = "de" | "en" | "es" | "it" | "fr";
+
 export interface OutreachRun {
   id: string;
   created_at: string;
@@ -389,6 +391,7 @@ export interface OutreachRun {
   apps: string[];
   platforms: string[];          // "tiktok" | "instagram"
   size_buckets: string[];       // "nano" | "micro" | "mid" | "macro"
+  language: OutreachLang;       // drives mail-template + hashtag-bucket selection in n8n
   count_per_app: number;
   niche: string | null;
   mail_subject: string | null;
@@ -407,6 +410,7 @@ export interface CreateRunInput {
   apps: string[];
   platforms: string[];
   size_buckets?: string[];
+  language?: OutreachLang;      // optional, defaults to 'de' for backwards compat
   count_per_app: number;
   niche?: string | null;
   mail_subject?: string | null;
@@ -422,6 +426,7 @@ export async function createOutreachRun(input: CreateRunInput): Promise<Outreach
     apps: input.apps,
     platforms: input.platforms,
     size_buckets: input.size_buckets ?? ["micro", "mid"],
+    language: input.language ?? "de",
     count_per_app: input.count_per_app,
     niche: input.niche ?? null,
     mail_subject: input.mail_subject ?? null,
@@ -606,6 +611,134 @@ export async function listOutreachRuns(limit = 25): Promise<OutreachRun[]> {
     );
     if (!res.ok) return [];
     return (await res.json()) as OutreachRun[];
+  } catch {
+    return [];
+  }
+}
+
+// ---------- klar_outreach_suppressions (do-not-contact list) ---------------
+
+export type SuppressionReason =
+  | "stop_request"
+  | "bounce"
+  | "spam_complaint"
+  | "manual"
+  | "opted_out"
+  | "invalid"
+  | "double_ask";
+
+export interface SuppressionRow {
+  id: string;
+  handle: string;
+  platform: "tiktok" | "instagram" | "*";
+  email: string | null;
+  reason: SuppressionReason;
+  source: string;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface AddSuppressionInput {
+  handle: string;
+  platform: "tiktok" | "instagram" | "*";
+  reason: SuppressionReason;
+  source: string;
+  email?: string | null;
+  notes?: string | null;
+}
+
+/** Upsert one suppression row. Idempotent on (lower(handle), platform). */
+export async function addSuppression(input: AddSuppressionInput): Promise<SuppressionRow> {
+  if (!KLAR_INBOX_KEY) throw new Error("KLAR_INBOX_SERVICE_KEY missing");
+  const body = {
+    handle: input.handle.trim().toLowerCase().replace(/^@+/, ""),
+    platform: input.platform,
+    reason: input.reason,
+    source: input.source,
+    email: input.email?.trim().toLowerCase() ?? null,
+    notes: input.notes ?? null,
+  };
+  const res = await fetch(
+    `${KLAR_INBOX_URL}/rest/v1/klar_outreach_suppressions?on_conflict=handle,platform`,
+    {
+      method: "POST",
+      headers: { ...hdr(), Prefer: "resolution=merge-duplicates,return=representation" },
+      body: JSON.stringify(body),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`suppression insert ${res.status}: ${text.slice(0, 200)}`);
+  }
+  const rows = (await res.json()) as SuppressionRow[];
+  if (!rows[0]) throw new Error("suppression insert returned no row");
+  return rows[0];
+}
+
+/** Check if any of the given handles/emails are on the suppression list.
+ *  Use platform = "tiktok"|"instagram" to also match "*" wildcard rows,
+ *  or omit to only match exact-handle rows regardless of platform. */
+export async function checkSuppressions(opts: {
+  handles?: string[];
+  platform?: "tiktok" | "instagram";
+  emails?: string[];
+}): Promise<SuppressionRow[]> {
+  if (!KLAR_INBOX_KEY) return [];
+  const handles = (opts.handles ?? [])
+    .map((h) => h.trim().toLowerCase().replace(/^@+/, ""))
+    .filter(Boolean);
+  const emails = (opts.emails ?? [])
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  if (handles.length === 0 && emails.length === 0) return [];
+
+  const out: SuppressionRow[] = [];
+  const seen = new Set<string>();
+
+  if (handles.length > 0) {
+    const handleList = handles.map((h) => `"${h.replace(/"/g, "")}"`).join(",");
+    const platformFilter = opts.platform
+      ? `&platform=in.("${opts.platform}","*")`
+      : "";
+    const url = `${KLAR_INBOX_URL}/rest/v1/klar_outreach_suppressions?handle=in.(${handleList})${platformFilter}&select=*`;
+    try {
+      const res = await fetch(url, { headers: hdr(), cache: "no-store" });
+      if (res.ok) {
+        const rows = (await res.json()) as SuppressionRow[];
+        for (const r of rows) {
+          if (!seen.has(r.id)) { seen.add(r.id); out.push(r); }
+        }
+      }
+    } catch { /* swallow, partial results ok */ }
+  }
+
+  if (emails.length > 0) {
+    const emailList = emails.map((e) => `"${e.replace(/"/g, "")}"`).join(",");
+    const url = `${KLAR_INBOX_URL}/rest/v1/klar_outreach_suppressions?email=in.(${emailList})&select=*`;
+    try {
+      const res = await fetch(url, { headers: hdr(), cache: "no-store" });
+      if (res.ok) {
+        const rows = (await res.json()) as SuppressionRow[];
+        for (const r of rows) {
+          if (!seen.has(r.id)) { seen.add(r.id); out.push(r); }
+        }
+      }
+    } catch { /* swallow */ }
+  }
+
+  return out;
+}
+
+/** Last N suppressions, newest first. UI uses this for the admin-table. */
+export async function listSuppressions(limit = 50): Promise<SuppressionRow[]> {
+  if (!KLAR_INBOX_KEY) return [];
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_suppressions?select=*&order=created_at.desc&limit=${Math.min(Math.max(limit, 1), 200)}`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as SuppressionRow[];
   } catch {
     return [];
   }

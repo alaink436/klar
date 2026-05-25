@@ -77,6 +77,17 @@ export async function POST(req: NextRequest): Promise<Response> {
   const sizeBuckets = Array.from(new Set(rawBuckets.filter((b) => ALLOWED_BUCKETS.has(b))));
   if (sizeBuckets.length === 0) return back(req, "Mindestens eine Größe auswählen (Nano/Micro/Mid/Macro)");
 
+  // languages: multi-select chips. One wave-row gets created per (app, language)
+  // pair, so picking 3 apps × 2 langs = 6 rows. Each row carries its own
+  // language so the n8n wave-consumer picks the correct mail-template (DB row
+  // in klar_app_mail_templates keyed by app_slug + language) and the correct
+  // hashtag-bucket (region-specific tags vary per language). Default 'de' if
+  // nothing selected so the form stays compatible with the old single-app flow.
+  const ALLOWED_LANGS = new Set(["de", "en", "es", "it", "fr"]);
+  const rawLangs = form.getAll("languages").map((v) => String(v).trim().toLowerCase());
+  const languages = Array.from(new Set(rawLangs.filter((l) => ALLOWED_LANGS.has(l))));
+  if (languages.length === 0) languages.push("de");
+
   const countRaw = String(form.get("count_per_app") ?? "").trim();
   const count = Number(countRaw);
   if (!isFinite(count) || count < COUNT_MIN || count > COUNT_MAX || !Number.isInteger(count)) {
@@ -103,12 +114,11 @@ export async function POST(req: NextRequest): Promise<Response> {
   const ttCost = platforms.includes("tiktok") ? count * APIFY_USD_PER_TARGET_TIKTOK : 0;
   const costEstimatePerApp = Math.round((igCost + ttCost) * 10000) / 10000;
 
-  // S32-eve: when multiple apps are selected, split into N separate single-app
-  // runs that show up as N rows in the "Letzte Wellen" table. Each row gets
-  // its own n8n execution so per-app hashtags, PDFs and follower filters
-  // never collide. We dispatch the N webhooks in parallel — n8n + Apify
-  // handle the concurrency internally, and each run's backstop fires
-  // independently.
+  // S32-eve + S40: cross-product apps × languages. Each (app, lang) pair gets
+  // its own wave-row so per-app hashtags + per-lang mail-templates never
+  // collide. We dispatch all webhooks in parallel — n8n + Apify handle
+  // concurrency internally. If the admin edits mail_subject/body in the form,
+  // the override applies to every spawned run regardless of language.
   const hookUrl =
     process.env.KLAR_OUTREACH_WEBHOOK_URL ??
     "https://alaink365.app.n8n.cloud/webhook/klar-outreach-wave";
@@ -129,14 +139,24 @@ export async function POST(req: NextRequest): Promise<Response> {
       .catch((e) => console.warn("wave webhook fire error:", e));
   }
 
-  // Single-app path: keep behaviour identical (one row, one webhook).
-  if (apps.length === 1) {
+  type Combo = { app: string; lang: "de" | "en" | "es" | "it" | "fr" };
+  const combos: Combo[] = [];
+  for (const app of apps) {
+    for (const lang of languages) {
+      combos.push({ app, lang: lang as Combo["lang"] });
+    }
+  }
+
+  // Single-combo path: keep behaviour identical (one row, one webhook).
+  if (combos.length === 1) {
+    const c = combos[0];
     let row: Awaited<ReturnType<typeof createOutreachRun>>;
     try {
       row = await createOutreachRun({
-        apps,
+        apps: [c.app],
         platforms,
         size_buckets: sizeBuckets,
+        language: c.lang,
         count_per_app: count,
         niche,
         mail_subject: mailSubject,
@@ -150,42 +170,43 @@ export async function POST(req: NextRequest): Promise<Response> {
     fireWebhook(row.id);
     return back(
       req,
-      `Welle ${row.id.slice(0, 8)} gestartet: ${apps[0]} × ${platforms.length} Plattformen × ${count} = ~${profileLookupsPerApp} Profile, est $${costEstimatePerApp.toFixed(2)}.`,
+      `Welle ${row.id.slice(0, 8)} gestartet: ${c.app} (${c.lang}) × ${platforms.length} Plattformen × ${count} = ~${profileLookupsPerApp} Profile, est $${costEstimatePerApp.toFixed(2)}.`,
     );
   }
 
-  // Multi-app path: create one row per app, dispatch a webhook each. The
-  // override-detection in n8n's Build Job List runs per-row so a user-edited
-  // mail_subject/body becomes a wave_override for every spawned run.
-  const created: Array<{ id: string; app: string }> = [];
-  const failed: Array<{ app: string; error: string }> = [];
-  for (const app of apps) {
+  // Multi-combo path: one row per (app, lang). N rows = N parallel n8n
+  // executions. Each row's Build-Job-List in n8n keys off run.language to
+  // pull the matching mail-template + hashtag-bucket from the DB.
+  const created: Array<{ id: string; app: string; lang: string }> = [];
+  const failed: Array<{ app: string; lang: string; error: string }> = [];
+  for (const c of combos) {
     try {
       const row = await createOutreachRun({
-        apps: [app],
+        apps: [c.app],
         platforms,
         size_buckets: sizeBuckets,
+        language: c.lang,
         count_per_app: count,
         niche,
         mail_subject: mailSubject,
         mail_body: mailBody,
         cost_estimate_usd: costEstimatePerApp,
       });
-      created.push({ id: row.id, app });
+      created.push({ id: row.id, app: c.app, lang: c.lang });
       fireWebhook(row.id);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      failed.push({ app, error: msg.slice(0, 80) });
+      failed.push({ app: c.app, lang: c.lang, error: msg.slice(0, 80) });
     }
   }
   if (created.length === 0) {
-    return back(req, `Start fehlgeschlagen für alle ${apps.length} Apps: ${failed.map((f) => f.app + "=" + f.error).join("; ").slice(0, 200)}`);
+    return back(req, `Start fehlgeschlagen für alle ${combos.length} Kombinationen: ${failed.map((f) => f.app + "/" + f.lang + "=" + f.error).join("; ").slice(0, 200)}`);
   }
   const total = created.length;
   const totalCost = (costEstimatePerApp * total).toFixed(2);
-  const tail = failed.length > 0 ? ` (${failed.length} fehlgeschlagen: ${failed.map((f) => f.app).join(", ")})` : "";
+  const tail = failed.length > 0 ? ` (${failed.length} fehlgeschlagen: ${failed.map((f) => f.app + "/" + f.lang).join(", ")})` : "";
   return back(
     req,
-    `${total} Wellen gestartet (je 1 App, parallel): ${created.map((c) => c.app + " #" + c.id.slice(0, 6)).join(", ")} • je ${platforms.length}×${count} = ${profileLookupsPerApp} Profile • est total $${totalCost}${tail}`,
+    `${total} Wellen gestartet (${apps.length} App × ${languages.length} Region, parallel): ${created.map((c) => c.app + "·" + c.lang + " #" + c.id.slice(0, 6)).join(", ")} • je ${platforms.length}×${count} = ${profileLookupsPerApp} Profile • est total $${totalCost}${tail}`,
   );
 }

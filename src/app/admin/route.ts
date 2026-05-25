@@ -17,6 +17,7 @@ import {
   listOutreachTargets,
   listOutreachRuns,
   listAppTemplates,
+  listSuppressions,
   getOutreachCostSummary,
   isOutreachConfigured,
   type OutreachPlatform,
@@ -25,8 +26,10 @@ import {
   type OutreachRun,
   type AppMailTemplate,
   type PerAppStat,
+  type SuppressionRow,
 } from "../../lib/outreachStore";
 import { getApifyAccountStatus } from "../../lib/apifyAccount";
+import { getBrevoQuota } from "../../lib/brevoQuota";
 import {
   STYLE,
   ICON,
@@ -636,13 +639,15 @@ async function outreachView(
   const app = filterApp && filterApp !== "all" ? filterApp : "all";
   const q = query.trim().slice(0, 80);
 
-  const [stats, rows, runs, costSummary, allTargets, apifyAccount] = await Promise.all([
+  const [stats, rows, runs, costSummary, allTargets, apifyAccount, brevoQuota, suppressions] = await Promise.all([
     getOutreachStats(),
     listOutreachTargets({ platform, status, app, query: q, limit: 200 }),
     listOutreachRuns(10),
     getOutreachCostSummary(),
     listOutreachTargets({ platform: "all", status: "all", app: "all", limit: 500 }),
     getApifyAccountStatus(),
+    getBrevoQuota(),
+    listSuppressions(20),
   ]);
 
   // Auto-refresh meta-tag (15s). Off by default — toggle via ?ar=1.
@@ -895,6 +900,24 @@ getklar.org`;
       <span class="muted" style="font-size:10px;font-family:var(--font-mono)">${esc(b.range)}</span>
     </label>`).join("");
 
+  // Region/Language multi-select. Each picked region spawns a separate wave-row
+  // per app, with its own mail-template (klar_app_mail_templates row) and
+  // region-specific hashtag-bucket. Default DE only to keep the old single-lang
+  // behaviour as the safe default.
+  const regionChips: Array<{ value: string; label: string; flag: string; market: string; defaultOn: boolean }> = [
+    { value: "de", label: "DE", flag: "🇩🇪", market: "DACH",          defaultOn: true  },
+    { value: "en", label: "EN", flag: "🌐", market: "Global EN",     defaultOn: false },
+    { value: "es", label: "ES", flag: "🇪🇸", market: "España + LatAm", defaultOn: false },
+    { value: "it", label: "IT", flag: "🇮🇹", market: "Italia",        defaultOn: false },
+    { value: "fr", label: "FR", flag: "🇫🇷", market: "France + BE",   defaultOn: false },
+  ];
+  const regionChipsHtml = regionChips
+    .map((r) => `<label class="wave-pick" style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:8px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:12px;cursor:pointer;min-width:88px">
+      <input type="checkbox" name="languages" value="${esc(r.value)}"${r.defaultOn ? " checked" : ""} class="wave-lang-chk" style="margin:0"/>
+      <span style="font-weight:600">${esc(r.flag)} ${esc(r.label)}</span>
+      <span class="muted" style="font-size:10px;font-family:var(--font-mono)">${esc(r.market)}</span>
+    </label>`).join("");
+
   const waveForm = `<section style="background:var(--surface);border:1px solid var(--line-strong);border-radius:14px;padding:24px 28px;margin-bottom:32px;box-shadow:var(--shadow-sm)">
     <h2 style="margin:0 0 4px;font-family:var(--font-display);font-weight:800;font-size:22px;letter-spacing:-0.02em;text-transform:none;color:var(--fg)">Welle starten</h2>
     <p class="muted" style="margin:0 0 22px;font-size:13px">Apify scraped die gewählten Plattformen, Apps und Größen-Buckets, schickt Mail-1 via Brevo, trackt alles in der DB. Templates pro App lädst du unten oder unter <a class="applink" href="/admin?view=templates">Templates</a>.</p>
@@ -918,6 +941,10 @@ getklar.org`;
         <div>
           <div class="k" style="margin-bottom:10px">Größen</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">${sizeChips}</div>
+        </div>
+        <div style="grid-column:1/-1">
+          <div class="k" style="margin-bottom:10px">Regionen <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">Multi-Select. Pro Region + App entsteht 1 separate Welle mit region-spezifischen Hashtags + Mail-Template aus DB</span></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">${regionChipsHtml}</div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 240px;gap:24px;align-items:end">
@@ -985,16 +1012,19 @@ getklar.org`;
           var ttChecked = !!f.querySelector('input.wave-plat-chk[value="tiktok"]:checked');
           var plats = (igChecked?1:0) + (ttChecked?1:0);
           var n = parseInt((f.querySelector('input[name="count_per_app"]')||{}).value || '0', 10) || 0;
+          var langs = Math.max(1, f.querySelectorAll('input.wave-lang-chk:checked').length);
           if (countDisplay) countDisplay.textContent = String(n);
-          var total = apps * plats * n;
+          var total = apps * langs * plats * n;
           if (total === 0) { display.textContent = '— Apps + Plattformen wählen'; return; }
           // Apify pricing 2026-04: IG (Hashtag $1.90/1k + Profile $1.60/1k) ~$0.009 per requested target with 3x/2x oversample.
           // TikTok (clockworks $5/1k) ~$0.010 per target with 2x oversample. smallBucket (nano/micro only) raises IG-scrape 10x → ~$0.020/IG-target.
           var buckets = Array.from(f.querySelectorAll('input.wave-size-chk:checked')).map(function(c){return c.value;});
           var smallBucket = buckets.length > 0 && buckets.every(function(b){ return b === 'nano' || b === 'micro'; });
           var perIg = smallBucket ? 0.020 : 0.009;
-          var usd = apps * ((igChecked ? n*perIg : 0) + (ttChecked ? n*0.010 : 0));
-          display.innerHTML = '~' + total.toLocaleString() + ' Profile · <strong>≈ $' + usd.toFixed(2) + '</strong> Apify-Kosten' + (smallBucket ? ' <span class="muted" style="font-size:10px">(Nano/Micro = 10x scrape)</span>' : '');
+          var usdPerWave = ((igChecked ? n*perIg : 0) + (ttChecked ? n*0.010 : 0));
+          var usd = apps * langs * usdPerWave;
+          var waves = apps * langs;
+          display.innerHTML = waves + ' Wellen · ~' + total.toLocaleString() + ' Profile · <strong>≈ $' + usd.toFixed(2) + '</strong> Apify' + (smallBucket ? ' <span class="muted" style="font-size:10px">(Nano/Micro = 10x scrape)</span>' : '') + (langs > 1 ? ' <span class="muted" style="font-size:10px">(' + apps + ' App × ' + langs + ' Region)</span>' : '');
         }
 
         function updateMailSummary(){
@@ -1009,16 +1039,20 @@ getklar.org`;
         }
 
         function loadTemplate(){
-          var picked = Array.from(f.querySelectorAll('input.wave-app-chk:checked')).map(function(c){return c.value;});
+          var pickedApps = Array.from(f.querySelectorAll('input.wave-app-chk:checked')).map(function(c){return c.value;});
+          var pickedLangs = Array.from(f.querySelectorAll('input.wave-lang-chk:checked')).map(function(c){return c.value;});
           if (!subjectInput || !bodyInput) return;
-          if (picked.length !== 1) {
-            if (tplStatus) tplStatus.textContent = picked.length > 1
-              ? '⚠️ Multi-App: jede App nutzt ihr eigenes DB-Template, ausser du bearbeitest Subject/Body hier'
-              : '';
+          if (pickedApps.length !== 1 || pickedLangs.length !== 1) {
+            if (tplStatus) {
+              if (pickedApps.length === 0) tplStatus.textContent = '';
+              else if (pickedApps.length > 1 && pickedLangs.length > 1) tplStatus.textContent = '⚠️ ' + pickedApps.length + ' App × ' + pickedLangs.length + ' Region = ' + (pickedApps.length * pickedLangs.length) + ' Wellen, jede zieht ihr eigenes DB-Template (ausser du bearbeitest Subject/Body hier)';
+              else if (pickedApps.length > 1) tplStatus.textContent = '⚠️ Multi-App: jede App nutzt ihr eigenes DB-Template (ausser du bearbeitest Subject/Body hier)';
+              else tplStatus.textContent = '⚠️ Multi-Region: jede Region zieht ihr eigenes DB-Template (ausser du bearbeitest Subject/Body hier)';
+            }
             return;
           }
-          var app = picked[0];
-          var lang = 'de';
+          var app = pickedApps[0];
+          var lang = pickedLangs[0];
           var key = app + '|' + lang;
           if (key === lastLoadedKey) return;
           if (tplStatus) tplStatus.textContent = '⏳ lade Template ' + app + '/' + lang + '…';
@@ -1053,7 +1087,7 @@ getklar.org`;
 
         f.addEventListener('change', function(ev){
           calc();
-          if (ev.target && ev.target.classList && ev.target.classList.contains('wave-app-chk')) loadTemplate();
+          if (ev.target && ev.target.classList && (ev.target.classList.contains('wave-app-chk') || ev.target.classList.contains('wave-lang-chk'))) loadTemplate();
         });
         f.addEventListener('input', calc);
         calc();
@@ -1153,7 +1187,7 @@ getklar.org`;
       ? r.size_buckets.join(", ")
       : "—";
     const detailRow = hasDetail
-      ? `<tr id="${rowId}-detail" style="display:none"><td colspan="7" style="padding:14px 16px;background:var(--surface-2);border-top:1px solid var(--line)">
+      ? `<tr id="${rowId}-detail" style="display:none"><td colspan="8" style="padding:14px 16px;background:var(--surface-2);border-top:1px solid var(--line)">
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;font-size:12px">
             <div><span class="k" style="font-size:9.5px">Buckets</span><div style="font-family:var(--font-mono);margin-top:2px">${esc(sizeBuckets)}</div></div>
             <div><span class="k" style="font-size:9.5px">Niche</span><div style="margin-top:2px">${esc(r.niche ?? "—")}</div></div>
@@ -1167,6 +1201,7 @@ getklar.org`;
     return `<tr>
         <td>${expanderBtn}<span class="muted" style="font-size:11px;white-space:nowrap">${fmtRelative(r.created_at)}</span></td>
         <td>${(r.apps ?? []).map((a) => `<span class="pill" style="font-size:9px;padding:1px 6px">${esc(a)}</span>`).join(" ")}</td>
+        <td><span class="pill" style="font-size:9px;padding:1px 6px;text-transform:uppercase">${esc(r.language ?? "de")}</span></td>
         <td>${(r.platforms ?? []).map((p) => `<span class="pill" style="font-size:9px;padding:1px 6px">${esc(p)}</span>`).join(" ")}</td>
         <td class="r">${r.count_per_app}/App</td>
         <td class="r">${r.cost_estimate_usd != null ? "$" + Number(r.cost_estimate_usd).toFixed(2) : "—"}${r.cost_actual_usd != null ? `<div class="muted" style="font-size:10px">actual $${Number(r.cost_actual_usd).toFixed(2)}</div>` : ""}</td>
@@ -1187,7 +1222,7 @@ getklar.org`;
   const runsTable = `<h2>Letzte Wellen</h2>
     ${refreshHint}
     <table>
-      <thead><tr><th>Wann</th><th>Apps</th><th>Platforms</th><th class="r">Count</th><th class="r">Cost</th><th class="r">Output / Dauer</th><th>Status / Phase</th></tr></thead>
+      <thead><tr><th>Wann</th><th>Apps</th><th>Region</th><th>Platforms</th><th class="r">Count</th><th class="r">Cost</th><th class="r">Output / Dauer</th><th>Status / Phase</th></tr></thead>
       <tbody>${runRows}</tbody>
     </table>`;
 
@@ -1330,6 +1365,55 @@ getklar.org`;
     </div>`}
   </section>`;
 
+  // Brevo-Quota-Card: live aus Brevo /v3/smtp/statistics/aggregatedReport (today).
+  // Free-Tier-Cap ist hardcoded 300/day (Brevo exposed das nicht via API). Reset
+  // 00:00 UTC. Cache 60s im lib. Fallback-Card wenn BREVO_API_KEY env fehlt.
+  const brevoQuotaCard = (() => {
+    if (brevoQuota.state === "no-key") {
+      return `<section style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 22px;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <h2 style="margin:0;font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-0.01em;text-transform:none;color:var(--fg)">Brevo Daily-Cap <span class="muted" style="font-size:10px;font-weight:400;margin-left:8px">(no-key)</span></h2>
+          <span class="muted" style="font-size:11px;font-family:var(--font-mono)">live aus /v3/smtp/statistics/aggregatedReport</span>
+        </div>
+        <p class="muted" style="font-size:12px;margin:8px 0 0">Setze <code>BREVO_API_KEY</code> in Vercel env-vars (Master API-Key aus Brevo SMTP &amp; API). Free-Plan = 300 Mails/Tag, Reset 00:00 UTC.</p>
+      </section>`;
+    }
+    if (brevoQuota.state === "http-error" || brevoQuota.state === "exception") {
+      const note = brevoQuota.state === "http-error" ? `HTTP ${brevoQuota.status}: ${brevoQuota.bodySnippet}` : brevoQuota.message;
+      return `<section style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 22px;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <h2 style="margin:0;font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-0.01em;text-transform:none;color:var(--fg)">Brevo Daily-Cap <span class="muted" style="font-size:10px;font-weight:400;margin-left:8px">(error)</span></h2>
+        </div>
+        <p class="muted" style="font-size:11px;margin:8px 0 0;font-family:var(--font-mono)">${esc(note)}</p>
+      </section>`;
+    }
+    const used = brevoQuota.usedToday;
+    const cap = brevoQuota.capDaily;
+    const pct = Math.min(100, Math.round((used / cap) * 100));
+    const color = pct >= 90 ? "#dc2626" : pct >= 70 ? "#d97706" : "#16a34a";
+    const resetUtc = new Date();
+    resetUtc.setUTCHours(24, 0, 0, 0);
+    const hoursUntilReset = Math.max(0, Math.round((resetUtc.getTime() - Date.now()) / 3600000 * 10) / 10);
+    return `<section style="background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;padding:18px 22px;margin-bottom:14px;box-shadow:var(--shadow-sm)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
+        <h2 style="margin:0;font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-0.01em;text-transform:none;color:var(--fg)">Brevo Daily-Cap${brevoQuota.planName ? ` <span class="muted" style="font-size:10px;font-weight:400;margin-left:8px">${esc(brevoQuota.planName)}</span>` : ""}</h2>
+        <span class="muted" style="font-size:11px;font-family:var(--font-mono)">Reset in ~${hoursUntilReset}h (00:00 UTC)</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-bottom:6px">
+        <span class="k">Mails heute <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">account-wide, inkl. nicht-Klar-Sends</span></span>
+        <span style="font-family:var(--font-mono);color:var(--fg);font-size:14px"><strong>${used}</strong> / ${cap}</span>
+      </div>
+      <div style="height:10px;background:var(--surface-2);border-radius:5px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${color};transition:width .3s"></div>
+      </div>
+      <div class="muted" style="font-size:10px;margin-top:4px;display:flex;justify-content:space-between">
+        <span>${pct}% des Daily-Caps</span>
+        <span>Rest heute: ${Math.max(0, cap - used)} Mails</span>
+      </div>
+      ${pct >= 70 ? `<p style="font-size:11px;margin:10px 0 0;color:${color};font-style:italic">${pct >= 90 ? "Daily-Cap fast erreicht: " : "Daily-Cap wird knapp: "}neue Wellen werden ggf. von Brevo geblockt bis 00:00 UTC. <a href="https://app.brevo.com/billing/plan" target="_blank" style="color:inherit">Plan upgraden</a> für höheren Cap.</p>` : ""}
+    </section>`;
+  })();
+
   // Klar-Wellen-Cost-Tracker: nur die Klar-Wellen-Anteile aus klar_outreach_runs.
   // Free-Tier-Bezug ist raus (User hat Paid-Plan). Brevo bleibt bei 300/Tag.
   const apifyUsed = costSummary.month_apify_actual_usd || costSummary.month_apify_estimate_usd;
@@ -1367,9 +1451,63 @@ getklar.org`;
     ${brevoPct >= 70 ? `<p class="muted" style="font-size:11px;margin:12px 0 0;font-style:italic">Brevo-Tages-Cap wird knapp, morgen wieder fresh.</p>` : ""}
   </section>`;
 
+  // Suppression-Section: collapsed `<details>`. Mini-Add-Form + Tabelle der
+  // letzten 20 Einträge. n8n-Wave-Consumer ruft /api/outreach/check-suppression
+  // vor jedem Brevo-Send. Reasons sind enforced via DB-CHECK + UI-select.
+  const suppressionReasons: Array<{ value: string; label: string }> = [
+    { value: "manual",         label: "Manuell (Admin-Entscheidung)" },
+    { value: "stop_request",   label: "STOP-Antwort vom Influencer" },
+    { value: "bounce",         label: "Mail-Bounce (Brevo)" },
+    { value: "spam_complaint", label: "Spam-Complaint" },
+    { value: "opted_out",      label: "Explizit opted-out" },
+    { value: "invalid",        label: "Ungültiger Handle/Email" },
+    { value: "double_ask",     label: "Schon vorher angefragt" },
+  ];
+  const suppressionRowsHtml = suppressions.length === 0
+    ? `<tr><td colspan="5" class="muted" style="padding:14px 16px;text-align:center;font-size:12px">Noch keine Suppressions. Cold-DM-Pipeline läuft offen.</td></tr>`
+    : suppressions.map((s: SuppressionRow) => `<tr>
+        <td><span class="muted" style="font-size:11px;white-space:nowrap">${fmtRelative(s.created_at)}</span></td>
+        <td style="font-family:var(--font-mono);font-size:12px">@${esc(s.handle)}</td>
+        <td><span class="pill" style="font-size:9px;padding:1px 6px;text-transform:uppercase">${esc(s.platform)}</span></td>
+        <td><span class="pill" style="font-size:9px;padding:1px 6px">${esc(s.reason)}</span><div class="muted" style="font-size:10px;margin-top:2px">${esc(s.source)}</div></td>
+        <td class="muted" style="font-size:11px">${esc(s.email ?? "—")}${s.notes ? `<div style="font-size:10px;margin-top:2px;font-style:italic">${esc(s.notes)}</div>` : ""}</td>
+      </tr>`).join("");
+  const suppressionSection = `<details style="margin-top:32px;border:1px solid var(--line);border-radius:10px;background:var(--surface)">
+    <summary style="cursor:pointer;padding:14px 18px;font-size:14px;color:var(--fg);font-weight:700;user-select:none;display:flex;justify-content:space-between;align-items:center">
+      <span>Suppression-List <span class="muted" style="font-weight:400;font-size:11px;margin-left:8px">do-not-contact, ${suppressions.length} Einträge</span></span>
+      <span class="muted" style="font-size:11px;font-family:var(--font-mono)">n8n: <code>POST /api/outreach/check-suppression</code></span>
+    </summary>
+    <div style="padding:0 18px 18px">
+      <form method="POST" action="/admin/outreach/suppression-add" style="display:grid;grid-template-columns:1.5fr 0.8fr 1.2fr 1.5fr auto;gap:10px;margin-bottom:18px;align-items:end">
+        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Handle (ohne @)
+          <input type="text" name="handle" required maxlength="80" placeholder="sammyknits" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-mono)"/>
+        </label>
+        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Plattform
+          <select name="platform" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px">
+            <option value="*">Beide</option><option value="tiktok">TikTok</option><option value="instagram">Instagram</option>
+          </select>
+        </label>
+        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Grund
+          <select name="reason" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px">
+            ${suppressionReasons.map((r) => `<option value="${esc(r.value)}">${esc(r.label)}</option>`).join("")}
+          </select>
+        </label>
+        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Notiz <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span>
+          <input type="text" name="notes" maxlength="500" placeholder="z.B. Replied 'no thanks'" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
+        </label>
+        <button type="submit" class="btn" style="padding:8px 14px;font-size:13px">+ Sperren</button>
+      </form>
+      <table>
+        <thead><tr><th>Wann</th><th>Handle</th><th>Plattform</th><th>Grund / Quelle</th><th>Email / Notiz</th></tr></thead>
+        <tbody>${suppressionRowsHtml}</tbody>
+      </table>
+    </div>
+  </details>`;
+
   return `${refreshMeta}<h1>Outreach</h1>
     <p class="sub">Influencer-Outreach-Tracker. <em>Queued → DM gesendet → Antwort → Converted</em>. Auto-Refresh ${autoRefresh ? "alle 15s" : "aus"}, Daten aus Supabase anime-vault.</p>
     ${apifyAccCard}
+    ${brevoQuotaCard}
     ${cards}
     ${costCard}
     ${waveForm}
@@ -1390,7 +1528,8 @@ getklar.org`;
     <table>
       <thead><tr><th>Lead</th><th>Plattform</th><th class="r">Follower</th><th class="r">Views</th><th>Apps</th><th>Status</th><th class="r">Aktionen</th></tr></thead>
       <tbody>${tableBody}</tbody>
-    </table>`;
+    </table>
+    ${suppressionSection}`;
 }
 
 async function inboxView(typeFilter: string, sourceFilter: string): Promise<string> {
