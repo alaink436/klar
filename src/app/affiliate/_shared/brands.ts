@@ -61,11 +61,11 @@ export interface Brand {
   handTagline: string;
   secondStream?: SecondStream;
   /** Optional per-language overrides for localized strings. */
-  i18n?: { en?: BrandI18n; es?: BrandI18n };
+  i18n?: { en?: BrandI18n; es?: BrandI18n; it?: BrandI18n; fr?: BrandI18n };
 }
 
 /** Resolves a localized brand string with DE fallback. */
-export function brandText(brand: Brand, key: keyof BrandI18n, lang: "de" | "en" | "es"): string {
+export function brandText(brand: Brand, key: keyof BrandI18n, lang: "de" | "en" | "es" | "it" | "fr"): string {
   if (lang !== "de") {
     const v = brand.i18n?.[lang]?.[key];
     if (typeof v === "string") return v;
@@ -174,11 +174,29 @@ export const BRANDS: Record<BrandKey, Brand> = {
     domain: "throttleup.app",
     handTagline: "let it rip",
     i18n: {
+      en: {
+        handTagline: "let it rip",
+        pdfTitle: "Creator Playbook",
+        pdfHint: "Build-story hooks, garage B-roll, spec-drop framework",
+        vibe: "Garage workshop, mechanical brutalist",
+      },
       es: {
         handTagline: "dale gas",
         pdfTitle: "Creator Playbook",
         pdfHint: "Build-Story Hooks, garage B-roll, framework de spec-drop",
         vibe: "Taller de garaje, brutalismo mecánico",
+      },
+      it: {
+        handTagline: "spingi a tavoletta",
+        pdfTitle: "Creator Playbook",
+        pdfHint: "Hook di build-story, B-roll garage, framework spec-drop",
+        vibe: "Officina garage, brutalismo meccanico",
+      },
+      fr: {
+        handTagline: "à fond",
+        pdfTitle: "Creator Playbook",
+        pdfHint: "Hooks de build-story, B-roll garage, framework spec-drop",
+        vibe: "Atelier garage, brutalisme mécanique",
       },
     },
   },
@@ -204,11 +222,29 @@ export const BRANDS: Record<BrandKey, Brand> = {
     domain: "wavelength.so",
     handTagline: "stay in flow",
     i18n: {
+      en: {
+        handTagline: "stay in flow",
+        pdfTitle: "Creator Brief",
+        pdfHint: "Productivity hooks, before/after carousels, weekly retro template",
+        vibe: "Calm productivity, modern dark SaaS",
+      },
       es: {
         handTagline: "fluye",
         pdfTitle: "Creator Brief",
         pdfHint: "Hooks de productividad, carruseles antes/después, plantilla de retro semanal",
         vibe: "Productividad calma, SaaS dark moderno",
+      },
+      it: {
+        handTagline: "resta in flow",
+        pdfTitle: "Creator Brief",
+        pdfHint: "Hook di produttività, caroselli prima/dopo, template retro settimanale",
+        vibe: "Produttività calma, SaaS dark moderno",
+      },
+      fr: {
+        handTagline: "reste dans le flow",
+        pdfTitle: "Creator Brief",
+        pdfHint: "Hooks de productivité, carrousels avant/après, template retro hebdo",
+        vibe: "Productivité calme, SaaS dark moderne",
       },
     },
   },
@@ -234,11 +270,29 @@ export const BRANDS: Record<BrandKey, Brand> = {
     domain: "kelva.app",
     handTagline: "a gentler signal",
     i18n: {
+      en: {
+        handTagline: "a gentler signal",
+        pdfTitle: "Editorial Brief",
+        pdfHint: "Long-form caption frames, soft-launch script, science-backed angles",
+        vibe: "Editorial calm, Apple-Health-clean, premium glass",
+      },
       es: {
         handTagline: "una señal más suave",
         pdfTitle: "Editorial Brief",
         pdfHint: "Frames de caption largos, script de soft-launch, ángulos con base científica",
         vibe: "Calma editorial, limpio tipo Apple Health, glass premium",
+      },
+      it: {
+        handTagline: "un segnale più dolce",
+        pdfTitle: "Editorial Brief",
+        pdfHint: "Frame di caption lunghi, script di soft-launch, angoli science-backed",
+        vibe: "Calma editoriale, pulito stile Apple Health, glass premium",
+      },
+      fr: {
+        handTagline: "un signal plus doux",
+        pdfTitle: "Editorial Brief",
+        pdfHint: "Frames de caption longs, script de soft-launch, angles avec base scientifique",
+        vibe: "Calme éditorial, propre style Apple Health, glass premium",
       },
     },
   },
@@ -264,11 +318,29 @@ export const BRANDS: Record<BrandKey, Brand> = {
     domain: "trubel.club",
     handTagline: "lets gooo",
     i18n: {
+      en: {
+        handTagline: "lets gooo",
+        pdfTitle: "Sticker Pack & Brief",
+        pdfHint: "Stitch hooks, screenshot-meme frames, in-app cap captures",
+        vibe: "Y2K zine cutout, party, sticker collage",
+      },
       es: {
         handTagline: "vamos ya",
         pdfTitle: "Sticker Pack & Brief",
         pdfHint: "Hooks de stitch, frames de screenshot-meme, capturas in-app",
         vibe: "Cutout zine Y2K, fiesta, collage de stickers",
+      },
+      it: {
+        handTagline: "andiamoo",
+        pdfTitle: "Sticker Pack & Brief",
+        pdfHint: "Hook di stitch, frame di screenshot-meme, capture in-app",
+        vibe: "Cutout zine Y2K, festa, collage di sticker",
+      },
+      fr: {
+        handTagline: "on y va",
+        pdfTitle: "Sticker Pack & Brief",
+        pdfHint: "Hooks de stitch, frames de screenshot-meme, captures in-app",
+        vibe: "Cutout zine Y2K, fête, collage de stickers",
       },
     },
     secondStream: {
@@ -309,11 +381,29 @@ export const BRANDS: Record<BrandKey, Brand> = {
     domain: "myloo.health",
     handTagline: "with care",
     i18n: {
+      en: {
+        handTagline: "with care",
+        pdfTitle: "Quiet Creator Brief",
+        pdfHint: "Sensitive-topic framing, day-in-life scripts, privacy claims sheet",
+        vibe: "Editorial light, privacy-first, Apple-Health-clean",
+      },
       es: {
         handTagline: "con cuidado",
         pdfTitle: "Quiet Creator Brief",
         pdfHint: "Encuadre para temas sensibles, scripts day-in-life, hoja de claims de privacidad",
         vibe: "Editorial ligero, privacy-first, limpio tipo Apple Health",
+      },
+      it: {
+        handTagline: "con cura",
+        pdfTitle: "Quiet Creator Brief",
+        pdfHint: "Framing per temi sensibili, script day-in-life, scheda claim privacy",
+        vibe: "Editorial leggero, privacy-first, pulito stile Apple Health",
+      },
+      fr: {
+        handTagline: "avec soin",
+        pdfTitle: "Quiet Creator Brief",
+        pdfHint: "Cadrage pour sujets sensibles, scripts day-in-life, fiche claims privacy",
+        vibe: "Éditorial léger, privacy-first, propre style Apple Health",
       },
     },
   },

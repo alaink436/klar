@@ -662,7 +662,12 @@ function StepTracking({ brand, go, prev, t = getMessages("de"), lang }: { brand:
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function StepPayout({ brand, go, prev, state, setState, onSubmit, t = getMessages("de"), lang = "de" }: { brand: Brand; go: () => void; prev: () => void; state: PayoutState; setState: (s: PayoutState) => void; onSubmit?: (s: PayoutState) => Promise<void>; t?: Messages; lang?: Lang }) {
-  const agreementUrl = lang === "es" ? "/legal/affiliate-agreement-es" : lang === "en" ? "/legal/affiliate-agreement-en" : "/legal/affiliate-agreement";
+  const agreementUrl =
+    lang === "es" ? "/legal/affiliate-agreement-es"
+    : lang === "en" ? "/legal/affiliate-agreement-en"
+    : lang === "it" ? "/legal/affiliate-agreement-it"
+    : lang === "fr" ? "/legal/affiliate-agreement-fr"
+    : "/legal/affiliate-agreement";
   const f = state;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

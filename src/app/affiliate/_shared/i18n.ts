@@ -2,24 +2,27 @@
 // Used by OnboardingShell + Step components via getMessages(lang).
 //
 // Each message can be a string or a function that returns a string for
-// interpolation (e.g. brand-name placeholders). Keep ES translations in
-// the Klar Voice: normie-aspirational, du-form (tú), no dev-jargon, no em-dashes.
+// interpolation (e.g. brand-name placeholders). Keep all translations in
+// the Klar Voice: normie-aspirational, informal address (du/you/tú/tu),
+// no dev-jargon, no em-dashes (use comma/colon/parentheses instead).
 
-export type Lang = "de" | "en" | "es";
+export type Lang = "de" | "en" | "es" | "it" | "fr";
 
-export const SUPPORTED_LANGS: readonly Lang[] = ["de", "en", "es"] as const;
+export const SUPPORTED_LANGS: readonly Lang[] = ["de", "en", "es", "it", "fr"] as const;
 
 export function normalizeLang(input: string | null | undefined): Lang {
   const v = (input ?? "").toLowerCase().slice(0, 2);
   if (v === "es") return "es";
   if (v === "en") return "en";
+  if (v === "it") return "it";
+  if (v === "fr") return "fr";
   return "de";
 }
 
 export interface Messages {
   // Top frame
-  brandSubline: string; // "Klar Affiliate" -> "Klar Affiliate"
-  stepShort: string; // "Step"
+  brandSubline: string;
+  stepShort: string;
 
   // Step labels
   stepWelcome: string;
@@ -45,13 +48,13 @@ export interface Messages {
   // Stream cards
   streamEyebrowSub: string;
   streamEyebrowOneShot: string;
-  streamTitleSubTail: string; // "der Sub."
-  streamTitleOneShotTail: string; // "pro Verkauf."
+  streamTitleSubTail: string;
+  streamTitleOneShotTail: string;
   streamDetailSub: (pct: number, months: number, price: string) => string;
   streamDetailOneShot: (pct: number, months: number, price: string) => string;
   streamTitleYarn: { plain: string; italic: string };
   streamTitleAlbum: { plain: string; italic: string };
-  streamDetailYarn: string; // contains <b> markers for layout
+  streamDetailYarn: string;
   streamDetailAlbum: string;
 
   // Calculator
@@ -72,12 +75,12 @@ export interface Messages {
   calcTotalLabelOneShot: string;
   calcTotalLabelOneShotTwoStreams: string;
   calcTotalLabelMonthsHint: (months: number) => string;
-  calcTotalSubStreams: string; // "Stream 1 + Stream 2"
-  calcOneShotHint: string; // "One-Shot Premium-Verkauf"
+  calcTotalSubStreams: string;
+  calcOneShotHint: string;
   calcLifetimeHint: (months: number, total: string) => string;
   calcSliderRateLabel: (label: string) => string;
   calcSliderBasketLabel: (label: string) => string;
-  calcSlash: string; // "/ mo" suffix
+  calcSlash: string;
   calcSlashAria: string;
 
   // Tracking step
@@ -147,17 +150,17 @@ export interface Messages {
   liveCtaDashboard: string;
   liveFooterMail: (email: string) => string;
 
-  // Status (token expired / already done)
+  // Status
   statusAlreadyActive: string;
   statusExpiredTitle: { plain: string; italic: string };
   statusExpiredLede: string;
   statusLoading: { italic: string };
 
   // Misc
-  streamWordSub: string; // "Sub-Anteil"
-  streamWordPerSale: string; // "Anteil"
-  monatlichSuffix: string; // "monatlich" (for sub label)
-  cohortSuffix: string; // "pro Cohort"
+  streamWordSub: string;
+  streamWordPerSale: string;
+  monatlichSuffix: string;
+  cohortSuffix: string;
 
   // Country options
   countryDE: string;
@@ -171,10 +174,10 @@ export interface Messages {
 
   // Slider helpers
   followerHint: string;
-  pmSuffix: string; // "pro Monat"
-  perInstallCohort: string; // "pro Install-Cohort"
+  pmSuffix: string;
+  perInstallCohort: string;
 
-  // Calculator stream-2 notes (per-kind formula breakdown)
+  // Calculator stream-2 notes
   calcS2NoteYarn: (shoppers: string, basket: number, ratePct: string) => string;
   calcS2NoteAlbum: (buyers: string, basket: number, ratePct: string) => string;
   calcS2HintYarn: string;
@@ -483,18 +486,19 @@ const es: Messages = {
   calcS2HintAlbum: "Venta única, 50 % de comisión por álbum",
 };
 
-// EN-Translation as a near-mirror of DE — used for cross-checks and to keep
-// the Lang-type complete. Real EN-pass can refine later.
 const en: Messages = {
-  ...de,
+  brandSubline: "Klar Affiliate",
   stepShort: "Step",
+
   stepWelcome: "Welcome",
   stepTracking: "Tracking",
   stepPayout: "Payout",
   stepLive: "Live",
+
   next: "Next",
   back: "Back",
   backAria: "Back",
+
   welcomeGreet: (handle) => `Hi ${handle},`,
   welcomeLede: (brandName) => `Welcome to the ${brandName} Affiliate Program. Four short steps and your tracking link is live.`,
   welcomeEyebrowStreams: "How you earn",
@@ -503,16 +507,439 @@ const en: Messages = {
   welcomeEyebrowCalc: "Run the numbers",
   welcomeTitleCalc: { plain: "What's in it ", italic: "for you?" },
   welcomeCalcSubline: "Drag the sliders to realistic values for your audience. The math updates live.",
+
+  streamEyebrowSub: "Premium subs",
+  streamEyebrowOneShot: "Premium sales",
+  streamTitleSubTail: "of the sub.",
+  streamTitleOneShotTail: "per sale.",
+  streamDetailSub: (pct, months, price) => `For every Premium purchase you get ${pct} % of the sub revenue, for ${months} months. Sub price ${price}.`,
+  streamDetailOneShot: (pct, months, price) => `For every Premium sale you get ${pct} % of the sale price. Price ${price}. ${months}-month cookie window.`,
+  streamTitleYarn: { plain: "Share on ", italic: "yarn purchases." },
+  streamTitleAlbum: { plain: "Share on ", italic: "album purchases." },
+  streamDetailYarn: "Every time your user buys yarn through the in-app shop links, you get a share of our Awin commission. With knit audiences usually the bigger stream, because knitters keep re-stocking.",
+  streamDetailAlbum: "If your user buys a 4k album, you get 50 % of the sale price. One-shot, perfect for event triggers like weddings or festivals.",
+
+  calcViewsLabel: "Views per month · all posts combined",
+  calcViewsAria: "Views per month",
+  calcStreamLabel: (label) => `STREAM · ${label}`,
+  calcSubSummary: (price, pct, months) => `${price} · ${pct} % to you, for ${months} months.`,
+  calcOneShotSummary: (price, pct) => `${price} · ${pct} % to you per sale.`,
+  calcConvLabel: "Premium conversion after install",
+  calcConvAria: "Premium conversion",
+  calcMiniBioClicks: (ctrPct) => `Bio clicks (assumed ${ctrPct} % of views)`,
+  calcMiniInstalls: (installPct) => `Installs (assumed ${installPct} % of clicks)`,
+  calcMiniBuyers: (convPct) => `Premium buyers (${convPct} % conv)`,
+  calcMiniS2Recurring: "Stream 2 per month",
+  calcMiniS2OneShot: "Stream 2 per install cohort",
+  calcTotalLabelSub: "monthly to you",
+  calcTotalLabelSubTwoStreams: "Total monthly to you",
+  calcTotalLabelOneShot: "per cohort to you",
+  calcTotalLabelOneShotTwoStreams: "Total per cohort",
+  calcTotalLabelMonthsHint: (months) => `for ${months} months`,
+  calcTotalSubStreams: "Stream 1 + Stream 2",
+  calcOneShotHint: "One-shot Premium sale",
+  calcLifetimeHint: (months, total) => `Lifetime per install cohort (× ${months} months): ${total}`,
+  calcSliderRateLabel: (label) => label,
+  calcSliderBasketLabel: (label) => label,
+  calcSlash: "/ mo",
+  calcSlashAria: "per month",
+
+  trackingTitle: { plain: "How the ", italic: "tracking works." },
+  trackingLede: "Self-attributed, no extra tracker needed on your side. Your link recognises you automatically, the rest happens server-side on our end.",
+  trackingProtectionEyebrow: "Protection mechanisms",
+  trackingProtection1: "Self-referral block: your own account doesn't count",
+  trackingProtection2: "30-day refund window, after that the commission is safe",
+  trackingProtection3: "IP and device fingerprint against fraud bursts",
+  trackingProtection4: "Cookie-less fallback via install receipt for iOS 14+",
+  trackingAdEyebrow: "Ad disclosure",
+  trackingAdBody: "Always mark affiliate content as Ad or Sponsored. For stories the sticker is enough, for Reels and posts it goes in the first lines of the caption. Protects you and us.",
+  trackingDiagramCaption: "Four stations, one link. 30-day refund holdback after each purchase, then your share lands in your account via Wise.",
+  diagramStep1Caption: "You share the link.",
+  diagramStep2Caption: "They install.",
+  diagramStep3Caption: "They buy Premium.",
+  diagramStep4Caption: "You get paid.",
+  diagramRefundLabel: "60 d",
+  diagramRedirectLabel: "deeplink",
+  diagramReleaseLabel: "30 d",
+
+  payoutTitle: { plain: "Where does ", italic: "the money go?" },
+  payoutLede: "We pay out monthly as soon as you hit 50 €. Smaller amounts roll into the next monthly run. You can change your details from the dashboard any time.",
+  fieldDisplayName: "Name shown on the invoice",
+  fieldDisplayNamePh: "Molly Hartmann",
+  fieldCountry: "Tax country",
+  fieldCountryPlaceholder: "Please choose",
+  fieldWiseHeader: "Payout via Wise",
+  fieldWiseBody: "We currently pay out exclusively via Wise. You only need an email linked to your Wise account. Wise forwards the money in your local currency.",
+  fieldWiseEmail: "Email of your Wise account",
+  fieldWiseEmailPh: "pay@molly.studio",
+  fieldEmailInvalid: "Please enter a complete email address linked to your Wise account.",
+  fieldTaxStatus: "Tax status",
+  taxOptionKleinunt: "Small business, no VAT",
+  taxOptionRegel: "Regular tax, with VAT",
+  taxOptionUnknown: "Private individual, no business",
+  invoiceCheckMain: "I can issue an invoice with VAT shown.",
+  invoiceCheckHint: "If not, we'll handle the credit note automatically for you.",
+  agreementCheckBefore: "I accept the ",
+  agreementCheckLink: "Affiliate Terms",
+  agreementCheckAfter: (version) => ` of version ${version}.`,
+  agreementCheckHint: (pct, months, streamWord) => `${pct} % ${streamWord}, ${months} months attribution, 30-day refund holdback, monthly payout from 50 €. IP and timestamp are stored for the audit trail.`,
+  payoutSavingBtn: "Saving…",
+  payoutSubmitBtn: "Complete affiliate setup",
+  payoutErrorFallback: "Setup failed, please try again.",
+  payoutConsent: "By clicking complete you confirm that the details are correct and that you've read the Affiliate Terms including the data-protection notes in §05. You can cancel any time, outstanding commissions don't expire.",
+
+  liveTitle: { plain: "You're ", italic: "live ✓" },
+  liveLede: "Your personal tracking link is armed. First clicks show up in the dashboard within 5 minutes. You don't need a code, the link does everything.",
+  liveLinkEyebrow: "Your tracking link",
   copy: "Copy",
   copied: "Copied",
   shareLinkBtn: "Share link",
+  liveCaptionEyebrow: "Ad caption · ready to copy",
+  liveCaptionTagShort: "Story / Bio",
+  liveCaptionTagLong: "Reel / Post",
+  liveCaptionShort: (brandName, url) => `Ad · ${brandName} app, link in bio. ${url}`,
+  liveCaptionLong: (brandName, url) => `Ad · I've been using ${brandName} for a few weeks and love how much it saves me every day. Want to try it: ${url}`,
+  liveCaptionLegal: "Ad or Sponsored belongs in the first lines, that keeps the disclosure clean. Rewrite the rest in your own voice.",
+  liveResourceMeta: "Google Drive · logos, screenshots, playbook PDF",
+  liveShareEyebrow: "How to share",
+  liveShareBio: "Bio link: drop the link directly into your Instagram or TikTok bio. Both platforms accept it without redirect.",
+  liveShareStory: "Stories & Reels: link sticker on, voice note with it, done. Don't forget the ad disclosure.",
+  liveShareCaption: "Captions: also put the link in the caption in case someone doesn't scroll to bio. Tracking runs per click, not per code.",
   liveCtaDashboard: "Go to your affiliate dashboard",
-  calcSlash: "/ mo",
-  calcSlashAria: "per month",
+  liveFooterMail: (email) => `Confirmation to ${email || "your email"} is on the way. Questions?`,
+
+  statusAlreadyActive: "You're already set up as an affiliate. Questions: alain@getklar.org",
+  statusExpiredTitle: { plain: "Link ", italic: "expired" },
+  statusExpiredLede: "Your onboarding link has expired or is invalid. Drop us a line at alain@getklar.org, we'll renew it.",
+  statusLoading: { italic: "Loading …" },
+
+  streamWordSub: "sub share",
+  streamWordPerSale: "share",
+  monatlichSuffix: "monthly",
+  cohortSuffix: "per cohort",
+
+  countryDE: "Germany",
+  countryAT: "Austria",
+  countryCH: "Switzerland",
+  countryNL: "Netherlands",
+  countryFR: "France",
+  countryIT: "Italy",
+  countryES: "Spain",
+  countryOTHER: "Other EU country",
+
+  followerHint: "",
   pmSuffix: "per month",
+  perInstallCohort: "per install cohort",
+
+  calcS2NoteYarn: (shoppers, basket, ratePct) => `${shoppers} active yarn buyers × ${basket} € basket × ${ratePct} %`,
+  calcS2NoteAlbum: (buyers, basket, ratePct) => `${buyers} album buyers × ${basket} € × ${ratePct} %`,
+  calcS2HintYarn: "7.5 % shop commission × 50 % affiliate share = 3.75 % of the basket",
+  calcS2HintAlbum: "One-off sale, 50 % share per album",
 };
 
-const TABLE: Record<Lang, Messages> = { de, en, es };
+const it: Messages = {
+  brandSubline: "Klar Affiliate",
+  stepShort: "Passo",
+
+  stepWelcome: "Benvenuta",
+  stepTracking: "Tracking",
+  stepPayout: "Pagamenti",
+  stepLive: "Live",
+
+  next: "Avanti",
+  back: "Indietro",
+  backAria: "Indietro",
+
+  welcomeGreet: (handle) => `Ciao ${handle},`,
+  welcomeLede: (brandName) => `Benvenuta nel programma di affiliazione ${brandName}. Quattro passi brevi e il tuo link di tracking è live.`,
+  welcomeEyebrowStreams: "Come guadagni",
+  welcomeTitleTwoStreams: { plain: "Due fonti di ", italic: "guadagno." },
+  welcomeTitleOneStream: { plain: "La tua fonte di ", italic: "guadagno." },
+  welcomeEyebrowCalc: "Calcola tu stessa",
+  welcomeTitleCalc: { plain: "Quanto ti ", italic: "resta?" },
+  welcomeCalcSubline: "Sposta gli slider su valori realistici per la tua audience. Il calcolo si aggiorna in diretta.",
+
+  streamEyebrowSub: "Abbonamenti Premium",
+  streamEyebrowOneShot: "Vendite Premium",
+  streamTitleSubTail: "dell'abbonamento.",
+  streamTitleOneShotTail: "a vendita.",
+  streamDetailSub: (pct, months, price) => `Per ogni acquisto Premium ricevi il ${pct} % delle entrate dell'abbonamento, per ${months} mesi. Prezzo abbonamento ${price}.`,
+  streamDetailOneShot: (pct, months, price) => `Per ogni vendita Premium ricevi il ${pct} % del prezzo di vendita. Prezzo ${price}. Finestra cookie di ${months} mesi.`,
+  streamTitleYarn: { plain: "Quota sugli ", italic: "acquisti di filato." },
+  streamTitleAlbum: { plain: "Quota sugli ", italic: "acquisti di album." },
+  streamDetailYarn: "Ogni volta che la tua utente compra filato tramite i link dello shop in-app, ricevi una quota della nostra commissione Awin. Con audience di maglia di solito è lo stream più grosso, perché chi lavora a maglia ricompra spesso.",
+  streamDetailAlbum: "Se il tuo utente compra un album 4k, ricevi il 50 % del prezzo di vendita. Una tantum, ideale per momenti come matrimoni o festival.",
+
+  calcViewsLabel: "Views al mese · tutti i post insieme",
+  calcViewsAria: "Views al mese",
+  calcStreamLabel: (label) => `STREAM · ${label}`,
+  calcSubSummary: (price, pct, months) => `${price} · ${pct} % a te, per ${months} mesi.`,
+  calcOneShotSummary: (price, pct) => `${price} · ${pct} % a te per vendita.`,
+  calcConvLabel: "Conversione a Premium dopo l'install",
+  calcConvAria: "Conversione a Premium",
+  calcMiniBioClicks: (ctrPct) => `Click sulla bio (ipotesi ${ctrPct} % delle views)`,
+  calcMiniInstalls: (installPct) => `Installazioni (ipotesi ${installPct} % dei click)`,
+  calcMiniBuyers: (convPct) => `Acquirenti Premium (${convPct} % conv)`,
+  calcMiniS2Recurring: "Stream 2 al mese",
+  calcMiniS2OneShot: "Stream 2 per coorte di install",
+  calcTotalLabelSub: "al mese a te",
+  calcTotalLabelSubTwoStreams: "Totale al mese a te",
+  calcTotalLabelOneShot: "per coorte a te",
+  calcTotalLabelOneShotTwoStreams: "Totale per coorte",
+  calcTotalLabelMonthsHint: (months) => `per ${months} mesi`,
+  calcTotalSubStreams: "Stream 1 + Stream 2",
+  calcOneShotHint: "Vendita Premium una tantum",
+  calcLifetimeHint: (months, total) => `Lifetime per coorte di install (× ${months} mesi): ${total}`,
+  calcSliderRateLabel: (label) => label,
+  calcSliderBasketLabel: (label) => label,
+  calcSlash: "/ mese",
+  calcSlashAria: "al mese",
+
+  trackingTitle: { plain: "Come funziona ", italic: "il tracking." },
+  trackingLede: "Auto-attribuito, non serve nessun tracker extra dalla tua parte. Il tuo link ti riconosce in automatico, il resto succede sul nostro server.",
+  trackingProtectionEyebrow: "Meccanismi di protezione",
+  trackingProtection1: "Blocco auto-referral: il tuo account non conta",
+  trackingProtection2: "Finestra di rimborso di 30 giorni, dopo la commissione è sicura",
+  trackingProtection3: "Impronta IP e device contro le ondate di frode",
+  trackingProtection4: "Fallback senza cookie via install-receipt per iOS 14+",
+  trackingAdEyebrow: "Identificazione come pubblicità",
+  trackingAdBody: "Marca sempre il contenuto di affiliazione come Pubblicità o Sponsorizzato. Nelle stories basta lo sticker, in Reels e post va nelle prime righe della caption. Protegge te e noi.",
+  trackingDiagramCaption: "Quattro stazioni, un link. 30 giorni di trattenuta per rimborso dopo ogni acquisto, poi la tua quota arriva sul tuo conto via Wise.",
+  diagramStep1Caption: "Tu condividi il link.",
+  diagramStep2Caption: "Loro installano.",
+  diagramStep3Caption: "Comprano Premium.",
+  diagramStep4Caption: "Vieni pagata.",
+  diagramRefundLabel: "60 d",
+  diagramRedirectLabel: "deeplink",
+  diagramReleaseLabel: "30 d",
+
+  payoutTitle: { plain: "Dove va ", italic: "il denaro?" },
+  payoutLede: "Paghiamo ogni mese non appena raggiungi i 50 €. Gli importi inferiori passano al ciclo del mese successivo. Puoi cambiare i dati nella dashboard in qualsiasi momento.",
+  fieldDisplayName: "Nome indicato in fattura",
+  fieldDisplayNamePh: "Molly Hartmann",
+  fieldCountry: "Paese fiscale",
+  fieldCountryPlaceholder: "Seleziona",
+  fieldWiseHeader: "Pagamento tramite Wise",
+  fieldWiseBody: "Al momento paghiamo esclusivamente tramite Wise. Ti serve solo un'email collegata al tuo conto Wise. Wise inoltra il denaro nella tua valuta locale.",
+  fieldWiseEmail: "Email del tuo conto Wise",
+  fieldWiseEmailPh: "pay@molly.studio",
+  fieldEmailInvalid: "Inserisci un'email completa collegata al tuo conto Wise.",
+  fieldTaxStatus: "Stato fiscale",
+  taxOptionKleinunt: "Regime forfettario, senza IVA",
+  taxOptionRegel: "Regime ordinario, con IVA",
+  taxOptionUnknown: "Persona privata, senza attività",
+  invoiceCheckMain: "Posso emettere una fattura con IVA esposta.",
+  invoiceCheckHint: "Se no, generiamo automaticamente la nota di accredito.",
+  agreementCheckBefore: "Accetto le ",
+  agreementCheckLink: "Condizioni di Affiliazione",
+  agreementCheckAfter: (version) => ` della versione ${version}.`,
+  agreementCheckHint: (pct, months, streamWord) => `${pct} % ${streamWord}, ${months} mesi di attribuzione, 30 giorni di trattenuta per rimborso, pagamento mensile a partire da 50 €. IP e timestamp vengono salvati per l'audit-trail.`,
+  payoutSavingBtn: "Salvataggio…",
+  payoutSubmitBtn: "Completa setup di affiliata",
+  payoutErrorFallback: "Setup fallito, riprova.",
+  payoutConsent: "Cliccando su completa confermi che i dati sono corretti e di aver letto le Condizioni di Affiliazione incluse le informazioni sulla protezione dei dati al §05. Puoi disdire in qualsiasi momento, le commissioni in sospeso non scadono.",
+
+  liveTitle: { plain: "Sei ", italic: "live ✓" },
+  liveLede: "Il tuo link di tracking personale è attivo. I primi click compaiono nella dashboard entro 5 minuti. Non ti serve un codice, fa tutto il link.",
+  liveLinkEyebrow: "Il tuo link di tracking",
+  copy: "Copia",
+  copied: "Copiato",
+  shareLinkBtn: "Condividi link",
+  liveCaptionEyebrow: "Caption di affiliazione · da copiare",
+  liveCaptionTagShort: "Story / Bio",
+  liveCaptionTagLong: "Reel / Post",
+  liveCaptionShort: (brandName, url) => `Pubblicità · App ${brandName}, link in bio. ${url}`,
+  liveCaptionLong: (brandName, url) => `Pubblicità · Uso ${brandName} da qualche settimana e mi piace quanto mi semplifica le giornate. Se vuoi provarla: ${url}`,
+  liveCaptionLegal: "Pubblicità o Sponsorizzato va nelle prime righe, così l'identificazione è pulita. Il resto del testo riscrivilo con la tua voce.",
+  liveResourceMeta: "Google Drive · loghi, screenshot, playbook PDF",
+  liveShareEyebrow: "Come condividere",
+  liveShareBio: "Link in bio: metti il link direttamente nella tua bio di Instagram o TikTok. Entrambe le piattaforme lo accettano senza redirect.",
+  liveShareStory: "Stories e Reels: sticker del link su, audio che spiega, fatto. Non dimenticare di marcarlo come pubblicità.",
+  liveShareCaption: "Captions: metti il link anche nella caption, nel caso qualcuno non scorra alla bio. Il tracking va a click, non a codice.",
+  liveCtaDashboard: "Alla tua dashboard di affiliata",
+  liveFooterMail: (email) => `Conferma a ${email || "la tua email"} in arrivo. Domande?`,
+
+  statusAlreadyActive: "Sei già registrata come affiliata. Per domande: alain@getklar.org",
+  statusExpiredTitle: { plain: "Link ", italic: "scaduto" },
+  statusExpiredLede: "Il tuo link di onboarding è scaduto o non valido. Scrivici a alain@getklar.org, lo rinnoviamo.",
+  statusLoading: { italic: "Caricamento …" },
+
+  streamWordSub: "quota dell'abbonamento",
+  streamWordPerSale: "quota",
+  monatlichSuffix: "mensile",
+  cohortSuffix: "per coorte",
+
+  countryDE: "Germania",
+  countryAT: "Austria",
+  countryCH: "Svizzera",
+  countryNL: "Paesi Bassi",
+  countryFR: "Francia",
+  countryIT: "Italia",
+  countryES: "Spagna",
+  countryOTHER: "Altro paese UE",
+
+  followerHint: "",
+  pmSuffix: "al mese",
+  perInstallCohort: "per coorte di install",
+
+  calcS2NoteYarn: (shoppers, basket, ratePct) => `${shoppers} acquirenti attive di filato × ${basket} € carrello × ${ratePct} %`,
+  calcS2NoteAlbum: (buyers, basket, ratePct) => `${buyers} acquirenti di album × ${basket} € × ${ratePct} %`,
+  calcS2HintYarn: "7,5 % commissione shop × 50 % quota affiliata = 3,75 % del carrello",
+  calcS2HintAlbum: "Vendita una tantum, 50 % di quota per album",
+};
+
+const fr: Messages = {
+  brandSubline: "Klar Affiliate",
+  stepShort: "Étape",
+
+  stepWelcome: "Bienvenue",
+  stepTracking: "Tracking",
+  stepPayout: "Paiements",
+  stepLive: "En ligne",
+
+  next: "Suivant",
+  back: "Retour",
+  backAria: "Retour",
+
+  welcomeGreet: (handle) => `Salut ${handle},`,
+  welcomeLede: (brandName) => `Bienvenue dans le programme d'affiliation ${brandName}. Quatre étapes courtes et ton lien de tracking est en ligne.`,
+  welcomeEyebrowStreams: "Comment tu gagnes",
+  welcomeTitleTwoStreams: { plain: "Deux sources de ", italic: "revenus." },
+  welcomeTitleOneStream: { plain: "Ta source de ", italic: "revenus." },
+  welcomeEyebrowCalc: "Fais le calcul",
+  welcomeTitleCalc: { plain: "Combien ça te ", italic: "rapporte?" },
+  welcomeCalcSubline: "Bouge les sliders sur des valeurs réalistes pour ton audience. Le calcul se met à jour en direct.",
+
+  streamEyebrowSub: "Abonnements Premium",
+  streamEyebrowOneShot: "Ventes Premium",
+  streamTitleSubTail: "de l'abonnement.",
+  streamTitleOneShotTail: "par vente.",
+  streamDetailSub: (pct, months, price) => `Pour chaque achat Premium tu reçois ${pct} % des revenus de l'abonnement, pendant ${months} mois. Prix de l'abonnement ${price}.`,
+  streamDetailOneShot: (pct, months, price) => `Pour chaque vente Premium tu reçois ${pct} % du prix de vente. Prix ${price}. Fenêtre cookie de ${months} mois.`,
+  streamTitleYarn: { plain: "Part sur les ", italic: "achats de laine." },
+  streamTitleAlbum: { plain: "Part sur les ", italic: "achats d'album." },
+  streamDetailYarn: "À chaque fois que ton utilisatrice achète de la laine via les liens shop de l'app, tu touches une part de notre commission Awin. Sur des audiences tricot, c'est souvent le plus gros stream, parce qu'on rachète tout le temps.",
+  streamDetailAlbum: "Si ton utilisateur achète un album 4k, tu reçois 50 % du prix de vente. Une seule fois, parfait pour des moments comme mariages ou festivals.",
+
+  calcViewsLabel: "Views par mois · tous les posts cumulés",
+  calcViewsAria: "Views par mois",
+  calcStreamLabel: (label) => `STREAM · ${label}`,
+  calcSubSummary: (price, pct, months) => `${price} · ${pct} % pour toi, pendant ${months} mois.`,
+  calcOneShotSummary: (price, pct) => `${price} · ${pct} % pour toi par vente.`,
+  calcConvLabel: "Conversion Premium après installation",
+  calcConvAria: "Conversion Premium",
+  calcMiniBioClicks: (ctrPct) => `Clics bio (hypothèse ${ctrPct} % des views)`,
+  calcMiniInstalls: (installPct) => `Installations (hypothèse ${installPct} % des clics)`,
+  calcMiniBuyers: (convPct) => `Acheteurs Premium (${convPct} % conv)`,
+  calcMiniS2Recurring: "Stream 2 par mois",
+  calcMiniS2OneShot: "Stream 2 par cohorte d'installs",
+  calcTotalLabelSub: "par mois pour toi",
+  calcTotalLabelSubTwoStreams: "Total par mois pour toi",
+  calcTotalLabelOneShot: "par cohorte pour toi",
+  calcTotalLabelOneShotTwoStreams: "Total par cohorte",
+  calcTotalLabelMonthsHint: (months) => `pendant ${months} mois`,
+  calcTotalSubStreams: "Stream 1 + Stream 2",
+  calcOneShotHint: "Vente Premium ponctuelle",
+  calcLifetimeHint: (months, total) => `Lifetime par cohorte d'installs (× ${months} mois): ${total}`,
+  calcSliderRateLabel: (label) => label,
+  calcSliderBasketLabel: (label) => label,
+  calcSlash: "/ mois",
+  calcSlashAria: "par mois",
+
+  trackingTitle: { plain: "Comment marche ", italic: "le tracking." },
+  trackingLede: "Auto-attribué, pas besoin de tracker supplémentaire de ton côté. Ton lien te reconnaît tout seul, le reste se passe côté serveur chez nous.",
+  trackingProtectionEyebrow: "Mécanismes de protection",
+  trackingProtection1: "Blocage auto-referral: ton propre compte ne compte pas",
+  trackingProtection2: "Fenêtre de remboursement de 30 jours, ensuite la commission est sécurisée",
+  trackingProtection3: "Empreinte IP et device contre les vagues de fraude",
+  trackingProtection4: "Fallback sans cookie via install-receipt pour iOS 14+",
+  trackingAdEyebrow: "Identification publicitaire",
+  trackingAdBody: "Marque toujours le contenu d'affiliation comme Publicité ou Partenariat rémunéré. En stories, le sticker suffit, en Reels et posts ça va dans les premières lignes de la caption. Ça te protège et nous protège.",
+  trackingDiagramCaption: "Quatre stations, un lien. 30 jours de retenue pour remboursement après chaque achat, puis ta part arrive sur ton compte via Wise.",
+  diagramStep1Caption: "Tu partages le lien.",
+  diagramStep2Caption: "Ils installent.",
+  diagramStep3Caption: "Ils achètent Premium.",
+  diagramStep4Caption: "Tu es payée.",
+  diagramRefundLabel: "60 j",
+  diagramRedirectLabel: "deeplink",
+  diagramReleaseLabel: "30 j",
+
+  payoutTitle: { plain: "Où va ", italic: "l'argent?" },
+  payoutLede: "On paye chaque mois dès que tu atteins 50 €. Les montants inférieurs passent au cycle du mois suivant. Tu peux changer tes données dans le dashboard à tout moment.",
+  fieldDisplayName: "Nom affiché sur la facture",
+  fieldDisplayNamePh: "Molly Hartmann",
+  fieldCountry: "Pays fiscal",
+  fieldCountryPlaceholder: "Choisis",
+  fieldWiseHeader: "Paiement via Wise",
+  fieldWiseBody: "On paye actuellement exclusivement via Wise. Il te faut juste une email liée à ton compte Wise. Wise transfère l'argent dans ta monnaie locale.",
+  fieldWiseEmail: "Email de ton compte Wise",
+  fieldWiseEmailPh: "pay@molly.studio",
+  fieldEmailInvalid: "Merci de saisir une adresse email complète liée à ton compte Wise.",
+  fieldTaxStatus: "Statut fiscal",
+  taxOptionKleinunt: "Micro-entreprise, sans TVA",
+  taxOptionRegel: "Régime normal, avec TVA",
+  taxOptionUnknown: "Particulier, sans activité",
+  invoiceCheckMain: "Je peux émettre une facture avec TVA mentionnée.",
+  invoiceCheckHint: "Sinon, on gère la note de crédit automatiquement pour toi.",
+  agreementCheckBefore: "J'accepte les ",
+  agreementCheckLink: "Conditions d'Affiliation",
+  agreementCheckAfter: (version) => ` en version ${version}.`,
+  agreementCheckHint: (pct, months, streamWord) => `${pct} % ${streamWord}, ${months} mois d'attribution, 30 jours de retenue pour remboursement, paiement mensuel à partir de 50 €. IP et timestamp sont conservés pour l'audit-trail.`,
+  payoutSavingBtn: "Enregistrement…",
+  payoutSubmitBtn: "Terminer le setup affilié",
+  payoutErrorFallback: "Setup échoué, merci de réessayer.",
+  payoutConsent: "En cliquant sur terminer tu confirmes que les données sont correctes et que tu as lu les Conditions d'Affiliation, y compris les mentions de protection des données au §05. Tu peux résilier à tout moment, les commissions en attente n'expirent pas.",
+
+  liveTitle: { plain: "Tu es ", italic: "en ligne ✓" },
+  liveLede: "Ton lien de tracking perso est armé. Les premiers clics apparaissent dans le dashboard en moins de 5 minutes. Pas besoin de code, le lien fait tout.",
+  liveLinkEyebrow: "Ton lien de tracking",
+  copy: "Copier",
+  copied: "Copié",
+  shareLinkBtn: "Partager le lien",
+  liveCaptionEyebrow: "Caption d'affiliation · à copier",
+  liveCaptionTagShort: "Story / Bio",
+  liveCaptionTagLong: "Reel / Post",
+  liveCaptionShort: (brandName, url) => `Publicité · App ${brandName}, lien en bio. ${url}`,
+  liveCaptionLong: (brandName, url) => `Publicité · J'utilise ${brandName} depuis quelques semaines et j'aime à quel point ça me simplifie la journée. Si tu veux tester: ${url}`,
+  liveCaptionLegal: "Publicité ou Partenariat rémunéré doit aller dans les premières lignes, comme ça l'identification est nette. Le reste du texte, réécris-le avec ta voix.",
+  liveResourceMeta: "Google Drive · logos, screenshots, playbook PDF",
+  liveShareEyebrow: "Comment partager",
+  liveShareBio: "Lien en bio: mets le lien directement dans ta bio Instagram ou TikTok. Les deux plateformes l'acceptent sans redirect.",
+  liveShareStory: "Stories et Reels: sticker de lien dessus, note vocale qui explique, fini. N'oublie pas de marquer comme publicité.",
+  liveShareCaption: "Captions: mets aussi le lien dans la caption, au cas où quelqu'un ne scrolle pas vers la bio. Le tracking marche au clic, pas au code.",
+  liveCtaDashboard: "Vers ton dashboard d'affiliée",
+  liveFooterMail: (email) => `Confirmation à ${email || "ton email"} en route. Des questions?`,
+
+  statusAlreadyActive: "Tu es déjà enregistrée comme affiliée. Pour toute question: alain@getklar.org",
+  statusExpiredTitle: { plain: "Lien ", italic: "expiré" },
+  statusExpiredLede: "Ton lien d'onboarding a expiré ou n'est pas valide. Écris-nous à alain@getklar.org, on te le renouvelle.",
+  statusLoading: { italic: "Chargement …" },
+
+  streamWordSub: "part de l'abonnement",
+  streamWordPerSale: "part",
+  monatlichSuffix: "mensuel",
+  cohortSuffix: "par cohorte",
+
+  countryDE: "Allemagne",
+  countryAT: "Autriche",
+  countryCH: "Suisse",
+  countryNL: "Pays-Bas",
+  countryFR: "France",
+  countryIT: "Italie",
+  countryES: "Espagne",
+  countryOTHER: "Autre pays UE",
+
+  followerHint: "",
+  pmSuffix: "par mois",
+  perInstallCohort: "par cohorte d'installs",
+
+  calcS2NoteYarn: (shoppers, basket, ratePct) => `${shoppers} acheteuses actives de laine × ${basket} € panier × ${ratePct} %`,
+  calcS2NoteAlbum: (buyers, basket, ratePct) => `${buyers} acheteurs d'album × ${basket} € × ${ratePct} %`,
+  calcS2HintYarn: "7,5 % de commission shop × 50 % part affiliée = 3,75 % du panier",
+  calcS2HintAlbum: "Vente unique, 50 % de part par album",
+};
+
+const TABLE: Record<Lang, Messages> = { de, en, es, it, fr };
 
 export function getMessages(lang: Lang): Messages {
   return TABLE[lang] ?? TABLE.de;
