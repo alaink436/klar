@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 const KLAR_INBOX_URL =
   process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
 const KLAR_INBOX_KEY = process.env.KLAR_INBOX_SERVICE_KEY ?? "";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function back(req: NextRequest, msg: string, viewExtra = ""): Response {
   return NextResponse.redirect(
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   const reason = String(form.get("reason") ?? "").trim().slice(0, 280);
 
   if (!inquiryId) return back(req, "missing inquiry_id");
+  if (!UUID_RE.test(inquiryId)) return back(req, "invalid inquiry_id");
   if (action !== "decline" && action !== "reopen") return back(req, "unknown action");
 
   const patch =
