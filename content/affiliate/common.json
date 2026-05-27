@@ -4,6 +4,9 @@
     "publisher": "getklar.org",
     "stand_label_de": "Stand Mai 2026 · getklar.org · Alain Kessler, Einzelfirma CH",
     "stand_label_en": "As of May 2026 · getklar.org · Alain Kessler, sole proprietorship CH",
+    "stand_label_it": "Maggio 2026 · getklar.org · Alain Kessler, ditta individuale CH",
+    "stand_label_fr": "Mai 2026 · getklar.org · Alain Kessler, entreprise individuelle CH",
+    "stand_label_es": "Mayo de 2026 · getklar.org · Alain Kessler, empresario individual CH",
     "support_email": "outreach@getklar.org",
     "cal_link": "https://cal.getklar.org/alain/affiliate-intro",
     "dashboard_url": "https://getklar.org/dashboard"
@@ -14,12 +17,18 @@
     "min_payout_eur": 50,
     "refund_holdback_days": 30,
     "payout_methods": ["Wise"],
-    "payout_methods_label": "Wise (für Auszahlungen)",
-    "payout_methods_label_en": "Wise (for payouts)"
+    "payout_methods_label_de": "Wise (für Auszahlungen)",
+    "payout_methods_label_en": "Wise (for payouts)",
+    "payout_methods_label_it": "Wise (per i pagamenti)",
+    "payout_methods_label_fr": "Wise (pour les paiements)",
+    "payout_methods_label_es": "Wise (para los pagos)"
   },
   "compliance": {
     "disclosure_de": "Bei Posts mit Affiliate-Link: #ad / #Werbung / Paid Partnership (FTC, UWG §5a).",
-    "disclosure_en": "On posts with affiliate link: #ad / #sponsored / Paid Partnership (FTC, EU disclosure law)."
+    "disclosure_en": "On posts with affiliate link: #ad / #sponsored / Paid Partnership (FTC, EU disclosure law).",
+    "disclosure_it": "Nei post con link affiliato: #ad / #adv / Paid Partnership (FTC, normativa UE sulla trasparenza).",
+    "disclosure_fr": "Pour les posts avec lien affilié : #ad / #sponsorisé / Paid Partnership (FTC, droit européen).",
+    "disclosure_es": "En las publicaciones con enlace de afiliado: #ad / #publi / Paid Partnership (FTC, normativa UE de transparencia)."
   },
   "page": {
     "size": { "width": 595.28, "height": 841.89 },

@@ -8,207 +8,232 @@
     "premium_price_usd_yearly": 29.99,
     "extra_stream": "Awin shop commissions on in-app yarn purchases (Knit Picks, Minerva — publisher 2797044)",
     "monetisation": "recurring Premium subscription + Awin shop commission share",
-    "monetisation_de": "wiederkehrende Premium-Subscription + Awin-Shop-Provisions-Share",
     "live_status": "App Store live since May 2026, Awin postback in end-to-end verification"
   },
   "brief": {
-    "headline": "My Yarn Stash",
-    "tagline": "Photo of the yarn label, AI auto-fills everything, matches to Ravelry patterns from your stash. Plus shop commissions.",
-    "what_it_is": "My Yarn Stash is an iOS + Android app for hobby knitters and crocheters. Photograph the yarn label, AI extracts material, yardage, needle recommendation, manufacturer and colour. The app then matches Ravelry patterns the user can actually knit with their current stash. Plus: project tracking, FO logbook (finished objects), pattern-match history, and group sharing for knit circles. Two revenue rails for the affiliate: 50% on Premium subs AND a share of Awin shop commissions when the referred user buys yarn in-app.",
-    "who_for": "Hobby knitters, crocheters and fibre artists from beginners with a single shelf to power users with several hundred labels. Audience skews ~90% female, high purchasing power, EU + US + UK + AU. Creators who sit well: pattern designers, KnittingTok and CrochetTok creators, indie yarn dyers, stash-tour reel makers, finished-project carousels, granny-square content.",
-    "features": [
-      "Vision-AI label scan: material, yardage, needle recommendation, manufacturer, colourway and weight extracted from a single label photo.",
-      "Pattern matching: stash items matched against Ravelry patterns, the user sees \"patterns I can knit right now from my stash\".",
-      "Project tracking + FO logbook: in-progress projects with photo, finished objects archive, yardage actually used.",
-      "Group sharing for knit circles: 1 small group on Free (5 members), unlimited groups on Premium.",
-      "Awin in-app shop rail: deep-linked Knit Picks and Minerva purchases, no separate browser flow.",
-      "Discover tab for pattern designers: designers can list their patterns, reach the stash audience directly."
-    ],
-    "business_model_lines": [
-      "Two revenue streams: recurring Premium subscription + Awin shop commission share.",
-      "Premium pricing: 4.99 USD / month or 29.99 USD / year, no annual discount, no free trial (live-trial-on-paywall).",
-      "Free tier is generous: 30 yarn items, 1 group up to 5 members, manual entry + photo scan, pattern-match search.",
-      "Premium unlocks: unlimited stash, unlimited groups / members, AI pattern-match recommendations, advanced project tracking.",
-      "Shop rail: Klar earns ~5-10% Awin commission on basket; affiliates earn a share of that for the 24-month attribution window."
-    ],
-    "why_this_works": "Ravelry's mobile app is genuinely dead since the 2020 redesign disaster — 10M+ users without a native solution. My Yarn Stash fills the gap with better UX and AI auto-fill that nothing else offers. The pattern-match feature solves a real \"stash blindness\" pain. Two revenue rails mean affiliates earn on subs AND on every yarn purchase their referred user makes — knitters re-buy yarn every 3-6 weeks, so the Awin tail compounds meaningfully over 12-24 months."
+    "en": {
+      "short": {
+        "tagline": "Photo of the yarn label, AI auto-fills everything, matches to Ravelry patterns from your stash. Plus shop commissions.",
+        "what_it_is": "My Yarn Stash is an iOS + Android app for hobby knitters and crocheters. Photograph the yarn label, AI extracts material, yardage, needle recommendation, manufacturer and colour. The app then matches Ravelry patterns the user can actually knit with their current stash. Plus: project tracking, FO logbook (finished objects), pattern-match history, and group sharing for knit circles. Two revenue rails for the affiliate: 50% on Premium subs AND a share of Awin shop commissions when the referred user buys yarn in-app.",
+        "who_for": "Hobby knitters, crocheters and fibre artists from beginners with a single shelf to power users with several hundred labels. Audience skews ~90% female, high purchasing power, EU + US + UK + AU.",
+        "key_features": [
+          "Vision-AI label scan: material, yardage, needle, manufacturer, colourway and weight from a single label photo.",
+          "Pattern matching: stash items matched against Ravelry patterns, \"patterns I can knit right now from my stash\".",
+          "Project tracking + FO logbook: in-progress with photo, finished objects archive, yardage actually used.",
+          "Group sharing for knit circles: 1 small group on Free, unlimited groups on Premium.",
+          "Awin in-app shop rail: deep-linked Knit Picks and Minerva purchases, no separate browser flow."
+        ],
+        "business_model_lines": [
+          "Two revenue streams: recurring Premium subscription + Awin shop commission share.",
+          "Premium pricing: 4.99 USD / month or 29.99 USD / year.",
+          "Free tier: 30 yarn items, 1 group up to 5 members, manual entry + photo scan, pattern-match search.",
+          "Premium unlocks: unlimited stash, unlimited groups / members, AI pattern-match recommendations, advanced tracking.",
+          "Shop rail: Klar earns ~5-10% Awin commission on basket; affiliates earn a share of that for 24 months."
+        ],
+        "attribution_one_paragraph": "Your link yarnstash.app/i/[handle] works on every platform. Android attribution is deterministic via Google's install-referrer. iOS warm installs use Universal Links. iOS cold (~99% of creator traffic) uses our own signed-token clipboard deferred-deeplink — live-verified, no Branch.io. RevenueCat fires on Premium purchase, 50% credited to your handle for 24 months. Awin shop commissions on yarn purchases your referred users make are also tracked and credited — see Extended Brief for the dual-rail walkthrough.",
+        "see_long_pointer": "For the full attribution walkthrough plus how the Awin shop-commission rail attributes to the same handle as the Premium sub, see the Extended Brief PDF in this folder."
+      },
+      "long": {
+        "tagline": "Photo of the yarn label, AI auto-fills everything, matches to Ravelry patterns from your stash. Plus shop commissions.",
+        "what_it_is": "My Yarn Stash is an iOS + Android app for hobby knitters and crocheters. Photograph the yarn label, AI extracts material, yardage, needle recommendation, manufacturer and colour. The app then matches Ravelry patterns the user can actually knit with their current stash. Plus: project tracking, FO logbook (finished objects), pattern-match history, and group sharing for knit circles. Two revenue rails: 50% on Premium subs AND a share of Awin shop commissions when the referred user buys yarn in-app.",
+        "who_for": "Hobby knitters, crocheters and fibre artists from beginners with a single shelf to power users with several hundred labels. Audience skews ~90% female, high purchasing power (yarn is consistently re-bought every 3-6 weeks), EU + US + UK + AU. Creator archetypes that convert well: independent pattern designers, KnittingTok and CrochetTok creators (very high engagement vertical), indie yarn dyers (already trusted by stash collectors), stash-tour reel makers, finished-project carousel creators, granny-square content, fibre-festival recap creators.",
+        "key_features": [
+          "Vision-AI label scan: material, yardage, needle, manufacturer, colourway and weight extracted from one label photo.",
+          "Pattern matching: stash items matched against Ravelry patterns. \"Patterns I can knit right now from my stash\" is the unique pitch.",
+          "Project tracking + FO logbook: in-progress projects with photo, finished objects archive, yardage actually used per project.",
+          "Group sharing for knit circles: 1 small group on Free (5 members), unlimited groups on Premium.",
+          "Awin in-app shop rail: deep-linked Knit Picks and Minerva purchases, no separate browser flow.",
+          "Discover tab for pattern designers: designers list patterns directly, reach the stash audience."
+        ],
+        "business_model_lines": [
+          "Two revenue streams: recurring Premium subscription + Awin shop commission share.",
+          "Premium pricing: 4.99 USD / month or 29.99 USD / year (no annual discount, no free trial — live-trial-on-paywall).",
+          "Free tier generous: 30 yarn items, 1 group up to 5 members, manual entry + photo scan, pattern-match search.",
+          "Premium unlocks: unlimited stash, unlimited groups, AI pattern-match recommendations, advanced project tracking.",
+          "Free Lifetime Premium for onboarded affiliates, no posting obligation."
+        ],
+        "pricing_lines": [
+          "Premium: 4.99 USD / month or 29.99 USD / year.",
+          "Shop rail: Klar earns ~5-10% Awin commission per basket; affiliate share is a portion of that for 24 months from the referred user's first purchase.",
+          "ASC live since May 2026; affiliate share is always 50% of the then-current Premium price."
+        ],
+        "market_gap": "Ravelry's mobile experience has been genuinely broken since the 2020 redesign disaster. Ravelry has 10M+ registered users, most of whom maintain stash and pattern queues, but the official mobile app is functionally abandoned — accessibility complaints from neurodivergent users led to the redesign rollback, the underlying tech is still 2015-era, and there is no AI-anything. Meanwhile every knitter has a phone, a physical stash growing in their living room, and the chronic problem of \"I know I have yarn for this pattern, I just can't remember\". That is the gap. My Yarn Stash fills it with better UX, AI auto-fill (label scan that nothing else offers), and pattern-match recommendations against the user's actual stash. The Awin shop rail is the second unlock — knitters re-buy yarn constantly, so a single converted user's lifetime affiliate value compounds on every restock.",
+        "business_model_why_now": "Three shifts make My Yarn Stash possible in 2026. First, Vision LLM costs dropped enough that scanning every yarn label at 0.005-0.01 USD per call is economically viable inside a 5 USD/month price point. Second, Ravelry's API access has been stable enough since 2024 that pattern matching against a live stash is reliable. Third, Awin's iOS-deep-link infrastructure matured enough in 2024-2025 that in-app yarn purchases attribute cleanly through to the affiliate. The combination of free Ravelry data + cheap Vision AI + working Awin attribution closed a window that wouldn't have been buildable 3 years ago.",
+        "attribution": {
+          "intro": "Most affiliate stacks ride on top of Branch.io, AppsFlyer or a similar paid attribution SDK. We built our own. Those tools charge per attributed install, they add a third party to the user's first-launch experience, and they make influencer payouts opaque. My Yarn Stash has a unique wrinkle — two revenue streams (Premium sub + Awin shop commission) need to attribute to the same handle across different RC and Awin event types. Here is what runs in each stage.",
+          "why_diy": "Three reasons. (1) Cost: paid SDKs absorb 8-12% of the affiliate payout pool. (2) Privacy: extra SDKs add another vendor reading first-launch context. (3) Transparency: when a dashboard number looks wrong, we read our own code in 10 minutes. Every line of attribution is in our repo.",
+          "android_install_referrer": "Android gives us the cleanest path. The Google Play Store install carries the original referrer string through to first launch via the Play Install Referrer API. On first launch the app reads it, parses the handle, and writes an attribution row alongside the install event. Deterministic. No fingerprinting. No clipboard.",
+          "ios_warm_universal_link": "If the user already has My Yarn Stash installed, iOS routes the tap through a Universal Link directly into the app with the handle in the URL path. We register `yarnstash.app/i/*` as a Universal Link, Apple's CDN serves the `apple-app-site-association` JSON, the OS routes the tap. Deep-link handler reads the URL, extracts the handle, writes the attribution row.",
+          "ios_cold_clipboard": "The hard case — and ~99% of creator traffic — is iOS cold install. iOS gives the freshly installed app no context. Branch.io solves this with device-fingerprinting heuristics that became unreliable after iOS 14.5. We do it differently. When a user taps your link in Safari, our redirect chain hits yarnstash.app/i/[handle]. That page writes a short-lived JSON token to the clipboard (handle, timestamp, app-key, HMAC-SHA256 signature) before redirecting to the App Store. After install, on first launch, the app reads the clipboard once, parses the JSON, verifies the signature, accepts the token if fresh and signed, and writes the attribution row.",
+          "confirmation_step": "Optional fallback. On first open, after we've read whatever the clipboard provided, the app can show a single confirmation: \"Invited by @[suggested-handle]? Yes / No\". Pre-filled with the clipboard suggestion. My Yarn Stash runs the confirmer ON because knitters are a careful audience that doesn't mind the extra explicit step.",
+          "revenuecat_webhook": "Premium purchases flow through RevenueCat. When `INITIAL_PURCHASE`, `RENEWAL`, `PRODUCT_CHANGE`, or `CANCELLATION` fires, RC posts JSON to our Supabase Edge function `affiliate-rc-webhook`. The function verifies the RC signature, idempotency-checks, looks up the user's attribution row, computes 50% of net after Apple/Google cut, credits `affiliate_earnings`. Separately, Awin shop purchases flow through Awin's postback API: when a user buys yarn via Knit Picks or Minerva in-app, Awin sends a postback to our Edge function `affiliate-awin-postback`. The function maps the Awin click-ID back to our user-attribution row, computes the affiliate share of the commission, credits the same `affiliate_earnings` table with a different source-type so the dashboard can show both rails separately.",
+          "payout_pipeline": "Each credited earning (Premium sub or Awin commission) enters a 30-day refund holdback (Apple/Google refund window for subs; Awin's own clawback window for shop commissions, typically 30-60 days). After holdback expires the row flips to `claimable`. A pg_cron job runs `build_payout_batch()` on the 5th of each month: groups all `claimable` rows per affiliate (both sub and Awin revenue combined), applies the 50 EUR minimum, creates a batch per qualifying affiliate, enqueues to `wise_dispatch_queue`. wise-dispatch calls Wise's v3 transfer API with the affiliate's stored Wise recipient ID. Yarn buyers re-purchase every 3-6 weeks on average, so the Awin tail in particular compounds meaningfully over the 24-month attribution window.",
+          "dashboard_transparency": "Your dashboard at getklar.org/dashboard shows the dual-rail funnel transparently: clicks per day/week/month, install split (Android / iOS warm / iOS cold), active Premium subs in your bucket, Awin shop purchases by referred users (count + cumulative commission), claimable USD from both rails separately AND combined, refund-holdback pipeline, next payout date.",
+          "security_model": "Three layers. (1) Clipboard token is HMAC-signed. (2) Token rejected after 7 days. (3) RC webhook + Awin postback both signature-verified plus idempotency-checked. Signing keys are in Supabase Edge function secrets, rotatable without a client-app update."
+        },
+        "why_this_works": "Ravelry's mobile app is genuinely dead since the 2020 redesign disaster — 10M+ users without a native solution. My Yarn Stash fills the gap with better UX and AI auto-fill that nothing else offers. The pattern-match feature solves a real \"stash blindness\" pain. Two revenue rails mean affiliates earn on subs AND on every yarn purchase their referred user makes — knitters re-buy yarn every 3-6 weeks, so the Awin tail compounds meaningfully over 12-24 months."
+      }
+    }
   },
   "playbook": {
     "en": {
-      "subtitle": "for knitting and crochet creators",
+      "subtitle": "for knitting and crochet creators — and what the research says about how to pitch it",
       "hero_quote": "Photo of the yarn label in, app extracts everything, matches with Ravelry patterns from your stash. Earn from what you already share.",
       "sixty_seconds_intro": "My Yarn Stash is an iOS + Android app for hobby knitters and crocheters. Photograph the yarn label, AI extracts material, yardage, needle recommendation, manufacturer and colour. The app then matches Ravelry patterns you can actually knit with YOUR stash. Plus: project tracking, FO logbook (finished objects), pattern-match history, and group sharing for knit circles. App Store live since May 2026 (Apple-approved).",
-      "why_this_works": "Ravelry's mobile app is dead (the 2020+ redesign disaster), 10M+ users without a native solution. We fill the gap with better UX and AI auto-fill.",
+      "why_this_works": "Ravelry's mobile app is dead since the 2020 redesign. 10M+ knitters without a native solution. My Yarn Stash fills the gap with AI auto-fill that nothing else has.",
       "free_vs_premium": [
-        "Free: 30 yarn items in the stash, 1 group with 5 members, manual entry + photo scan, pattern-match search.",
-        "Premium (4.99 USD/month or 29.99 USD/year): unlimited stash, unlimited groups / members, AI pattern-match recommendations, advanced project tracking.",
-        "Dual affiliate rail: 50% Premium sub share + Awin shop commission share on in-app yarn purchases (Knit Picks, Minerva, more shops in Q3 2026).",
-        "Free Lifetime Premium for onboarded affiliates (no posting obligation)."
+        "Free: 30 yarn items, 1 group up to 5 members, manual entry + photo scan, pattern-match search.",
+        "Premium (4.99 USD/m or 29.99 USD/y): unlimited stash, unlimited groups / members, AI pattern-match recommendations, advanced project tracking.",
+        "Free Lifetime Premium for onboarded affiliates, no posting obligation."
       ],
-      "audience_fit_good": [
-        "Pattern designers (IG, 50k-700k, very high — real tool need).",
-        "KnittingTok creators (TikTok, 50k-500k).",
-        "CrochetTok creators (TikTok, 100k-1M).",
-        "Indie yarn dyers (IG, 20k-200k, co-promo path).",
-        "Yarn-shop owners (IG, 10k-50k, medium — commercial bias).",
-        "EU knit-DE #strickenmachtglücklich (IG, 5k-30k, loyal smaller market)."
-      ],
-      "audience_fit_poor": [
-        "Generic craft accounts without yarn-specific focus.",
-        "Sewing / quilting creators (different niche, low cross-over).",
-        "Macro Ravelry-rooted accounts loyal to Ravelry brand (resistance to alternatives)."
-      ],
-      "reel_hooks": [
+      "science": {
+        "headline": "Face-on-camera content (UGC) converts higher than faceless content on average. For knitting and crochet specifically, face-on-camera AND hands-on-yarn perform best because the audience trades on craft authenticity.",
+        "what_research_says": "Two findings from peer-reviewed influencer-marketing research. Sokolova and Kefi (2020) showed that parasocial interaction drives purchase intent on Instagram and YouTube; in craft niches this matters disproportionately because craft audiences follow makers, not aesthetic accounts. Lou and Yuan (2019) found that perceived creator credibility (expertise, trustworthiness) directly increases consumer trust in branded content; for knitting/crochet, demonstrated skill and visible stash are the credibility signals. Influencer Marketing Hub benchmarks consistently put craft and hobby verticals at higher UGC engagement than e-commerce or lifestyle.",
+        "caveat": "Faceless has a genuine place in craft content. Hands-on-yarn POV (no face, just the work) is one of the most consumed formats in fibre arts — think Knot Stitch's hands-only YouTube channel as the archetype. Stash-tour reels and finished-project carousels also work faceless because the yarn and the project are the aesthetic. The crocheting / knitting community is particularly receptive to faceless creators because hands and projects are 'the personality' in this niche.",
+        "when_each_works": "UGC fits when YOU are the maker, the dyer, the pattern designer. Your voice and your craft visibility are the brand. Faceless fits when hands and yarn carry the show (hands-on-yarn POV, stash tour, project flat-lay), or when you teach (stitch tutorials, AI auto-fill demo).",
+        "sources": [
+          "Sokolova, K., & Kefi, H. (2020). Instagram and YouTube bloggers promote it, why should I buy? How credibility and parasocial interaction influence purchase intentions. Journal of Retailing and Consumer Services, 53, 101742.",
+          "Lou, C., & Yuan, S. (2019). Influencer marketing: How message value and credibility affect consumer trust of branded content on social media. Journal of Interactive Advertising, 19(1), 58-73.",
+          "Influencer Marketing Hub. (2024). The State of Influencer Marketing Benchmark Report 2024.",
+          "HypeAuditor. (2024). State of Influencer Marketing Report."
+        ]
+      },
+      "creator_types_intro": "Find your row. For knitting and crochet specifically, two rails matter — the sub conversion AND the Awin shop attach. Some creator types convert weak on subs but strong on shop, others the reverse. The expected-conversion column is sub-only; Awin is additive.",
+      "creator_types_table": [
         {
-          "label": "Faceless content (yarn + UI as hero)",
-          "items": [
-            "Screen recording \"I scanned my entire stash\" — 45s, time-lapse scan of 100 labels, app auto-fills, cut to pattern-match list \"23 patterns I can knit RIGHT NOW\".",
-            "Aesthetic stash tour (hands only) — 30s, pull 5 beautiful skeins, scan each, ASMR knitting-needle sound, \"the app I wish existed in 2020\".",
-            "Comparison \"Ravelry app vs My Yarn Stash\" — 60s side-by-side screen recording.",
-            "Label magic-reveal — 15s top-down shot, camera over label, cut to app screen with auto-fill, \"yeah it does ALL that from one photo\".",
-            "WIP-Wednesday compilation — 5-7 WIPs (hands / yarn shots), app logo on slide 1, lo-fi knitting sound."
-          ]
+          "type": "Pattern designer (independent)",
+          "path": "UGC strong",
+          "hooks": "\"What's in my designer's stash\"; pattern-design process with stash; \"the app I use to plan my designs\"",
+          "expected_conversion": "3-5% on subs, very high Awin attach (designers buy yarn constantly)"
         },
         {
-          "label": "UGC / your voice (knitter trust)",
-          "items": [
-            "Selfie stash tour with reveal — 90s, you in knitting room with stash visible, \"184 skeins, no clue what I can knit, watch this\", cut to pattern-match.",
-            "\"Meet my stash through the app\" — 60s, voiceover with origin stories of 3-5 skeins, app scans while you talk.",
-            "FO reveal with yarn origin — 30s, \"made from 4 skeins I scanned 6 months ago\", cut to app project view.",
-            "Pattern-designer cross-promo — \"Here's how I match my patterns to your stash\", demo your patterns in Discover tab.",
-            "Indie yarn-dyer co-promo — shared reel/carousel, both parties post, both have affiliate links."
-          ]
+          "type": "KnittingTok / CrochetTok creator",
+          "path": "UGC + Faceless mix",
+          "hooks": "Yarn label scan demo; stash-tour with the app overlaying details; project-match reveal; \"I finally know what I have\"",
+          "expected_conversion": "2-4% on subs, moderate Awin (TikTok audience attaches less than IG)"
+        },
+        {
+          "type": "Indie yarn dyer",
+          "path": "UGC",
+          "hooks": "\"Dyeing a colourway, here's how my customers track it\"; stash-organisation showcase; dyer-to-knitter workflow",
+          "expected_conversion": "2-4% on subs, very high Awin attach (their audience IS the buyer)"
+        },
+        {
+          "type": "Stash-tour / fibre-festival recap",
+          "path": "Faceless or UGC mix",
+          "hooks": "Stash tour with app-scan overlay; festival haul with label-scan reel; pattern-match-from-haul demo",
+          "expected_conversion": "1.5-3% on subs, very high Awin (audience buys yarn after seeing yours)"
+        },
+        {
+          "type": "Finished-project carousel creator",
+          "path": "Faceless",
+          "hooks": "FO carousel with app's yardage data in caption; project log time-lapse; stash-to-FO journey",
+          "expected_conversion": "1-2% on subs, moderate Awin"
+        },
+        {
+          "type": "Granny-square / starter content",
+          "path": "UGC + Faceless mix",
+          "hooks": "\"Granny square but make it stash-aware\"; beginner stash setup; \"my first scan and what it found\"",
+          "expected_conversion": "1.5-3% on subs (beginner audience)"
         }
       ],
-      "story_ideas": [
-        "Education story: label scan demo + sticker \"this is how I track my stash now\" + link sticker.",
-        "Social proof: \"23 patterns I can knit from my stash tonight\" screenshot + link.",
-        "Direct ask: selfie story, \"1 month Premium with my link\" + link sticker."
+      "ugc_strategy": {
+        "archetype": "You with your yarn. Designer at your desk with WIPs. Dyer in your studio. Stash-tour host with your physical shelves. The audience can tell within 2 seconds whether you actually own and use the yarn on screen. Sokolova and Kefi (2020) findings apply double-strength to craft — knitters follow makers, not aesthetic accounts.",
+        "hook_examples": [
+          "\"What's in my designer's stash and what the AI thinks I should knit\" — desk shot, you scanning labels, pattern-match reveal.",
+          "\"I scanned my entire stash and here's what I found\" — emotional payoff, stash-blindness solved.",
+          "\"My fibre-festival haul, every label scanned\" — haul reel with app moment.",
+          "\"How I plan my next design\" — designer process vlog with the app as the stash-reference tool.",
+          "\"As an indie dyer, this is what I tell my customers to use\" — dyer-to-knitter authority play.",
+          "\"What I learned scanning 200 labels\" — pattern-discovery story, app as the data tool.",
+          "\"My stash before and after the AI\" — before/after reveal, organisation payoff.",
+          "\"Three months of using this — honest review\" — straight to camera, what works what doesn't."
+        ],
+        "format_templates": [
+          "Designer desk vlog 60s: stash scan → pattern match → next-project tease.",
+          "Talking head 30s: direct to camera, your honest take, app as B-roll.",
+          "Haul recap: fibre festival or yarn-shop visit → scan-everything sequence.",
+          "Dyer authority: \"why my customers use this app\", with your yarn featured.",
+          "Stash-tour with app: walk through your shelves, app overlays the data.",
+          "Project storyline: scan-to-pattern-match-to-FO multi-post arc."
+        ],
+        "do_dont": [
+          "Do: use your real stash. Stock yarn footage is identifiable in 2 seconds by knitters.",
+          "Do: name specific yarns. \"My Malabrigo Rios in Pearl Ten\" beats \"some yarn\".",
+          "Do: link in caption AND IG bio. Knitters tap deliberately, especially designers.",
+          "Don't: oversell the AI. \"The app auto-fills the label info\" is accurate. \"The AI knows what to knit\" is overreach.",
+          "Don't: skip the Awin angle for designer/dyer audiences. \"And when you click through to buy yarn for the project, the affiliate piece pays out too\" lands well with the niche.",
+          "Don't: use unfocused trending sounds in craft content. Audience mutes pop-aesthetic instantly."
+        ]
+      },
+      "faceless_strategy": {
+        "archetype": "Hands-on-yarn POV. Stash flat-lay. Finished-project carousel. Top-down craft shots. Knot Stitch-style hands-only YouTube. You're behind the camera, your hands and your yarn carry the message. Fibre-arts is unusually faceless-friendly because the work IS the demonstration.",
+        "hook_examples": [
+          "Top-down stash scan demo — phone scanning labels, app screen on the right.",
+          "Hands-on-yarn stash organisation time-lapse with app moments.",
+          "Silent FO carousel — finished project + caption with app yardage data.",
+          "Voiceover-only walkthrough: hands working, your voice teaching the workflow.",
+          "ASMR-adjacent: yarn-handling sounds + scanning beats, no voice.",
+          "Stop-motion: yarn balls organising themselves into the app categories.",
+          "Tutorial carousel: \"How to use the AI label scan\" — 6 IG slides.",
+          "Time-lapse: 60 seconds from \"shelves of unknown yarn\" to \"organised stash\"."
+        ],
+        "format_templates": [
+          "Hands-on-yarn POV 60s: workflow with app interaction beats.",
+          "Top-down phone screen-rec 30s: scan-pattern-match sequence.",
+          "Voiceover-only tutorial: hands working, your voice teaching.",
+          "Tutorial carousel: 6 IG slides, screenshots step-by-step.",
+          "ASMR-adjacent: yarn handling + app interaction sounds, soft music.",
+          "Stash-tour time-lapse: 60 seconds compressed shelf-walk with app overlay."
+        ],
+        "do_dont": [
+          "Do: real yarn only. Stock yarn footage is detected immediately by knitters.",
+          "Do: caption every step. Sound-off viewing is normal in craft content.",
+          "Do: keep ambient sound (yarn rustle, needle clicks). Reads as honest, not produced.",
+          "Do: link in caption + bio. Faceless craft accounts have moderate CTR — every touchpoint matters.",
+          "Don't: fake-enthusiastic voiceover. If you don't actually knit, stay silent and let hands work.",
+          "Don't: skip the FO logbook moment. Finished-project carousels with yardage data in caption are the killer faceless format."
+        ]
+      },
+      "audience_fit_good": [
+        "Independent pattern designers (5k-100k, very high engagement + Awin attach).",
+        "KnittingTok / CrochetTok creators (10k-300k, AI demo is unusually screen-rec friendly).",
+        "Indie yarn dyers (already trusted by stash collectors).",
+        "Stash-tour reel makers (5k-50k, very passionate audience).",
+        "Finished-project carousel creators (FO carousels with yardage data perform).",
+        "Granny-square / beginner-friendly creators (broader reach, lower sub but valid Awin)."
       ],
-      "carousel_ideas": [
-        "\"5 knitting apps you actually need\" (My Yarn Stash on slide 1, no hard sell).",
-        "\"How I scan a 200-skein stash in 10 minutes\" (process carousel, slide 7 = affiliate link).",
-        "\"Stash blindness solved\" (problem-to-solution carousel)."
+      "audience_fit_poor": [
+        "General DIY / craft accounts without dedicated yarn focus.",
+        "Aesthetic-only fibre content (the slow-motion yarn-petting that doesn't actually knit).",
+        "Non-knitting handicraft (sewing, embroidery — wrong stash app)."
       ],
-      "posting_cadence": "Knitting audience: highest engagement Sun + Mon evenings (\"plan-my-knit-week\" mood) and Wed evenings (WIP-Wednesday). 1-2 reels per week works at micro / mid tier. Pattern-designer posts perform any day. Always pair a reel with a story + link sticker that runs 24 hours.",
-      "conversion_math": "Micro pattern designer (15k IG, 1 reel): 8,000 views x 2% CTR = 160 clicks, 35% install = 56 installs, 8% Premium = 4-5 subs, 14 months x 4.99 USD x 50% = ~140-180 USD sub-rail per reel, PLUS Awin tail (typical knitter re-buys every 3-6 weeks) = +50-200 USD shop commission over 12 months. Mid-tier KnittingTok (100k, 1 stash tour): 80,000 views x 1.5% CTR = 1,200 clicks, 30% install = 360 installs, 6% Premium = 22 subs, ~770 USD sub-rail (cap ~1,300 USD) + 200-800 USD Awin tail. Pattern-designer macro (250k, 1 pattern launch): reach 120,000, 8% Premium conv = 43 subs, ~1,500 USD sub-rail (cap ~2,580 USD) + 500-2,000 USD Awin tail. Conservative combined estimate: 200-3,000 USD per clip depending on reach.",
-      "tracking_model_lines": [
-        "Two rails. Primary: getklar.org/i/yarnstash/[yourhandle] — sub rail, 50% rev-share on Premium for 24 months.",
-        "Shop rail (Awin): when your referred user buys yarn in-app via Knit Picks / Minerva, Awin tracks the conversion, commission flows into your Awin account.",
-        "Android (sub rail): install referrer passes handle natively, deterministic.",
-        "iOS warm: Universal Link with handle.",
-        "iOS cold (~99% of creator traffic): signed-token clipboard deferred-deeplink, live-verified via Wavelength.",
-        "Power: both rails are independent and add up."
-      ],
+      "posting_cadence": "Craft audience: highest engagement Sunday morning 8-11h local time (planning-the-week craft session) and Wednesday evening 19-21h (midweek-craft mood). KnittingTok: any day, weekend mornings peak. Pattern designers post in arcs: design announcement → process snippets → finished sample → pattern release. 1 reel per week is plenty in fibre arts. Story sequences during fibre festivals or designer-pattern drops drive strong conversion.",
+      "conversion_math": "50% rev share on Premium subs (24 months) + Awin shop commission share on every yarn purchase from referred users (24 months). Premium 4.99 USD/m or 29.99 USD/y. Independent pattern designer (40k IG, 1 reel): 18,000 views x 2.5% CTR = 450 clicks, 35% install = 158 installs, 6% Premium = 9 subs (~135 USD/year) + Awin attach: 30% of installs become yarn buyers, 47 buyers x average 3 baskets/year x ~5 USD commission share = ~700 USD/year Awin. Total ~835 USD/year from one reel. CrochetTok mid-tier (100k TikTok, 1 reel): 50,000 views x 1.5% CTR = 750 clicks, 30% install = 225 installs, 4% Premium = 9 subs (~135 USD) + Awin attach: lower-buyer rate on TikTok audience, 25% buyer-rate = 56 buyers x 2 baskets/year x 4 USD = ~450 USD. Total ~585 USD/year. Indie yarn dyer (10k IG, 1 carousel): 4,000 views x 4% CTR = 160 clicks, 50% install (high trust) = 80 installs, 8% Premium = 6 subs (~90 USD) + Awin attach: very high buyer rate (these are buyers already), 60 buyers x 5 baskets/year x 5 USD = ~1,500 USD/year. Total ~1,590 USD/year — designers and dyers have the highest LTV in fibre.",
+      "tracking_summary": "Your link yarnstash.app/i/[yourhandle] works on every platform. Android uses Google install-referrer (deterministic). iOS warm uses Universal Link (deterministic). iOS cold (~99% of creator traffic) uses our DIY signed-token clipboard deferred-deeplink, live-verified, no Branch.io. RevenueCat fires on Premium purchase, 50% credited for 24 months. Awin postback fires on every yarn purchase by referred users — affiliate share of the commission credited to the same handle for 24 months. Full walkthrough including the dual-rail Awin attribution is in the Extended Brief PDF.",
       "onboarding_steps": [
         "Click the personal link from Mail 2 (valid 7 days).",
-        "Choose pay method, activate Free Lifetime Premium.",
-        "Separate step: connect your Awin account (free, publisher 2797044 if you want to attach to our Klar ID).",
-        "Dashboard at getklar.org/dashboard via magic link — shows both rails separately."
+        "Land on yarnstash.app/affiliate/[your-token].",
+        "Fill in: handle, Wise payout details, country (tax docs), billing address.",
+        "Get your personal tracking link by mail + dashboard unlock.",
+        "Free Lifetime Premium activated on your My Yarn Stash account."
       ],
       "dashboard_lines": [
-        "Sub rail: clicks per day / week / month, installs split, active Premium subs.",
-        "Awin rail: in-app yarn purchases tracked by your handle, commission share visible.",
-        "Claimable + paid + carry-over + next payout date + refund pipeline (sub rail).",
-        "Awin payout pipeline runs on Awin's own monthly schedule."
+        "Live at getklar.org/dashboard (magic-link login).",
+        "Clicks, installs (Android / iOS warm / iOS cold), active Premium subs in your bucket, Awin shop purchases by referred users.",
+        "Claimable USD from BOTH rails separately + combined + paid USD + next payout date.",
+        "Refund-holdback pipeline + per-app earnings funnel (sub vs Awin commission stacked)."
       ],
-      "brand_assets": "Logo, app screenshots, stash-tour B-roll, pattern-match UI snippets and ready-made captions: getklar.org/i/yarnstash/brand-assets (link goes live with your onboarding mail).",
+      "brand_assets": "Logo, app screenshots, label-scan demo footage, stash-tour B-roll, colour palette and ready-made captions: getklar.org/i/yarnstash/brand-assets (link goes live with your onboarding mail).",
       "faq": [
-        ["How do the two rails work in practice?", "Sub rail: 50% of every Premium sub coming through your link, for 24 months. Shop rail: Awin commission on every yarn purchase your referred user makes in-app (Knit Picks + Minerva initially, more shops in Q3 2026)."],
-        ["Do I need an Awin account?", "Yes, for the shop rail. We help with setup in the onboarding call. Awin account is free."],
-        ["Pattern-designer bonus — can I feature my patterns in the app?", "Yes. You give us your pattern list (Ravelry link), we add it to the Discover tab. Both sides win: your patterns reach the stash audience, you earn extra."],
-        ["Disclosure duty?", "Yes. Rev-share + shop affiliate = paid recommendation. #ad / #sponsored / IG \"Paid Partnership\". FTC + EU + UWG."],
-        ["What if Premium pricing changes?", "You continue to earn 50% on the then-current price."],
-        ["Can I get a flat fee on top?", "Yes. Mid-tier creators 100-500 USD per post, macros 500-2,000 USD. Discuss in the intro call."]
-      ]
-    },
-    "de": {
-      "subtitle": "für Strick- und Häkel-Creator",
-      "hero_quote": "Foto vom Garn-Label rein, App extrahiert alles, matched mit Ravelry-Patterns aus deinem Stash. Verdien an Content den du eh schon teilst.",
-      "sixty_seconds_intro": "My Yarn Stash ist eine iOS + Android-App für Hobby-Stricker:innen und Häkler:innen. Foto vom Garn-Label, KI extrahiert Material, Yardage, Nadel-Empfehlung, Hersteller und Farbe. Die App matched dann Ravelry-Patterns, die du tatsächlich mit DEINEM Stash stricken kannst. Plus: Projekt-Tracking, FO-Logbuch (Finished Objects), Pattern-Match-Historie und Group-Sharing für Strick-Zirkel. App-Store-LIVE seit Mai 2026 (Apple-approved).",
-      "why_this_works": "Ravelry's Mobile-App ist tot (Redesign-Desaster seit 2020+), 10M+ User ohne native Lösung. Wir füllen die Lücke mit besserem UX + KI-Auto-Fill.",
-      "free_vs_premium": [
-        "Free: 30 Garn-Items im Stash, 1 Gruppe mit 5 Mitgliedern, manuelle Eingabe + Foto-Scan, Pattern-Match-Suche.",
-        "Premium (4,99 USD/Monat oder 29,99 USD/Jahr): unbegrenzt Stash, unbegrenzt Gruppen / Mitglieder, KI-Pattern-Match-Empfehlungen, erweitertes Projekt-Tracking.",
-        "Dual-Affiliate-Rail: 50% Premium-Sub-Share + Awin-Shop-Provisions-Share auf In-App-Garn-Käufe (Knit Picks, Minerva, mehr Shops Q3 2026).",
-        "Free Lifetime Premium für onboarded Affiliates (kein Posting-Zwang)."
+        ["How does the Awin shop commission work?", "When a user clicks through from your link, installs the app, and later buys yarn in-app via Knit Picks or Minerva, Awin fires a postback. Klar earns ~5-10% commission on that basket; your share is a portion of that. 24-month attribution window same as the sub."],
+        ["What if the user buys yarn outside the app?", "Then it doesn't attribute — only in-app purchases via the Awin-deep-linked shop rail. That's a feature, not a bug: we wanted clean attribution rather than fuzzy 'maybe-they-bought-because-of-this' tracking."],
+        ["Can I post pattern previews?", "Yes, but Ravelry has specific rules about derivative content. Always link your own designs back to Ravelry as the primary source. We have a brand-asset bundle with the Ravelry-friendly framing."],
+        ["What about non-yarn fibre crafts (sewing, embroidery)?", "Not a fit — different app. We're building specifically for yarn-based crafts."],
+        ["Flat fee on top?", "Yes. Designer and dyer audiences command higher rates because of niche-trust. Mid-tier 150-500 USD per post, macros 500-1500 USD. Rev share + Awin stay on top."],
+        ["Disclosure?", "Yes. Rev-share + Awin commission = paid recommendation. #ad / #sponsored / IG \"Paid Partnership\". Craft audiences are unforgiving of hidden affiliate links."]
       ],
-      "audience_fit_good": [
-        "Pattern-Designer (IG, 50k-700k, sehr hoch — echter Tool-Need).",
-        "KnittingTok-Creator (TikTok, 50k-500k).",
-        "CrochetTok-Creator (TikTok, 100k-1M).",
-        "Indie-Yarn-Dyer (IG, 20k-200k, Co-Promo-Pfad).",
-        "Yarn-Shop-Owner (IG, 10k-50k, mittel — commercial Bias).",
-        "EU Strick-DE #strickenmachtglücklich (IG, 5k-30k, loyal kleinerer Markt)."
-      ],
-      "audience_fit_poor": [
-        "Generische Craft-Accounts ohne Yarn-Fokus.",
-        "Sewing / Quilting-Creator (andere Niche, wenig Cross-over).",
-        "Macro Ravelry-loyale Accounts (Resistance gegen Alternativen)."
-      ],
-      "reel_hooks": [
-        {
-          "label": "Faceless Content (Garn + UI als Hero)",
-          "items": [
-            "Screen-Recording \"Ich habe meinen ganzen Stash gescannt\" — 45s, Time-Lapse Scan von 100 Labels, App auto-fills, Cut auf Pattern-Match-Liste \"23 Patterns die ich JETZT stricken kann\".",
-            "Aesthetic Stash-Tour (nur Hände) — 30s, 5 schöne Knäuel ziehen, jedes scannen, ASMR-Strick-Nadel-Sound, \"die App die ich mir 2020 gewünscht hätte\".",
-            "Comparison \"Ravelry-App vs My Yarn Stash\" — 60s Side-by-Side Screen-Recording.",
-            "Label-Magic-Reveal — 15s Top-down-Shot, Kamera übers Label, Cut auf App-Screen mit Auto-Fill, \"ja, das alles aus einem Foto\".",
-            "WIP-Wednesday-Compilation — 5-7 WIPs (Hände / Garn-Shots), App-Logo auf Slide 1, Lo-Fi-Strick-Sound."
-          ]
-        },
-        {
-          "label": "UGC / Deine Stimme (Knitter-Trust)",
-          "items": [
-            "Selfie-Stash-Tour mit Reveal — 90s, du im Strick-Raum mit sichtbarem Stash, \"184 Knäuel, keine Ahnung was ich stricken kann, watch this\", Cut auf Pattern-Match.",
-            "\"Meet my stash through the app\" — 60s, Voiceover mit Origin-Stories von 3-5 Knäueln, App scannt während du redest.",
-            "FO-Reveal mit Garn-Origin — 30s, \"gemacht aus 4 Knäueln die ich vor 6 Monaten gescannt habe\", Cut auf App-Projekt-View.",
-            "Pattern-Designer-Cross-Promo — \"Hier matche ich meine Patterns auf deinen Stash\", Demo deine Patterns in Discover-Tab.",
-            "Indie-Yarn-Dyer-Co-Promo — geteiltes Reel/Carousel, beide posten, beide haben Affiliate-Links."
-          ]
-        }
-      ],
-      "story_ideas": [
-        "Education-Story: Label-Scan-Demo + Sticker \"so tracke ich jetzt meinen Stash\" + Link-Sticker.",
-        "Social-Proof: \"23 Patterns die ich heute Abend aus meinem Stash stricken kann\" Screenshot + Link.",
-        "Direct-Ask: Selfie-Story, \"1 Monat Premium mit meinem Link\" + Link-Sticker."
-      ],
-      "carousel_ideas": [
-        "\"5 Strick-Apps die du wirklich brauchst\" (My Yarn Stash Slide 1, kein Hard-Sell).",
-        "\"Wie ich einen 200-Knäuel-Stash in 10 Minuten scanne\" (Process-Carousel, Slide 7 = Affiliate-Link).",
-        "\"Stash-Blindness gelöst\" (Problem-to-Solution-Carousel)."
-      ],
-      "posting_cadence": "Strick-Audience: höchstes Engagement So + Mo abends (\"plan-meine-Strick-Woche\"-Mood) und Mi abends (WIP-Wednesday). 1-2 Reels pro Woche funktionieren auf Mikro/Mid-Tier. Pattern-Designer-Posts laufen jeden Tag. Immer Reel mit 24h-Story + Link-Sticker pairen.",
-      "conversion_math": "Mikro Pattern-Designer (15k IG, 1 Reel): 8.000 Views x 2% CTR = 160 Klicks, 35% Install = 56 Installs, 8% Premium = 4-5 Subs, 14 Mo x 4,99 USD x 50% = ~140-180 USD Sub-Rail pro Reel, PLUS Awin-Tail (typische Knitter:in kauft alle 3-6 Wochen) = +50-200 USD Shop-Provision über 12 Monate. Mid-Tier KnittingTok (100k, 1 Stash-Tour): 80.000 Views x 1,5% CTR = 1.200 Klicks, 30% Install = 360 Installs, 6% Premium = 22 Subs, ~770 USD Sub-Rail (Cap ~1.300 USD) + 200-800 USD Awin-Tail. Pattern-Designer Macro (250k, 1 Pattern-Launch): Reach 120.000, 8% Premium-Conv = 43 Subs, ~1.500 USD Sub-Rail (Cap ~2.580 USD) + 500-2.000 USD Awin-Tail. Conservative Combined-Estimate: 200-3.000 USD pro Clip je nach Reach.",
-      "tracking_model_lines": [
-        "Zwei Rails. Primary: getklar.org/i/yarnstash/[handle] — Sub-Rail, 50% Rev-Share auf Premium für 24 Monate.",
-        "Shop-Rail (Awin): wenn dein referenzierter User Garn in-App via Knit Picks / Minerva kauft, Awin trackt die Conversion, Provision fließt in dein Awin-Account.",
-        "Android (Sub-Rail): Install-Referrer gibt Handle nativ weiter, deterministisch.",
-        "iOS warm: Universal-Link mit Handle.",
-        "iOS cold (~99% des Creator-Traffic): signed-Token Clipboard-Deferred-Deeplink, live-verifiziert via Wavelength.",
-        "Power: beide Rails sind unabhängig und addieren sich."
-      ],
-      "onboarding_steps": [
-        "Klick den persönlichen Link aus Mail 2 (7 Tage gültig).",
-        "Pay-Method wählen, Free Lifetime Premium aktivieren.",
-        "Separater Schritt: dein Awin-Account verbinden (kostenlos, Publisher 2797044 falls du an unsere Klar-ID anhängen willst).",
-        "Dashboard auf getklar.org/dashboard via Magic-Link — zeigt beide Rails getrennt."
-      ],
-      "dashboard_lines": [
-        "Sub-Rail: Klicks pro Tag / Woche / Monat, Installs-Split, aktive Premium-Subs.",
-        "Awin-Rail: In-App-Garn-Käufe nach deinem Handle getrackt, Provisions-Share sichtbar.",
-        "Claimable + Paid + Carry-over + nächster Auszahlungs-Termin + Refund-Pipeline (Sub-Rail).",
-        "Awin-Payout-Pipeline läuft auf Awins eigenem Monats-Schedule."
-      ],
-      "brand_assets": "Logo, App-Screenshots, Stash-Tour-B-Roll, Pattern-Match-UI-Snippets und fertige Captions: getklar.org/i/yarnstash/brand-assets (Link wird mit deinem Onboarding-Mail aktiv).",
-      "faq": [
-        ["Wie funktionieren die zwei Rails in der Praxis?", "Sub-Rail: 50% jeder Premium-Sub die über deinen Link kommt, für 24 Monate. Shop-Rail: Awin-Provision auf jeden Garn-Kauf den dein referenzierter User in-App macht (Knit Picks + Minerva initial, mehr Shops Q3 2026)."],
-        ["Brauche ich ein Awin-Account?", "Ja, für die Shop-Rail. Wir helfen beim Setup im Onboarding-Call. Awin-Account ist kostenlos."],
-        ["Pattern-Designer-Bonus — kann ich meine Patterns in der App featuren?", "Ja. Du gibst uns deine Pattern-Liste (Ravelry-Link), wir fügen sie zum Discover-Tab. Beide Seiten gewinnen: deine Patterns erreichen die Stash-Audience, du verdienst extra."],
-        ["Kennzeichnungspflicht?", "Ja. Rev-Share + Shop-Affiliate = bezahlte Empfehlung. #ad / #Werbung / IG \"Paid Partnership\". FTC + EU + UWG."],
-        ["Was wenn Premium-Preis sich ändert?", "Du verdienst weiter 50% auf den dann aktuellen Preis."],
-        ["Kann ich eine Flat-Fee on-top kriegen?", "Ja. Mid-Tier 100-500 USD pro Post, Macros 500-2.000 USD. Im Intro-Call diskutieren."]
-      ]
+      "closing": "Honest read: My Yarn Stash fits creators who actually knit or crochet. Designers, dyers, KnittingTok, CrochetTok, stash-tour, FO carousels — all good fits. Aesthetic-only fibre content where nobody actually knits is not a fit. The Awin rail makes designer and dyer creators particularly lucrative because their audience already buys yarn constantly. Reply to Mail 2 — yes, no, or 'let's see if my audience actually buys yarn'. We don't push."
     }
   }
 }

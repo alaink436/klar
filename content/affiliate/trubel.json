@@ -8,209 +8,231 @@
     "premium_price_eur_yearly": 30,
     "extra_stream": "4K album download as 1.99 USD one-time consumable",
     "monetisation": "recurring Premium subscription + one-time 4K album consumable",
-    "monetisation_de": "wiederkehrende Premium-Subscription + einmaliger 4K-Album-Consumable",
     "live_status": "App Store live since May 2026"
   },
   "brief": {
-    "headline": "Trubel",
-    "tagline": "QR-code album that scans guests' camera rolls automatically after the event.",
-    "what_it_is": "Trubel is an iOS + Android photo-album app with QR-code magic. You host a hangout (birthday, bachelorette, housewarming, flatshare party), generate a QR card, every guest scans it and just takes photos normally with their phone camera. After the event the app scans your guests' camera roll automatically within the correct time window (optional GPS radius) and collects every photo into a single shared album. Optional: any host or guest can buy a 4K download of the full album as a one-time consumable.",
-    "who_for": "Gen-Z friend-group leaders, party hosts, bachelorette and birthday planners, festival groups, study-abroad cohorts. Audience skews 18-28, heavily TikTok-leaning, iPhone-dominant (~80%). Creators who sit well: birthday-recap creators, bachelorette planners, college lifestyle, flatshare content, festival vloggers, camera-roll-aesthetic accounts.",
-    "features": [
-      "QR-card hosting: every event gets a QR card design, guests scan once on arrival, no app account needed to contribute.",
-      "Automatic camera-roll scan: after the event the app pulls every photo from guests' rolls within the time window (and optional GPS radius), no manual upload chasing.",
-      "Shared album per event: every member sees every photo as it lands, comment + react inline.",
-      "World-Map public pin (Premium): turn the album into a discovery pin so friends-of-friends can find it.",
-      "4K full-album download (one-time): one tap, 1.99 USD, the full event in print resolution.",
-      "Multi-event hosting: birthdays, trips, parties — switch albums without re-onboarding guests each time."
-    ],
-    "business_model_lines": [
-      "Two revenue streams: recurring Premium sub + one-time 4K-album consumable.",
-      "Premium pricing: ~5 EUR / month or ~30 EUR / year.",
-      "Free tier: 3 active albums, 20 photos per album, 4 members per album.",
-      "Premium unlocks: unlimited albums, unlimited photos, unlimited members, World-Map pin.",
-      "Standalone consumable: 4K album download 1.99 USD per album (no sub required)."
-    ],
-    "why_this_works": "Birthday and bachelorette content has explosive Gen-Z reach. The pain (\"send me your pics\" group chats that die in 4 days) is universal and concrete. Trubel's automatic camera-roll scan is genuinely a category-of-one — competitors like POV.contact / FridaySnap / Lapse are all web-app-centric, Trubel is native. Two revenue rails (sub + consumable) both pay the affiliate, so high-emotion-moment audiences (festivals, weddings) monetise twice."
+    "en": {
+      "short": {
+        "tagline": "QR-code album that scans guests' camera rolls automatically after the event.",
+        "what_it_is": "Trubel is an iOS + Android photo-album app with QR-code magic. You host a hangout (birthday, bachelorette, housewarming, flatshare party), generate a QR card, every guest scans it and just takes photos normally with their phone camera. After the event the app scans your guests' camera roll automatically within the correct time window (optional GPS radius) and collects every photo into a single shared album. Optional: any host or guest can buy a 4K download of the full album as a one-time consumable.",
+        "who_for": "Gen-Z friend-group leaders, party hosts, bachelorette and birthday planners, festival groups, study-abroad cohorts. Audience skews 18-28, heavily TikTok-leaning, iPhone-dominant (~80%).",
+        "key_features": [
+          "QR-card hosting: every event gets a QR card design, guests scan once on arrival, no app account needed to contribute.",
+          "Automatic camera-roll scan: after the event the app pulls every photo from guests' rolls within the time window (and optional GPS radius).",
+          "Shared album per event: every member sees every photo as it lands, comment + react inline.",
+          "World-Map public pin (Premium): turn the album into a discovery pin so friends-of-friends can find it.",
+          "4K full-album download (one-time): one tap, 1.99 USD, the full event in print resolution."
+        ],
+        "business_model_lines": [
+          "Two revenue streams: recurring Premium sub + one-time 4K-album consumable.",
+          "Premium pricing: ~5 EUR / month or ~30 EUR / year.",
+          "Free tier: 3 active albums, 20 photos per album, 4 members per album.",
+          "Premium unlocks: unlimited albums, unlimited photos, unlimited members, World-Map pin.",
+          "Standalone consumable: 4K album download 1.99 USD per album (no sub required)."
+        ],
+        "attribution_one_paragraph": "Your link trubel.space/i/[handle] works on every platform. Android attribution is deterministic via Google's install-referrer. iOS warm installs use Universal Links. iOS cold (~99% of creator traffic) uses our own signed-token clipboard deferred-deeplink — live-verified, no Branch.io. RevenueCat fires for BOTH Premium subscriptions AND the 4K-album consumable — 50% of net revenue is credited to your handle on each event, with the sub running 24 months from first paid month and consumables crediting immediately.",
+        "see_long_pointer": "For the full attribution walkthrough plus how the two-stream RC integration works (sub + consumable both attribute the same way), see the Extended Brief PDF in this folder."
+      },
+      "long": {
+        "tagline": "QR-code album that scans guests' camera rolls automatically after the event. Two revenue streams: sub + 4K consumable.",
+        "what_it_is": "Trubel is an iOS + Android photo-album app with QR-code magic. You host a hangout (birthday, bachelorette, housewarming, flatshare party), generate a QR card, every guest scans it and just takes photos normally with their phone camera. After the event the app scans your guests' camera roll automatically within the correct time window (optional GPS radius) and collects every photo into a single shared album. Optional: any host or guest can buy a 4K download of the full album as a one-time consumable.",
+        "who_for": "Gen-Z friend-group leaders, party hosts, bachelorette and birthday planners, festival groups, study-abroad cohorts. Audience skews 18-28, heavily TikTok-leaning, iPhone-dominant (~80%). Creators who sit well: birthday-recap creators, bachelorette planners, college lifestyle accounts, flatshare content, festival vloggers, camera-roll-aesthetic accounts.",
+        "key_features": [
+          "QR-card hosting: per-event QR card design, guests scan once on arrival, no app account needed to contribute.",
+          "Automatic camera-roll scan: pulls every photo from guests' rolls within the time window (+ optional GPS radius), no manual upload chasing.",
+          "Shared album per event: every member sees every photo as it lands, comment + react inline.",
+          "World-Map public pin (Premium): turn the album into a discovery pin so friends-of-friends can find it.",
+          "4K full-album download (one-time, 1.99 USD): one tap, the full event in print resolution.",
+          "Multi-event hosting: birthdays, trips, parties — switch albums without re-onboarding guests each time."
+        ],
+        "business_model_lines": [
+          "Two revenue streams: recurring Premium sub + one-time 4K-album consumable.",
+          "Free tier is generous: 3 active albums, 20 photos per album, 4 members per album.",
+          "Premium unlocks: unlimited albums, unlimited photos, unlimited members, World-Map pin.",
+          "Standalone consumable: 4K album download 1.99 USD per album (no sub required, every album-host can pay one-time).",
+          "Free Lifetime Premium for onboarded affiliates, no posting obligation."
+        ],
+        "pricing_lines": [
+          "Premium: ~5 EUR / month or ~30 EUR / year (~ one month free vs monthly).",
+          "4K Album: 1.99 USD per album, one-time consumable per album.",
+          "ASC live since May 2026; affiliate share is always 50% of the then-current price on both streams."
+        ],
+        "market_gap": "Group-event photo collection has been broken for 10+ years. The dominant pattern (\"send me your pics\" group chat) loses 70% of the photos by the third day after the event. Web-based competitors (POV.contact, FridaySnap, Lapse, JOY) all require guests to install something or upload manually — friction every host knows kills participation. Apple's Shared Albums work only for iPhone users and require account creation. Trubel's automatic camera-roll scan with a privacy-windowed time + GPS filter is genuinely a category-of-one: guests just take photos normally with their phone camera, the app does the collection after the event. The 4K-download consumable is the second unlock — it lets the album become a tangible, archival object instead of a fading group chat.",
+        "business_model_why_now": "Two structural shifts make this work. First, iOS PhotoKit and Android MediaStore APIs reached a maturity in 2024-2025 where time + location-windowed reads are reliable and battery-cheap. Second, Gen-Z's relationship with the camera roll has shifted from \"private archive\" to \"shareable artefact\" (driven by TikTok carousel format and BeReal-style aesthetic). The audience is primed for an app that treats group events as memory artefacts rather than as group-chat noise. Add the 4K-consumable rail and a single big-event creator can monetise twice on the same content.",
+        "attribution": {
+          "intro": "Most affiliate stacks ride on top of Branch.io, AppsFlyer or a similar paid attribution SDK. We built our own. Those tools charge per attributed install, they add a third party to the user's first-launch experience, and they make influencer payouts opaque. Trubel has the additional wrinkle of two revenue streams (Premium sub + 4K-album consumable), and both need to attribute to the same handle. Here is what runs in each stage.",
+          "why_diy": "Three reasons. (1) Cost: Branch.io / AppsFlyer charge 0.20-0.40 USD per attributed install at our volume tier, which would have absorbed 8-12% of the affiliate payout pool. With DIY we keep that for affiliates. (2) Privacy: each extra SDK reads first-launch context — another vendor with first-touch user data we did not want to add. Apple's App Tracking Transparency has made probabilistic fingerprinting unreliable since iOS 14.5. (3) Transparency: when a number looks wrong, we read our own code in 10 minutes instead of debugging a vendor black box.",
+          "android_install_referrer": "Android gives us the cleanest path. When a user taps your link, the Google Play Store install carries the original referrer string through to first launch via the Play Install Referrer API. On first launch the app reads `getInstallReferrer().getInstallReferrer()`, we parse the handle out of it, and write an attribution row alongside the install event. Deterministic. No fingerprinting. No clipboard.",
+          "ios_warm_universal_link": "If the user already has Trubel installed, iOS routes the tap through a Universal Link directly into the app with the handle in the URL path. We register `trubel.space/i/*` as a Universal Link, Apple's CDN serves the `apple-app-site-association` JSON, the OS routes the tap. Deep-link handler reads the URL path, extracts the handle, writes the attribution row.",
+          "ios_cold_clipboard": "The hard case — and ~99% of creator traffic in Trubel's Gen-Z audience — is iOS cold install. iOS gives the freshly installed app no context about how it was reached. Branch.io's whole business is solving this with device-fingerprinting heuristics that became unreliable after iOS 14.5. We do it differently. When a user taps your link in Safari, our redirect chain hits trubel.space/i/[handle]. That page writes a short-lived JSON token to the clipboard (handle, timestamp, app-key, HMAC-SHA256 signature) before redirecting to the App Store. After install, on first launch, the app reads the clipboard once, parses the JSON, verifies the signature, accepts the token if fresh and signed, and writes the attribution row. The user sees no extra screen when it works.",
+          "confirmation_step": "Optional fallback. On first open, after we've read whatever the clipboard provided, the app can show a single confirmation: \"Invited by @[suggested-handle]? Yes / No\". Pre-filled with whatever the clipboard suggested; if empty, the user can type. Most users tap Yes. Trubel currently runs the confirmer ON because Gen-Z guests sometimes copy other content (TikTok URLs, song titles) between tap and install, and the explicit confirm catches that edge case.",
+          "revenuecat_webhook": "Both revenue streams flow through RevenueCat — the recurring Premium sub AND the 4K-album consumable. RC normalises both into the same webhook event format. When `INITIAL_PURCHASE`, `RENEWAL`, `NON_RENEWING_PURCHASE` (the consumable event), `PRODUCT_CHANGE`, or `CANCELLATION` fires, RC posts JSON to our Supabase Edge function `affiliate-rc-webhook`. The function: (1) verifies RC signature, (2) idempotency-check against `processed_webhook_events`, (3) looks up the user's attribution row, (4) computes 50% of the net revenue after Apple's or Google's cut (typically 30% for consumables, 15% for subs over 12 months), (5) credits `affiliate_earnings` with handle, app, product-key (Premium sub or 4K-album), gross, cut, net, our-share, holdback-until, source event ID.",
+          "payout_pipeline": "Each credited earning enters a 30-day refund holdback. After holdback expires the row flips to `claimable`. A pg_cron job runs `build_payout_batch()` on the 5th of each month: groups all `claimable` rows per affiliate handle (sub + consumable revenues combined), applies the 50 EUR minimum-payout threshold, creates one `payout_batches` row per qualifying affiliate, enqueues a job in `wise_dispatch_queue`. wise-dispatch calls Wise's v3 transfer API with the affiliate's stored Wise recipient ID. For Trubel specifically, the 4K-album consumable means a single big-event reel can attribute 5-20 consumable purchases (one per guest who buys the album) on top of the sub. Those land as separate rows in the earnings ledger and roll into the same monthly batch.",
+          "dashboard_transparency": "Your dashboard at getklar.org/dashboard shows the funnel transparently: clicks per day/week/month, install split (Android / iOS warm / iOS cold), active Premium subs AND active 4K-album buyers in your bucket, claimable EUR, paid EUR, refund-holdback pipeline, next payout date. For Trubel the per-app funnel additionally shows sub-revenue vs consumable-revenue as a stacked time-series so you can see how a viral birthday-recap reel translates into both rails.",
+          "security_model": "Three layers. (1) Clipboard token is HMAC-signed; tampering invalidates the signature. (2) Token is timestamped and rejected after 7 days. (3) RC webhook is signature-verified plus idempotency-checked, so a leaked webhook URL cannot inject earnings. Signing key is in Supabase Edge function secrets, rotatable without a client-app update."
+        },
+        "why_this_works": "Birthday and bachelorette content has explosive Gen-Z reach. The pain (\"send me your pics\" group chats that die in 4 days) is universal and concrete. Trubel's automatic camera-roll scan is genuinely a category-of-one — competitors are all web-app-centric, Trubel is native. Two revenue rails (sub + consumable) both pay the affiliate, so high-emotion-moment audiences (festivals, weddings) monetise twice on the same content."
+      }
+    }
   },
   "playbook": {
     "en": {
       "subtitle": "for creators who plan birthdays, bachelorettes and friend-group events",
-      "hero_quote": "Drop a QR, all photos collect themselves. Earn from birthday recaps.",
-      "sixty_seconds_intro": "Trubel is an iOS + Android app for photo albums with QR-code magic. You host a hangout (birthday, bachelorette, housewarming, flatshare party), generate a QR card, every guest scans + takes photos normally with their phone camera. After the event the app scans your guests' camera roll automatically within the correct time window (optional GPS radius) and collects every photo into one album. App Store live since May 2026 (Apple-approved after 2 reject rounds).",
-      "why_this_works": "\"Send me your pics\" in the group chat dies after 4 days. Trubel collects automatically what is already on the phones.",
+      "hero_quote": "Drop a QR, all photos collect themselves. Earn from birthday recaps you'd post anyway.",
+      "sixty_seconds_intro": "Trubel is an iOS + Android app for photo albums with QR-code magic. You host a hangout (birthday, bachelorette, housewarming, flatshare party), generate a QR card, every guest scans + takes photos normally with their phone camera. After the event the app scans your guests' camera roll automatically within the correct time window (optional GPS radius) and collects every photo into one album. App Store live since May 2026 (Apple-approved after 2 reject rounds). Two revenue rails: 5 EUR/m or 30 EUR/y Premium sub PLUS 1.99 USD 4K album consumable.",
+      "why_this_works": "\"Send me your pics\" group chats die in 4 days. Apple Shared Albums require all-iPhone groups + account creation. Trubel's automatic camera-roll scan handles the whole thing without guests installing or uploading anything. Two payout rails on one reel: sub + consumable.",
       "free_vs_premium": [
         "Free: 3 active albums, 20 photos per album, 4 members per album.",
-        "Premium (~5 EUR/month or ~30 EUR/year): unlimited albums, unlimited photos, unlimited members, public World-Map pin.",
-        "Standalone: 4K album download as 1.99 USD one-time consumable (no sub needed).",
-        "Free Lifetime Premium for onboarded affiliates (no posting obligation)."
+        "Premium (~5 EUR/m or ~30 EUR/y): unlimited albums, photos, members + World-Map pin.",
+        "Standalone: 4K-album download 1.99 USD per album (no sub required).",
+        "Free Lifetime Premium for onboarded affiliates."
       ],
-      "audience_fit_good": [
-        "Birthday-recap creators (Gen-Z, TikTok 10k-500k).",
-        "Bachelorette planners (IG 20k-200k).",
-        "College + dorm lifestyle accounts.",
-        "Flatshare content (EU, DACH especially).",
-        "Festival + travel groups (seasonal but very high reach).",
-        "Camera-roll-aesthetic TikTokers (broad reach, medium conversion)."
-      ],
-      "audience_fit_poor": [
-        "Solo travel vloggers (no event-group pain).",
-        "Corporate event organisers (Trubel is consumer/Gen-Z first).",
-        "Pure aesthetic accounts without a community angle."
-      ],
-      "reel_hooks": [
+      "science": {
+        "headline": "Face-on-camera content (UGC) converts higher than faceless content on average. Faceless still works — just differently.",
+        "what_research_says": "Two findings from peer-reviewed influencer-marketing research are worth knowing. First, Sokolova and Kefi (2020) showed that parasocial interaction is a strong driver of purchase intent on Instagram and YouTube. Parasocial trust builds fastest when audiences see a face. Second, Lou and Yuan (2019) found that perceived creator credibility (trustworthiness, expertise, attractiveness) directly increases consumer trust in branded content; creator visibility is one of the strongest credibility signals. Industry data from the Influencer Marketing Hub annual benchmarks consistently puts face-on-camera Reels and TikToks at higher engagement than pure screen-recordings, though the gap varies by niche. For Gen-Z party / birthday content specifically, face presence is nearly mandatory — your audience is following the creator personality, not the product.",
+        "caveat": "Faceless still has space in the Trubel funnel. Aesthetic camera-roll-style carousels (the format that doesn't need a face to work) match Trubel's product output directly. A faceless creator can post a real Trubel album as a carousel and let the photos speak. Faceless also scales: more posts per week, lower production cost.",
+        "when_each_works": "UGC fits when you are the friend group, the bridesmaid, the birthday host. Your face IS the brand for Gen-Z lifestyle content. Faceless fits when the album itself is the asset (camera-roll carousel, slow-motion event recap with no narration), or when you post under a brand handle rather than a personal one.",
+        "sources": [
+          "Sokolova, K., & Kefi, H. (2020). Instagram and YouTube bloggers promote it, why should I buy? How credibility and parasocial interaction influence purchase intentions. Journal of Retailing and Consumer Services, 53, 101742.",
+          "Lou, C., & Yuan, S. (2019). Influencer marketing: How message value and credibility affect consumer trust of branded content on social media. Journal of Interactive Advertising, 19(1), 58-73.",
+          "Influencer Marketing Hub. (2024). The State of Influencer Marketing Benchmark Report 2024.",
+          "HypeAuditor. (2024). State of Influencer Marketing Report."
+        ]
+      },
+      "creator_types_intro": "Find the row that fits you. Conversion ranges are realistic for Trubel's Gen-Z audience; your specific niche moves them up or down. Note: Trubel pays TWICE on a single converted viewer — once on the sub (24 months) and once per 4K-album purchase. The numbers below are sub-only; consumable adds 5-20 events worth of 1.99 USD each over a typical year.",
+      "creator_types_table": [
         {
-          "label": "Faceless content (no face on camera)",
-          "items": [
-            "\"Stop posting 'send me your pics' in the group chat\" — 15s voiceover over B-roll of 5 birthday parties, smash-cut to QR-card reveal, album with 200 photos.",
-            "Screen-recording only \"How I'll plan my next bday\" — 30s app screen only, create album, QR-card design, share sheet, photo-collection animation.",
-            "Time-lapse \"Empty album to 247 photos\" — 10s speed-up of album page as photos come in.",
-            "Compilation \"5 apps that save your birthday planning\" — carousel, Trubel on slide 1 or 3 (not 5, otherwise skipped).",
-            "Before/After split-screen — left: group-chat chaos with 47 \"send me ur pics\" notifications, right: Trubel album with 247 photos."
-          ]
+          "type": "Birthday / bachelorette planner",
+          "path": "UGC strong",
+          "hooks": "Real bachelorette recap with QR card moment; \"how I run birthdays now\"; before/after group-chat-vs-Trubel",
+          "expected_conversion": "3-5%, very high consumable attach"
         },
         {
-          "label": "UGC / your voice (face on camera)",
-          "items": [
-            "POV format \"POV: your friend made an album for our hangout\" — 20s selfie mode, scan QR at party, cut to finished album.",
-            "Birthday-recap vlog with album reveal — 60s mix of your vlog + Trubel reveal.",
-            "\"Day in my life as a hostess\" format — Trubel as a 5-second beat in your normal vlog routine.",
-            "Selfie tutorial \"How I plan a bachelorette\" — 90s, Trubel is step 3 \"the photo problem solved\".",
-            "IG Story series, 5 slides: \"best decision for my bday\" / QR-card demo / album reveal / link sticker."
-          ]
+          "type": "College / study-abroad lifestyle",
+          "path": "UGC primary",
+          "hooks": "Day-in-the-life with the QR on the table; \"all photos from one night, one tap\"; recap reel of a semester event",
+          "expected_conversion": "2-4%, repeated events compound"
+        },
+        {
+          "type": "Camera-roll aesthetic / carousel",
+          "path": "Faceless",
+          "hooks": "Trubel album as IG carousel; slow-mo recap with photo grid reveal; \"the camera roll I didn't have to chase\"",
+          "expected_conversion": "1-2%, lower CTR but high posting cadence"
+        },
+        {
+          "type": "Festival vlogger",
+          "path": "UGC + Faceless mix",
+          "hooks": "Festival multi-day album recap; QR on the wristband moment; \"these are everyone's photos, not just mine\"",
+          "expected_conversion": "2-4%, festival audience converts on the consumable too"
+        },
+        {
+          "type": "Bachelorette-planner-niche / wedding content",
+          "path": "UGC + Faceless mix",
+          "hooks": "Bachelorette-weekend album reveal; \"the bride saw 600 photos she never would have\"; QR card design unboxing",
+          "expected_conversion": "3-5% in wedding niches, very high consumable attach"
+        },
+        {
+          "type": "Meme / Gen-Z humor",
+          "path": "Faceless",
+          "hooks": "\"POV: every birthday group chat ever\"; chaotic photo-request screenshots cut to Trubel; relatable-meme format",
+          "expected_conversion": "0.5-1.5% per view but massive reach"
         }
       ],
-      "story_ideas": [
-        "Education story: QR-card screenshot + sticker \"this is how we collect ALL the pics\" + link sticker.",
-        "Social proof: post-party group photo, caption \"everyone's photos are already in the album\".",
-        "Direct ask: selfie mode, \"use my link, get 1 month Premium free\" — link sticker."
+      "ugc_strategy": {
+        "archetype": "You at the actual event. Birthday host showing the QR card on the table. Bachelorette planner with the bride. College lifestyle creator at the party. Sokolova and Kefi (2020) found parasocial trust is what moves Gen-Z lifestyle conversion — your audience follows you, not the app.",
+        "hook_examples": [
+          "\"I ran my friend's bachelorette and got every single photo back\" — recap reel with you in frame, QR card moment, album reveal.",
+          "\"This is how I do birthdays now\" — straight to camera, you at the table with the printed QR card.",
+          "\"600 photos from a weekend I would have lost\" — emotional payoff reel, the bride seeing the album for the first time.",
+          "\"POV: hosting a party in 2026\" — chaotic happy-host vibes, drop the QR moment in the middle.",
+          "\"The QR card I brought to my flatshare housewarming\" — kitchen setup, the card, the album after.",
+          "\"Why I stopped sending 'send me your pics'\" — talking head, your honest take, app demo as B-roll.",
+          "\"Three months of using this for every event\" — retrospective reel, multiple albums shown.",
+          "\"The bride saw photos she never would have\" — emotional reel, big moment energy."
+        ],
+        "format_templates": [
+          "Recap reel 60-90s: at the event → QR card moment → after-event album reveal.",
+          "Talking head 30s: direct to camera, why you stopped chasing photos, app as B-roll.",
+          "POV-style: \"POV: hosting a birthday\", chaotic warmth, app as the solution.",
+          "Emotional payoff: friend/bride reaction to seeing the full album, soft music.",
+          "Anniversary retro: \"6 months of Trubel — every album I made\"."
+        ],
+        "do_dont": [
+          "Do: post the actual album content. The photos sell the app.",
+          "Do: name the event specifically. \"my flatmate's 26th\" reads more honest than \"a recent party\".",
+          "Do: link sticker on the recap story — Gen-Z taps stickers more than caption links.",
+          "Don't: stage the QR moment artificially. Real-event awkwardness reads better than a perfect set-up shot.",
+          "Don't: oversell the privacy. The opt-in is explicit — describe it correctly so viewers don't feel tricked.",
+          "Don't: skip the consumable mention if it fits. \"And I got a 4K download of the whole album for 2 bucks\" lands well in the recap."
+        ]
+      },
+      "faceless_strategy": {
+        "archetype": "Camera-roll-aesthetic creator. IG carousel maker. Slow-motion recap creator. You're behind the camera, the album does the talking. Trubel's product output IS aesthetic photography, so faceless works unusually well — your camera roll is the demo.",
+        "hook_examples": [
+          "Trubel album as 10-slide IG carousel — caption: \"every photo from one night, automatically\".",
+          "Slow-mo recap with photo-grid reveal — ambient music, no voice, captions only.",
+          "\"Camera roll I didn't have to chase\" — silent screen-rec of the album loading, satisfying.",
+          "\"POV typing: hosting a party\" — hands only, QR generation flow, then album later.",
+          "Time-lapse of guests scanning the QR through the night — top-down on the QR card, blurry party in background.",
+          "Stop-motion: photos sliding into the album one by one.",
+          "ASMR-adjacent: QR scan sounds, gentle music, no voice.",
+          "Tutorial carousel: \"How to set up a Trubel album for your event\" — 6 slides, last slide = link."
+        ],
+        "format_templates": [
+          "IG carousel 8-10 slides: photos from a real album, caption tells the story.",
+          "Slow-motion recap 30-45s: ambient music, captions, photos in time-grid.",
+          "Silent screen-rec 20s: QR card → guest scan → photos appearing in album.",
+          "Tutorial carousel: 6 slides, step-by-step, slide 6 = affiliate link.",
+          "Time-lapse: party photos compressed into 60 seconds.",
+          "ASMR-adjacent: app interaction sounds layered with subtle music."
+        ],
+        "do_dont": [
+          "Do: use real album photos (with consent). Stock party photos read fake instantly.",
+          "Do: caption every frame. Sound-off carousels are how Gen-Z consumes.",
+          "Do: keep a consistent visual identity (same filter, same font). Faceless brands win on aesthetic.",
+          "Do: link in caption AND IG bio. Faceless has lower CTR so every touchpoint matters.",
+          "Don't: fake-enthusiastic voiceover. If you don't host events yourself, stay silent and let the photos work.",
+          "Don't: use trending TikTok audio as the only hook — sounds rot in 3 weeks and so does the post."
+        ]
+      },
+      "audience_fit_good": [
+        "Birthday-recap creators (10k-100k, very high engagement Gen-Z).",
+        "Bachelorette / wedding planners (5k-50k, very high consumable attach).",
+        "College / study-abroad lifestyle accounts (20k-200k, repeated events).",
+        "Festival vloggers (20k-300k, multi-day events convert on both rails).",
+        "Camera-roll-aesthetic / minimal-photo IG accounts (faceless brand)."
       ],
-      "carousel_ideas": [
-        "\"5 apps that save your birthday planning\" (Trubel on slide 1 or 3, no hard sell).",
-        "\"Here's how I plan a bachelorette\" (step-by-step screenshots, slide 6 = affiliate link).",
-        "\"Best Gen-Z apps you don't know yet\" (Trubel + 3 others, neutral voice)."
+      "audience_fit_poor": [
+        "Solo content (Trubel needs the group-event context).",
+        "Audiences over 45 (the QR + camera-roll-scan motion is Gen-Z-native).",
+        "Privacy-purist audiences (the camera-roll scan is opt-in but the concept will scare them)."
       ],
-      "posting_cadence": "Bachelorette + birthday audience: highest engagement Thu-Sun evenings (planning weekend events). Festival audience: spike from April through September. Camera-roll aesthetic: any time but trending sounds matter. Frequency: 2-3 reels per month is enough at micro/mid tier, 1 high-quality reel per month at macro tier. Stories with link sticker convert 30-40% of total — keep them up around weekends.",
-      "conversion_math": "Micro creator (15k followers, 1 TikTok reel): 8,000 views x 1.5% CTR = 120 clicks, 35% install = 42 installs, 8% Premium = 3-4 subs, 12 months x 5 EUR x 50% = ~90-120 EUR per reel. Mid-tier (100k, 1 reel): 60,000 views x 1.5% CTR = 900 clicks, 30% install = 270 installs, 8% conv = 22 subs, 14 months x 5 EUR x 50% = ~770 EUR per reel (24-month cap ~1,300 EUR). Macro birthday-recap creator (300k): 180,000 views x 1% CTR = 1,800 clicks, 25% install = 450 installs, 8% conv = 36 subs, ~1,260 EUR per reel (cap ~2,160 EUR). Plus 4K-album consumable purchases on top (high conversion at emotional peaks like weddings + festivals).",
-      "tracking_model_lines": [
-        "Your link trubel.space/i/[yourhandle] works on any platform (IG bio, TikTok bio, story sticker, caption).",
-        "Android: Google Play install-referrer API passes your handle natively. Deterministic.",
-        "iOS warm (app previously installed): Universal Link opens app directly with handle.",
-        "iOS cold (~99% of influencer traffic): signed-token clipboard deferred-deeplink, live-verified via Wavelength. No Branch.io, no vendor lock-in.",
-        "RevenueCat webhook fires on Premium purchase, matches user to your referral, credits 50% for 24 months.",
-        "4K-album consumable purchases are tracked separately, same 50% share."
-      ],
+      "posting_cadence": "Gen-Z audience: highest engagement Thursday evening 19-22h CET (pre-weekend planning) and Saturday morning 9-11h CET (post-event recap mood). Bachelorette / wedding niche: Sunday evening (\"plan-the-week\" wedding planning). Festival niche: real-time during festival season. Frequency: 1 reel per event is plenty. Story sequences before/during/after the event with link sticker drive most conversions.",
+      "conversion_math": "50% rev share, 24 months per attributed user on subs + 50% on every 4K-album consumable purchase. Premium ~5 EUR/m or ~30 EUR/y. 4K album 1.99 USD/album. Birthday-planner reel (50k followers): 30,000 views x 1.5% CTR = 450 clicks, 35% install = 158 installs, 4% Premium = 6 subs, ~180 EUR over 12 months + 30 consumable purchases at ~5 EUR = ~75 USD = total ~225-250 EUR per reel. Wedding-niche macro (300k IG, 1 carousel): reach 120,000 x 1.2% CTR = 1,440 clicks, 25% install = 360 installs, 5% Premium = 18 subs, ~540 EUR over 12 months + 80 consumables = ~80 USD = ~600+ EUR total. Festival vlogger (200k TT, 1 reel): 100,000 views x 1% CTR = 1,000 clicks, 30% install = 300 installs, 3% Premium = 9 subs + festival audience buys consumable at ~20% rate = 60 consumables = ~60 USD = ~330 EUR.",
+      "tracking_summary": "Your link trubel.space/i/[yourhandle] works on every platform. Android uses Google install-referrer (deterministic). iOS warm uses Universal Link (deterministic). iOS cold (~99% of creator traffic) uses our DIY signed-token clipboard deferred-deeplink, live-verified, no Branch.io. RevenueCat fires for BOTH the Premium sub AND the 4K-album consumable purchase — 50% credited to your handle for 24 months from each user's first sub purchase, plus 50% on every consumable that user buys (no time cap on consumables). Full walkthrough is in the Extended Brief PDF.",
       "onboarding_steps": [
         "Click the personal link from Mail 2 (valid 7 days).",
         "Land on trubel.space/affiliate/[your-token].",
-        "Fill in: handle + display name, Wise payout details, country (tax docs), billing address.",
+        "Fill in: handle, Wise payout details, country (for tax docs), billing address.",
         "Get your personal tracking link by mail + dashboard unlock.",
         "Free Lifetime Premium activated on your Trubel account."
       ],
       "dashboard_lines": [
         "Live at getklar.org/dashboard (magic-link login).",
-        "Clicks per day / week / month, installs split (Android / iOS-warm / iOS-cold).",
-        "Active Premium subs + 4K-album consumable purchases in your bucket.",
-        "Claimable EUR + paid EUR + next payout date + refund-holdback pipeline."
+        "Clicks, installs (Android / iOS warm / iOS cold), active Premium subs in your bucket, 4K-album consumable purchases per month.",
+        "Claimable EUR + paid EUR + next payout date.",
+        "Per-app funnel with sub-revenue vs consumable-revenue stacked time-series."
       ],
-      "brand_assets": "Logo, app screenshots, B-roll footage, QR-card design templates and ready-made caption snippets: getklar.org/i/trubel/brand-assets (link goes live with your onboarding mail).",
+      "brand_assets": "Logo, QR card templates, app screenshots, B-roll footage, colour palette and ready-made caption snippets: getklar.org/i/trubel/brand-assets (link goes live with your onboarding mail).",
       "faq": [
-        ["What if I want Free Lifetime Premium but do not want to post?", "Fine. We send Premium anyway. Posting is voluntary, your link stays ready whenever you decide to use it."],
-        ["Can I use the link in multiple posts?", "Yes, any number of times. It is your link for 24 months per conversion."],
-        ["What if I stop posting after 6 months?", "Subs that came in during your active time are still paid out until each user's 24-month mark."],
-        ["Can I negotiate a flat fee on top?", "Yes. Mid-tier creators 100-500 USD per sponsored post. Macros 500-2,000 USD. Book the intro call to discuss."],
-        ["What happens if Premium pricing changes?", "You continue to earn 50% on the then-current price. If we move from 5 EUR to 7 EUR, you get 3.50 EUR per sub-month."],
-        ["Disclosure duty?", "Yes. Rev-share counts as a paid recommendation. Use #ad / #sponsored / IG \"Paid Partnership\". FTC + EU + UWG, otherwise warning-letter risk for you and us."]
-      ]
-    },
-    "de": {
-      "subtitle": "für Creator die Birthdays, Bachelorettes und Freundes-Events planen",
-      "hero_quote": "QR drauf, alle Fotos sammeln sich automatisch. Verdien mit Birthday-Recaps.",
-      "sixty_seconds_intro": "Trubel ist eine iOS + Android-App für Foto-Alben mit QR-Code-Magie. Du hostest ein Hangout (Birthday, Bachelorette, Housewarming, WG-Party), generierst eine QR-Card, jeder Gast scannt + fotografiert normal mit seiner iPhone-Kamera. Die App durchsucht die Camera-Roll deiner Gäste nach dem Event automatisch im richtigen Zeitfenster (optional GPS-Radius) und sammelt alle Fotos in einem Album. App-Store-LIVE seit Mai 2026 (Apple-approved nach 2 Reject-Runden).",
-      "why_this_works": "\"Sendet mir bitte eure Pics\" im Group-Chat sterben in 4 Tagen. Trubel sammelt automatisch was eh schon auf den Phones ist.",
-      "free_vs_premium": [
-        "Free: 3 aktive Alben, 20 Fotos pro Album, 4 Mitglieder pro Album.",
-        "Premium (~5 EUR/Monat oder ~30 EUR/Jahr): unbegrenzt Alben, unbegrenzt Fotos, unbegrenzt Mitglieder, World-Map-Pin public.",
-        "Standalone: 4K-Album-Download als 1,99 USD Einmal-Consumable (kein Sub nötig).",
-        "Free Lifetime Premium für onboarded Affiliates (kein Posting-Zwang)."
+        ["How does the consumable attribute?", "RevenueCat fires when a user buys the 4K-album consumable. The webhook looks up the user's attribution row and credits 50% of net consumable revenue to your handle. No time cap on consumables — your audience can buy 4K albums repeatedly and each purchase pays out."],
+        ["Do I need to mention the consumable?", "Not required. But mentioning \"and you can grab a 4K download of the whole album for 2 bucks\" often increases the per-event revenue you earn on each converted user."],
+        ["What about privacy concerns?", "The camera-roll scan is opt-in. Guests scan the QR, the app explains the time + GPS window, they accept or decline. Describe this honestly in posts — over-promising backfires with privacy-conscious viewers."],
+        ["Can I use the link in multiple posts?", "Yes. Your link, 24 months per converted user on subs, no cap on consumable purchases by attributed users."],
+        ["Flat fee on top?", "Yes. Mid-tier creators $150-800 per post, macros $800+. Rev-share stays on top. Reply to Mail 2 to discuss."],
+        ["What if Premium pricing changes?", "You earn 50% on the then-current price for both rails."]
       ],
-      "audience_fit_good": [
-        "Birthday-Recap-Creators (Gen-Z, TikTok 10k-500k).",
-        "Bachelorette-Planners (IG 20k-200k).",
-        "College + Dorm-Lifestyle-Accounts.",
-        "WG-Content (EU, DACH besonders).",
-        "Festival + Travel-Groups (saisonal aber sehr hohe Reach).",
-        "Camera-Roll-Ästhetik TikToker (broad Reach, mittlere Conversion)."
-      ],
-      "audience_fit_poor": [
-        "Solo-Travel-Vlogger (kein Event-Gruppen-Pain).",
-        "Corporate-Event-Organizer (Trubel ist Consumer-/Gen-Z-first).",
-        "Reine Ästhetik-Accounts ohne Community-Angle."
-      ],
-      "reel_hooks": [
-        {
-          "label": "Faceless Content (kein Gesicht)",
-          "items": [
-            "\"Stop posting 'send me your pics' in the group chat\" — 15s Voiceover über B-Roll von 5 Birthday-Parties, Smash-Cut auf QR-Card-Reveal, Album mit 200 Fotos.",
-            "Screen-Recording-only \"How I'll plan my next bday\" — 30s nur App-Screen, Album erstellen, QR-Card-Design, Share-Sheet, Foto-Sammlung-Animation.",
-            "Time-Lapse \"Empty album to 247 photos\" — 10s Speed-Up der Album-Page während Fotos reinkommen.",
-            "Compilation \"5 Apps die deine Birthday-Planung retten\" — Carousel, Trubel auf Slide 1 oder 3 (nicht 5, sonst skip).",
-            "Before/After-Split-Screen — links: Group-Chat-Chaos mit 47 \"send me ur pics\" Notifications, rechts: Trubel-Album mit 247 Fotos."
-          ]
-        },
-        {
-          "label": "UGC / Deine Stimme (Gesicht zeigen)",
-          "items": [
-            "POV-Format \"POV: your friend made an album for our hangout\" — 20s Selfie-Mode, QR scannen auf Party, Cut auf fertiges Album.",
-            "Birthday-Recap-Vlog mit Album-Reveal — 60s Mix aus deinem Vlog + Trubel-Reveal.",
-            "\"Day in my life as a hostess\"-Format — Trubel als 5-Sekunden-Beat in deinem normalen Vlog-Routine.",
-            "Selfie-Tutorial \"How I plan a bachelorette\" — 90s, Trubel ist Schritt 3 \"the photo problem solved\".",
-            "IG-Story-Serie, 5 Slides: \"best decision for my bday\" / QR-Card-Demo / Album-Reveal / Link-Sticker."
-          ]
-        }
-      ],
-      "story_ideas": [
-        "Education-Story: QR-Card-Screenshot + Sticker \"so sammeln wir ALLE Fotos\" + Link-Sticker.",
-        "Social-Proof: Post-Party-Gruppen-Foto, Caption \"alle Fotos sind schon im Album\".",
-        "Direct-Ask: Selfie-Mode, \"nutz meinen Link, 1 Monat Premium gratis\" — Link-Sticker."
-      ],
-      "carousel_ideas": [
-        "\"5 Apps die deine Birthday-Planung retten\" (Trubel auf Slide 1 oder 3, kein Hard-Sell).",
-        "\"So plane ich eine Bachelorette\" (Step-by-step Screenshots, Slide 6 = Affiliate-Link).",
-        "\"Beste Gen-Z-Apps die du noch nicht kennst\" (Trubel + 3 andere, neutrale Stimme)."
-      ],
-      "posting_cadence": "Bachelorette + Birthday-Audience: höchstes Engagement Do-So abends (Wochenend-Event-Planung). Festival-Audience: Spike April-September. Camera-Roll-Ästhetik: jederzeit, aber trending Sounds matter. Frequenz: 2-3 Reels pro Monat reicht auf Mikro-/Mid-Tier, 1 hochwertiges Reel pro Monat auf Macro-Tier. Stories mit Link-Sticker konvertieren 30-40% des Totals — am Wochenende oben halten.",
-      "conversion_math": "Mikro-Creator (15k Follower, 1 TikTok-Reel): 8.000 Views x 1,5% CTR = 120 Klicks, 35% Install = 42 Installs, 8% Premium = 3-4 Subs, 12 Monate x 5 EUR x 50% = ~90-120 EUR aus einem Reel. Mid-Tier (100k, 1 Reel): 60.000 Views x 1,5% CTR = 900 Klicks, 30% Install = 270 Installs, 8% Conv = 22 Subs, 14 Mo x 5 EUR x 50% = ~770 EUR pro Reel (24-Mo-Cap ~1.300 EUR). Macro Birthday-Recap-Creator (300k): 180.000 Views x 1% CTR = 1.800 Klicks, 25% Install = 450 Installs, 8% Conv = 36 Subs, ~1.260 EUR pro Reel (Cap ~2.160 EUR). Plus 4K-Album-Consumable-Käufe obendrauf (hohe Conversion an emotionalen Peaks wie Hochzeiten + Festivals).",
-      "tracking_model_lines": [
-        "Dein Link trubel.space/i/[handle] funktioniert auf jeder Plattform (IG-Bio, TikTok-Bio, Story-Sticker, Caption).",
-        "Android: Google Play Install-Referrer-API gibt deinen Handle nativ weiter. Deterministisch.",
-        "iOS warm (App schon mal installiert): Universal-Link öffnet App direkt mit Handle.",
-        "iOS cold (~99% des Influencer-Traffic): signed-Token Clipboard-Deferred-Deeplink, live-verifiziert via Wavelength. Kein Branch.io, kein Vendor-Lockin.",
-        "RevenueCat-Webhook feuert beim Premium-Kauf, matched User mit deinem Referral, 50% gutschreiben für 24 Monate.",
-        "4K-Album-Consumable-Käufe werden separat getrackt, gleicher 50%-Share."
-      ],
-      "onboarding_steps": [
-        "Klick den persönlichen Link aus Mail 2 (7 Tage gültig).",
-        "Du landest auf trubel.space/affiliate/[dein-token].",
-        "Du gibst ein: Handle + Anzeigename, Wise-Payout-Details, Land (Steuer-Doku), Rechnungsadresse.",
-        "Du bekommst deinen persönlichen Tracking-Link per Mail + Dashboard-Zugang.",
-        "Free Lifetime Premium auf deinem Trubel-Account aktiv."
-      ],
-      "dashboard_lines": [
-        "Live auf getklar.org/dashboard (Magic-Link-Login).",
-        "Klicks pro Tag / Woche / Monat, Installs-Split (Android / iOS-warm / iOS-cold).",
-        "Aktive Premium-Subs + 4K-Album-Consumable-Käufe in deinem Topf.",
-        "Claimable EUR + Paid EUR + nächster Auszahlungs-Termin + Refund-Holdback-Pipeline."
-      ],
-      "brand_assets": "Logo, App-Screenshots, B-Roll-Footage, QR-Card-Design-Templates und fertige Caption-Snippets: getklar.org/i/trubel/brand-assets (Link wird mit deinem Onboarding-Mail aktiv).",
-      "faq": [
-        ["Was wenn ich Free Lifetime Premium will, aber nicht posten?", "Geht. Premium kommt trotzdem. Posting ist freiwillig, dein Link bleibt verfügbar wenn du irgendwann doch postest."],
-        ["Kann ich den Link in mehreren Posts nutzen?", "Ja, beliebig oft. Es ist dein Link für 24 Monate pro Conversion."],
-        ["Was wenn ich nach 6 Monaten aufhöre?", "Subs die in deiner Active-Zeit reinkamen werden weiterhin ausgezahlt bis zur 24-Monats-Marke pro User."],
-        ["Kann ich eine Flat-Fee on-top verhandeln?", "Ja. Mid-Tier 100-500 USD pro Sponsored-Post. Macros 500-2.000 USD. Buch dafür den Intro-Call."],
-        ["Was wenn Premium-Preis sich ändert?", "Du verdienst weiter 50% auf den dann aktuellen Preis. Wenn wir auf 7 EUR/Mo gehen, kriegst du 3,50 EUR pro Sub-Monat."],
-        ["Kennzeichnungspflicht?", "Ja. Rev-Share zählt als bezahlte Empfehlung. Nutze #ad / #Werbung / IG \"Paid Partnership\". FTC + EU + UWG, sonst Abmahnrisiko für dich und uns."]
-      ]
+      "closing": "Honest read: Trubel fits creators whose content already centres on group events — birthdays, bachelorettes, festivals, study-abroad, flatshare. If your content is solo creator-stuff (single-room study, solo travel, single-person aesthetic), this is not a fit and that's a real answer. We'd rather have 20 well-fit Gen-Z creators than 200 random ones. Reply to Mail 2 either way."
     }
   }
 }

@@ -7,205 +7,231 @@
     "premium_price_usd_monthly": 3.99,
     "premium_price_usd_yearly": 24.99,
     "monetisation": "recurring Premium subscription",
-    "monetisation_de": "wiederkehrende Premium-Subscription",
     "live_status": "Apple review in progress (Build 11/v1.0.1 submitted), Android paused until RC key set"
   },
   "brief": {
-    "headline": "ThrottleUp",
-    "tagline": "VIN-scan motorcycle maintenance tracker with live NHTSA recall alerts and multi-bike support.",
-    "what_it_is": "ThrottleUp is an iOS + Android app for motorcycle maintenance tracking. The VIN scanner pulls make / model / year / engine class live from NHTSA vPIC. Recall integration runs against the NHTSA Recalls API. Service intervals are set per bike (mileage + time based), push reminders fire 30 / 7 / 1 day before due. Multi-bike for the 2+-bike garage. Plus: maintenance log with photo attachments, PDF / CSV export, and anonymous public trip-sharing with privacy-cropped routes.",
-    "who_for": "Wrenchers, project-bike owners, custom builders, daily-driver tuners. Audience skews 20-55, ~95% male, deep European motorcycle community plus US restomod scene. Creators who sit well: ADV / touring vlogs (Itchy Boots style), garage-vlog channels, build-thread Instagram pages, cafe-racer / custom-builder accounts, oil-change tutorial creators, MotoVloggers.",
-    "features": [
-      "VIN scanner: make / model / year / engine class pulled live from NHTSA vPIC database.",
-      "Recall integration: live lookup against NHTSA Recalls API, push notification when a recall drops for a registered bike.",
-      "Service interval reminders: per-bike, mileage + time based, push 30 / 7 / 1 day before due.",
-      "Maintenance log with photo attachments: every entry can carry vendor receipt + install photo.",
-      "Multi-bike management (Premium): unlimited bikes + larger riding groups.",
-      "PDF / CSV export: complete maintenance documentation, useful at resale as proof of care."
-    ],
-    "business_model_lines": [
-      "Single revenue stream: recurring Premium subscription.",
-      "Pricing: 3.99 USD / month or 24.99 USD / year.",
-      "Free tier is deliberately generous: 1 bike, 1 riding group up to 4 members, unlimited entries, VIN decode, recall lookup, PDF / CSV export.",
-      "Premium unlocks: unlimited bikes, larger / more riding groups.",
-      "Strategy note: Free is generous so every rider gets in. Premium is for multi-bike garages + larger riding groups, not artificial limits."
-    ],
-    "why_this_works": "The market is empty. RIDEOLOGY (the big-name moto app) sits at 2.2 stars on the App Store, \"Motorcycle Maintenance Log\" has 1.9k downloads total. Most riders track in a Word doc or not at all. ThrottleUp's VIN scan + live NHTSA recall layer is genuinely a category-of-one feature. The audience (wrenchers + ADV riders) values tools and trusts other riders, so affiliate conversion is high when the creator is authentic — and very low when they are not."
+    "en": {
+      "short": {
+        "tagline": "VIN-scan motorcycle maintenance tracker with live NHTSA recall alerts and multi-bike support.",
+        "what_it_is": "ThrottleUp is an iOS + Android app for motorcycle maintenance tracking. The VIN scanner pulls make / model / year / engine class live from NHTSA vPIC. Recall integration runs against the NHTSA Recalls API. Service intervals are set per bike (mileage + time based), push reminders fire 30 / 7 / 1 day before due. Multi-bike for the 2+-bike garage. Plus: maintenance log with photo attachments, PDF / CSV export, and anonymous public trip-sharing with privacy-cropped routes.",
+        "who_for": "Wrenchers, project-bike owners, custom builders, daily-driver tuners. Audience skews 20-55, ~95% male, deep European motorcycle community plus US restomod scene.",
+        "key_features": [
+          "VIN scanner: make / model / year / engine class pulled live from NHTSA vPIC database.",
+          "Recall integration: live lookup against NHTSA Recalls API, push notification when a recall drops for a registered bike.",
+          "Service interval reminders: per-bike, mileage + time based, push 30 / 7 / 1 day before due.",
+          "Maintenance log with photo attachments: every entry carries vendor receipt + install photo.",
+          "Multi-bike (Premium): unlimited bikes + larger riding groups."
+        ],
+        "business_model_lines": [
+          "Single revenue stream: recurring Premium subscription.",
+          "Pricing: 3.99 USD / month or 24.99 USD / year.",
+          "Free tier deliberately generous: 1 bike, 1 riding group up to 4 members, unlimited entries, VIN decode, recall lookup, PDF / CSV export.",
+          "Premium unlocks: unlimited bikes, larger / more riding groups."
+        ],
+        "attribution_one_paragraph": "Your link throttleup.app/i/[handle] works on every platform. iOS warm installs use Universal Links. iOS cold (~99% of creator traffic) uses our own signed-token clipboard deferred-deeplink — live-verified, no Branch.io. RevenueCat fires when Premium is purchased and 50% of net revenue is credited to your handle for 24 months from each user's first paid month. Android attribution will activate via Google install-referrer once the RC Android key is set.",
+        "see_long_pointer": "For the full attribution walkthrough plus the why-DIY reasoning, the NHTSA integration architecture, and the Android-status detail, see the Extended Brief PDF in this folder."
+      },
+      "long": {
+        "tagline": "VIN-scan motorcycle maintenance tracker with live NHTSA recall alerts and multi-bike support.",
+        "what_it_is": "ThrottleUp is an iOS + Android app for motorcycle maintenance tracking. The VIN scanner pulls make / model / year / engine class live from NHTSA vPIC. Recall integration runs against the NHTSA Recalls API. Service intervals are set per bike (mileage + time based), push reminders fire 30 / 7 / 1 day before due. Multi-bike for the 2+-bike garage. Plus: maintenance log with photo attachments, PDF / CSV export, and anonymous public trip-sharing with privacy-cropped routes.",
+        "who_for": "Wrenchers, project-bike owners, custom builders, daily-driver tuners. Audience skews 20-55, ~95% male, deep European motorcycle community plus US restomod scene. Creator archetypes that convert well: ADV / touring vloggers (Itchy Boots-style global moto travel), garage-vlog channels, build-thread Instagram accounts, cafe-racer / custom-builder creators, oil-change tutorial makers, MotoVloggers, multi-bike garage owners. The audience values authenticity over polish — they detect performative content instantly.",
+        "key_features": [
+          "VIN scanner: make / model / year / engine class pulled live from NHTSA vPIC database (no manual entry).",
+          "Recall integration: live lookup against NHTSA Recalls API, push notification when a recall drops for a registered bike.",
+          "Service interval reminders: per-bike, mileage + time based, push 30 / 7 / 1 day before due.",
+          "Maintenance log with photo attachments: vendor receipt + install photo per entry.",
+          "Multi-bike management (Premium): unlimited bikes + larger riding groups.",
+          "PDF / CSV export: complete maintenance documentation, useful at resale as proof of care."
+        ],
+        "business_model_lines": [
+          "Single revenue stream: recurring Premium subscription.",
+          "Free tier deliberately generous: 1 bike, 1 riding group up to 4 members, unlimited entries, VIN decode, recall lookup, PDF / CSV export.",
+          "Premium unlocks: unlimited bikes, larger / more riding groups.",
+          "Strategy: Free generous so every rider gets in. Premium is for multi-bike garages, not artificial limits.",
+          "Free Lifetime Premium for onboarded affiliates, no posting obligation."
+        ],
+        "pricing_lines": [
+          "3.99 USD / month.",
+          "24.99 USD / year (~ half off vs monthly).",
+          "iOS-first; Android relaunches once the RC Android key is set. Affiliate share is always 50% of the then-current price."
+        ],
+        "market_gap": "The motorcycle-maintenance app market is genuinely empty. RIDEOLOGY (Kawasaki's official app, the biggest brand-name option) sits at 2.2 stars on the App Store. \"Motorcycle Maintenance Log\" — the only competing dedicated app — has 1,900 downloads total according to App Annie/Sensor Tower estimates. Most riders track maintenance in a Word doc, a notebook in the garage, or not at all. That's not a market with weak competition — that's a market without competition. The reason is structural: motorcycle is a small audience by total population, riders are notoriously skeptical of digital tools, and the existing players (TCXX, Bike Tracker) shipped clunky 2018-era UX and never updated. ThrottleUp's VIN scan + live NHTSA recall integration is genuinely a category-of-one feature — no competing app pulls live recall data from NHTSA for the user's specific bike.",
+        "business_model_why_now": "Two structural shifts make ThrottleUp possible in 2026. First, NHTSA opened its vPIC and Recalls APIs for free public use, which means we can pull authoritative VIN decode and recall data without a paid data vendor — that wasn't available 5 years ago at this quality level. Second, the moto demographic has finally fully adopted smartphones for garage work (vs print-out maintenance schedules), and the Reddit r/motorcycles + r/ADVRider communities have normalised digital maintenance logs as proof-of-care at resale. The market is ready, the data infrastructure is free, the incumbent is asleep — that's a rare combination.",
+        "attribution": {
+          "intro": "Most affiliate stacks ride on top of Branch.io, AppsFlyer or a similar paid attribution SDK. We built our own. Those tools charge per attributed install, they add a third party to the user's first-launch experience, and they make influencer payouts opaque. Moto audiences in particular are skeptical of tracking — every extra SDK is something a wrencher could screenshot and post about. Here is what runs in each stage.",
+          "why_diy": "Three reasons. (1) Cost: paid SDKs absorb 8-12% of the affiliate payout pool. (2) Privacy: moto audiences are above-average skeptical of trackers; we read first-launch context as little as possible by design. (3) Transparency: when a dashboard number looks wrong, we read our own code in 10 minutes instead of debugging a vendor black box. The trade-off is we own the bugs. Every line is in our repo.",
+          "android_install_referrer": "Android attribution via Play Install Referrer API is implemented and tested, but Android is currently paused for ThrottleUp pending an Android RC key setup. The deterministic install-referrer path will activate as soon as that's resolved. Your link still works for Android users — they hit a landing page explaining the iOS-first status and a waitlist signup, and attribution applies retroactively when Android relaunches.",
+          "ios_warm_universal_link": "If the user already has ThrottleUp installed, iOS routes the tap through a Universal Link directly into the app with the handle in the URL path. We register `throttleup.app/i/*` as a Universal Link, Apple's CDN serves the `apple-app-site-association` JSON, the OS routes the tap. Deep-link handler reads the URL, extracts the handle, writes the attribution row.",
+          "ios_cold_clipboard": "The hard case — and ~99% of creator traffic since we're iOS-first — is iOS cold install. iOS gives the freshly installed app no context about how it was reached. Branch.io solves this with device-fingerprinting heuristics that became unreliable after iOS 14.5. We do it differently. When a user taps your link in Safari, our redirect chain hits throttleup.app/i/[handle]. That page writes a short-lived JSON token to the clipboard (handle, timestamp, app-key, HMAC-SHA256 signature) before redirecting to the App Store. After install, on first launch, the app reads the clipboard once, parses the JSON, verifies the signature, accepts the token if fresh and signed, and writes the attribution row.",
+          "confirmation_step": "Optional fallback. On first open, after we've read whatever the clipboard provided, the app can show a single confirmation: \"Invited by @[suggested-handle]? Yes / No\". Pre-filled with the clipboard suggestion. ThrottleUp currently runs the confirmer ON because the moto audience is small enough that every attributed install matters, and explicit confirmation catches the edge cases where clipboard access was denied or the user copied content between tap and install.",
+          "revenuecat_webhook": "Premium purchases flow through RevenueCat. RC handles Apple StoreKit receipts, dedup, refund detection. When `INITIAL_PURCHASE`, `RENEWAL`, `PRODUCT_CHANGE`, or `CANCELLATION` fires, RC posts JSON to our Supabase Edge function `affiliate-rc-webhook`. The function: (1) verifies RC signature, (2) idempotency-checks, (3) looks up the user's attribution row, (4) computes 50% of net after Apple's cut, (5) credits `affiliate_earnings` with handle, app, gross, cut, net, our-share, holdback-until, source event ID.",
+          "payout_pipeline": "Each credited earning enters a 30-day refund holdback. After holdback expires the row flips to `claimable`. A pg_cron job runs `build_payout_batch()` on the 5th of each month: groups claimable rows per affiliate, applies the 50 EUR minimum, creates a batch per qualifying affiliate, enqueues to `wise_dispatch_queue`. wise-dispatch calls Wise's v3 transfer API with the affiliate's stored Wise recipient ID. Moto audiences tend to commit to annual subs more often than monthly (riders prefer set-and-forget for tools), which means batches are typically smaller in count but higher in per-row value.",
+          "dashboard_transparency": "Your dashboard at getklar.org/dashboard shows the funnel transparently: clicks per day/week/month, install split (iOS warm / iOS cold; Android paused indicator), active Premium subs in your bucket, claimable USD, paid USD, refund-holdback pipeline as a time-series, next payout date, per-app earnings funnel. If a number looks wrong, message us and we can show you the exact webhook payload.",
+          "security_model": "Three layers. (1) Clipboard token is HMAC-signed; tampering invalidates the signature. (2) Token is timestamped and rejected after 7 days. (3) RC webhook is signature-verified plus idempotency-checked. Signing key is in Supabase Edge function secrets, rotatable without a client-app update. The narrow attack surface plus the small audience size means moto-app fraud risk is minimal."
+        },
+        "why_this_works": "The market is empty. RIDEOLOGY has 2.2 stars, the existing alternatives are dead. Most riders track in a Word doc or not at all. ThrottleUp's VIN scan + live NHTSA recall layer is genuinely a category-of-one feature. The audience (wrenchers + ADV riders) values tools and trusts other riders, so affiliate conversion is high when the creator is authentic — and very low when they are not."
+      }
+    }
   },
   "playbook": {
     "en": {
-      "subtitle": "for moto creators and ADV riders",
+      "subtitle": "for moto creators and ADV riders — and what the research says about how to pitch it",
       "hero_quote": "VIN scan, recall alerts, multi-bike. Earn from maintenance content you already make.",
-      "sixty_seconds_intro": "ThrottleUp is an iOS + Android app for motorcycle maintenance tracking. The VIN scanner pulls make / model / year / engine class live from NHTSA vPIC. Recall integration runs against the NHTSA Recalls API. You set service intervals per bike (mileage + time based), push reminders fire 30 / 7 / 1 day before due. Multi-bike for those with 2+ bikes in the garage. Plus: maintenance log with photo attachments, PDF / CSV export, anonymous public trip-sharing with privacy-cropped routes.",
+      "sixty_seconds_intro": "ThrottleUp is an iOS + Android app for motorcycle maintenance tracking. The VIN scanner pulls make / model / year / engine class live from NHTSA vPIC. Recall integration runs against the NHTSA Recalls API. You set service intervals per bike, push reminders fire 30 / 7 / 1 day before due. Multi-bike for 2+-bike garages. Maintenance log with photo attachments, PDF / CSV export, anonymous public trip-sharing with privacy-cropped routes.",
       "why_this_works": "The market is empty. RIDEOLOGY has 2.2 stars, \"Motorcycle Maintenance Log\" has 1.9k downloads total. Most riders track in a Word doc or not at all.",
       "free_vs_premium": [
-        "Free: 1 bike, 1 riding group with up to 4 members, unlimited maintenance entries, VIN decode, recall lookup, PDF / CSV export, public trip sharing.",
-        "Premium (3.99 USD/month or 24.99 USD/year): unlimited bikes + larger / more riding groups.",
-        "Deliberate strategy: Free is generous (every rider gets in with no friction), Premium is only for heavy riders with 2+ bikes or large groups.",
-        "Free Lifetime Premium for onboarded affiliates (no posting obligation)."
+        "Free: 1 bike, 1 riding group up to 4 members, unlimited entries, VIN decode, recall lookup, PDF / CSV export.",
+        "Premium (3.99 USD/m or 24.99 USD/y): unlimited bikes, larger / more riding groups.",
+        "Free Lifetime Premium for onboarded affiliates, no posting obligation."
       ],
-      "audience_fit_good": [
-        "ADV / touring (Itchy Boots style) IG, 50k-500k, high (loyal, maintenance-aware).",
-        "Tech / gear reviewers IG/YT, 100k-1M, high (tool mindset).",
-        "MotoVloggers TikTok/IG, 50k-500k, high (authentic).",
-        "Cafe-racer / custom builders IG, 20k-300k, very high (co-promo via build log).",
-        "EU moto creators IG/TikTok, 5k-50k, high (smaller market)."
-      ],
-      "audience_fit_poor": [
-        "Sport-bike lifestyle TikTok poseur content (low maintenance-content fit).",
-        "Pure scenic-ride accounts without tool / maintenance angle.",
-        "Generic motorsport pages without bike-ownership signals."
-      ],
-      "reel_hooks": [
+      "science": {
+        "headline": "Face-on-camera content (UGC) converts higher than faceless content on average. For moto audiences this gap is huge because moto creators trade on authenticity.",
+        "what_research_says": "Two findings worth knowing. Sokolova and Kefi (2020) showed that parasocial interaction is a strong driver of purchase intent. Moto audiences specifically build trust through visible lived experience — riders follow other riders. Lou and Yuan (2019) found that perceived creator credibility (expertise, trustworthiness) directly increases consumer trust in branded content; for moto content, garage-visibility and a real bike are the credibility signals. Industry data from Influencer Marketing Hub confirms automotive/moto verticals see UGC outperform faceless by wider margins than e-commerce or lifestyle.",
+        "caveat": "Faceless still has a real space. Pure how-to content (oil-change tutorials, valve adjustment walkthroughs, VIN-scan demos) work well as faceless screen-rec or hands-only POV. Many of the most-watched moto-maintenance YouTube channels are face-rarely, hands-frequently — the hands and the bike are the personality.",
+        "when_each_works": "UGC fits when YOU are the rider, the builder, the garage-vlogger. Your face and your real bike are the entire brand. Faceless fits when the bike or the procedure is the asset (VIN scan demo, valve check, oil change), or when you post under a brand-style hands-only POV channel.",
+        "sources": [
+          "Sokolova, K., & Kefi, H. (2020). Instagram and YouTube bloggers promote it, why should I buy? How credibility and parasocial interaction influence purchase intentions. Journal of Retailing and Consumer Services, 53, 101742.",
+          "Lou, C., & Yuan, S. (2019). Influencer marketing: How message value and credibility affect consumer trust of branded content on social media. Journal of Interactive Advertising, 19(1), 58-73.",
+          "Influencer Marketing Hub. (2024). The State of Influencer Marketing Benchmark Report 2024.",
+          "HypeAuditor. (2024). State of Influencer Marketing Report."
+        ]
+      },
+      "creator_types_intro": "Find your row. For moto specifically, authenticity is the entire conversion multiplier — performative or stock-style content converts at near zero in this niche, while a real wrencher with a real bike converts at multiples of the platform average.",
+      "creator_types_table": [
         {
-          "label": "Faceless content (bike + UI as hero)",
-          "items": [
-            "Screen recording \"VIN scan in 3 seconds\" — 15s, phone over bike, scanner reads VIN, cut to app with make/model/year filled in.",
-            "Garage B-roll with voiceover — 45s, B-roll of garage / tools / bike detail, voice: \"I have 3 bikes, I used to track in a Word doc, here's what changed\", cut to multi-bike switcher.",
-            "Comparison \"RIDEOLOGY (2.2 stars) vs ThrottleUp\" — 30s split-screen with both UIs.",
-            "Service-log time-lapse — 20s app screen, oil change entry + photo upload + reminder setup + reminder in 30 days.",
-            "Recall popup demo — 10s, push notification \"RECALL for your 2021 Yamaha MT-07: brake line defect\", cut to recall detail screen with NHTSA link-out."
-          ]
+          "type": "ADV / touring vlogger",
+          "path": "UGC strong",
+          "hooks": "VIN scan on your actual bike; recall alert dropped mid-trip; multi-bike garage tour; maintenance log at 50k miles",
+          "expected_conversion": "3-5%, ADV audience trusts other ADV riders"
         },
         {
-          "label": "UGC / your voice (rider trust)",
-          "items": [
-            "\"How I track maintenance now\" — 60s selfie next to bike, \"I used to forget oil changes for 4 months, here's what I do now\", cut to VIN scan + reminder setup.",
-            "Build vlog with app as 5-second beat — 90s, your normal maintenance vlog, ThrottleUp integrated naturally.",
-            "\"POV: you're the guy with 3 bikes\" — 30s in garage with multiple bikes, cut to multi-bike switcher.",
-            "Trip recap with app use — 60s ADV / touring recap, 10s beat cuts to app trip summary.",
-            "Cafe-racer build-log reveal — 45s, custom bike + app build log with photos per entry, \"complete maintenance doc as PDF for resale\"."
-          ]
+          "type": "Garage / wrench vlogger",
+          "path": "UGC + Faceless mix",
+          "hooks": "Oil change with reminder fire; valve check tutorial; maintenance receipt photo workflow; PDF export at resale",
+          "expected_conversion": "2-4%, wrencher trust is high"
+        },
+        {
+          "type": "Build-thread / custom-builder",
+          "path": "UGC + Faceless mix",
+          "hooks": "Maintenance documentation during build; VIN decode reveals; recall lookup on parts bike",
+          "expected_conversion": "2-3%, build-thread audience converts on proof-of-care"
+        },
+        {
+          "type": "Cafe-racer / restomod",
+          "path": "UGC",
+          "hooks": "Vintage VIN decode reveal; recall on a 2002 SV650; restomod log carry-over",
+          "expected_conversion": "2-4%, vintage audience values documentation"
+        },
+        {
+          "type": "MotoVlogger (helmet-cam style)",
+          "path": "UGC + screen-rec mix",
+          "hooks": "Pre-ride checklist with app reminder; recall alert via push during ride break; multi-bike workflow",
+          "expected_conversion": "1.5-3%, larger audiences but lower per-view conversion"
+        },
+        {
+          "type": "Faceless oil-change / how-to TikTok",
+          "path": "Faceless",
+          "hooks": "Silent oil-change tutorial with maintenance-log moment; VIN scan demo top-down; recall lookup time-lapse",
+          "expected_conversion": "1-2% per view, high posting cadence scales"
         }
       ],
-      "story_ideas": [
-        "Education story: recall notification screenshot + sticker \"check yours now\" + link sticker.",
-        "Social proof: \"my entire maintenance history in 1 PDF\" screenshot + link.",
-        "Direct ask: selfie story, \"1 month Premium with my link\" + link sticker."
+      "ugc_strategy": {
+        "archetype": "You with your bike. Garage-vlogger in your actual workshop. ADV rider on your actual tour. Wrencher with your actual hands oily. The audience can tell within 2 seconds whether you actually own and ride the bike on screen. Sokolova and Kefi (2020) findings on parasocial trust apply double-strength here: moto audiences follow riders, not aesthetic accounts.",
+        "hook_examples": [
+          "\"This VIN scanner just told me about a recall on my 2019 Tracer\" — phone in hand at the bike, real reaction.",
+          "\"Why I stopped tracking my maintenance in Word\" — talking head in the garage, you scrolling the doc, then the app.",
+          "\"50,000 miles on this bike — here's the maintenance log\" — PDF export reveal, milestone reel.",
+          "\"My multi-bike garage walkthrough\" — slow pan across 3-4 bikes, app showing the same on screen.",
+          "\"Recall just dropped on my second bike — found out from the app first\" — push notification screenshot, real bike walk-around.",
+          "\"Oil change Saturday\" — full process reel, app reminder firing at the start, log entry at the end.",
+          "\"Bought this bike with no service history — here's how I'm rebuilding the log\" — restoration storyline.",
+          "\"Selling this bike with 80,000 miles of documented care\" — resale PDF reveal, value-protection angle."
+        ],
+        "format_templates": [
+          "Garage vlog 60-90s: setup → app demo (10 seconds) → outcome / wrench work.",
+          "Talking head in the workshop 30s: direct to camera, your honest take, bike in the background.",
+          "Ride-day vlog: helmet-cam → pre-ride checklist app moment → ride.",
+          "Build-thread carousel: 8-10 IG slides, every entry has a maintenance-log screenshot.",
+          "Restoration storyline: multi-post arc, app as the doc system.",
+          "Milestone retro: \"5 years with this bike\", PDF export as the closer."
+        ],
+        "do_dont": [
+          "Do: film in your actual garage. Stock garage backgrounds read fake instantly.",
+          "Do: name your bike specifically. \"My 2019 Tracer 900GT\" beats \"my bike\".",
+          "Do: include the boring moments. Real wrench work has waiting time — audiences read that as honest.",
+          "Don't: read marketing copy. Your honest annoyance with manual logging IS the script.",
+          "Don't: stage perfect shots. Moto audiences trust grease, scratches, and worn-in bikes.",
+          "Don't: promise NHTSA covers all manufacturers — it's US-focused; European riders should know the recall data is global but the API is US-centric."
+        ]
+      },
+      "faceless_strategy": {
+        "archetype": "Hands-only POV. Top-down workshop angle. Voiceover-only walkthroughs. Brand-channel garage content. You're behind the camera or above it, the hands and the bike do the work. Many of the most-watched moto-maintenance creators on YouTube and TikTok are face-rarely, hands-frequently — the bike is the personality.",
+        "hook_examples": [
+          "Silent VIN-scan demo — top-down phone scanning a VIN tag, bike emerges in app.",
+          "Oil-change tutorial 60s — hands only, app reminder firing at the start.",
+          "Time-lapse: full service Saturday in 90 seconds with app log entries appearing.",
+          "Recall-lookup demo — silent screen-rec of the recall API result.",
+          "PDF export reveal — top-down on phone screen, full maintenance doc scrolling.",
+          "Comparison: Word-doc-vs-app split-screen, ambient music.",
+          "Garage tour B-roll — slow pan, hands-only interactions with app.",
+          "Build-thread chronology — month-by-month maintenance log time-lapse."
+        ],
+        "format_templates": [
+          "Hands-only POV 60s: workshop work with app interaction beats.",
+          "Top-down phone screen-rec 30s: app feature shown directly.",
+          "Voiceover-only tutorial: bike + hands on screen, your voice teaching.",
+          "Tutorial carousel: 6-8 IG slides, screenshots step-by-step, slide 6-8 = affiliate link.",
+          "Time-lapse: full service compressed into 60-90 seconds.",
+          "Brand-channel: consistent overhead angle, same workshop, same lighting — feed-as-brand."
+        ],
+        "do_dont": [
+          "Do: caption every step. Moto audiences watch with sound off in the garage.",
+          "Do: real bikes only. Stock motorcycle footage is identifiable in 2 seconds by riders.",
+          "Do: link in caption + bio. Faceless moto accounts have lower CTR per view, every touchpoint counts.",
+          "Do: keep ambient garage sound (impact gun, exhaust). It reads as honest workshop, not as production.",
+          "Don't: use unfocused trending audio. Moto audiences mute aesthetic-pop instantly.",
+          "Don't: skip the actual work shot. Pure screen-rec without bike B-roll feels disconnected."
+        ]
+      },
+      "audience_fit_good": [
+        "ADV / touring vloggers (Itchy Boots style, 50k-500k).",
+        "Garage-vlog channels (5k-100k, very high engagement).",
+        "Build-thread Instagram pages (10k-100k, audience converts on documentation angle).",
+        "Cafe-racer / custom-builder accounts (5k-50k, restomod scene).",
+        "Oil-change / maintenance tutorial creators (TikTok + YouTube).",
+        "MotoVloggers (helmet-cam style, larger audiences but harder to convert)."
       ],
-      "carousel_ideas": [
-        "\"5 tools every motorcycle owner needs\" (ThrottleUp on slide 1, no hard sell).",
-        "\"Why your service log matters at resale\" (proof-of-care carousel, slide 7 = affiliate link).",
-        "\"Recall alerts I would have missed without this app\" (problem-to-solution)."
+      "audience_fit_poor": [
+        "Sportbike-stunt content (different audience, doesn't care about maintenance).",
+        "Lifestyle moto-aesthetic (Bolt, vintage-aesthetic accounts) without actual riding.",
+        "Non-rider creators — moto audience detects performative content in 2 seconds."
       ],
-      "posting_cadence": "Moto-content audience: highest engagement Sat-Sun late morning (\"weekend ride planning\") and Wed evenings (\"midweek maintenance\"). 1-2 reels per week is plenty. ADV / touring content peaks late spring through early autumn. Always pair a reel with a 24h story + link sticker.",
-      "conversion_math": "Micro MotoVlogger (15k IG, 1 reel): 9,000 views x 1.8% CTR = 162 clicks, 30% install = 49 installs, 5% Premium = 2-3 subs (Free is generous enough for 1-bike owners), 16 months x 3.99 USD x 50% = ~70-100 USD per reel. Mid-tier ADV rider (80k IG, 1 reel): 50,000 views x 1.5% CTR = 750 clicks, 30% install = 225 installs, 6% Premium = 14 subs, ~450 USD per reel (cap ~675 USD). Macro tech reviewer (300k IG, 1 service vlog): 180,000 views x 1% CTR = 1,800 clicks, 25% install = 450 installs, 7% Premium = 32 subs, ~1,020 USD per vlog (cap ~1,530 USD). Conversion is lower than e.g. Kelva or MyLoo because the Free tier is very generous (1 bike is enough for most). Focus on multi-bike + touring + ADV audiences.",
-      "tracking_model_lines": [
-        "Your link throttleup.app/i/[yourhandle] works on any platform.",
-        "Android: Google Play install referrer passes handle natively, deterministic — once Android is unblocked.",
-        "iOS warm: Universal Link with handle.",
-        "iOS cold (~99% of creator traffic): signed-token clipboard deferred-deeplink, live-verified via Wavelength.",
-        "RevenueCat webhook fires on Premium, 50% credited for 24 months.",
-        "Self-referral blocked. Family / friends through your link are fine."
-      ],
+      "posting_cadence": "Moto audience: highest engagement Saturday morning 9-11h local time (pre-ride scroll) and Tuesday evening 19-21h local (post-work garage time). ADV / touring: any day, ride-day content peaks. MotoVloggers: Sunday evening recap content. Frequency: 1 reel per week is plenty in this niche. Build-thread content posts in arcs, not isolated reels — multi-post audiences convert better on the 3rd or 4th installment than the first.",
+      "conversion_math": "50% rev share, 24 months per attributed user. Premium 3.99 USD/m or 24.99 USD/y. ADV micro (40k followers, 1 reel): 25,000 views x 2% CTR = 500 clicks, 35% install = 175 installs, 6% Premium = 11 subs, 12 months x 24.99 USD x 50% = ~140 USD per reel. Garage-vlog mid-tier (80k YouTube, 1 video): 30,000 views x 3% CTR = 900 clicks, 30% install = 270 installs, 7% Premium = 19 subs, ~240 USD per video (YouTube CTR higher than TikTok in moto). Build-thread macro (200k IG, multi-post arc 6 posts): cumulative reach 600,000 x 1% CTR = 6,000 clicks, 25% install = 1,500 installs, 5% Premium = 75 subs over 6-month arc, ~940 USD. Moto subs renew at unusually high rates because riders set-and-forget tools they actually use — 24-month attribution often pays out fully.",
+      "tracking_summary": "Your link throttleup.app/i/[yourhandle] works on every platform. iOS warm uses Universal Link (deterministic). iOS cold (~99% of creator traffic, given iOS-first) uses our DIY signed-token clipboard deferred-deeplink, live-verified, no Branch.io. RevenueCat fires on Premium purchase, 50% credited to your handle for 24 months from each user's first paid month. 30-day refund holdback. Android attribution via Google install-referrer is built and tested, activates once the RC Android key is set. Full walkthrough in the Extended Brief PDF.",
       "onboarding_steps": [
         "Click the personal link from Mail 2 (valid 7 days).",
-        "Choose pay method.",
-        "Activate Free Lifetime Premium on your ThrottleUp account.",
-        "Dashboard at getklar.org/dashboard via magic link."
+        "Land on throttleup.app/affiliate/[your-token].",
+        "Fill in: handle, Wise payout details, country (tax docs), billing address.",
+        "Get your personal tracking link by mail + dashboard unlock.",
+        "Free Lifetime Premium activated on your ThrottleUp account."
       ],
       "dashboard_lines": [
-        "Clicks per day / week / month.",
-        "Installs split (Android / iOS-warm / iOS-cold) once channels are open.",
-        "Active Premium subs in your bucket.",
-        "Claimable + paid + carry-over + next payout date + refund holdback pipeline."
+        "Live at getklar.org/dashboard (magic-link login).",
+        "Clicks, installs (iOS warm / iOS cold; Android paused indicator), active Premium subs in your bucket.",
+        "Claimable USD + paid USD + next payout date.",
+        "Refund-holdback pipeline + per-app earnings funnel."
       ],
-      "brand_assets": "Logo, app screenshots, B-roll of VIN scan + recall popup, garage B-roll snippets and ready-made captions: getklar.org/i/throttleup/brand-assets (link goes live with your onboarding mail).",
+      "brand_assets": "Logo, app screenshots, VIN-scan demo footage, garage workflow B-roll, colour palette and ready-made captions: getklar.org/i/throttleup/brand-assets (link goes live with your onboarding mail).",
       "faq": [
-        ["Free tier is very generous — do I earn anything at all?", "Yes, but not on every user. Conversion mix: ~60% stay Free (1 bike, small group), ~40% go Premium when they have 2+ bikes or plan trips for 10+ people. You earn on those 40%."],
-        ["Can I promote recall content?", "Yes, that is the USP. Please do NOT say \"increases bike value\" as a hard claim — we are a tracking tool, not a valuation service. Say \"easier to sell\" / \"maintenance documentation ready\" instead."],
-        ["Build-log feature for custom builders — available?", "v1 has maintenance log with photo attachments. Full build log with step-by-step documentation is V2 phase. Current state is enough for service history + resale proof."],
-        ["Disclosure duty?", "Yes. Rev-share = paid recommendation. #ad / #sponsored / IG \"Paid Partnership\". FTC / EU / UWG."],
-        ["Flat fee on top?", "Mid+ yes, 200-600 USD depending on reach. Macro 500-2,000 USD only if audience fit is crystal-clear (maintenance content, not posing content)."],
-        ["What if Premium pricing changes?", "You continue to earn 50% on the then-current price."]
-      ]
-    },
-    "de": {
-      "subtitle": "für Moto-Creator und ADV-Rider",
-      "hero_quote": "VIN-Scan, Recall-Alerts, Multi-Bike. Verdien an Wartungs-Content den du eh schon machst.",
-      "sixty_seconds_intro": "ThrottleUp ist eine iOS + Android-App für Motorrad-Wartungs-Tracking. VIN-Scanner zieht Marke / Modell / Jahr / Motorklasse live aus NHTSA vPIC. Recall-Integration läuft gegen NHTSA Recalls API. Du setzt Service-Intervalle pro Bike (kilometrisch + zeitbasiert), Push-Reminder feuert 30 / 7 / 1 Tag vor Fälligkeit. Multi-Bike für die mit 2+ Bikes in der Garage. Plus: Wartungs-Log mit Foto-Anhängen, PDF / CSV-Export, anonymes Public-Trip-Sharing mit Privacy-gekürzten Routen.",
-      "why_this_works": "Markt ist leer. RIDEOLOGY hat 2,2 Sterne, \"Motorcycle Maintenance Log\" hat 1.900 Downloads total. Die meisten Rider tracken in einem Word-Doc oder gar nicht.",
-      "free_vs_premium": [
-        "Free: 1 Bike, 1 Fahrgruppe mit bis zu 4 Mitgliedern, unbegrenzt Wartungs-Einträge, VIN-Decode, Recall-Lookup, PDF / CSV-Export, Public-Trip-Sharing.",
-        "Premium (3,99 USD/Monat oder 24,99 USD/Jahr): unbegrenzt Bikes + größere / mehr Fahrgruppen.",
-        "Bewusste Strategie: Free ist großzügig (jeder Rider kommt rein ohne Reibung), Premium nur für Heavy-Rider mit 2+ Bikes oder großen Gruppen.",
-        "Free Lifetime Premium für onboarded Affiliates (kein Posting-Zwang)."
+        ["Does NHTSA cover European bikes?", "vPIC and Recalls data is US-focused. European riders still benefit from VIN decode (works for most major manufacturers) but recall data is US-centric. For European-specific recalls, riders should still check their national agency. We're working on EU equivalents but no ETA."],
+        ["What about Android?", "Android is built and tested but paused at the RC Android key step. Your link still works for Android users — they hit a waitlist page. Once Android relaunches, attribution applies retroactively to waitlisters."],
+        ["Can I post videos in non-English?", "Yes. The app is English-only currently but the affiliate audience is global. German garage-vlog, French ADV, Italian cafe-racer all welcome."],
+        ["Flat fee on top?", "Yes. Moto channels are smaller than mainstream but command higher per-view rates because of niche-trust. Mid-tier 150-500 USD per post, macros 500-1500 USD. Rev share stays on top."],
+        ["What about the trip-sharing / privacy-cropped routes feature?", "The trip-sharing feature is in the app but in beta. Don't lead with it in marketing yet — focus on VIN scan, recall alerts, and multi-bike."],
+        ["Disclosure?", "Yes. Rev-share = paid recommendation. #ad / #sponsored / IG \"Paid Partnership\". Moto audiences are forgiving of honest disclosure but unforgiving of hidden ads."]
       ],
-      "audience_fit_good": [
-        "ADV / Touring (Itchy-Boots-Style) IG, 50k-500k, hoch (loyal, wartungs-bewusst).",
-        "Tech / Gear-Reviewer IG/YT, 100k-1M, hoch (Tool-Mindset).",
-        "MotoVlogger TikTok/IG, 50k-500k, hoch (authentic).",
-        "Cafe-Racer / Custom-Builder IG, 20k-300k, sehr hoch (Co-Promo via Build-Log).",
-        "EU Moto-Creator IG/TikTok, 5k-50k, hoch (kleinerer Markt)."
-      ],
-      "audience_fit_poor": [
-        "Sport-Bike-Lifestyle TikTok-Poseur-Content (wenig Wartungs-Content-Fit).",
-        "Reine Scenic-Ride-Accounts ohne Tool- / Wartungs-Angle.",
-        "Generische Motorsport-Pages ohne Bike-Ownership-Signale."
-      ],
-      "reel_hooks": [
-        {
-          "label": "Faceless Content (Bike + UI als Hero)",
-          "items": [
-            "Screen-Recording \"VIN-Scan in 3 Sekunden\" — 15s, Phone übers Bike, Scanner liest VIN, Cut auf App mit Marke/Modell/Jahr ausgefüllt.",
-            "Garage-B-Roll mit Voiceover — 45s, B-Roll von Garage / Tools / Bike-Detail, Voice: \"Ich habe 3 Bikes, früher Word-Doc, jetzt anders\", Cut auf Multi-Bike-Switcher.",
-            "Comparison \"RIDEOLOGY (2,2 Sterne) vs ThrottleUp\" — 30s Split-Screen mit beiden UIs.",
-            "Service-Log-Time-Lapse — 20s App-Screen, Öl-Wechsel-Eintrag + Foto-Upload + Reminder-Setup + Reminder in 30 Tagen.",
-            "Recall-Popup-Demo — 10s, Push-Notification \"RECALL für deine 2021 Yamaha MT-07: Bremsleitung-Defekt\", Cut auf Recall-Detail-Screen mit NHTSA-Link-out."
-          ]
-        },
-        {
-          "label": "UGC / Deine Stimme (Rider-Trust)",
-          "items": [
-            "\"How I track maintenance now\" — 60s Selfie neben Bike, \"Ich habe Öl-Wechsel 4 Monate vergessen, jetzt mache ich das\", Cut auf VIN-Scan + Reminder-Setup.",
-            "Build-Vlog mit App als 5-Sekunden-Beat — 90s, dein normaler Wartungs-Vlog, ThrottleUp natural integriert.",
-            "\"POV: you're the guy with 3 bikes\" — 30s in der Garage mit mehreren Bikes, Cut auf Multi-Bike-Switcher.",
-            "Trip-Recap mit App-Use — 60s ADV / Touring-Recap, 10s Beat Cut auf App-Trip-Summary.",
-            "Cafe-Racer-Build-Log-Reveal — 45s, Custom-Bike + App-Build-Log mit Fotos pro Eintrag, \"komplette Wartungs-Doku als PDF für den Verkauf\"."
-          ]
-        }
-      ],
-      "story_ideas": [
-        "Education-Story: Recall-Notification-Screenshot + Sticker \"check deins jetzt\" + Link-Sticker.",
-        "Social-Proof: \"meine komplette Wartungs-Historie in 1 PDF\" Screenshot + Link.",
-        "Direct-Ask: Selfie-Story, \"1 Monat Premium mit meinem Link\" + Link-Sticker."
-      ],
-      "carousel_ideas": [
-        "\"5 Tools die jeder Motorrad-Owner braucht\" (ThrottleUp Slide 1, kein Hard-Sell).",
-        "\"Warum dein Service-Log beim Verkauf zählt\" (Proof-of-Care-Carousel, Slide 7 = Affiliate-Link).",
-        "\"Recall-Alerts die ich ohne diese App verpasst hätte\" (Problem-to-Solution)."
-      ],
-      "posting_cadence": "Moto-Content-Audience: höchstes Engagement Sa-So spät morgens (\"Weekend-Ride-Planung\") und Mi abends (\"Midweek-Maintenance\"). 1-2 Reels pro Woche reicht. ADV / Touring-Content Peak Spätfrühling bis Frühherbst. Immer Reel mit 24h-Story + Link-Sticker pairen.",
-      "conversion_math": "Mikro-MotoVlogger (15k IG, 1 Reel): 9.000 Views x 1,8% CTR = 162 Klicks, 30% Install = 49 Installs, 5% Premium = 2-3 Subs (Free reicht für 1-Bike-Owner), 16 Mo x 3,99 USD x 50% = ~70-100 USD pro Reel. Mid-Tier ADV-Rider (80k IG, 1 Reel): 50.000 Views x 1,5% CTR = 750 Klicks, 30% Install = 225 Installs, 6% Premium = 14 Subs, ~450 USD pro Reel (Cap ~675 USD). Macro Tech-Reviewer (300k IG, 1 Service-Vlog): 180.000 Views x 1% CTR = 1.800 Klicks, 25% Install = 450 Installs, 7% Premium = 32 Subs, ~1.020 USD pro Vlog (Cap ~1.530 USD). Conversion niedriger als z.B. Kelva oder MyLoo weil Free-Tier sehr großzügig (1 Bike reicht für die meisten). Fokus auf Multi-Bike + Touring + ADV-Audiences.",
-      "tracking_model_lines": [
-        "Dein Link throttleup.app/i/[handle] funktioniert auf jeder Plattform.",
-        "Android: Google Play Install-Referrer gibt Handle nativ weiter, deterministisch — sobald Android frei ist.",
-        "iOS warm: Universal-Link mit Handle.",
-        "iOS cold (~99% des Creator-Traffic): signed-Token Clipboard-Deferred-Deeplink, live-verifiziert via Wavelength.",
-        "RevenueCat-Webhook feuert beim Premium, 50% für 24 Monate gutgeschrieben.",
-        "Self-Referral geblockt. Familie / Freunde über deinen Link sind OK."
-      ],
-      "onboarding_steps": [
-        "Klick den persönlichen Link aus Mail 2 (7 Tage gültig).",
-        "Pay-Method wählen.",
-        "Free Lifetime Premium auf deinem ThrottleUp-Account aktivieren.",
-        "Dashboard auf getklar.org/dashboard via Magic-Link."
-      ],
-      "dashboard_lines": [
-        "Klicks pro Tag / Woche / Monat.",
-        "Installs-Split (Android / iOS-warm / iOS-cold) sobald Kanäle offen sind.",
-        "Aktive Premium-Subs in deinem Topf.",
-        "Claimable + Paid + Carry-over + nächster Auszahlungs-Termin + Refund-Holdback-Pipeline."
-      ],
-      "brand_assets": "Logo, App-Screenshots, B-Roll von VIN-Scan + Recall-Popup, Garage-B-Roll-Snippets und fertige Captions: getklar.org/i/throttleup/brand-assets (Link wird mit deinem Onboarding-Mail aktiv).",
-      "faq": [
-        ["Free-Tier ist sehr großzügig — verdiene ich überhaupt was?", "Ja, aber nicht an jedem User. Conversion-Mix: ~60% bleiben Free (1 Bike, kleine Gruppe), ~40% gehen Premium wenn sie 2+ Bikes haben oder Trips für 10+ Leute planen. Du verdienst auf diese 40%."],
-        ["Kann ich Recall-Content promoten?", "Ja, das ist der USP. Bitte NICHT \"steigert den Bike-Wert\" als Hard-Claim — wir sind Tracking-Tool, kein Bewertungs-Service. Sag stattdessen \"einfacher zu verkaufen\" / \"Wartungs-Dokumentation ready\"."],
-        ["Build-Log-Feature für Custom-Builder — verfügbar?", "v1 hat Wartungs-Log mit Foto-Anhängen. Voller Build-Log mit Step-by-Step ist V2-Phase. Current State reicht für Service-Historie + Wiederverkaufs-Beweis."],
-        ["Kennzeichnungspflicht?", "Ja. Rev-Share = bezahlte Empfehlung. #ad / #Werbung / IG \"Paid Partnership\". FTC / EU / UWG."],
-        ["Flat-Fee on-top?", "Mid+ ja, 200-600 USD je nach Reach. Macro 500-2.000 USD nur wenn Audience-Fit kristallklar (Wartungs-Content, kein Posing-Content)."],
-        ["Was wenn Premium-Preis sich ändert?", "Du verdienst weiter 50% auf den dann aktuellen Preis."]
-      ]
+      "closing": "Honest read: ThrottleUp fits creators with a real bike, real garage, and real maintenance content. If you're a lifestyle moto-aesthetic account that doesn't actually wrench, this is not a fit. The audience detects performance instantly and your credibility takes the hit. We'd rather have 10 well-fit wrenchers than 100 random posts. Reply to Mail 2 either way — yes, no, or 'I want to see if the audience actually buys'. A 15-minute call goes a long way."
     }
   }
 }
