@@ -111,6 +111,159 @@
         "business_model_why_now": "Zwei Verschiebungen machen Kelva 2026 möglich. Erstens, Vision- und LLM-Kosten sind genug gefallen dass jede Inbound-Email pro User zu klassifizieren ökonomisch tragbar ist beim 30-USD/Jahr-Preispunkt — vor drei Jahren hätte es mehr als die Subscription gekostet. Zweitens, EU-Mail-Provider haben die IMAP-Read-Only-OAuth-Flows für Third-Party-Zugriff stabilisiert, sodass wir mehrere Inboxen ohne riskante Passwort-Übergabe oder Auth-Token-Rotation-Breakage verbinden können.",
         "why_this_works": "Abgelaufene Garantien und vergessene Abos kosten in jedem Markt echtes Geld — kein DACH-only-Problem. Die Mail-Inbox-Parsing-Demo ist visuell stark in jeder Sprache. Die §437 / §438 BGB Auto-Kalk ist ein echter DE-spezifischer Bonus, den Anwalt-TikToker konkret demonstrieren; nicht-DE-Audiences bekommen den generischen Verbraucherschutz-Angle. 29,99 USD jährlich konvertiert überdurchschnittlich weil die Alternative (eine verpasste Garantie-Geltendmachung = 200-500 EUR weg) konkret und erinnert ist."
       }
+    },
+    "it": {
+      "short": {
+        "tagline": "Manager di scontrini, garanzie e abbonamenti collegato alla casella mail. Distribuito in 5 lingue.",
+        "what_it_is": "Kelva è un'app iOS + Android che gestisce digitalmente scontrini, garanzie e abbonamenti. Gli utenti collegano indirizzi mail (sola lettura), la posta arriva in Kelva, viene parsata da AI o scansione manuale, classificata (fattura, garanzia, abbonamento, contratto), con promemoria. La vista d'insieme contiene tutto in un posto, più condivisione familiare.",
+        "who_for": "Adulti 25-55 in tutto il mondo che gestiscono inventario dispositivi, garanzie e abbonamenti per sé o per la famiglia. Consumatori consapevoli, leggermente DIY, famiglie e coppie.",
+        "key_features": [
+          "Parsing casella mail: AI auto-classifica fatture, garanzie, abbonamenti.",
+          "Vista d'insieme scontrini + garanzie + abbonamenti filtrabile per categoria, dispositivo, fornitore.",
+          "Promemoria push 30 / 7 / 1 giorno prima della scadenza.",
+          "Auto-calcolo garanzia §437 / §438 BGB (bonus DE); lookup garanzia produttore altrove.",
+          "Condivisione familiare: casella condivisa, priorità per membro."
+        ],
+        "business_model_lines": [
+          "Una sola fonte di ricavo: abbonamento Premium annuale.",
+          "Prezzo: 29,99 USD / anno.",
+          "Tier gratis generoso: inserimento manuale, foto-scan, promemoria, §438 auto-calc (DE), condivisione familiare.",
+          "Premium sblocca: classificazione AI email-inbound + funzionalità famiglia avanzate.",
+          "Lingue live: DE / EN / ES / FR / IT."
+        ],
+        "attribution_one_paragraph": "Il tuo link kelva.space/i/[handle] funziona su ogni piattaforma. Attribuzione Android deterministica via install-referrer. iOS warm usa Universal Links. iOS cold (~99% del traffico creator) usa il nostro deferred-deeplink firmato via clipboard — verificato live, senza Branch.io. RevenueCat fa fuoco all'acquisto Premium e accredita 50% al tuo handle per 24 mesi.",
+        "see_long_pointer": "Per il walkthrough completo dell'attribuzione — why-DIY, ogni install-path, payout-pipeline, sicurezza — vedi il Brief Esteso PDF."
+      },
+      "long": {
+        "tagline": "Manager di scontrini, garanzie e abbonamenti collegato alla casella mail. Distribuito in 5 lingue.",
+        "what_it_is": "Kelva è un'app iOS + Android che gestisce digitalmente scontrini, garanzie e abbonamenti. L'utente collega più indirizzi mail (sola lettura), la posta in arrivo finisce in Kelva, viene parsata da AI o scansione manuale, classificata (fattura, garanzia, abbonamento, contratto), con promemoria. La vista d'insieme contiene tutti gli scontrini, garanzie e abbonamenti in un solo posto, più una cassaforte opzionale per documenti importanti. Con la condivisione familiare, una famiglia apre una casella condivisa — tutti vedono cosa succede, le priorità si dividono, niente cade nel dimenticatoio.",
+        "who_for": "Adulti 25-55 nel mondo che gestiscono inventario dispositivi, garanzie e abbonamenti per sé o per la famiglia. Audience consumatori consapevoli, leggermente DIY, famiglie/coppie. Archetipi di creator che convertono bene: personal-finance / risparmio, IGer organizzazione familiare, lifehack TikToker in ognuna delle 5 lingue, esplicatori di diritto consumatori (DE avvocato-TikTok su §437/§438, altrove protezione consumatori generale), piccoli recensori tech, parent/family-mom influencer.",
+        "key_features": [
+          "Parsing casella mail: collega più mail in sola lettura, AI auto-classifica; o scansione foto manuale.",
+          "Vista scontrini + garanzie + abbonamenti filtrabile per categoria, dispositivo, fornitore.",
+          "Promemoria push: 30 / 7 / 1 giorno prima della scadenza.",
+          "Auto-calc garanzia §437 / §438 BGB (bonus DE); lookup produttore altrove.",
+          "Condivisione familiare: casella condivisa, priorità per membro.",
+          "Cassaforte documenti + Snap-to-Done."
+        ],
+        "business_model_lines": [
+          "Una sola fonte di ricavo: abbonamento Premium annuale.",
+          "Tier gratis generoso: inserimento manuale, foto-scan, promemoria, §438 auto-calc (DE), condivisione familiare.",
+          "Premium sblocca: classificazione AI email-inbound (off/warranty-only/all) + funzionalità famiglia avanzate.",
+          "Premium gratuito a vita per affiliati onboarded.",
+          "Lingue live: DE / EN / ES / FR / IT."
+        ],
+        "pricing_lines": [
+          "29,99 USD / anno, attualmente nessun piano mensile.",
+          "Niente prova gratuita — tier gratis generoso la sostituisce.",
+          "ASC live da maggio 2026; quota affiliato sempre 50% del prezzo del momento."
+        ],
+        "market_gap": "Scontrini + garanzie + abbonamenti sono tre problemi separati che la maggior parte delle app tratta in isolamento. Sub-tracker (Bobby, Subby, Truebill) gestiscono abbonamenti, ignorano garanzie. App scontrini (Smart Receipts) scansionano la carta ma non leggono la casella. Garanzie-tracker (Centriq, Warranty Manager) sembrano abbandonati e coprono solo dispositivi registrati. Il vero dolore è una persona che gestisce tutti e tre tra una Gmail piena, una scatola di scontrini cartacei e un abbonamento che nota solo all'addebito. Il parsing della casella mail come meccanismo di input è lo sblocco. La condivisione familiare sopra rende Kelva specificamente un prodotto famiglia.",
+        "business_model_why_now": "Due cambiamenti rendono Kelva possibile nel 2026. Primo, i costi Vision e LLM sono scesi abbastanza che classificare ogni mail in arrivo per utente è economicamente sostenibile al prezzo di 30 USD/anno — tre anni fa sarebbe costato più dell'abbonamento. Secondo, i provider mail UE hanno stabilizzato i flussi OAuth IMAP read-only per accesso di terzi, quindi possiamo collegare più caselle senza password-handover rischiosi.",
+        "why_this_works": "Garanzie scadute e abbonamenti dimenticati costano soldi veri in ogni mercato — non è solo un problema DACH. La demo del parsing mail è visivamente forte in ogni lingua. L'auto-calc §437 / §438 BGB è un bonus DE-specifico che gli avvocato-TikToker dimostrano concretamente; audience non-DE ottengono l'angolo protezione consumatori generico. 29,99 USD annuali convertono sopra la media perché l'alternativa (una garanzia mancata = 200-500 EUR persi) è concreta e ricordata."
+      }
+    },
+    "fr": {
+      "short": {
+        "tagline": "Gestionnaire de reçus, garanties et abonnements connecté à la boîte mail. Distribué en 5 langues.",
+        "what_it_is": "Kelva est une app iOS + Android qui gère numériquement reçus, garanties et abonnements. Les utilisateurs connectent des adresses mail (en lecture seule), le courrier entrant arrive dans Kelva, est parsé par l'IA ou scan manuel, classé (facture, garantie, abonnement, contrat), avec rappels. La vue d'ensemble contient tout en un seul endroit, plus partage familial.",
+        "who_for": "Adultes 25-55 dans le monde gérant inventaire d'appareils, garanties et abonnements pour eux ou leur foyer. Consommateurs avertis, légèrement DIY, foyers familiaux ou de couple.",
+        "key_features": [
+          "Parsing boîte mail : l'IA auto-classifie factures, garanties, abos.",
+          "Vue d'ensemble reçus + garanties + abos filtrable par catégorie, appareil, fournisseur.",
+          "Rappels push 30 / 7 / 1 jour avant l'expiration.",
+          "Auto-calc garantie §437 / §438 BGB (bonus DE) ; lookup garantie fabricant ailleurs.",
+          "Partage familial : boîte partagée, priorités par membre."
+        ],
+        "business_model_lines": [
+          "Une seule source de revenu : abonnement Premium annuel.",
+          "Prix : 29,99 USD / an.",
+          "Tier gratuit généreux : saisie manuelle, scan photo, rappels, §438 auto-calc (DE), partage familial.",
+          "Premium déverrouille : classification IA email-inbound + fonctionnalités famille avancées.",
+          "Langues live : DE / EN / ES / FR / IT."
+        ],
+        "attribution_one_paragraph": "Ton lien kelva.space/i/[handle] marche sur toutes les plateformes. Attribution Android déterministe via install-referrer. iOS warm utilise Universal Links. iOS cold (~99 % du trafic créateur) utilise notre deferred-deeplink signé via presse-papiers — vérifié live, sans Branch.io. RevenueCat se déclenche à l'achat Premium et crédite 50 % à ton handle pendant 24 mois.",
+        "see_long_pointer": "Pour le walkthrough complet de l'attribution — why-DIY, chaque install-path, payout-pipeline, sécurité — voir le Brief Étendu PDF."
+      },
+      "long": {
+        "tagline": "Gestionnaire de reçus, garanties et abonnements connecté à la boîte mail. Distribué en 5 langues.",
+        "what_it_is": "Kelva est une app iOS + Android qui gère numériquement reçus, garanties et abonnements. L'utilisateur connecte plusieurs adresses mail (lecture seule), le courrier entrant arrive dans Kelva, est parsé par l'IA ou scan manuel rapide, classé (facture, garantie, abonnement, contrat), avec rappels. La vue d'ensemble contient tous les reçus, garanties et abos en un seul endroit, plus un coffre optionnel pour documents importants. Avec le partage familial, une famille ouvre une boîte partagée — tout le monde voit ce qui se passe, les priorités se divisent, rien ne tombe à travers les mailles.",
+        "who_for": "Adultes 25-55 dans le monde gérant inventaire d'appareils, garanties et abonnements récurrents pour eux ou leur foyer. Audience consommateurs avertis, légèrement DIY, foyers familiaux/de couple. Archétypes de créateurs qui convertissent bien : personal-finance / épargne, IGer organisation familiale, lifehack TikToker dans chaque langue, expliqueurs de droit consommateur (DE avocat-TikTok §437/§438, ailleurs protection consommateur générale), petits recenseurs tech, parent/family-mom influenceurs.",
+        "key_features": [
+          "Parsing boîte mail : connecter plusieurs mails en lecture seule, IA auto-classifie ; ou scan photo manuel.",
+          "Vue reçus + garanties + abos filtrable par catégorie, appareil, fournisseur.",
+          "Rappels push : 30 / 7 / 1 jour avant expiration.",
+          "Auto-calc garantie §437 / §438 BGB (bonus DE) ; lookup fabricant ailleurs.",
+          "Partage familial : boîte partagée, priorités par membre.",
+          "Coffre documents + Snap-to-Done."
+        ],
+        "business_model_lines": [
+          "Une seule source de revenu : abonnement Premium annuel.",
+          "Tier gratuit généreux : saisie manuelle, scan photo, rappels, §438 auto-calc (DE), partage familial.",
+          "Premium déverrouille : classification IA email-inbound (off/warranty-only/all) + fonctionnalités famille avancées.",
+          "Premium gratuit à vie pour affiliés onboarded.",
+          "Langues live : DE / EN / ES / FR / IT."
+        ],
+        "pricing_lines": [
+          "29,99 USD / an, pas de plan mensuel actuellement.",
+          "Pas d'essai gratuit — le tier gratuit généreux le remplace.",
+          "ASC live depuis mai 2026 ; part affilié toujours 50 % du prix du moment."
+        ],
+        "market_gap": "Reçus + garanties + abonnements sont trois problèmes séparés que la plupart des apps traitent isolément. Sub-trackers (Bobby, Subby, Truebill) gèrent les abonnements, ignorent les garanties. Apps reçus (Smart Receipts) scannent le papier mais ne lisent pas la boîte. Trackers garantie (Centriq, Warranty Manager) semblent abandonnés et ne couvrent que les appareils enregistrés. La vraie douleur c'est une personne jonglant entre les trois dans un Gmail débordant, une boîte à chaussures de reçus, et un abo qu'elle ne remarque qu'au prélèvement. Le parsing de la boîte mail comme mécanisme d'input est le déblocage. Le partage familial par-dessus fait de Kelva spécifiquement un produit famille.",
+        "business_model_why_now": "Deux changements rendent Kelva possible en 2026. D'abord, les coûts Vision et LLM ont assez baissé pour que classifier chaque mail entrant par utilisateur soit économiquement viable au prix de 30 USD/an — il y a trois ans ça aurait coûté plus que l'abonnement. Ensuite, les providers mail UE ont stabilisé les flux OAuth IMAP read-only pour accès tiers, donc on peut connecter plusieurs boîtes sans handover de mot de passe risqué.",
+        "why_this_works": "Garanties expirées et abos oubliés coûtent du vrai argent dans chaque marché — pas qu'un problème DACH. La démo du parsing mail est visuellement forte dans chaque langue. L'auto-calc §437 / §438 BGB est un bonus DE-spécifique que les avocats-TikToker démontrent concrètement ; audiences non-DE ont l'angle protection consommateur générique. 29,99 USD annuels convertissent au-dessus de la moyenne parce que l'alternative (une garantie ratée = 200-500 EUR perdus) est concrète et marquante."
+      }
+    },
+    "es": {
+      "short": {
+        "tagline": "Gestor de recibos, garantías y suscripciones conectado al buzón. Distribuido en 5 idiomas.",
+        "what_it_is": "Kelva es una app iOS + Android que gestiona digitalmente recibos, garantías y suscripciones. Los usuarios conectan direcciones de correo (solo lectura), el correo entrante aterriza en Kelva, se parsea con IA o escaneo manual, se clasifica (factura, garantía, suscripción, contrato), con recordatorios. La vista general contiene todo en un solo sitio, más compartición familiar.",
+        "who_for": "Adultos 25-55 en todo el mundo que gestionan inventario de dispositivos, garantías y suscripciones para sí o para su hogar. Consumidores conscientes, ligeramente DIY, hogares familiares o de pareja.",
+        "key_features": [
+          "Parsing del buzón: la IA auto-clasifica facturas, garantías, suscripciones.",
+          "Vista general recibos + garantías + suscripciones filtrable por categoría, dispositivo, proveedor.",
+          "Recordatorios push 30 / 7 / 1 día antes del vencimiento.",
+          "Auto-cálculo de garantía §437 / §438 BGB (bonus DE); búsqueda de garantía del fabricante en otros mercados.",
+          "Compartición familiar: buzón compartido, prioridades por miembro."
+        ],
+        "business_model_lines": [
+          "Una sola fuente de ingresos: suscripción Premium anual.",
+          "Precio: 29,99 USD / año.",
+          "Nivel gratis generoso: entrada manual, escaneo foto, recordatorios, §438 auto-cálc (DE), compartición familiar.",
+          "Premium desbloquea: clasificación IA email-inbound + funciones familiares avanzadas.",
+          "Idiomas live: DE / EN / ES / FR / IT."
+        ],
+        "attribution_one_paragraph": "Tu enlace kelva.space/i/[handle] funciona en cualquier plataforma. Atribución Android determinística vía install-referrer. iOS warm usa Universal Links. iOS cold (~99 % del tráfico creator) usa nuestro deferred-deeplink firmado vía portapapeles — verificado en vivo, sin Branch.io. RevenueCat se dispara en la compra Premium y acredita 50 % a tu handle durante 24 meses.",
+        "see_long_pointer": "Para el walkthrough completo de atribución — why-DIY, cada install-path, payout-pipeline, seguridad — ver el Brief Ampliado PDF."
+      },
+      "long": {
+        "tagline": "Gestor de recibos, garantías y suscripciones conectado al buzón. Distribuido en 5 idiomas.",
+        "what_it_is": "Kelva es una app iOS + Android que gestiona digitalmente recibos, garantías y suscripciones. El usuario conecta varias direcciones de correo (solo lectura), el correo entrante aterriza en Kelva, se parsea con IA o escaneo manual rápido, se clasifica (factura, garantía, suscripción, contrato), con recordatorios. La vista general contiene todos los recibos, garantías y suscripciones en un solo sitio, más una caja fuerte opcional para documentos importantes. Con la compartición familiar, una familia abre un buzón compartido — todos ven qué pasa, las prioridades se reparten, nada se cae por las grietas.",
+        "who_for": "Adultos 25-55 en el mundo que gestionan inventario de dispositivos, garantías y suscripciones recurrentes para sí o para su hogar. Audiencia consumidores conscientes, ligeramente DIY, hogares familiares/de pareja. Arquetipos de creators que convierten bien: personal-finance / ahorro, IGer organización familiar, lifehack TikToker en cada uno de los 5 idiomas, explicadores de derecho del consumidor (DE abogado-TikTok §437/§438, en otros mercados protección del consumidor general), pequeños recensores tech, parent/family-mom influencers.",
+        "key_features": [
+          "Parsing del buzón: conectar varios correos en solo lectura, IA auto-clasifica; o escaneo foto manual.",
+          "Vista recibos + garantías + suscripciones filtrable por categoría, dispositivo, proveedor.",
+          "Recordatorios push: 30 / 7 / 1 día antes del vencimiento.",
+          "Auto-cálc garantía §437 / §438 BGB (bonus DE); búsqueda fabricante en otros mercados.",
+          "Compartición familiar: buzón compartido, prioridades por miembro.",
+          "Caja fuerte documentos + Snap-to-Done."
+        ],
+        "business_model_lines": [
+          "Una sola fuente de ingresos: suscripción Premium anual.",
+          "Nivel gratis generoso: entrada manual, escaneo foto, recordatorios, §438 auto-cálc (DE), compartición familiar.",
+          "Premium desbloquea: clasificación IA email-inbound (off/warranty-only/all) + funciones familiares avanzadas.",
+          "Premium gratis de por vida para afiliados onboarded.",
+          "Idiomas live: DE / EN / ES / FR / IT."
+        ],
+        "pricing_lines": [
+          "29,99 USD / año, sin plan mensual actualmente.",
+          "Sin prueba gratuita — el nivel gratis generoso la reemplaza.",
+          "ASC live desde mayo 2026; cuota afiliado siempre 50 % del precio del momento."
+        ],
+        "market_gap": "Recibos + garantías + suscripciones son tres problemas separados que la mayoría de apps tratan en aislamiento. Sub-trackers (Bobby, Subby, Truebill) gestionan suscripciones, ignoran garantías. Apps de recibos (Smart Receipts) escanean papel pero no leen tu buzón. Trackers de garantía (Centriq, Warranty Manager) se sienten abandonados y solo cubren dispositivos registrados. El dolor real es una persona malabareando los tres en un Gmail desbordado, una caja de zapatos con recibos, y una suscripción que solo nota cuando se le cobra. El parsing del buzón como mecanismo de input es el desbloqueo. La compartición familiar encima hace de Kelva específicamente un producto familiar.",
+        "business_model_why_now": "Dos cambios hacen Kelva posible en 2026. Primero, los costos Vision y LLM bajaron lo suficiente para que clasificar cada email entrante por usuario sea económicamente viable al precio de 30 USD/año — hace tres años habría costado más que la suscripción. Segundo, los proveedores de correo UE han estabilizado los flujos OAuth IMAP read-only para acceso de terceros, así que podemos conectar varios buzones sin entrega de contraseña arriesgada.",
+        "why_this_works": "Garantías expiradas y suscripciones olvidadas cuestan dinero real en cada mercado — no es solo un problema DACH. La demo del parsing del buzón es visualmente fuerte en cada idioma. El auto-cálc §437 / §438 BGB es un bonus DE-específico que los abogado-TikToker demuestran concretamente; audiencias no-DE consiguen el ángulo protección del consumidor genérico. 29,99 USD anuales convierten por encima de la media porque la alternativa (una garantía perdida = 200-500 EUR perdidos) es concreta y se recuerda."
+      }
     }
   },
   "playbook": {
@@ -317,6 +470,303 @@
         ["Premium-Pricing-Änderung?", "Du verdienst weiter 50% auf den jeweils aktuellen Preis."]
       ],
       "closing": "Ehrlich: Kelva passt zu Audiences, die schon über Belege, Garantien oder wiederkehrende Abos nachdenken. Spar-Tipp, Family-Mom, Lifehack, Verbraucherrechts-Erklärer passen alle. Lifestyle-Ästhetik oder reine Entertainment-Accounts, wo niemand sich für eine verpasste Garantie-Story interessiert, passen NICHT. Wenn deine Audience eine 280-EUR-verpasste-Garantie-Story mit den Schultern zucken würde, ist das eine ehrliche Antwort. Antworte auf Mail 2 so oder so."
+    },
+    "it": {
+      "subtitle": "per creator consumer / risparmio / lifehack — e cosa dice la ricerca sul pitching",
+      "hero_quote": "Collega la casella mail, l'app parsa gli scontrini automaticamente. Guadagna dal contenuto di cui la tua audience ha già bisogno.",
+      "sixty_seconds_intro": "Kelva è un'app iOS + Android che gestisce digitalmente scontrini, garanzie e abbonamenti. Colleghi più indirizzi mail (sola lettura), la posta arriva in Kelva, viene parsata da AI o scansione manuale. La vista d'insieme contiene tutto in un posto. La condivisione familiare apre una casella condivisa. Distribuito in DE / EN / ES / FR / IT.",
+      "why_this_works": "Caselle piene, abbonamenti che noti solo all'addebito, scontrini garanzia in una scatola. Tre disordini, nessuna vista d'insieme — in ogni paese. Kelva è l'unico posto che fa tutti e tre.",
+      "free_vs_premium": [
+        "Gratis: inserimento manuale, foto-scan, promemoria, §438 auto-calc (DE), condivisione familiare.",
+        "Premium (29,99 USD/anno): classificazione AI email-inbound + funzionalità famiglia avanzate.",
+        "Premium gratuito a vita per affiliati onboarded."
+      ],
+      "creator_types_intro": "Usa questa tabella come primo match. Trova la riga che ti somiglia, vedi quale percorso converte storicamente meglio.",
+      "creator_types_table": [
+        {"type": "Avvocato-TikToker (DE: §437/§438)", "path": "UGC forte", "hooks": "\"L'orologio della garanzia che dimentichi sempre\"; \"§437 BGB in tre frasi\"; spiegatore consumer-rights stile reazione", "expected_conversion": "2-4% view→install, fiducia avvocato altissima"},
+        {"type": "Risparmio / personal-finance", "path": "UGC primario", "hooks": "\"Ho perso 280 EUR il mese scorso\"; \"i 5 abbonamenti che dimentichi\"; \"come ho tagliato i miei abbonamenti da 47 a 12\"", "expected_conversion": "1,5-3% nelle nicchie personal-finance"},
+        {"type": "Family-mom / genitore", "path": "UGC primario", "hooks": "\"Come funziona davvero la nostra casella familiare\"; \"l'asciugatrice si è rotta al mese 18\"; demo condivisione familiare con famiglia vera", "expected_conversion": "2-4%, fiducia + tasso di condivisione altissimo"},
+        {"type": "Lifehack / faceless TikTok", "path": "Faceless", "hooks": "Demo screen-rec parsing mail; \"l'app trasforma il caos mail in una lista\"; slide countdown scadenza garanzia", "expected_conversion": "0,5-1,5% per view, frequenza posting scala"},
+        {"type": "Tech-reviewer (piccolo, device-focus)", "path": "UGC + screen-rec mix", "hooks": "\"App che traccia la garanzia su ogni device\"; tour cassaforte scontrini; demo flusso promemoria", "expected_conversion": "1-2% per audience garanzia-conscia"},
+        {"type": "Educatore consumer-rights (EN/ES/FR/IT)", "path": "UGC", "hooks": "Protezione consumatori specifica per regione; \"la legge garanzia che ti protegge che nessuno ti ha detto\"", "expected_conversion": "1,5-3% in nicchie consumer-law localizzate"}
+      ],
+      "ugc_strategy": {
+        "archetype": "Tu davanti alla camera. Avvocato-TikToker in ufficio silenzioso. Coach del risparmio al tavolo che apre una bolletta vera. Family-mom che mostra la casella condivisa con il partner. Il prodotto è un beat 5-10 secondi DENTRO la tua storia. Sokolova e Kefi (2020): la fiducia parasociale muove audience consumer-rights e money-adjacent in modo speciale.",
+        "hook_examples": [
+          "\"Ho perso 280 EUR il mese scorso per una garanzia scaduta\" — talking head, telefono con schermo scadenza.",
+          "\"§437 BGB — tre frasi che la maggior parte non conosce\" (DE) o \"l'orologio garanzia che dimentichi\" (EN/ES/FR/IT).",
+          "\"Come funziona davvero la nostra casella familiare\" — scena cucina con partner/figli.",
+          "\"Abbonamenti che non sapevo di pagare\" — selfie, scrolli la lista.",
+          "\"Cosa succede quando l'asciugatrice si rompe dopo 18 mesi\" — scenario, con/senza Kelva.",
+          "\"Come ho tagliato i miei abbonamenti da 47 a 12 in un weekend\" — storia processo.",
+          "\"Un anno di Kelva: recensione onesta\" — dritto-a-camera 60s."
+        ],
+        "format_templates": [
+          "Talking-head 30s.",
+          "Vlog 60-90s con scenario reale.",
+          "Demo familiare con partner/figli.",
+          "Case-study carousel narrato.",
+          "Stile reazione: scopri un abbonamento dimenticato."
+        ],
+        "do_dont": [
+          "Do: verticale, all'altezza degli occhi.",
+          "Do: nominare uno scontrino/abbonamento/device reale.",
+          "Do: link in caption E story-sticker.",
+          "Don't: leggere copy marketing.",
+          "Don't: dare consulenza legale specifica nel contesto Kelva (rischio BORA in DE).",
+          "Don't: oversellare."
+        ]
+      },
+      "faceless_strategy": {
+        "archetype": "Voiceover + screen-recording + B-roll parsing mail. Lifehack-TikToker. Tutorial-carousel-creator. Il parsing mail fa il lavoro demo.",
+        "hook_examples": [
+          "\"Mail dentro, l'app parsa tutto\" — 30s pure screen-rec.",
+          "\"Excel vs Kelva\" — 30s split-screen.",
+          "\"Spiegazione scadenza garanzia\" — adattato per locale: §437 BGB (DE), garanzia legale (IT) etc.",
+          "\"5 app che ogni famiglia dovrebbe avere\" — Kelva alla slide 1.",
+          "\"Come ho recuperato 320 EUR di garanzia\" — case-study carousel.",
+          "\"Processo cleanup abbonamenti\" — 60s screen-rec.",
+          "\"Time-lapse parsing mail\" — solo captions."
+        ],
+        "format_templates": [
+          "Screen-record demo 20-30s.",
+          "Tutorial carousel: 6 slide, slide 6 = link.",
+          "Voiceover narrative 45s.",
+          "Listicle con Kelva #1-2.",
+          "Case-study carousel: 6 slide storia garanzia."
+        ],
+        "do_dont": [
+          "Do: dimostrazione auto-esplicativa.",
+          "Do: posta più spesso, lifehack faceless scala.",
+          "Do: caption ogni passaggio.",
+          "Do: localizza l'angolo garanzia-legale.",
+          "Don't: narrazione fake-entusiasta.",
+          "Don't: skippare link in caption + bio."
+        ]
+      },
+      "audience_fit_good": [
+        "Creator personal-finance + risparmio in tutto il mondo.",
+        "IGer organizzazione familiare (fiducia + share-rate altissimi).",
+        "Creator lifehack in ognuna delle 5 lingue.",
+        "Esplicatori consumer-law (DE §437/§438; altri Verbraucherschutz generale).",
+        "Piccoli recensori tech (angolo garanzia device).",
+        "Family-mom + parent influencer."
+      ],
+      "audience_fit_poor": [
+        "Crowd crypto / speculazione.",
+        "Lifestyle anti-establishment.",
+        "Account pura estetica senza angolo pratico."
+      ],
+      "posting_cadence": "Audience consumer-lifehack: domenica sera + mercoledì sera. Avvocato-TikToker: qualunque giorno, edutainment 19-22h locale. Family-mom: mattine weekend + domenica sera. 1 reel a settimana. Story con sticker link nei weekend portano la maggioranza delle conversioni.",
+      "conversion_math": "50% rev-share, 24 mesi. Premium 29,99 USD/anno. Avvocato-TikToker (50k follower): 25.000 view x 2% CTR = 500 clic, 30% install = 150 install, 8% Premium = 12 abbonati, ~180 USD per reel. Spar-tipp mid-tier (80k IG): 40.000 view x 1,5% CTR = 600 clic, 30% install = 180 install, 7% Premium = 13 abbonati, ~195 USD. Family-mom macro (300k IG): reach 120.000 x 1,2% CTR = 1.440 clic, 25% install = 360 install, 6% Premium = 22 abbonati, ~330 USD per post.",
+      "brand_assets": "Logo, screenshot app, slide spiegazione scadenza garanzia (adattate per locale), footage demo parsing mail e caption pronte: getklar.org/i/kelva/brand-assets.",
+      "faq": [
+        ["Lingue e mercati di Kelva?", "App distribuita in DE / EN / ES / FR / IT. §437 / §438 BGB è una funzionalità DE-legge; il prodotto core funziona in ogni mercato."],
+        ["Posso postare in inglese (o ES/FR/IT)?", "Sì. Pitcha il prodotto core. Per DE-audience aggiungi §437/§438. Per non-DE angolo protezione consumatori generico."],
+        ["Compliance avvocato?", "Educa in generale (locale-appropriato). NIENTE consulenza legale specifica nel contesto Kelva (rischio BORA in DE)."],
+        ["Obbligo di trasparenza?", "Sì. #ad / #adv / IG \"Paid Partnership\"."],
+        ["Compenso fisso in aggiunta?", "Mid+ sì, 150-500 USD/EUR per reel. Macro 500-2.000 USD."],
+        ["Cambio prezzo Premium?", "Guadagni il 50% sul prezzo del momento."]
+      ],
+      "closing": "Onestà: Kelva va bene con audience che già pensa a scontrini, garanzie o abbonamenti ricorrenti. Spar-tipp, family-mom, lifehack, esplicatori consumer-rights vanno bene. Account estetica-lifestyle o pura-entertainment non vanno bene. Rispondi alla Mail 2 in ogni caso."
+    },
+    "fr": {
+      "subtitle": "pour les créateurs consumer / épargne / lifehack — et ce que dit la recherche",
+      "hero_quote": "Connecte la boîte mail, l'app parse les reçus automatiquement. Gagne sur le contenu dont ton audience a déjà besoin.",
+      "sixty_seconds_intro": "Kelva est une app iOS + Android qui gère numériquement reçus, garanties et abonnements. Tu connectes plusieurs adresses mail (lecture seule), le courrier arrive dans Kelva, est parsé par l'IA ou scan manuel. La vue d'ensemble contient tout en un endroit. Le partage familial ouvre une boîte familiale partagée. Distribué en DE / EN / ES / FR / IT.",
+      "why_this_works": "Boîtes mail débordantes, abos que tu remarques au prélèvement, reçus garantie dans une boîte. Trois désordres, aucune vue d'ensemble — dans n'importe quel pays. Kelva est le seul endroit qui fait les trois.",
+      "free_vs_premium": [
+        "Gratuit : saisie manuelle, scan photo, rappels, §438 auto-calc (DE), partage familial.",
+        "Premium (29,99 USD/an) : classification IA email-inbound + fonctionnalités famille avancées.",
+        "Premium gratuit à vie pour affiliés onboarded."
+      ],
+      "creator_types_intro": "Utilise ce tableau comme premier match. Trouve la ligne qui te ressemble, vois quelle voie convertit historiquement le mieux.",
+      "creator_types_table": [
+        {"type": "Avocat-TikToker (DE: §437/§438)", "path": "UGC fort", "hooks": "\"L'horloge garantie que tu oublies toujours\" ; \"§437 BGB en trois phrases\" ; spectateur consumer-rights façon réaction", "expected_conversion": "2-4% vues→install, confiance avocat très haute"},
+        {"type": "Épargne / personal-finance", "path": "UGC primaire", "hooks": "\"J'ai perdu 280 EUR le mois dernier\" ; \"les 5 abos que tu oublies\" ; \"comment j'ai coupé mes abos de 47 à 12\"", "expected_conversion": "1,5-3% en niches personal-finance"},
+        {"type": "Family-mom / parent", "path": "UGC primaire", "hooks": "\"Comment marche vraiment notre boîte familiale\" ; \"le sèche-linge cassé au mois 18\" ; demo partage familial avec vraie famille", "expected_conversion": "2-4%, contenu famille très haute confiance + share-rate"},
+        {"type": "Lifehack / faceless TikTok", "path": "Faceless", "hooks": "Démo screen-rec parsing mail ; \"l'app transforme le chaos mail en liste\" ; slide countdown échéance garantie", "expected_conversion": "0,5-1,5% par vue, fréquence post scale"},
+        {"type": "Tech-reviewer (petit, device-focus)", "path": "UGC + screen-rec mix", "hooks": "\"App qui track la garantie sur chaque device\" ; tour coffre reçus ; démo flux rappel", "expected_conversion": "1-2% pour audience consciente de la garantie"},
+        {"type": "Éducateur consumer-rights (EN/ES/FR/IT)", "path": "UGC", "hooks": "Protection consommateur spécifique région ; \"la loi garantie qui te protège dont personne ne t'a parlé\"", "expected_conversion": "1,5-3% en niches consumer-law localisées"}
+      ],
+      "ugc_strategy": {
+        "archetype": "Toi devant la caméra. Avocat-TikToker dans un bureau calme. Coach de l'épargne à la table de cuisine ouvrant une vraie facture. Family-mom montrant la boîte partagée avec son partenaire. Le produit est un beat 5-10 secondes DANS ta story. Sokolova et Kefi (2020) : la confiance parasociale bouge audiences consumer-rights et money-adjacent spécifiquement.",
+        "hook_examples": [
+          "\"J'ai perdu 280 EUR le mois dernier sur une garantie expirée\" — talking head, téléphone avec écran échéance.",
+          "\"§437 BGB — trois phrases que la plupart ignorent\" (DE) ou \"l'horloge garantie que tu oublies\" (EN/ES/FR/IT).",
+          "\"Comment marche vraiment notre boîte familiale\" — scène cuisine avec partenaire/enfants.",
+          "\"Des abos que je ne savais pas payer\" — selfie, tu scrolles la liste.",
+          "\"Ce qui se passe quand ton sèche-linge casse après 18 mois\" — scénario, avec/sans Kelva.",
+          "\"Comment j'ai coupé mes abos de 47 à 12 en un week-end\" — histoire processus.",
+          "\"Un an de Kelva : avis honnête\" — direct-à-caméra 60s."
+        ],
+        "format_templates": [
+          "Talking-head 30s.",
+          "Vlog 60-90s avec scénario réel.",
+          "Démo familiale avec partenaire/enfants.",
+          "Case-study carrousel narré.",
+          "Style réaction : tu découvres un abo oublié."
+        ],
+        "do_dont": [
+          "Do : vertical, à hauteur des yeux.",
+          "Do : nommer un reçu/abo/device réel.",
+          "Do : link en caption ET story-sticker.",
+          "Don't : lire copy marketing.",
+          "Don't : donner conseil juridique spécifique dans le contexte Kelva (risque BORA en DE).",
+          "Don't : oversellér."
+        ]
+      },
+      "faceless_strategy": {
+        "archetype": "Voix off + screen-recording + B-roll parsing mail. Lifehack-TikToker. Tutorial-carrousel-créateur. Le parsing mail fait le boulot démo.",
+        "hook_examples": [
+          "\"Mail dedans, l'app parse tout\" — 30s pur screen-rec.",
+          "\"Excel vs Kelva\" — 30s split-screen.",
+          "\"Explication échéance garantie\" — locale-adapté : §437 BGB (DE), garantie légale (FR) etc.",
+          "\"5 apps que chaque foyer devrait avoir\" — Kelva en slide 1.",
+          "\"Comment j'ai récupéré 320 EUR de garantie\" — case-study carrousel.",
+          "\"Processus cleanup abos\" — 60s screen-rec.",
+          "\"Time-lapse parsing mail\" — captions seulement."
+        ],
+        "format_templates": [
+          "Screen-record démo 20-30s.",
+          "Tutorial carrousel : 6 slides, slide 6 = lien.",
+          "Voix off narrative 45s.",
+          "Listicle avec Kelva #1-2.",
+          "Case-study carrousel : 6 slides histoire garantie."
+        ],
+        "do_dont": [
+          "Do : démonstration auto-explicative.",
+          "Do : poste plus souvent, lifehack faceless scale.",
+          "Do : caption chaque étape.",
+          "Do : localise l'angle loi-garantie.",
+          "Don't : narration fake-enthousiaste.",
+          "Don't : skip lien en caption + bio."
+        ]
+      },
+      "audience_fit_good": [
+        "Créateurs personal-finance + épargne mondiaux.",
+        "IGer organisation familiale (confiance + share-rate très haut).",
+        "Créateurs lifehack dans chacune des 5 langues.",
+        "Expliqueurs consumer-law (DE §437/§438 ; ailleurs protection consommateur générale).",
+        "Petits recenseurs tech (angle garantie device).",
+        "Family-mom + parent influenceurs."
+      ],
+      "audience_fit_poor": [
+        "Crowd crypto / spéculation.",
+        "Lifestyle anti-establishment.",
+        "Comptes pure esthétique sans angle pratique."
+      ],
+      "posting_cadence": "Audience consumer-lifehack : dimanche soir + mercredi soir. Avocat-TikToker : n'importe quel jour, edutainment 19-22h local. Family-mom : matins week-end + dimanche soir. 1 reel par semaine. Stories avec sticker lien le week-end apportent la majorité des conversions.",
+      "conversion_math": "50% rev-share, 24 mois. Premium 29,99 USD/an. Avocat-TikToker (50k abonnés) : 25 000 vues x 2% CTR = 500 clics, 30% install = 150 installs, 8% Premium = 12 abonnés, ~180 USD par reel. Spar-tipp mid-tier (80k IG) : 40 000 vues x 1,5% CTR = 600 clics, 30% install = 180 installs, 7% Premium = 13 abonnés, ~195 USD. Family-mom macro (300k IG) : reach 120 000 x 1,2% CTR = 1 440 clics, 25% install = 360 installs, 6% Premium = 22 abonnés, ~330 USD par post.",
+      "brand_assets": "Logo, captures app, slides explication échéance garantie (locale-adaptées), footage démo parsing mail et captions prêts : getklar.org/i/kelva/brand-assets.",
+      "faq": [
+        ["Langues et marchés de Kelva ?", "App distribuée en DE / EN / ES / FR / IT. §437 / §438 BGB est une fonctionnalité DE-loi ; le produit core marche dans chaque marché."],
+        ["Je peux poster en anglais (ou ES/FR/IT) ?", "Oui. Pitche le produit core. Pour DE-audience ajoute §437/§438. Pour non-DE angle protection consommateur générique."],
+        ["Compliance avocat ?", "Éduque en général (locale-approprié). PAS de conseil juridique spécifique dans le contexte Kelva (risque BORA en DE)."],
+        ["Obligation de mention ?", "Oui. #ad / #sponsorisé / IG \"Paid Partnership\"."],
+        ["Compensation fixe en plus ?", "Mid+ oui, 150-500 USD/EUR par reel. Macro 500-2 000 USD."],
+        ["Changement prix Premium ?", "Tu touches 50% sur le prix du moment."]
+      ],
+      "closing": "Honnêtement : Kelva colle avec audiences qui pensent déjà à reçus, garanties ou abos récurrents. Spar-tipp, family-mom, lifehack, expliqueurs consumer-rights collent tous. Comptes esthétique-lifestyle ou pure-entertainment ne collent pas. Réponds à la Mail 2 dans tous les cas."
+    },
+    "es": {
+      "subtitle": "para creators consumer / ahorro / lifehack — y qué dice la investigación sobre el pitching",
+      "hero_quote": "Conecta el buzón, la app parsea los recibos automáticamente. Gana del contenido que tu audiencia ya necesita.",
+      "sixty_seconds_intro": "Kelva es una app iOS + Android que gestiona digitalmente recibos, garantías y suscripciones. Conectas varias direcciones de correo (solo lectura), el correo aterriza en Kelva, se parsea con IA o escaneo manual. La vista general contiene todo en un sitio. La compartición familiar abre un buzón familiar compartido. Distribuido en DE / EN / ES / FR / IT.",
+      "why_this_works": "Buzones desbordantes, suscripciones que solo notas al cobro, recibos garantía en una caja de zapatos. Tres desórdenes, sin vista general — en cualquier país. Kelva es el único sitio que hace los tres.",
+      "free_vs_premium": [
+        "Gratis: entrada manual, escaneo foto, recordatorios, §438 auto-cálc (DE), compartición familiar.",
+        "Premium (29,99 USD/año): clasificación IA email-inbound + funciones familiares avanzadas.",
+        "Premium gratis de por vida para afiliados onboarded."
+      ],
+      "creator_types_intro": "Usa esta tabla como primer match. Encuentra la fila que se parece a ti, ve qué camino convierte históricamente mejor.",
+      "creator_types_table": [
+        {"type": "Abogado-TikToker (DE: §437/§438)", "path": "UGC fuerte", "hooks": "\"El reloj de la garantía que siempre olvidas\"; \"§437 BGB en tres frases\"; explicador consumer-rights estilo reacción", "expected_conversion": "2-4% vistas→instalación, confianza abogado altísima"},
+        {"type": "Ahorro / personal-finance", "path": "UGC primario", "hooks": "\"Perdí 280 EUR el mes pasado\"; \"las 5 suscripciones que olvidas\"; \"cómo recorté mis suscripciones de 47 a 12\"", "expected_conversion": "1,5-3% en nichos personal-finance"},
+        {"type": "Family-mom / progenitor", "path": "UGC primario", "hooks": "\"Cómo funciona realmente nuestro buzón familiar\"; \"la secadora se rompió en el mes 18\"; demo compartición familiar con familia real", "expected_conversion": "2-4%, contenido familia confianza + share-rate altísimos"},
+        {"type": "Lifehack / faceless TikTok", "path": "Faceless", "hooks": "Demo screen-rec parsing buzón; \"la app convierte el caos del correo en lista\"; slide countdown vencimiento garantía", "expected_conversion": "0,5-1,5% por vista, frecuencia post escala"},
+        {"type": "Tech-reviewer (pequeño, device-focus)", "path": "UGC + screen-rec mix", "hooks": "\"App que rastrea la garantía en cada device\"; tour caja fuerte recibos; demo flujo recordatorio", "expected_conversion": "1-2% para audiencia consciente de garantía"},
+        {"type": "Educador consumer-rights (EN/ES/FR/IT)", "path": "UGC", "hooks": "Protección consumidor específica para región; \"la ley garantía que te protege que nadie te contó\"", "expected_conversion": "1,5-3% en nichos consumer-law localizados"}
+      ],
+      "ugc_strategy": {
+        "archetype": "Tú frente a la cámara. Abogado-TikToker en oficina tranquila. Coach del ahorro en la mesa de cocina abriendo una factura real. Family-mom mostrando el buzón compartido con su pareja. El producto es un beat 5-10 segundos DENTRO de tu story. Sokolova y Kefi (2020): la confianza parasocial mueve audiencias consumer-rights y money-adyacentes especialmente.",
+        "hook_examples": [
+          "\"Perdí 280 EUR el mes pasado por una garantía expirada\" — talking head, móvil con pantalla vencimiento.",
+          "\"§437 BGB — tres frases que la mayoría no conoce\" (DE) o \"el reloj garantía que olvidas\" (EN/ES/FR/IT).",
+          "\"Cómo funciona realmente nuestro buzón familiar\" — escena cocina con pareja/hijos.",
+          "\"Suscripciones que no sabía que pagaba\" — selfie, scrolleas la lista.",
+          "\"Lo que pasa cuando tu secadora se rompe a los 18 meses\" — escenario, con/sin Kelva.",
+          "\"Cómo recorté mis suscripciones de 47 a 12 en un fin de semana\" — historia proceso.",
+          "\"Un año de Kelva: review honesta\" — directo-a-cámara 60s."
+        ],
+        "format_templates": [
+          "Talking-head 30s.",
+          "Vlog 60-90s con escenario real.",
+          "Demo familiar con pareja/hijos.",
+          "Case-study carrusel narrado.",
+          "Estilo reacción: descubres una suscripción olvidada."
+        ],
+        "do_dont": [
+          "Do: vertical, a la altura de los ojos.",
+          "Do: nombrar un recibo/suscripción/device real.",
+          "Do: enlace en caption Y story-sticker.",
+          "Don't: leer copy marketing.",
+          "Don't: dar consejo legal específico en el contexto Kelva (riesgo BORA en DE).",
+          "Don't: oversell."
+        ]
+      },
+      "faceless_strategy": {
+        "archetype": "Voz en off + screen-recording + B-roll parsing buzón. Lifehack-TikToker. Tutorial-carrusel-creator. El parsing del buzón hace el trabajo demo.",
+        "hook_examples": [
+          "\"Correo entra, la app parsea todo\" — 30s puro screen-rec.",
+          "\"Excel vs Kelva\" — 30s split-screen.",
+          "\"Explicación vencimiento garantía\" — locale-adaptado: §437 BGB (DE), garantía legal (ES) etc.",
+          "\"5 apps que toda familia debería tener\" — Kelva en slide 1.",
+          "\"Cómo recuperé 320 EUR de garantía\" — case-study carrusel.",
+          "\"Proceso cleanup suscripciones\" — 60s screen-rec.",
+          "\"Time-lapse parsing buzón\" — solo captions."
+        ],
+        "format_templates": [
+          "Screen-record demo 20-30s.",
+          "Tutorial carrusel: 6 slides, slide 6 = enlace.",
+          "Voz en off narrativa 45s.",
+          "Listicle con Kelva #1-2.",
+          "Case-study carrusel: 6 slides historia garantía."
+        ],
+        "do_dont": [
+          "Do: demostración auto-explicativa.",
+          "Do: postea más, lifehack faceless escala.",
+          "Do: caption cada paso.",
+          "Do: localiza el ángulo ley-garantía.",
+          "Don't: narración falso-entusiasta.",
+          "Don't: saltarte enlace en caption + bio."
+        ]
+      },
+      "audience_fit_good": [
+        "Creators personal-finance + ahorro mundiales.",
+        "IGer organización familiar (confianza + share-rate altísimos).",
+        "Creators lifehack en cada uno de los 5 idiomas.",
+        "Explicadores consumer-law (DE §437/§438; en otros mercados protección consumidor general).",
+        "Pequeños recensores tech (ángulo garantía device).",
+        "Family-mom + parent influencers."
+      ],
+      "audience_fit_poor": [
+        "Crowd crypto / especulación.",
+        "Lifestyle anti-establishment.",
+        "Cuentas pura estética sin ángulo práctico."
+      ],
+      "posting_cadence": "Audiencia consumer-lifehack: domingo noche + miércoles noche. Abogado-TikToker: cualquier día, edutainment 19-22h local. Family-mom: mañanas fin de semana + domingo noche. 1 reel por semana. Stories con sticker enlace los fines de semana traen la mayoría de las conversiones.",
+      "conversion_math": "50% rev-share, 24 meses. Premium 29,99 USD/año. Abogado-TikToker (50k seguidores): 25.000 vistas x 2% CTR = 500 clics, 30% install = 150 instalaciones, 8% Premium = 12 suscriptores, ~180 USD por reel. Spar-tipp mid-tier (80k IG): 40.000 vistas x 1,5% CTR = 600 clics, 30% install = 180 instalaciones, 7% Premium = 13 suscriptores, ~195 USD. Family-mom macro (300k IG): alcance 120.000 x 1,2% CTR = 1.440 clics, 25% install = 360 instalaciones, 6% Premium = 22 suscriptores, ~330 USD por post.",
+      "brand_assets": "Logo, capturas app, slides explicación vencimiento garantía (locale-adaptadas), footage demo parsing buzón y captions listos: getklar.org/i/kelva/brand-assets.",
+      "faq": [
+        ["¿Idiomas y mercados de Kelva?", "App distribuida en DE / EN / ES / FR / IT. §437 / §438 BGB es funcionalidad DE-ley; el producto core funciona en cada mercado."],
+        ["¿Puedo postear en inglés (o ES/FR/IT)?", "Sí. Pitcha el producto core. Para DE-audiencia añade §437/§438. Para no-DE ángulo protección consumidor genérico."],
+        ["¿Compliance abogado?", "Educa en general (locale-apropiado). NADA de consejo legal específico en el contexto Kelva (riesgo BORA en DE)."],
+        ["¿Obligación de mención?", "Sí. #ad / #publi / IG \"Paid Partnership\"."],
+        ["¿Compensación fija encima?", "Mid+ sí, 150-500 USD/EUR por reel. Macro 500-2.000 USD."],
+        ["¿Cambio precio Premium?", "Ganas el 50% sobre el precio del momento."]
+      ],
+      "closing": "Honestamente: Kelva encaja con audiencias que ya piensan en recibos, garantías o suscripciones recurrentes. Spar-tipp, family-mom, lifehack, explicadores consumer-rights encajan todos. Cuentas estética-lifestyle o pura-entertainment no encajan. Responde al Mail 2 sí o sí."
     }
   }
 }

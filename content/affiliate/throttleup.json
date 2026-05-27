@@ -113,6 +113,162 @@
         "why_this_works": "Markt ist leer. RIDEOLOGY hat 2,2 Sterne, existierende Alternativen sind tot. Die meisten Rider tracken in Word-Doc oder gar nicht. ThrottleUps VIN-Scan + Live-NHTSA-Recall ist Category-of-One. Die Audience (Schrauber + ADV-Rider) schätzt Tools und vertraut anderen Ridern, also ist Affiliate-Conversion hoch wenn der Creator authentisch ist — und sehr niedrig wenn nicht.",
         "attribution_extra_note": "Android ist gebaut und getestet aber aktuell pausiert wegen Android-RC-Key-Setup. Der deterministische Install-Referrer-Pfad aktiviert sich sobald das gelöst ist. Dein Link funktioniert weiter für Android-User — sie landen auf einer Landing-Page die iOS-first-Status und Waitlist-Anmeldung erklärt; Attribution gilt rückwirkend wenn Android relaunched."
       }
+    },
+    "it": {
+      "short": {
+        "tagline": "Tracker manutenzione moto VIN-scan con alert recall NHTSA live e supporto multi-moto.",
+        "what_it_is": "ThrottleUp è un'app iOS + Android per il tracking manutenzione moto. VIN-scanner tira marca/modello/anno/cilindrata da NHTSA vPIC. Integrazione recall contro NHTSA Recalls API. Intervalli service per moto (km + tempo), promemoria push 30/7/1 giorno prima. Multi-moto per garage 2+ moto. Log manutenzione con foto, export PDF/CSV.",
+        "who_for": "Smanettoni, proprietari project-bike, custom builder, daily-driver tuner. Audience 20-55, ~95% maschile, profonda community moto europea + scena restomod USA.",
+        "key_features": [
+          "VIN-scanner: live da NHTSA vPIC.",
+          "Integrazione recall: NHTSA Recalls API, push su nuovo recall.",
+          "Promemoria intervalli service per moto.",
+          "Log manutenzione con foto.",
+          "Multi-moto (Premium): moto + riding-group illimitati."
+        ],
+        "business_model_lines": [
+          "Una sola fonte: abbonamento Premium ricorrente.",
+          "Prezzo: 3,99 USD/mese o 24,99 USD/anno.",
+          "Tier gratis generoso: 1 moto, 1 riding-group fino a 4, entries illimitati, VIN-decode, recall-lookup, PDF/CSV.",
+          "Premium sblocca: moto illimitate, group più grandi."
+        ],
+        "attribution_one_paragraph": "Il tuo link throttleup.app/i/[handle] funziona su ogni piattaforma. iOS warm Universal Links. iOS cold (~99% traffico creator) deferred-deeplink firmato via clipboard — verificato live, senza Branch.io. RevenueCat fa fuoco all'acquisto Premium, 50% al tuo handle per 24 mesi. Attribuzione Android via install-referrer attiva quando l'Android RC-key è settata.",
+        "see_long_pointer": "Per il walkthrough completo plus why-DIY, architettura integrazione NHTSA e dettagli Android-status, vedi il Brief Esteso PDF.",
+        "attribution_extra_note": "Android attualmente in pausa per setup Android-RC-key. Il tuo link funziona per utenti Android — pagina waitlist. Attribuzione retroattiva quando Android relaunches."
+      },
+      "long": {
+        "tagline": "Tracker manutenzione moto VIN-scan con alert recall NHTSA live e supporto multi-moto.",
+        "what_it_is": "ThrottleUp è un'app iOS + Android per il tracking manutenzione moto. Il VIN-scanner tira marca/modello/anno/cilindrata live da NHTSA vPIC. Integrazione recall contro NHTSA Recalls API. Intervalli service per moto, promemoria push 30/7/1 giorno prima. Multi-moto per garage 2+ moto. Log manutenzione con foto, export PDF/CSV, condivisione anonima di viaggi con tracce privacy-cropped.",
+        "who_for": "Smanettoni, proprietari project-bike, custom builder, daily-driver tuner. Audience 20-55, ~95% maschile, profonda community moto europea + scena restomod USA. Archetipi: ADV/touring vlogger (Itchy Boots-style), canali garage-vlog, account Instagram build-thread, creator cafe-racer/custom-builder, oil-change tutorial maker, MotoVlogger. Autenticità batte la levigatezza — il contenuto performativo viene scoperto subito.",
+        "key_features": [
+          "VIN-scanner live da NHTSA vPIC.",
+          "Integrazione recall: NHTSA Recalls API.",
+          "Promemoria intervalli service: km + tempo.",
+          "Log manutenzione con foto.",
+          "Multi-moto (Premium).",
+          "Export PDF/CSV per documentazione."
+        ],
+        "business_model_lines": [
+          "Una sola fonte: abbonamento Premium ricorrente.",
+          "Tier gratis generoso: 1 moto, 1 riding-group fino a 4, entries illimitati, VIN-decode, recall-lookup, PDF/CSV.",
+          "Premium sblocca: moto illimitate, group più grandi.",
+          "Free generoso così ogni rider entra. Premium per garage multi-moto, non limiti artificiali.",
+          "Premium gratuito a vita per affiliati onboarded."
+        ],
+        "pricing_lines": [
+          "3,99 USD / mese.",
+          "24,99 USD / anno.",
+          "iOS-first; Android relaunches quando RC-key è settata."
+        ],
+        "market_gap": "Il mercato app manutenzione moto è vuoto. RIDEOLOGY (l'ufficiale Kawasaki) ha 2,2 stelle. \"Motorcycle Maintenance Log\" ha 1.900 download totali. La maggior parte dei rider traccia in Word-doc o per niente. Non è un mercato con poca concorrenza — è un mercato senza concorrenza. I rider sono scettici verso strumenti digitali, e i player esistenti (TCXX, Bike Tracker) hanno UX 2018 e non aggiornano. Il VIN-scan + recall NHTSA live di ThrottleUp è category-of-one.",
+        "business_model_why_now": "Due cambiamenti. Primo, NHTSA ha aperto le sue API vPIC e Recalls per uso pubblico gratuito — VIN-decode autoritativo + dati recall senza vendor dati a pagamento. Secondo, la demografia moto ha adottato smartphone per il lavoro in garage, e Reddit r/motorcycles + r/ADVRider hanno normalizzato i log digitali come proof-of-care alla rivendita.",
+        "why_this_works": "Mercato vuoto. RIDEOLOGY 2,2 stelle, alternative morte. La maggior parte dei rider traccia in Word-doc o per niente. VIN-scan + recall live di ThrottleUp è category-of-one. L'audience (smanettoni + ADV) valuta strumenti e si fida di altri rider, conversione affiliate alta quando il creator è autentico.",
+        "attribution_extra_note": "Android è costruito e testato ma attualmente in pausa per setup Android-RC-key. Il percorso install-referrer deterministico si attiva appena risolto. Il tuo link funziona per utenti Android — pagina waitlist."
+      }
+    },
+    "fr": {
+      "short": {
+        "tagline": "Tracker maintenance moto VIN-scan avec alertes recall NHTSA live et support multi-moto.",
+        "what_it_is": "ThrottleUp est une app iOS + Android pour le tracking maintenance moto. Le VIN-scanner tire marque/modèle/année/cylindrée de NHTSA vPIC. Intégration recall contre NHTSA Recalls API. Intervalles service par moto (km + temps), rappels push 30/7/1 jour avant. Multi-moto pour garage 2+ motos. Log maintenance avec photos, export PDF/CSV.",
+        "who_for": "Mécanos, propriétaires project-bike, custom builders, daily-driver tuners. Audience 20-55, ~95% masculine, profonde communauté moto européenne + scène restomod US.",
+        "key_features": [
+          "VIN-scanner : live de NHTSA vPIC.",
+          "Intégration recall : NHTSA Recalls API, push sur nouveau recall.",
+          "Rappels intervalles service par moto.",
+          "Log maintenance avec photos.",
+          "Multi-moto (Premium) : motos + riding-groups illimitées."
+        ],
+        "business_model_lines": [
+          "Une seule source : abonnement Premium récurrent.",
+          "Prix : 3,99 USD/mois ou 24,99 USD/an.",
+          "Tier gratuit généreux : 1 moto, 1 riding-group jusqu'à 4, entries illimitées, VIN-decode, recall-lookup, PDF/CSV.",
+          "Premium déverrouille : motos illimitées, groups plus grands."
+        ],
+        "attribution_one_paragraph": "Ton lien throttleup.app/i/[handle] marche sur toutes les plateformes. iOS warm Universal Links. iOS cold (~99 % trafic créateur) deferred-deeplink signé via presse-papiers — vérifié live, sans Branch.io. RevenueCat se déclenche à l'achat Premium, 50 % à ton handle pendant 24 mois. Attribution Android via install-referrer s'active quand l'Android RC-key est posée.",
+        "see_long_pointer": "Pour le walkthrough complet plus why-DIY, architecture intégration NHTSA et détails Android-status, voir le Brief Étendu PDF.",
+        "attribution_extra_note": "Android actuellement en pause pour setup Android-RC-key. Ton lien marche pour utilisateurs Android — page waitlist. Attribution rétroactive quand Android relaunche."
+      },
+      "long": {
+        "tagline": "Tracker maintenance moto VIN-scan avec alertes recall NHTSA live et support multi-moto.",
+        "what_it_is": "ThrottleUp est une app iOS + Android pour le tracking maintenance moto. Le VIN-scanner tire marque/modèle/année/cylindrée live de NHTSA vPIC. Intégration recall contre NHTSA Recalls API. Intervalles service par moto, rappels push 30/7/1 jour avant. Multi-moto pour garage 2+ motos. Log maintenance avec photos, export PDF/CSV, partage anonyme de trips avec traces privacy-cropped.",
+        "who_for": "Mécanos, propriétaires project-bike, custom builders, daily-driver tuners. Audience 20-55, ~95% masculine, profonde communauté moto européenne + scène restomod US. Archétypes : ADV/touring vloggers (Itchy Boots-style), chaînes garage-vlog, comptes Instagram build-thread, créateurs cafe-racer/custom-builder, oil-change tutorial makers, MotoVloggers. Authenticité bat la finition — le contenu performatif se voit instantanément.",
+        "key_features": [
+          "VIN-scanner live de NHTSA vPIC.",
+          "Intégration recall : NHTSA Recalls API.",
+          "Rappels intervalles service : km + temps.",
+          "Log maintenance avec photos.",
+          "Multi-moto (Premium).",
+          "Export PDF/CSV pour documentation."
+        ],
+        "business_model_lines": [
+          "Une seule source : abonnement Premium récurrent.",
+          "Tier gratuit généreux : 1 moto, 1 riding-group jusqu'à 4, entries illimitées, VIN-decode, recall-lookup, PDF/CSV.",
+          "Premium déverrouille : motos illimitées, groups plus grands.",
+          "Free généreux pour que chaque rider entre. Premium pour garages multi-motos, pas de limites artificielles.",
+          "Premium gratuit à vie pour affiliés onboarded."
+        ],
+        "pricing_lines": [
+          "3,99 USD / mois.",
+          "24,99 USD / an.",
+          "iOS-first ; Android relaunche quand RC-key est posée."
+        ],
+        "market_gap": "Le marché des apps de maintenance moto est vide. RIDEOLOGY (l'officielle Kawasaki) a 2,2 étoiles. \"Motorcycle Maintenance Log\" a 1 900 téléchargements totaux. La plupart des riders tracent en Word-doc ou pas du tout. Ce n'est pas un marché avec une concurrence faible — c'est un marché sans concurrence. Les riders sont sceptiques envers les outils numériques, et les acteurs existants (TCXX, Bike Tracker) ont une UX 2018 et n'updatent jamais. Le VIN-scan + recall NHTSA live de ThrottleUp est category-of-one.",
+        "business_model_why_now": "Deux changements. D'abord, NHTSA a ouvert ses APIs vPIC et Recalls pour usage public gratuit — VIN-decode autoritaire + données recall sans vendor payant. Ensuite, la démographie moto a adopté les smartphones pour le travail garage, et Reddit r/motorcycles + r/ADVRider ont normalisé les logs digitaux comme proof-of-care à la revente.",
+        "why_this_works": "Marché vide. RIDEOLOGY 2,2 étoiles, alternatives mortes. La plupart des riders tracent en Word-doc ou pas. VIN-scan + recall live de ThrottleUp est category-of-one. L'audience (mécanos + ADV) valorise les outils et fait confiance aux autres riders, conversion affiliate haute quand le créateur est authentique.",
+        "attribution_extra_note": "Android est construit et testé mais actuellement en pause pour setup Android-RC-key. Le chemin install-referrer déterministe s'active dès que résolu. Ton lien marche pour utilisateurs Android — page waitlist."
+      }
+    },
+    "es": {
+      "short": {
+        "tagline": "Tracker mantenimiento moto VIN-scan con alertas recall NHTSA live y soporte multi-moto.",
+        "what_it_is": "ThrottleUp es una app iOS + Android para el tracking de mantenimiento moto. El VIN-scanner saca marca/modelo/año/cilindrada de NHTSA vPIC. Integración recall contra NHTSA Recalls API. Intervalos service por moto (km + tiempo), recordatorios push 30/7/1 día antes. Multi-moto para garaje 2+ motos. Log mantenimiento con fotos, export PDF/CSV.",
+        "who_for": "Mecánicos, dueños project-bike, custom builders, daily-driver tuners. Audiencia 20-55, ~95% masculina, profunda comunidad moto europea + escena restomod US.",
+        "key_features": [
+          "VIN-scanner: live desde NHTSA vPIC.",
+          "Integración recall: NHTSA Recalls API, push en nuevo recall.",
+          "Recordatorios intervalos service por moto.",
+          "Log mantenimiento con fotos.",
+          "Multi-moto (Premium): motos + riding-groups ilimitadas."
+        ],
+        "business_model_lines": [
+          "Una sola fuente: suscripción Premium recurrente.",
+          "Precio: 3,99 USD/mes o 24,99 USD/año.",
+          "Nivel gratis generoso: 1 moto, 1 riding-group hasta 4, entradas ilimitadas, VIN-decode, recall-lookup, PDF/CSV.",
+          "Premium desbloquea: motos ilimitadas, groups más grandes."
+        ],
+        "attribution_one_paragraph": "Tu enlace throttleup.app/i/[handle] funciona en cualquier plataforma. iOS warm Universal Links. iOS cold (~99 % tráfico creator) deferred-deeplink firmado vía portapapeles — verificado en vivo, sin Branch.io. RevenueCat se dispara en la compra Premium, 50 % a tu handle durante 24 meses. Atribución Android vía install-referrer se activa cuando la Android RC-key esté puesta.",
+        "see_long_pointer": "Para el walkthrough completo plus why-DIY, arquitectura integración NHTSA y detalles Android-status, ver el Brief Ampliado PDF.",
+        "attribution_extra_note": "Android actualmente en pausa por setup Android-RC-key. Tu enlace funciona para usuarios Android — página waitlist. Atribución retroactiva cuando Android relaunche."
+      },
+      "long": {
+        "tagline": "Tracker mantenimiento moto VIN-scan con alertas recall NHTSA live y soporte multi-moto.",
+        "what_it_is": "ThrottleUp es una app iOS + Android para el tracking de mantenimiento moto. El VIN-scanner saca marca/modelo/año/cilindrada live desde NHTSA vPIC. Integración recall contra NHTSA Recalls API. Intervalos service por moto, recordatorios push 30/7/1 día antes. Multi-moto para garaje 2+ motos. Log mantenimiento con fotos, export PDF/CSV, compartición anónima de viajes con rutas privacy-cropped.",
+        "who_for": "Mecánicos, dueños project-bike, custom builders, daily-driver tuners. Audiencia 20-55, ~95% masculina, profunda comunidad moto europea + escena restomod US. Arquetipos: ADV/touring vloggers (Itchy Boots-style), canales garage-vlog, cuentas Instagram build-thread, creators cafe-racer/custom-builder, oil-change tutorial makers, MotoVloggers. Autenticidad gana al pulido — el contenido performativo se detecta al instante.",
+        "key_features": [
+          "VIN-scanner live de NHTSA vPIC.",
+          "Integración recall: NHTSA Recalls API.",
+          "Recordatorios intervalos service: km + tiempo.",
+          "Log mantenimiento con fotos.",
+          "Multi-moto (Premium).",
+          "Export PDF/CSV para documentación."
+        ],
+        "business_model_lines": [
+          "Una sola fuente: suscripción Premium recurrente.",
+          "Nivel gratis generoso: 1 moto, 1 riding-group hasta 4, entradas ilimitadas, VIN-decode, recall-lookup, PDF/CSV.",
+          "Premium desbloquea: motos ilimitadas, groups más grandes.",
+          "Free generoso para que cada rider entre. Premium para garajes multi-moto, no límites artificiales.",
+          "Premium gratis de por vida para afiliados onboarded."
+        ],
+        "pricing_lines": [
+          "3,99 USD / mes.",
+          "24,99 USD / año.",
+          "iOS-first; Android relaunche cuando RC-key esté puesta."
+        ],
+        "market_gap": "El mercado de apps de mantenimiento moto está vacío. RIDEOLOGY (la oficial de Kawasaki) tiene 2,2 estrellas. \"Motorcycle Maintenance Log\" tiene 1.900 descargas totales. La mayoría de riders rastrea en Word-doc o nada. No es un mercado con competencia débil — es un mercado sin competencia. Los riders son escépticos hacia herramientas digitales, y los actores existentes (TCXX, Bike Tracker) tienen UX 2018 y nunca actualizan. El VIN-scan + recall NHTSA live de ThrottleUp es category-of-one.",
+        "business_model_why_now": "Dos cambios. Primero, NHTSA abrió sus APIs vPIC y Recalls para uso público gratis — VIN-decode autoritativo + datos recall sin vendor de pago. Segundo, la demografía moto ha adoptado smartphones para el trabajo de garaje, y Reddit r/motorcycles + r/ADVRider han normalizado los logs digitales como proof-of-care en la reventa.",
+        "why_this_works": "Mercado vacío. RIDEOLOGY 2,2 estrellas, alternativas muertas. La mayoría de riders rastrea en Word-doc o nada. VIN-scan + recall live de ThrottleUp es category-of-one. La audiencia (mecánicos + ADV) valora las herramientas y confía en otros riders, conversión affiliate alta cuando el creator es auténtico.",
+        "attribution_extra_note": "Android está construido y testeado pero actualmente en pausa por setup Android-RC-key. El camino install-referrer determinístico se activa en cuanto se resuelva. Tu enlace funciona para usuarios Android — página waitlist."
+      }
     }
   },
   "playbook": {
@@ -321,6 +477,315 @@
         ["Kennzeichnung?", "Ja. Moto-Audiences vergeben ehrliche Disclosure aber strafen versteckte Ads."]
       ],
       "closing": "Ehrlich: ThrottleUp passt zu Creator mit echtem Bike, echter Garage, echtem Maintenance-Content. Wenn du ein Lifestyle-Moto-Ästhetik-Account bist der nicht schraubt, passt nicht. Audience erkennt Performance und deine Glaubwürdigkeit nimmt den Hit. Wir wollen lieber 10 well-fit Schrauber als 100 random Posts. Antworte auf Mail 2 so oder so."
+    },
+    "it": {
+      "subtitle": "per creator moto e rider ADV — e cosa dice la ricerca",
+      "hero_quote": "VIN-scan, recall-alert, multi-moto. Guadagna dal contenuto manutenzione che fai comunque.",
+      "sixty_seconds_intro": "ThrottleUp è un'app iOS + Android per tracking manutenzione moto. VIN-scanner da NHTSA vPIC. Integrazione recall NHTSA. Intervalli service per moto, promemoria push. Multi-moto per 2+ moto. Log manutenzione + foto, export PDF/CSV.",
+      "why_this_works": "Mercato vuoto. RIDEOLOGY 2,2 stelle. La maggior parte dei rider traccia in Word-doc o per niente.",
+      "free_vs_premium": [
+        "Gratis: 1 moto, 1 riding-group fino a 4, entries illimitati, VIN-decode, recall-lookup, PDF/CSV.",
+        "Premium (3,99 USD/m o 24,99 USD/y): moto illimitate, group più grandi.",
+        "Premium gratuito a vita per affiliati onboarded."
+      ],
+      "creator_types_intro": "Nel moto l'autenticità è il moltiplicatore di conversione — performativo converte vicino allo zero, vero smanettone converte a multipli della media.",
+      "creator_types_table": [
+        {"type": "ADV/touring vlogger", "path": "UGC forte", "hooks": "VIN-scan sulla tua moto vera; alert recall a metà viaggio; tour garage multi-moto", "expected_conversion": "3-5%, ADV si fida di altri ADV"},
+        {"type": "Garage/smanettone vlogger", "path": "UGC + Faceless mix", "hooks": "Cambio olio con promemoria; tutorial controllo valvole; export PDF a rivendita", "expected_conversion": "2-4%, fiducia smanettone alta"},
+        {"type": "Build-thread/custom-builder", "path": "UGC + Faceless mix", "hooks": "Doc manutenzione durante build; VIN-decode reveal; recall su moto donatrice", "expected_conversion": "2-3%, conversione su proof-of-care"},
+        {"type": "Cafe-racer/restomod", "path": "UGC", "hooks": "VIN-decode vintage; recall su SV650 2002; log restomod ripreso", "expected_conversion": "2-4%, audience vintage valuta documentazione"},
+        {"type": "MotoVlogger (helm-cam)", "path": "UGC + screen-rec mix", "hooks": "Pre-ride checklist app; alert recall in pausa; workflow multi-moto", "expected_conversion": "1,5-3%, audience più grandi ma per-view più basso"},
+        {"type": "Faceless oil-change/how-to TikTok", "path": "Faceless", "hooks": "Tutorial silenzioso cambio olio con momento log; demo VIN-scan top-down", "expected_conversion": "1-2% per view, alta frequenza"}
+      ],
+      "ugc_strategy": {
+        "archetype": "Tu con la tua moto. Garage-vlogger nella tua vera officina. ADV rider sul tuo vero viaggio. Smanettone con le mani sporche. Audience riconosce in 2 secondi se possiedi e guidi la moto.",
+        "hook_examples": [
+          "\"Questo VIN-scanner mi ha appena detto di un recall sulla mia Tracer 2019\" — telefono in mano alla moto.",
+          "\"Perché ho smesso di tracciare la manutenzione in Word\" — talking head in garage.",
+          "\"50.000 km su questa moto — ecco il log\" — reveal PDF.",
+          "\"Walkthrough del mio garage multi-moto\" — pan lento su 3-4 moto.",
+          "\"Recall appena uscito sulla mia seconda moto — saputo dall'app per primo\".",
+          "\"Cambio olio sabato\" — processo completo, promemoria app all'inizio.",
+          "\"Comprato bike senza service-history — così ricostruisco il log\".",
+          "\"Vendendo bike con 80.000 km di cura documentata\" — reveal PDF rivendita."
+        ],
+        "format_templates": [
+          "Garage vlog 60-90s.",
+          "Talking head in officina 30s.",
+          "Ride-day vlog: helm-cam → pre-ride checklist → ride.",
+          "Build-thread carousel: 8-10 slide IG.",
+          "Storyline restorazione: multi-post.",
+          "Retro meilenstein: \"5 anni con questa bike\"."
+        ],
+        "do_dont": [
+          "Do: gira nel tuo vero garage.",
+          "Do: nomina la tua bike specificamente.",
+          "Do: includi i momenti noiosi.",
+          "Don't: leggere copy marketing.",
+          "Don't: mettere in scena shot perfetti.",
+          "Don't: promettere che NHTSA copre tutti i produttori — è US-focus."
+        ]
+      },
+      "faceless_strategy": {
+        "archetype": "POV solo-mani. Angolo officina top-down. Walkthrough voiceover-only.",
+        "hook_examples": [
+          "Demo VIN-scan silenziosa — top-down telefono che scansiona tag VIN.",
+          "Tutorial cambio olio 60s — solo mani.",
+          "Time-lapse: service sabato completo in 90 secondi.",
+          "Demo recall-lookup — screen-rec silenzioso.",
+          "Reveal export PDF — top-down su schermo telefono.",
+          "Confronto Word-doc-vs-app split-screen.",
+          "B-roll tour garage — pan lento.",
+          "Cronologia build-thread — time-lapse mese-per-mese."
+        ],
+        "format_templates": [
+          "POV solo-mani 60s.",
+          "Top-down screen-rec 30s.",
+          "Tutorial voiceover-only.",
+          "Tutorial carousel 6-8 slide IG.",
+          "Time-lapse service compresso.",
+          "Brand-channel: angolo overhead consistente."
+        ],
+        "do_dont": [
+          "Do: caption ogni passo.",
+          "Do: solo bike vere.",
+          "Do: link in caption + bio.",
+          "Do: mantieni suono garage ambient (avvitatore, scarico).",
+          "Don't: audio trending unfocused.",
+          "Don't: skippare lo shot del lavoro vero."
+        ]
+      },
+      "audience_fit_good": [
+        "ADV/touring vlogger.",
+        "Canali garage-vlog.",
+        "Pages Instagram build-thread.",
+        "Account cafe-racer/custom-builder.",
+        "Creator oil-change/maintenance tutorial.",
+        "MotoVloggers (audience più grandi ma più difficili da convertire)."
+      ],
+      "audience_fit_poor": [
+        "Contenuto sport-bike stunt.",
+        "Estetica lifestyle moto senza guida vera.",
+        "Creator non-rider."
+      ],
+      "posting_cadence": "Moto: sabato mattina 9-11h locale + martedì sera 19-21h locale. ADV: ogni giorno, contenuto ride-day peaks. MotoVlogger: recap domenica sera. 1 reel a settimana. Contenuto build-thread posta in archi.",
+      "conversion_math": "50% rev-share, 24 mesi. Premium 3,99 USD/m o 24,99 USD/y. ADV micro (40k follower): 25.000 view x 2% CTR = 500 clic, 35% install = 175 install, 6% Premium = 11 abbonati, ~140 USD per reel. Garage-vlog mid-tier (80k YouTube): 30.000 view x 3% CTR = 900 clic, 30% install = 270 install, 7% Premium = 19 abbonati, ~240 USD per video. Build-thread macro (200k IG, 6-post): 600.000 reach x 1% CTR = 6.000 clic, 25% install = 1.500 install, 5% Premium = 75 abbonati, ~940 USD. Sub moto rinnovano a tassi insolitamente alti.",
+      "brand_assets": "Logo, screenshot app, footage demo VIN-scan, B-roll workflow garage, palette colori e caption pronte: getklar.org/i/throttleup/brand-assets.",
+      "faq": [
+        ["NHTSA copre bike europee?", "vPIC e Recalls è US-focus. Rider europei beneficiano del VIN-decode (funziona per la maggior parte) ma dati recall sono US-centric."],
+        ["E Android?", "Costruito e testato ma pausato al passo RC-Android-key. Tuo link funziona — pagina waitlist."],
+        ["Video non-inglesi?", "Sì. App solo inglese ma audience affiliate è globale."],
+        ["Compenso fisso?", "Canali moto più piccoli ma comandano per-view più alti per nicchia-fiducia. Mid-tier 150-500 USD, macro 500-1500 USD."],
+        ["Feature trip-sharing?", "Nell'app ma in beta. Non focalizzarci nel marketing ancora."],
+        ["Disclosure?", "Sì. Audience moto perdonano disclosure onesta ma puniscono ad nascosti."]
+      ],
+      "closing": "Onestà: ThrottleUp va bene con creator con bike vera, garage vero, contenuto manutenzione vero. Se sei un account lifestyle-moto che non smanetta, non va bene. Audience riconosce performance e la credibilità ne soffre. Rispondi alla Mail 2."
+    },
+    "fr": {
+      "subtitle": "pour créateurs moto et riders ADV — et ce que dit la recherche",
+      "hero_quote": "VIN-scan, alertes recall, multi-moto. Gagne sur le contenu maintenance que tu fais déjà.",
+      "sixty_seconds_intro": "ThrottleUp est une app iOS + Android pour le tracking maintenance moto. VIN-scanner depuis NHTSA vPIC. Intégration recall NHTSA. Intervalles service par moto, rappels push. Multi-moto pour 2+ motos. Log maintenance + photos, export PDF/CSV.",
+      "why_this_works": "Marché vide. RIDEOLOGY 2,2 étoiles. La plupart des riders tracent en Word-doc ou pas du tout.",
+      "free_vs_premium": [
+        "Gratuit : 1 moto, 1 riding-group jusqu'à 4, entries illimitées, VIN-decode, recall-lookup, PDF/CSV.",
+        "Premium (3,99 USD/m ou 24,99 USD/y) : motos illimitées, groups plus grands.",
+        "Premium gratuit à vie pour affiliés onboarded."
+      ],
+      "creator_types_intro": "En moto, l'authenticité c'est le multiplicateur de conversion — performatif convertit près de zéro, vrai mécano convertit à des multiples de la moyenne.",
+      "creator_types_table": [
+        {"type": "ADV/touring vlogger", "path": "UGC fort", "hooks": "VIN-scan sur ta vraie moto ; alerte recall à mi-trip ; tour garage multi-moto", "expected_conversion": "3-5%, ADV fait confiance à d'autres ADV"},
+        {"type": "Garage/mécano vlogger", "path": "UGC + Faceless mix", "hooks": "Vidange avec rappel ; tutorial contrôle soupapes ; export PDF à la revente", "expected_conversion": "2-4%, confiance mécano haute"},
+        {"type": "Build-thread/custom-builder", "path": "UGC + Faceless mix", "hooks": "Doc maintenance pendant build ; reveal VIN-decode ; recall sur moto donneuse", "expected_conversion": "2-3%, conversion sur proof-of-care"},
+        {"type": "Cafe-racer/restomod", "path": "UGC", "hooks": "VIN-decode vintage ; recall sur SV650 2002 ; log restomod repris", "expected_conversion": "2-4%, audience vintage valorise documentation"},
+        {"type": "MotoVlogger (helm-cam)", "path": "UGC + screen-rec mix", "hooks": "Pre-ride checklist app ; alerte recall en pause ; workflow multi-moto", "expected_conversion": "1,5-3%, audiences plus grandes mais per-vue plus bas"},
+        {"type": "Faceless vidange/how-to TikTok", "path": "Faceless", "hooks": "Tutorial silencieux vidange avec moment log ; démo VIN-scan top-down", "expected_conversion": "1-2% par vue, haute fréquence"}
+      ],
+      "ugc_strategy": {
+        "archetype": "Toi avec ta moto. Garage-vlogger dans ton vrai atelier. ADV rider sur ton vrai voyage. Mécano avec les mains huileuses. Audience reconnaît en 2 secondes si tu possèdes et conduis la moto.",
+        "hook_examples": [
+          "\"Ce VIN-scanner vient de me dire un recall sur ma Tracer 2019\" — téléphone en main à la moto.",
+          "\"Pourquoi j'ai arrêté de tracer ma maintenance en Word\" — talking head en garage.",
+          "\"50 000 km sur cette moto — voilà le log\" — reveal PDF.",
+          "\"Walkthrough de mon garage multi-moto\" — pan lent sur 3-4 motos.",
+          "\"Recall qui vient de tomber sur ma deuxième moto — appris par l'app d'abord\".",
+          "\"Vidange samedi\" — processus complet, rappel app au début.",
+          "\"Acheté bike sans service-history — voilà comment je reconstruis le log\".",
+          "\"Vendre bike avec 80 000 km de soin documenté\" — reveal PDF revente."
+        ],
+        "format_templates": [
+          "Garage vlog 60-90s.",
+          "Talking head en atelier 30s.",
+          "Ride-day vlog : helm-cam → pre-ride checklist → ride.",
+          "Build-thread carrousel : 8-10 slides IG.",
+          "Storyline restauration : multi-post.",
+          "Rétro milestone : \"5 ans avec cette bike\"."
+        ],
+        "do_dont": [
+          "Do : filme dans ton vrai garage.",
+          "Do : nomme ta bike spécifiquement.",
+          "Do : inclus les moments ennuyeux.",
+          "Don't : lire copy marketing.",
+          "Don't : mettre en scène des shots parfaits.",
+          "Don't : promettre que NHTSA couvre tous les fabricants — c'est US-focus."
+        ]
+      },
+      "faceless_strategy": {
+        "archetype": "POV mains-only. Angle atelier top-down. Walkthroughs voix-off only.",
+        "hook_examples": [
+          "Démo VIN-scan silencieuse — top-down téléphone scannant tag VIN.",
+          "Tutorial vidange 60s — mains seulement.",
+          "Time-lapse : service samedi complet en 90 secondes.",
+          "Démo recall-lookup — screen-rec silencieux.",
+          "Reveal export PDF — top-down sur écran téléphone.",
+          "Comparaison Word-doc-vs-app split-screen.",
+          "B-roll tour garage — pan lent.",
+          "Chronologie build-thread — time-lapse mois-par-mois."
+        ],
+        "format_templates": [
+          "POV mains-only 60s.",
+          "Top-down screen-rec 30s.",
+          "Tutorial voix-off only.",
+          "Tutorial carrousel 6-8 slides IG.",
+          "Time-lapse service compressé.",
+          "Brand-channel : angle overhead consistant."
+        ],
+        "do_dont": [
+          "Do : caption chaque étape.",
+          "Do : que des vraies bikes.",
+          "Do : lien en caption + bio.",
+          "Do : garder son garage ambient (clé à chocs, échappement).",
+          "Don't : audio trending unfocused.",
+          "Don't : skipper le shot du vrai travail."
+        ]
+      },
+      "audience_fit_good": [
+        "ADV/touring vloggers.",
+        "Chaînes garage-vlog.",
+        "Pages Instagram build-thread.",
+        "Comptes cafe-racer/custom-builder.",
+        "Créateurs vidange/maintenance tutorial.",
+        "MotoVloggers (audiences plus grandes mais plus durs à convertir)."
+      ],
+      "audience_fit_poor": [
+        "Contenu sport-bike stunt.",
+        "Esthétique lifestyle moto sans vraie conduite.",
+        "Créateurs non-rider."
+      ],
+      "posting_cadence": "Moto : samedi matin 9-11h local + mardi soir 19-21h local. ADV : tous les jours, contenu ride-day peaks. MotoVlogger : recap dimanche soir. 1 reel par semaine. Contenu build-thread poste en arcs.",
+      "conversion_math": "50% rev-share, 24 mois. Premium 3,99 USD/m ou 24,99 USD/y. ADV micro (40k abonnés) : 25 000 vues x 2% CTR = 500 clics, 35% install = 175 installs, 6% Premium = 11 abonnés, ~140 USD par reel. Garage-vlog mid-tier (80k YouTube) : 30 000 vues x 3% CTR = 900 clics, 30% install = 270 installs, 7% Premium = 19 abonnés, ~240 USD par vidéo. Build-thread macro (200k IG, 6-post) : 600 000 reach x 1% CTR = 6 000 clics, 25% install = 1 500 installs, 5% Premium = 75 abonnés, ~940 USD. Subs moto renouvèlent à des taux exceptionnellement hauts.",
+      "brand_assets": "Logo, captures app, footage démo VIN-scan, B-roll workflow garage, palette de couleurs et captions prêts : getklar.org/i/throttleup/brand-assets.",
+      "faq": [
+        ["NHTSA couvre bikes européennes ?", "vPIC et Recalls est US-focus. Riders européens bénéficient du VIN-decode (marche pour la plupart) mais données recall sont US-centric."],
+        ["Et Android ?", "Construit et testé mais pausé à l'étape RC-Android-key. Ton lien marche — page waitlist."],
+        ["Vidéos non-anglaises ?", "Oui. App seulement anglais mais audience affiliate est globale."],
+        ["Compensation fixe ?", "Canaux moto plus petits mais commandent per-vue plus haut par confiance-niche. Mid-tier 150-500 USD, macros 500-1500 USD."],
+        ["Fonctionnalité trip-sharing ?", "Dans l'app mais en beta. Pas la mettre en avant dans le marketing encore."],
+        ["Disclosure ?", "Oui. Audiences moto pardonnent disclosure honnête mais punissent ads cachés."]
+      ],
+      "closing": "Honnêtement : ThrottleUp colle avec créateurs ayant vraie bike, vrai garage, vrai contenu maintenance. Si tu es un compte lifestyle-moto qui ne mécanise pas, ça ne colle pas. Audience reconnaît performance et la crédibilité en prend un coup. Réponds à la Mail 2."
+    },
+    "es": {
+      "subtitle": "para creators moto y riders ADV — y qué dice la investigación",
+      "hero_quote": "VIN-scan, alertas recall, multi-moto. Gana del contenido mantenimiento que ya haces.",
+      "sixty_seconds_intro": "ThrottleUp es una app iOS + Android para tracking mantenimiento moto. VIN-scanner desde NHTSA vPIC. Integración recall NHTSA. Intervalos service por moto, recordatorios push. Multi-moto para 2+ motos. Log mantenimiento + fotos, export PDF/CSV.",
+      "why_this_works": "Mercado vacío. RIDEOLOGY 2,2 estrellas. La mayoría de riders rastrea en Word-doc o nada.",
+      "free_vs_premium": [
+        "Gratis: 1 moto, 1 riding-group hasta 4, entradas ilimitadas, VIN-decode, recall-lookup, PDF/CSV.",
+        "Premium (3,99 USD/m o 24,99 USD/y): motos ilimitadas, groups más grandes.",
+        "Premium gratis de por vida para afiliados onboarded."
+      ],
+      "creator_types_intro": "En moto la autenticidad es el multiplicador de conversión — performativo convierte cerca de cero, mecánico real convierte a múltiplos de la media.",
+      "creator_types_table": [
+        {"type": "ADV/touring vlogger", "path": "UGC fuerte", "hooks": "VIN-scan en tu moto real; alerta recall a mitad de viaje; tour garaje multi-moto", "expected_conversion": "3-5%, ADV confía en otros ADV"},
+        {"type": "Garage/mecánico vlogger", "path": "UGC + Faceless mix", "hooks": "Cambio aceite con recordatorio; tutorial control válvulas; export PDF en reventa", "expected_conversion": "2-4%, confianza mecánico alta"},
+        {"type": "Build-thread/custom-builder", "path": "UGC + Faceless mix", "hooks": "Doc mantenimiento durante build; reveal VIN-decode; recall en moto donante", "expected_conversion": "2-3%, conversión en proof-of-care"},
+        {"type": "Cafe-racer/restomod", "path": "UGC", "hooks": "VIN-decode vintage; recall en SV650 2002; log restomod tomado", "expected_conversion": "2-4%, audiencia vintage valora documentación"},
+        {"type": "MotoVlogger (helm-cam)", "path": "UGC + screen-rec mix", "hooks": "Pre-ride checklist app; alerta recall en pausa; workflow multi-moto", "expected_conversion": "1,5-3%, audiencias más grandes pero per-vista más bajo"},
+        {"type": "Faceless cambio-aceite/how-to TikTok", "path": "Faceless", "hooks": "Tutorial silencioso cambio aceite con momento log; demo VIN-scan top-down", "expected_conversion": "1-2% por vista, alta frecuencia"}
+      ],
+      "ugc_strategy": {
+        "archetype": "Tú con tu moto. Garage-vlogger en tu taller real. ADV rider en tu viaje real. Mecánico con manos sucias. Audiencia reconoce en 2 segundos si posees y montas la moto.",
+        "hook_examples": [
+          "\"Este VIN-scanner acaba de decirme un recall en mi Tracer 2019\" — móvil en mano en la moto.",
+          "\"Por qué dejé de rastrear el mantenimiento en Word\" — talking head en garaje.",
+          "\"50.000 km en esta moto — aquí está el log\" — reveal PDF.",
+          "\"Walkthrough de mi garaje multi-moto\" — pan lento sobre 3-4 motos.",
+          "\"Recall acaba de salir en mi segunda moto — enterado por la app primero\".",
+          "\"Cambio de aceite sábado\" — proceso completo, recordatorio app al inicio.",
+          "\"Compré moto sin service-history — así reconstruyo el log\".",
+          "\"Vendiendo moto con 80.000 km de cuidado documentado\" — reveal PDF reventa."
+        ],
+        "format_templates": [
+          "Garage vlog 60-90s.",
+          "Talking head en taller 30s.",
+          "Ride-day vlog: helm-cam → pre-ride checklist → ride.",
+          "Build-thread carrusel: 8-10 slides IG.",
+          "Storyline restauración: multi-post.",
+          "Retro milestone: \"5 años con esta moto\"."
+        ],
+        "do_dont": [
+          "Do: filma en tu garaje real.",
+          "Do: nombra tu moto específicamente.",
+          "Do: incluye los momentos aburridos.",
+          "Don't: leer copy marketing.",
+          "Don't: escenificar shots perfectos.",
+          "Don't: prometer que NHTSA cubre todos los fabricantes — es US-focus."
+        ]
+      },
+      "faceless_strategy": {
+        "archetype": "POV solo-manos. Ángulo taller top-down. Walkthroughs voz-en-off only.",
+        "hook_examples": [
+          "Demo VIN-scan silenciosa — top-down móvil escaneando tag VIN.",
+          "Tutorial cambio aceite 60s — solo manos.",
+          "Time-lapse: service sábado completo en 90 segundos.",
+          "Demo recall-lookup — screen-rec silencioso.",
+          "Reveal export PDF — top-down sobre pantalla móvil.",
+          "Comparación Word-doc-vs-app split-screen.",
+          "B-roll tour garaje — pan lento.",
+          "Cronología build-thread — time-lapse mes-por-mes."
+        ],
+        "format_templates": [
+          "POV solo-manos 60s.",
+          "Top-down screen-rec 30s.",
+          "Tutorial voz-en-off only.",
+          "Tutorial carrusel 6-8 slides IG.",
+          "Time-lapse service comprimido.",
+          "Brand-channel: ángulo overhead consistente."
+        ],
+        "do_dont": [
+          "Do: caption cada paso.",
+          "Do: solo motos reales.",
+          "Do: enlace en caption + bio.",
+          "Do: mantén sonido garaje ambient (atornillador, escape).",
+          "Don't: audio trending unfocused.",
+          "Don't: saltarte el shot del trabajo real."
+        ]
+      },
+      "audience_fit_good": [
+        "ADV/touring vloggers.",
+        "Canales garage-vlog.",
+        "Pages Instagram build-thread.",
+        "Cuentas cafe-racer/custom-builder.",
+        "Creators cambio-aceite/maintenance tutorial.",
+        "MotoVloggers (audiencias más grandes pero más difíciles de convertir)."
+      ],
+      "audience_fit_poor": [
+        "Contenido sport-bike stunt.",
+        "Estética lifestyle moto sin conducción real.",
+        "Creators no-rider."
+      ],
+      "posting_cadence": "Moto: sábado mañana 9-11h local + martes noche 19-21h local. ADV: cualquier día, contenido ride-day peaks. MotoVlogger: recap domingo noche. 1 reel por semana. Contenido build-thread postea en arcos.",
+      "conversion_math": "50% rev-share, 24 meses. Premium 3,99 USD/m o 24,99 USD/y. ADV micro (40k seguidores): 25.000 vistas x 2% CTR = 500 clics, 35% install = 175 instalaciones, 6% Premium = 11 suscriptores, ~140 USD por reel. Garage-vlog mid-tier (80k YouTube): 30.000 vistas x 3% CTR = 900 clics, 30% install = 270 instalaciones, 7% Premium = 19 suscriptores, ~240 USD por vídeo. Build-thread macro (200k IG, 6-post): 600.000 alcance x 1% CTR = 6.000 clics, 25% install = 1.500 instalaciones, 5% Premium = 75 suscriptores, ~940 USD. Subs moto renuevan a tasas excepcionalmente altas.",
+      "brand_assets": "Logo, capturas app, footage demo VIN-scan, B-roll workflow garaje, paleta de color y captions listos: getklar.org/i/throttleup/brand-assets.",
+      "faq": [
+        ["¿NHTSA cubre motos europeas?", "vPIC y Recalls es US-focus. Riders europeos se benefician del VIN-decode (funciona para la mayoría) pero datos recall son US-céntricos."],
+        ["¿Y Android?", "Construido y testeado pero pausado en el paso RC-Android-key. Tu enlace funciona — página waitlist."],
+        ["¿Vídeos no-ingleses?", "Sí. App solo inglés pero audiencia afiliada es global."],
+        ["¿Compensación fija?", "Canales moto más pequeños pero comandan per-vista más alto por confianza-nicho. Mid-tier 150-500 USD, macros 500-1500 USD."],
+        ["¿Feature trip-sharing?", "En la app pero en beta. No destacarla en marketing todavía."],
+        ["¿Disclosure?", "Sí. Audiencias moto perdonan disclosure honesta pero castigan ads ocultos."]
+      ],
+      "closing": "Honestamente: ThrottleUp encaja con creators con moto real, garaje real, contenido mantenimiento real. Si eres una cuenta lifestyle-moto que no atornilla, no encaja. Audiencia reconoce performance y la credibilidad se ve afectada. Responde al Mail 2."
     }
   }
 }

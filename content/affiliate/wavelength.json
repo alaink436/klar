@@ -107,6 +107,153 @@
         "business_model_why_now": "Zwei strukturelle Verschiebungen machen das 2026 möglich. Erstens, iOS Universal Links und Android Install-Referrer sind so reif geworden dass DIY-Attribution zuverlässig läuft (das fehlende Stück — iOS cold install — haben wir mit einem Clipboard-Deferred-Deeplink gelöst, monatelang live verifiziert). Das bedeutet wir können 50% Rev-Share ohne Agentur-Layer fahren, was ökonomisch nicht ging als bezahlte Attribution-SDKs noch 0,20-0,40 USD pro attribuiertem Install kosteten. Zweitens, RevenueCat plus pg_cron plus Wise lassen einen Solo-Operator eine volle Webhook-zu-Payout-Pipeline ohne managed Payout-Infrastructure laufen.",
         "why_this_works": "Sport-Coaches lösen einen echten wiederkehrenden Pain (No-Shows, Aufstellungs-Chaos, Drill-Planung) und konvertieren überdurchschnittlich — und entscheidend: sie bringen ihr Team, ein einzelner Coach ist also 8-16 aktive User wert. Produktivitäts-/WG-Audiences konvertieren niedriger aber Reichweite ist deutlich größer, was den Funnel zwischen Coach-Kampagnen gefüllt hält. Heatmap-Voting demoed sauber per Screen-Recording, was bedeutet selbst Faceless-Creator bekommen ein visuell starkes Asset. Die 50% / 24-Monate / Wise-direkte Payout-Struktur ist ungewöhnlich für eine App dieser Größe, was der strukturelle Vorteil ist den wir den Attribution-Stack gebaut haben um ökonomisch zu ermöglichen."
       }
+    },
+    "it": {
+      "short": {
+        "tagline": "Calendario di gruppo con heatmap voting e workflow completo da sport coach per 8 sport.",
+        "what_it_is": "On Wavelength è un'app calendario iOS + Android con due pilastri. Pilastro uno: heatmap voting per ritrovi di gruppo — ognuno tappa quando è libero, l'app mostra lo slot condiviso migliore, la chat di gruppo resta silenziosa. Pilastro due: workspace sport-coach per 8 sport (calcio, pallavolo, basket, pallamano, hockey, badminton, tennis, corsa) con pianificazione allenamenti e partite, formazioni, presenze in tempo reale e libreria di esercizi.",
+        "who_for": "Due audience. Coach amatoriali negli 8 sport e coach di run-club sono i top-converter. Coinquilini, gruppi di amici, famiglie e creator produttività più ampi ma convertono meno.",
+        "key_features": [
+          "Heatmap voting: ognuno tappa, l'app mostra il miglior slot settimanale.",
+          "Calendario di gruppo colorato con eventi condivisi.",
+          "Workspace squadra sportiva: allenamenti, partite, formazioni, presenze, promemoria.",
+          "Libreria esercizi cercabile su 8 sport, sessione in 4 minuti.",
+          "Pianificatore di stagione: partite + allenamenti duplicati + rosa importata in 20 minuti."
+        ],
+        "business_model_lines": [
+          "Una sola fonte: abbonamento Premium ricorrente.",
+          "Prezzo: ~5 EUR/mese o ~40 EUR/anno (ASC live, maggio 2026).",
+          "Tier gratis: heatmap voting completo, un calendario, un gruppo fino a 4 membri.",
+          "Premium sblocca: gruppi illimitati, workspace squadra, libreria esercizi, presenze, pianificatore."
+        ],
+        "attribution_one_paragraph": "Il tuo link onwavelength.space/i/[handle] funziona su qualunque piattaforma. Attribuzione Android deterministica via install-referrer Google. iOS warm usa Universal Links. iOS cold (~99% del traffico creator) usa il nostro deferred-deeplink firmato via clipboard — verificato live, senza Branch.io. RevenueCat fa fuoco all'acquisto Premium e accredita 50% al tuo handle per 24 mesi.",
+        "see_long_pointer": "Per il walkthrough completo dell'attribuzione — why-DIY, ogni install-path, payout-pipeline, sicurezza — vedi il Brief Esteso PDF in questa cartella."
+      },
+      "long": {
+        "tagline": "Calendario di gruppo con heatmap voting e workflow completo da sport coach per 8 sport.",
+        "what_it_is": "On Wavelength è un'app calendario iOS + Android con due pilastri: heatmap voting per ritrovi di gruppo (ognuno tappa quando è libero, l'app sceglie lo slot migliore, la chat di gruppo resta silenziosa) e un workspace sport-coach per 8 sport che copre allenamenti, partite, formazioni, presenze in tempo reale e libreria di esercizi.",
+        "who_for": "Due audience distinte. Coach amatoriali negli 8 sport + run-club coach (i top-converter, 3-5% view→install). Coinquilini, gruppi di amici, famiglie, creator produttività (più larghi, ~0,5-1% conversione). Un singolo coach porta 8-16 utenti attivi (la sua squadra), l'attribuzione coach si compone; la reach produttività tiene pieno il funnel tra campagne coach.",
+        "key_features": [
+          "Heatmap voting su ogni gruppo.",
+          "Calendario di gruppo colorato con eventi condivisi.",
+          "Workspace squadra sportiva: allenamenti, partite, formazioni, presenze, promemoria.",
+          "Libreria esercizi su 8 sport, session-builder in 4 minuti.",
+          "Pianificatore di stagione in 20 minuti.",
+          "Multi-gruppo: un coach con più squadre + cerchio privato coinquilini nella stessa app."
+        ],
+        "business_model_lines": [
+          "Una sola fonte di ricavo: abbonamento Premium ricorrente.",
+          "Tier gratis generoso: heatmap voting completo, un calendario, un gruppo fino a 4 membri.",
+          "Premium sblocca: gruppi illimitati, workspace squadra, libreria esercizi, presenze, pianificatore.",
+          "Premium gratuito a vita per affiliati onboarded, nessun obbligo di pubblicare."
+        ],
+        "pricing_lines": [
+          "~5 EUR / mese (nessun lock-in annuale).",
+          "~40 EUR / anno (~ due mesi gratis vs mensile).",
+          "ASC live da maggio 2026; quota affiliato è sempre 50% del prezzo del momento."
+        ],
+        "market_gap": "Lo heatmap voting per ritrovi di gruppo è una lacuna aperta nel mercato dei calendari da anni. I calendari dominanti (Google, Apple, Outlook) non lo offrono — troppo di nicchia per un prodotto orizzontale. Doodle esiste ma vive come URL-poll, fuori da qualsiasi calendario vero. Sul lato sport-coach, TeamSnap e SportEasy dominano USA e parte d'Europa Occidentale, ma l'adozione in DACH e Italia è sottile: TeamSnap è US-centric, SportEasy ha prezzi da società non da coach amatoriali, e le librerie esercizi sono per lo più archivi PDF chiusi nei federazioni. Due audience che comprano subito una calendar-app che risolve il loro dolore. Abbiamo costruito un prodotto che serve entrambe.",
+        "business_model_why_now": "Due cambi strutturali. Primo, iOS Universal Links e Android install-referrer sono maturati abbastanza che l'attribuzione DIY è affidabile (il pezzo mancante — iOS cold — risolto con un clipboard deferred-deeplink, verificato live per mesi). Questo permette 50% rev-share senza layer agenzia, non sostenibile quando gli SDK di attribuzione costavano 0,20-0,40 USD per install. Secondo, RevenueCat + pg_cron + Wise lasciano un operatore solo gestire una pipeline webhook-to-payout completa senza infrastruttura payout managed.",
+        "why_this_works": "Gli sport-coach risolvono un dolore quotidiano (assenze, caos formazioni, pianificazione esercizi) e convertono sopra la media — e portano la squadra, un singolo coach vale 8-16 utenti attivi. Audience produttività/coinquilini convertono meno ma la reach è molto più ampia. Lo heatmap voting si presta a screen-recording, quindi anche creator faceless ottengono un asset visivo forte. La struttura 50% / 24 mesi / Wise diretto è inusuale per un'app di questa taglia."
+      }
+    },
+    "fr": {
+      "short": {
+        "tagline": "Calendrier de groupe avec heatmap voting et workflow complet sport-coach pour 8 sports.",
+        "what_it_is": "On Wavelength est une app calendrier iOS + Android avec deux piliers. Premier pilier : heatmap voting pour rendez-vous de groupe — chacun tape quand il est libre, l'app montre le meilleur créneau partagé, le chat de groupe reste silencieux. Deuxième pilier : workspace sport-coach pour 8 sports (foot, volley, basket, handball, hockey, badminton, tennis, course) couvrant planification entraînements et matchs, compositions, présences en direct et bibliothèque d'exercices.",
+        "who_for": "Deux audiences. Coaches amateurs sur les 8 sports et coaches de clubs de course sont les meilleurs convertisseurs. Colocs, groupes d'amis, familles, créateurs productivité plus larges mais convertissent moins.",
+        "key_features": [
+          "Heatmap voting : chacun tape, l'app montre le meilleur créneau hebdomadaire.",
+          "Calendrier de groupe coloré avec événements partagés.",
+          "Workspace équipe sportive : entraînements, matchs, compositions, présences, rappels.",
+          "Bibliothèque d'exercices cherchable sur 8 sports, session en 4 minutes.",
+          "Planificateur de saison : matchs + entraînements dupliqués + liste joueurs en 20 minutes."
+        ],
+        "business_model_lines": [
+          "Une seule source : abonnement Premium récurrent.",
+          "Prix : ~5 EUR/mois ou ~40 EUR/an (ASC live, mai 2026).",
+          "Tier gratuit : heatmap voting complet, un calendrier, un groupe jusqu'à 4 membres.",
+          "Premium déverrouille : groupes illimités, workspace équipe, bibliothèque, présences, planificateur."
+        ],
+        "attribution_one_paragraph": "Ton lien onwavelength.space/i/[handle] marche sur toutes les plateformes. Attribution Android déterministe via Google install-referrer. iOS warm utilise Universal Links. iOS cold (~99 % du trafic créateur) utilise notre deferred-deeplink signé via presse-papiers — vérifié live, sans Branch.io. RevenueCat se déclenche à l'achat Premium et crédite 50 % à ton handle pendant 24 mois.",
+        "see_long_pointer": "Pour le walkthrough complet de l'attribution — why-DIY, chaque install-path, payout-pipeline, sécurité — voir le Brief Étendu PDF dans ce dossier."
+      },
+      "long": {
+        "tagline": "Calendrier de groupe avec heatmap voting et workflow complet sport-coach pour 8 sports.",
+        "what_it_is": "On Wavelength est une app calendrier iOS + Android avec deux piliers : heatmap voting pour rendez-vous de groupe (chacun tape ses créneaux libres, l'app choisit le meilleur, le chat reste silencieux) et un workspace sport-coach pour 8 sports couvrant entraînements, matchs, compositions, présences en direct et bibliothèque d'exercices.",
+        "who_for": "Deux audiences distinctes. Coaches amateurs sur les 8 sports + coaches de clubs de course (les meilleurs convertisseurs, 3-5 % vues→install). Colocs, groupes d'amis, familles, créateurs productivité (plus larges, ~0,5-1 % conversion). Un seul coach amène 8-16 utilisateurs actifs (son équipe), l'attribution coach se cumule ; la reach productivité garde le funnel plein entre campagnes coach.",
+        "key_features": [
+          "Heatmap voting sur chaque groupe.",
+          "Calendrier de groupe coloré avec événements partagés.",
+          "Workspace équipe sportive : entraînements, matchs, compositions, présences, rappels.",
+          "Bibliothèque d'exercices sur 8 sports, session-builder en 4 minutes.",
+          "Planificateur de saison en 20 minutes.",
+          "Multi-groupes : un coach avec plusieurs équipes + cercle privé coloc dans la même app."
+        ],
+        "business_model_lines": [
+          "Une seule source de revenu : abonnement Premium récurrent.",
+          "Tier gratuit généreux : heatmap voting complet, un calendrier, un groupe jusqu'à 4 membres.",
+          "Premium déverrouille : groupes illimités, workspace équipe, bibliothèque, présences, planificateur.",
+          "Premium gratuit à vie pour affiliés onboarded, aucune obligation de publier."
+        ],
+        "pricing_lines": [
+          "~5 EUR / mois (pas de lock-in annuel).",
+          "~40 EUR / an (~ deux mois gratuits vs mensuel).",
+          "ASC live depuis mai 2026 ; part affilié toujours 50 % du prix du moment."
+        ],
+        "market_gap": "Le heatmap voting pour rendez-vous de groupe est une lacune ouverte dans le marché des calendriers depuis des années. Les calendriers dominants (Google, Apple, Outlook) ne le proposent pas — trop niche pour un produit horizontal. Doodle existe mais vit comme URL-poll, en dehors d'un vrai calendrier. Côté sport-coach, TeamSnap et SportEasy dominent USA et partie d'Europe de l'Ouest, mais l'adoption en DACH et France est mince : TeamSnap est US-centric, SportEasy est tarifé pour clubs pas pour coaches amateurs. Deux audiences (groupes coordination-pained + coaches amateurs) qui achètent une calendar-app dès qu'elle résout leur douleur. On a construit un produit qui sert les deux.",
+        "business_model_why_now": "Deux changements structurels. D'abord, iOS Universal Links et Android install-referrer ont assez mûri pour que l'attribution DIY soit fiable (la pièce manquante — iOS cold — résolue avec un clipboard deferred-deeplink, vérifié live pendant des mois). Ça permet 50 % rev-share sans couche d'agence, ce qui n'était pas viable quand les SDK d'attribution coûtaient 0,20-0,40 USD par install. Ensuite, RevenueCat + pg_cron + Wise laissent un opérateur solo gérer une pipeline webhook-to-payout complète sans infrastructure payout managée.",
+        "why_this_works": "Les coaches sportifs résolvent une douleur quotidienne (absences, chaos compositions, planification exercices) et convertissent au-dessus de la moyenne — et amènent leur équipe, un seul coach vaut 8-16 utilisateurs actifs. Audiences productivité/coloc convertissent moins mais la reach est bien plus large. Le heatmap voting se prête au screen-recording, donc même les créateurs faceless ont un asset visuel fort. La structure 50 % / 24 mois / Wise direct est inhabituelle pour une app de cette taille."
+      }
+    },
+    "es": {
+      "short": {
+        "tagline": "Calendario de grupo con heatmap voting y workflow completo de sport-coach para 8 deportes.",
+        "what_it_is": "On Wavelength es una app de calendario iOS + Android con dos pilares. Pilar uno: heatmap voting para citas de grupo — cada miembro toca cuándo está libre, la app muestra el mejor hueco compartido, el chat de grupo se queda en silencio. Pilar dos: workspace sport-coach para 8 deportes (fútbol, voleibol, baloncesto, balonmano, hockey, bádminton, tenis, running) cubriendo planificación de entrenamientos y partidos, alineaciones, asistencia en vivo y biblioteca de ejercicios.",
+        "who_for": "Dos audiencias. Entrenadores amateurs en los 8 deportes y entrenadores de clubes de running son los top-convertidores. Pisos compartidos, grupos de amigos, familias, creators de productividad más amplios pero convierten menos.",
+        "key_features": [
+          "Heatmap voting: cada uno toca, la app muestra el mejor hueco semanal.",
+          "Calendario de grupo en color con eventos compartidos.",
+          "Workspace equipo deportivo: entrenamientos, partidos, alineaciones, asistencia, recordatorios.",
+          "Biblioteca de ejercicios buscable en 8 deportes, sesión en 4 minutos.",
+          "Planificador de temporada: partidos + entrenamientos duplicados + plantilla importada en 20 minutos."
+        ],
+        "business_model_lines": [
+          "Una sola fuente: suscripción Premium recurrente.",
+          "Precio: ~5 EUR/mes o ~40 EUR/año (ASC live, mayo 2026).",
+          "Tier gratis: heatmap voting completo, un calendario, un grupo hasta 4 miembros.",
+          "Premium desbloquea: grupos ilimitados, workspace equipo, biblioteca, asistencia, planificador."
+        ],
+        "attribution_one_paragraph": "Tu enlace onwavelength.space/i/[handle] funciona en cualquier plataforma. Atribución Android determinística vía install-referrer de Google. iOS warm usa Universal Links. iOS cold (~99 % del tráfico creator) usa nuestro deferred-deeplink firmado vía portapapeles — verificado en vivo, sin Branch.io. RevenueCat se dispara en la compra Premium y acredita 50 % a tu handle durante 24 meses.",
+        "see_long_pointer": "Para el walkthrough completo de atribución — why-DIY, cada install-path, payout-pipeline, seguridad — ver el Brief Ampliado PDF en esta carpeta."
+      },
+      "long": {
+        "tagline": "Calendario de grupo con heatmap voting y workflow completo de sport-coach para 8 deportes.",
+        "what_it_is": "On Wavelength es una app de calendario iOS + Android con dos pilares: heatmap voting para citas de grupo (cada uno toca cuándo está libre, la app elige el mejor hueco, el chat de grupo se queda en silencio) y un workspace sport-coach para 8 deportes cubriendo planificación de entrenamientos y partidos, alineaciones, asistencia en vivo y biblioteca de ejercicios.",
+        "who_for": "Dos audiencias distintas. Entrenadores amateurs en los 8 deportes + entrenadores de clubes de running (los top-convertidores, 3-5 % vistas→instalación). Pisos compartidos, grupos de amigos, familias, creators de productividad (más amplios, ~0,5-1 % conversión). Un solo coach trae 8-16 usuarios activos (su equipo), la atribución de coach se acumula; el alcance de productividad mantiene el funnel lleno entre campañas de coach.",
+        "key_features": [
+          "Heatmap voting en cada grupo.",
+          "Calendario de grupo en color con eventos compartidos.",
+          "Workspace equipo deportivo: entrenamientos, partidos, alineaciones, asistencia, recordatorios.",
+          "Biblioteca de ejercicios en 8 deportes, session-builder en 4 minutos.",
+          "Planificador de temporada en 20 minutos.",
+          "Multi-grupo: un coach con varios equipos + círculo privado de piso compartido en la misma app."
+        ],
+        "business_model_lines": [
+          "Una sola fuente de ingresos: suscripción Premium recurrente.",
+          "Nivel gratis generoso: heatmap voting completo, un calendario, un grupo hasta 4 miembros.",
+          "Premium desbloquea: grupos ilimitados, workspace equipo, biblioteca, asistencia, planificador.",
+          "Premium gratis de por vida para afiliados onboarded, sin obligación de publicar."
+        ],
+        "pricing_lines": [
+          "~5 EUR / mes (sin lock-in anual).",
+          "~40 EUR / año (~ dos meses gratis vs mensual).",
+          "ASC live desde mayo 2026; cuota de afiliado siempre 50 % del precio del momento."
+        ],
+        "market_gap": "El heatmap voting para citas de grupo ha sido un hueco abierto en el mercado de calendarios desde hace años. Los calendarios dominantes (Google, Apple, Outlook) no lo ofrecen — demasiado nicho para un producto horizontal. Doodle existe pero vive como URL-poll, fuera de cualquier calendario real. En el lado sport-coach, TeamSnap y SportEasy dominan EEUU y parte de Europa Occidental, pero la adopción en DACH y España es delgada: TeamSnap es US-céntrico, SportEasy tiene precios para clubes no para entrenadores amateurs. Dos audiencias (grupos con dolor de coordinación + entrenadores amateurs) que compran una calendar-app en cuanto resuelve su dolor. Construimos un producto que sirve a las dos.",
+        "business_model_why_now": "Dos cambios estructurales. Primero, iOS Universal Links y Android install-referrer han madurado lo suficiente para que la atribución DIY sea fiable (la pieza que faltaba — iOS cold — resuelta con un clipboard deferred-deeplink, verificado en vivo durante meses). Eso permite 50 % rev-share sin capa de agencia, lo que no era viable cuando los SDK de atribución costaban 0,20-0,40 USD por instalación. Segundo, RevenueCat + pg_cron + Wise dejan a un operador en solitario gestionar una pipeline webhook-to-payout completa sin infraestructura de pago gestionada.",
+        "why_this_works": "Los entrenadores deportivos resuelven un dolor cotidiano (ausencias, caos de alineaciones, planificación de ejercicios) y convierten por encima de la media — y traen su equipo, un solo coach vale 8-16 usuarios activos. Audiencias de productividad/piso compartido convierten menos pero el alcance es mucho mayor. El heatmap voting se presta al screen-recording, así que incluso los creators faceless obtienen un activo visual fuerte. La estructura 50 % / 24 meses / Wise directo es inusual para una app de este tamaño."
+      }
     }
   },
   "playbook": {
@@ -373,6 +520,306 @@
         ["Kennzeichnungspflicht?", "Ja. Rev-Share zählt als bezahlte Empfehlung. Nutze #ad / #Werbung / IG \"Paid Partnership\"."]
       ],
       "closing": "Ehrlich gesagt: wenn deine Audience zusammen plant — Sport, WG, Klasse, Freundeskreis — passt Wavelength. Wenn nicht, macht kein Skript das wett. Wir wollen lieber 20 well-fit Creator als 200 random ones, also wenn du das hier durchgelesen hast und mit den Schultern gezuckt hast, ist das auch eine ehrliche Antwort. Antworte auf Mail 2 entweder so oder so — ja, nein, oder \"vielleicht, lass mal reden\". Ein 15-Minuten-Call hilft und wir drängen nicht."
+    },
+    "it": {
+      "subtitle": "per creator che pianificano insieme — e vogliono sapere cosa stanno davvero promuovendo",
+      "hero_quote": "Pianifica meglio, insieme. Guadagna da quello che condividi comunque.",
+      "sixty_seconds_intro": "On Wavelength è un'app calendario iOS + Android con due pilastri: heatmap voting per ritrovi di gruppo (ognuno tappa quando è libero, l'app sceglie il miglior slot) e workspace sport-coach per 8 sport. ~5 EUR/m o ~40 EUR/y. Tier gratis copre heatmap voting su un piccolo gruppo. Premium sblocca gruppi illimitati + strumenti squadra.",
+      "why_this_works": "Le chat di gruppo \"quando ti va?\" muoiono in silenzio. I coach perdono 5 minuti a sessione chiedendo \"chi manca?\". Wavelength sostituisce entrambi con un tap.",
+      "free_vs_premium": [
+        "Gratis: heatmap voting su 1 gruppo fino a 4 membri, un calendario.",
+        "Premium (~5 EUR/m o ~40 EUR/y): gruppi illimitati, workspace squadra (esercizi, formazioni, presenze), pianificatore.",
+        "Premium gratuito a vita per affiliati onboarded."
+      ],
+      "creator_types_intro": "Usa questa tabella come primo match. Trova la riga che ti somiglia, vedi quale percorso (UGC vs faceless) converte storicamente meglio per quell'archetipo.",
+      "creator_types_table": [
+        {"type": "Coach (sport amatoriale)", "path": "UGC primario", "hooks": "Sepoltura lavagna; \"5 min con 'chi manca'\"; time-lapse pianificazione stagione; POV coach assistente", "expected_conversion": "3-5% view→install, ~7-12 Premium per reel 50k"},
+        {"type": "Atleta / Sport-influencer", "path": "UGC + faceless mix", "hooks": "Vlog giorno allenamento; demo libreria esercizi; \"il mio coach lo usa\"; prep pre-match", "expected_conversion": "1-2% view→install, reach compensa"},
+        {"type": "Meme / sport-humor", "path": "Faceless", "hooks": "\"POV: chat di gruppo infernale\"; chaos-cut alla heatmap; parodia lavagna coach", "expected_conversion": "0,5-1% per view, massive reach"},
+        {"type": "Coinquilini / lifestyle", "path": "UGC primario", "hooks": "\"Come la mia coabitazione ha smesso di litigare per le date\"; story planning weekend", "expected_conversion": "1-2% in nicchia coinquilini"},
+        {"type": "Produttività faceless", "path": "Faceless", "hooks": "Time-lapse pianificazione stagione; listicle \"5 strumenti per ogni coach\"; demo screen-rec silenzioso", "expected_conversion": "0,5-1% per view ma posting ricorrente scala"},
+        {"type": "Study-with-me / studio di gruppo", "path": "Faceless o UGC light", "hooks": "Heatmap blocchi studio; pianificatore sessioni di gruppo; \"come coordiniamo la settimana esami\"", "expected_conversion": "1-2% in nicchie studenti"}
+      ],
+      "ugc_strategy": {
+        "archetype": "Tu davanti alla camera. Coach in setting sportivo. Coinquilini in cucina vera. Il prodotto è un beat 5-10 secondi DENTRO la tua storia. Sokolova e Kefi (2020): la fiducia parasociale è ciò che muove davvero la gente a installare e pagare.",
+        "hook_examples": [
+          "\"Ho perso 5 minuti ogni allenamento chiedendo 'chi manca'\" — spogliatoio, tu frustrato, poi telefono con presenze live.",
+          "\"Questa ha sostituito la mia lavagna\" — tu con lo sketch vero, cut al telefono.",
+          "\"Come la mia coabitazione ha finalmente smesso di litigare per le date\" — cucina, due coinquilini, tu apri la heatmap.",
+          "\"Sono un coach amatoriale, ecco l'app che è rimasta\" — tu in tenuta società, tre feature in 60s.",
+          "\"POV: sei il coach con la chat di gruppo infernale\" — chaos clips, smash-cut alla heatmap.",
+          "\"Il mio rituale di pianificazione domenicale\" — caffè, telefono su Wavelength.",
+          "\"Tre cose imparate allenando per 5 anni\" — talking head."
+        ],
+        "format_templates": [
+          "Vlog 60s: setup → demo → outcome.",
+          "Talking-head 30s diretto a camera.",
+          "Comedy-POV.",
+          "Sequenza di story sabato 3-4 stories con link-sticker.",
+          "Retrospettiva anniversario."
+        ],
+        "do_dont": [
+          "Do: verticale, all'altezza degli occhi, luce naturale.",
+          "Do: link in caption E story-sticker.",
+          "Do: nominare un momento reale.",
+          "Don't: leggere copy di marketing.",
+          "Don't: oversellare.",
+          "Don't: stock B-roll generico."
+        ]
+      },
+      "faceless_strategy": {
+        "archetype": "Voiceover + screen-recording + B-roll. TikToker libreria esercizi. Tutorial carousel creator. La heatmap di Wavelength si presta straordinariamente al screen-rec.",
+        "hook_examples": [
+          "\"Come pianifico una stagione intera in 20 minuti\" — pure screen-rec.",
+          "\"La libreria esercizi che ha salvato il mio martedì\" — scrolla esercizi.",
+          "\"5 app che ogni coach amatoriale dovrebbe avere\" — Wavelength alla slide 1.",
+          "\"POV digitando in salotto: piano di stagione in tempo reale\" — solo mani + schermo.",
+          "\"Guarda come costruisco un calendario coinquilini da zero\" — 30s screen-rec.",
+          "\"POV scrivania coach\" — top-down 45s.",
+          "\"Rituale settimanale\" — montaggio silenzioso.",
+          "\"Sequenza prep match-day\" — split-screen 25s."
+        ],
+        "format_templates": [
+          "Screen-record demo 20-30s.",
+          "Tutorial carousel 6 slide.",
+          "Voiceover narrative 45s.",
+          "Listicle.",
+          "Time-lapse.",
+          "ASMR-adjacent."
+        ],
+        "do_dont": [
+          "Do: dimostrazione auto-esplicativa.",
+          "Do: posta più spesso, faceless scala.",
+          "Do: caption ogni step.",
+          "Do: identità visiva consistente.",
+          "Don't: narrazione fake-entusiasta.",
+          "Don't: saltare link in caption + bio."
+        ]
+      },
+      "audience_fit_good": [
+        "Coach amatoriali negli 8 sport + coach run-club.",
+        "Creator produttività / calendario con angolo coordinamento di gruppo.",
+        "Account lifestyle coinquilini / famiglia.",
+        "Study-with-me + studio di gruppo.",
+        "Account meme/humor sportivo."
+      ],
+      "audience_fit_poor": [
+        "Produttività in solitario.",
+        "Football US high-school (TeamSnap domina).",
+        "Coach sportivi pro (tool enterprise)."
+      ],
+      "posting_cadence": "Audience sport-coach: massimo engagement martedì e giovedì 19-21 CET. Audience produttività: lunedì e mercoledì 8-10 CET o domenica sera 18-20. Audience meme: serata 20-23h. 1 reel a settimana basta. Una story con link-sticker porta empiricamente il 30-50% delle conversioni.",
+      "conversion_math": "50% rev-share, 24 mesi per utente attribuito. Premium ~5 EUR/m o ~40 EUR/y. Coach-reel (50k follower): 30.000 view x 1,2% CTR = 360 clic, 40% install = 144 install, 5% Premium = 7 abbonati, ~300-400 EUR su 12-24 mesi. Reel produttività (100k): 60.000 view x 1,5% CTR = 900 clic, 35% install = 315 install, 4% conversione = 12 abbonati, ~360-450 EUR su 12 mesi. TikToker esercizi (250k): 180.000 view x 0,8% CTR = 1.440 clic, 30% install = 432 install, 6% conversione = 26 abbonati, ~1.500 EUR su 12 mesi.",
+      "brand_assets": "Logo, screenshot app, footage B-roll, palette colori e snippet caption pronti: getklar.org/i/wavelength/brand-assets.",
+      "faq": [
+        ["Voglio Premium gratis a vita ma non pubblicare.", "Tutto ok. Premium arriva comunque. Non facciamo marketing in tuo nome. Il tuo link resta pronto."],
+        ["Posso usare il link in più post?", "Sì. Tuo link, 24 mesi per conversione. Più post = più conversioni. Nessun limite di volume."],
+        ["E se dopo 6 mesi perdo interesse?", "Lo lasciamo riposare. Abbonamenti già arrivati continuano fino ai 24 mesi."],
+        ["Compenso fisso in aggiunta?", "Sì. Mid-tier 150-800 EUR a post, macro 800+. Rev-share resta sopra."],
+        ["Cambio di prezzo Premium?", "Guadagni il 50% sul prezzo del momento."],
+        ["Obbligo di trasparenza?", "Sì. #ad / #adv / IG \"Paid Partnership\"."]
+      ],
+      "closing": "Onestà: se la tua audience pianifica cose insieme — sport, coinquilini, classe, gruppo amici — Wavelength va bene. Se no, nessun copione lo fa funzionare. Preferiamo 20 creator ben-fit a 200 random. Rispondi alla Mail 2 in ogni caso — sì, no, o \"forse, parliamone\"."
+    },
+    "fr": {
+      "subtitle": "pour les créateurs qui planifient ensemble — et veulent savoir ce qu'ils pitchent",
+      "hero_quote": "Planifier plus malin, ensemble. Gagne sur ce que tu partages déjà.",
+      "sixty_seconds_intro": "On Wavelength est une app calendrier iOS + Android avec deux piliers : heatmap voting pour rendez-vous de groupe (chacun tape ses créneaux, l'app choisit le meilleur) et workspace sport-coach pour 8 sports. ~5 EUR/m ou ~40 EUR/y. Tier gratuit couvre heatmap voting sur un petit groupe. Premium déverrouille groupes illimités + outils équipe.",
+      "why_this_works": "Les chats de groupe \"quand ça t'arrange ?\" meurent en silence. Les coaches perdent 5 min par séance à demander \"qui n'est pas là ?\". Wavelength remplace les deux avec un tap.",
+      "free_vs_premium": [
+        "Gratuit : heatmap voting sur 1 groupe jusqu'à 4 membres, un calendrier.",
+        "Premium (~5 EUR/m ou ~40 EUR/y) : groupes illimités, workspace équipe (exercices, compositions, présences), planificateur.",
+        "Premium gratuit à vie pour affiliés onboarded."
+      ],
+      "creator_types_intro": "Utilise ce tableau comme premier match. Trouve la ligne qui te ressemble, vois quelle voie (UGC vs faceless) convertit historiquement le mieux pour cet archétype.",
+      "creator_types_table": [
+        {"type": "Coach (sport amateur)", "path": "UGC primaire", "hooks": "Enterrement du tableau blanc ; \"5 min à demander 'qui manque'\" ; time-lapse plan de saison ; POV coach adjoint", "expected_conversion": "3-5% vues→install, ~7-12 Premium par reel 50k"},
+        {"type": "Athlète / Sport-influenceur", "path": "UGC + faceless mix", "hooks": "Vlog jour d'entraînement ; demo bibliothèque exercices ; \"mon coach l'utilise\" ; prep match", "expected_conversion": "1-2% vues→install, reach compense"},
+        {"type": "Meme / sport-humour", "path": "Faceless", "hooks": "\"POV : chat de groupe infernal\" ; chaos-cut vers heatmap ; parodie tableau coach", "expected_conversion": "0,5-1% par vue, massive reach"},
+        {"type": "Coloc / lifestyle", "path": "UGC primaire", "hooks": "\"Comment ma coloc a arrêté de se battre pour les dates\" ; story planification week-end", "expected_conversion": "1-2% en niche coloc"},
+        {"type": "Productivité faceless", "path": "Faceless", "hooks": "Time-lapse plan saison ; listicle \"5 outils pour chaque coach\" ; demo screen-rec silencieux", "expected_conversion": "0,5-1% par vue mais posting récurrent scale"},
+        {"type": "Study-with-me / étude de groupe", "path": "Faceless ou UGC léger", "hooks": "Heatmap blocs d'étude ; planificateur sessions de groupe ; \"comment on coordonne la semaine d'exams\"", "expected_conversion": "1-2% en niches étudiantes"}
+      ],
+      "ugc_strategy": {
+        "archetype": "Toi devant la caméra. Coach dans son setting sportif. Coloc dans sa vraie cuisine. Le produit est un beat de 5-10 secondes DANS ta story. Sokolova et Kefi (2020) : la confiance parasociale c'est ce qui pousse vraiment les gens à installer et payer.",
+        "hook_examples": [
+          "\"J'ai perdu 5 minutes à chaque entraînement à demander 'qui n'est pas là'\" — vestiaire, toi frustré, puis téléphone avec présences live.",
+          "\"Ça a remplacé mon tableau blanc\" — toi avec le vrai croquis, cut vers téléphone.",
+          "\"Comment ma coloc a enfin arrêté de se battre pour les dates\" — cuisine, deux colocs, tu ouvres la heatmap.",
+          "\"Je suis coach amateur, voici l'app qui est restée\" — toi en tenue club, trois features en 60s.",
+          "\"POV : tu es le coach avec le chat de groupe infernal\" — chaos clips, smash-cut vers heatmap.",
+          "\"Mon rituel de planification du dimanche soir\" — café, téléphone sur Wavelength.",
+          "\"Trois choses apprises en coachant pendant 5 ans\" — talking head."
+        ],
+        "format_templates": [
+          "Vlog 60s : setup → demo → outcome.",
+          "Talking-head 30s direct à la caméra.",
+          "Comedy-POV.",
+          "Séquence de stories samedi 3-4 stories avec link-sticker.",
+          "Rétro anniversaire."
+        ],
+        "do_dont": [
+          "Do : vertical, à hauteur des yeux, lumière naturelle.",
+          "Do : link en caption ET story-sticker.",
+          "Do : nommer un moment réel.",
+          "Don't : lire le copy marketing.",
+          "Don't : oversellér.",
+          "Don't : B-roll stock générique."
+        ]
+      },
+      "faceless_strategy": {
+        "archetype": "Voix off + screen-recording + B-roll. TikToker bibliothèque exercices. Tutorial carrousel creator. La heatmap de Wavelength se prête extraordinairement au screen-rec.",
+        "hook_examples": [
+          "\"Comment je planifie une saison entière en 20 minutes\" — pur screen-rec.",
+          "\"La bibliothèque d'exercices qui a sauvé mon mardi\" — défile les exercices.",
+          "\"5 apps que tout coach amateur devrait avoir\" — Wavelength en slide 1.",
+          "\"POV typing au salon : plan saison en temps réel\" — que mains + écran.",
+          "\"Regarde-moi monter un calendrier coloc à partir de zéro\" — 30s screen-rec.",
+          "\"POV bureau coach\" — top-down 45s.",
+          "\"Rituel hebdomadaire\" — montage silencieux.",
+          "\"Séquence prep match-day\" — split-screen 25s."
+        ],
+        "format_templates": [
+          "Screen-record démo 20-30s.",
+          "Tutorial carrousel 6 slides.",
+          "Voix off narrative 45s.",
+          "Listicle.",
+          "Time-lapse.",
+          "ASMR-adjacent."
+        ],
+        "do_dont": [
+          "Do : démonstration auto-explicative.",
+          "Do : poste plus souvent, faceless scale.",
+          "Do : caption chaque étape.",
+          "Do : identité visuelle cohérente.",
+          "Don't : narration fake-enthousiaste.",
+          "Don't : skip link en caption + bio."
+        ]
+      },
+      "audience_fit_good": [
+        "Coaches amateurs sur les 8 sports + coaches run-club.",
+        "Créateurs productivité / calendrier avec angle coordination de groupe.",
+        "Comptes lifestyle coloc / famille.",
+        "Study-with-me + étude de groupe.",
+        "Comptes meme/humour sportif."
+      ],
+      "audience_fit_poor": [
+        "Productivité solo.",
+        "Football US high-school (TeamSnap domine).",
+        "Coaches sportifs pro (outils entreprise)."
+      ],
+      "posting_cadence": "Audience sport-coach : engagement max mardi et jeudi 19-21h CET. Audience productivité : lundi et mercredi 8-10h CET ou dimanche soir 18-20h. Audience meme : soirée 20-23h. 1 reel par semaine suffit. Une story avec link-sticker apporte empiriquement 30-50% des conversions.",
+      "conversion_math": "50% rev-share, 24 mois par utilisateur attribué. Premium ~5 EUR/m ou ~40 EUR/y. Coach-reel (50k abonnés) : 30 000 vues x 1,2% CTR = 360 clics, 40% install = 144 installs, 5% Premium = 7 abonnés, ~300-400 EUR sur 12-24 mois. Reel productivité (100k) : 60 000 vues x 1,5% CTR = 900 clics, 35% install = 315 installs, 4% conversion = 12 abonnés, ~360-450 EUR sur 12 mois. TikToker drills (250k) : 180 000 vues x 0,8% CTR = 1 440 clics, 30% install = 432 installs, 6% conversion = 26 abonnés, ~1 500 EUR sur 12 mois.",
+      "brand_assets": "Logo, captures app, footage B-roll, palette de couleurs et snippets caption prêts : getklar.org/i/wavelength/brand-assets.",
+      "faq": [
+        ["Je veux Premium gratuit à vie mais sans poster.", "Pas de souci. Premium arrive quand même. On ne fait pas de marketing en ton nom. Ton lien reste prêt."],
+        ["Je peux utiliser le lien dans plusieurs posts ?", "Oui. Ton lien, 24 mois par conversion. Plus de posts = plus de conversions. Pas de cap de volume."],
+        ["Et si après 6 mois je perds l'intérêt ?", "On laisse reposer. Abonnements déjà arrivés continuent jusqu'à 24 mois."],
+        ["Compensation fixe en plus ?", "Oui. Mid-tier 150-800 EUR par post, macros 800+. Rev-share reste par-dessus."],
+        ["Changement de prix Premium ?", "Tu touches 50% sur le prix du moment."],
+        ["Obligation de mention ?", "Oui. #ad / #sponsorisé / IG \"Paid Partnership\"."]
+      ],
+      "closing": "Honnêtement : si ton audience planifie des choses ensemble — sport, coloc, classe, groupe d'amis — Wavelength colle. Sinon, aucun script ne fait marcher ça. On préfère 20 créateurs bien-fit à 200 random. Réponds à la Mail 2 dans tous les cas — oui, non, ou \"peut-être, on en parle\"."
+    },
+    "es": {
+      "subtitle": "para creadores que planifican juntos — y quieren saber qué están pitcheando",
+      "hero_quote": "Planifica más inteligente, juntos. Gana con lo que ya compartes.",
+      "sixty_seconds_intro": "On Wavelength es una app de calendario iOS + Android con dos pilares: heatmap voting para citas de grupo (cada uno toca cuándo está libre, la app elige el mejor hueco) y workspace sport-coach para 8 deportes. ~5 EUR/m o ~40 EUR/y. Nivel gratis cubre heatmap voting en un grupo pequeño. Premium desbloquea grupos ilimitados + herramientas de equipo.",
+      "why_this_works": "Los chats de grupo \"¿cuándo te viene bien?\" mueren en silencio. Los entrenadores pierden 5 min por sesión preguntando \"¿quién no está?\". Wavelength sustituye ambos con un tap.",
+      "free_vs_premium": [
+        "Gratis: heatmap voting en 1 grupo hasta 4 miembros, un calendario.",
+        "Premium (~5 EUR/m o ~40 EUR/y): grupos ilimitados, workspace equipo (ejercicios, alineaciones, asistencia), planificador.",
+        "Premium gratis de por vida para afiliados onboarded."
+      ],
+      "creator_types_intro": "Usa esta tabla como primer match. Encuentra la fila que se parece a ti, ve qué camino (UGC vs faceless) convierte históricamente mejor para ese arquetipo.",
+      "creator_types_table": [
+        {"type": "Entrenador (deporte amateur)", "path": "UGC primario", "hooks": "Entierro de pizarra; \"5 min preguntando 'quién no está'\"; time-lapse plan de temporada; POV segundo entrenador", "expected_conversion": "3-5% vistas→instalación, ~7-12 Premium por reel 50k"},
+        {"type": "Atleta / Sport-influencer", "path": "UGC + faceless mix", "hooks": "Vlog día de entrenamiento; demo biblioteca ejercicios; \"mi entrenador la usa\"; prep partido", "expected_conversion": "1-2% vistas→instalación, alcance compensa"},
+        {"type": "Meme / sport-humor", "path": "Faceless", "hooks": "\"POV: chat de grupo infernal\"; chaos-cut a heatmap; parodia pizarra entrenador", "expected_conversion": "0,5-1% por vista, alcance masivo"},
+        {"type": "Piso compartido / lifestyle", "path": "UGC primario", "hooks": "\"Cómo mi piso dejó de pelear por las fechas\"; story planificación fin de semana", "expected_conversion": "1-2% en nicho piso compartido"},
+        {"type": "Productividad faceless", "path": "Faceless", "hooks": "Time-lapse plan temporada; listicle \"5 herramientas para cada entrenador\"; demo screen-rec silencioso", "expected_conversion": "0,5-1% por vista pero posting recurrente escala"},
+        {"type": "Study-with-me / estudio en grupo", "path": "Faceless o UGC ligero", "hooks": "Heatmap bloques estudio; planificador sesiones grupo; \"cómo coordinamos la semana de exámenes\"", "expected_conversion": "1-2% en nichos estudiantes"}
+      ],
+      "ugc_strategy": {
+        "archetype": "Tú frente a la cámara. Entrenador en setting deportivo. Piso compartido desde tu cocina real. El producto es un beat de 5-10 segundos DENTRO de tu story. Sokolova y Kefi (2020): la confianza parasocial es lo que realmente mueve a la gente a instalar y pagar.",
+        "hook_examples": [
+          "\"Perdí 5 minutos cada entrenamiento preguntando '¿quién no está?'\" — vestuario, tú frustrado, luego móvil con asistencia en vivo.",
+          "\"Esto reemplazó mi pizarra\" — tú con el boceto real, cut al móvil.",
+          "\"Cómo mi piso por fin dejó de pelear por las fechas\" — cocina, dos compañeros, tú abres la heatmap.",
+          "\"Soy entrenador amateur, esta es la app que se quedó\" — tú con ropa de club, tres features en 60s.",
+          "\"POV: eres el entrenador con el chat de grupo infernal\" — chaos clips, smash-cut a heatmap.",
+          "\"Mi ritual de planificación del domingo por la noche\" — café, móvil en Wavelength.",
+          "\"Tres cosas que aprendí entrenando 5 años\" — talking head."
+        ],
+        "format_templates": [
+          "Vlog 60s: setup → demo → outcome.",
+          "Talking-head 30s directo a cámara.",
+          "Comedy-POV.",
+          "Secuencia de stories sábado 3-4 stories con sticker enlace.",
+          "Retrospectiva aniversario."
+        ],
+        "do_dont": [
+          "Do: vertical, a la altura de los ojos, luz natural.",
+          "Do: enlace en caption Y sticker en story.",
+          "Do: nombrar un momento real.",
+          "Don't: leer copy de marketing.",
+          "Don't: oversell.",
+          "Don't: B-roll stock genérico."
+        ]
+      },
+      "faceless_strategy": {
+        "archetype": "Voz en off + screen-recording + B-roll. TikToker biblioteca ejercicios. Tutorial carrusel creator. La heatmap de Wavelength se presta extraordinariamente al screen-rec.",
+        "hook_examples": [
+          "\"Cómo planifico una temporada entera en 20 minutos\" — puro screen-rec.",
+          "\"La biblioteca de ejercicios que salvó mi martes\" — scroll por ejercicios.",
+          "\"5 apps que todo entrenador amateur debería tener\" — Wavelength en slide 1.",
+          "\"POV tecleando en el salón: plan temporada en tiempo real\" — solo manos + pantalla.",
+          "\"Mírame montar un calendario piso desde cero\" — 30s screen-rec.",
+          "\"POV escritorio entrenador\" — top-down 45s.",
+          "\"Ritual semanal\" — montaje silencioso.",
+          "\"Secuencia prep match-day\" — split-screen 25s."
+        ],
+        "format_templates": [
+          "Screen-record demo 20-30s.",
+          "Tutorial carrusel 6 slides.",
+          "Voz en off narrativa 45s.",
+          "Listicle.",
+          "Time-lapse.",
+          "ASMR-adjacent."
+        ],
+        "do_dont": [
+          "Do: demostración auto-explicativa.",
+          "Do: postea más, faceless escala.",
+          "Do: caption cada paso.",
+          "Do: identidad visual consistente.",
+          "Don't: narración falso-entusiasta.",
+          "Don't: saltarse enlace en caption + bio."
+        ]
+      },
+      "audience_fit_good": [
+        "Entrenadores amateurs en los 8 deportes + entrenadores run-club.",
+        "Creadores productividad / calendario con ángulo coordinación grupal.",
+        "Cuentas lifestyle piso compartido / familia.",
+        "Study-with-me + estudio en grupo.",
+        "Cuentas meme/humor deportivo."
+      ],
+      "audience_fit_poor": [
+        "Productividad solo.",
+        "Fútbol americano US high-school (TeamSnap domina).",
+        "Entrenadores deportivos pro (herramientas enterprise)."
+      ],
+      "posting_cadence": "Audiencia sport-coach: engagement máximo martes y jueves 19-21h CET. Audiencia productividad: lunes y miércoles 8-10h CET o domingo noche 18-20h. Audiencia meme: noche 20-23h. 1 reel por semana basta. Una story con sticker enlace aporta empíricamente el 30-50% de las conversiones.",
+      "conversion_math": "50% rev-share, 24 meses por usuario atribuido. Premium ~5 EUR/m o ~40 EUR/y. Coach-reel (50k seguidores): 30.000 vistas x 1,2% CTR = 360 clics, 40% install = 144 instalaciones, 5% Premium = 7 suscriptores, ~300-400 EUR en 12-24 meses. Reel productividad (100k): 60.000 vistas x 1,5% CTR = 900 clics, 35% install = 315 instalaciones, 4% conversión = 12 suscriptores, ~360-450 EUR en 12 meses. TikToker ejercicios (250k): 180.000 vistas x 0,8% CTR = 1.440 clics, 30% install = 432 instalaciones, 6% conversión = 26 suscriptores, ~1.500 EUR en 12 meses.",
+      "brand_assets": "Logo, capturas app, footage B-roll, paleta de color y snippets caption listos: getklar.org/i/wavelength/brand-assets.",
+      "faq": [
+        ["Quiero Premium gratis de por vida pero no publicar.", "Vale. Premium llega igual. No hacemos marketing en tu nombre. Tu enlace queda listo."],
+        ["¿Puedo usar el enlace en varios posts?", "Sí. Tu enlace, 24 meses por conversión. Más posts = más conversiones. Sin cap de volumen."],
+        ["¿Y si después de 6 meses pierdo interés?", "Lo dejamos reposar. Suscriptores ya llegados siguen hasta los 24 meses."],
+        ["¿Fee fijo encima?", "Sí. Mid-tier 150-800 EUR por post, macros 800+. Rev-share sigue encima."],
+        ["¿Cambio de precio Premium?", "Ganas el 50% sobre el precio del momento."],
+        ["¿Obligación de mención?", "Sí. #ad / #publi / IG \"Paid Partnership\"."]
+      ],
+      "closing": "Honestamente: si tu audiencia planifica cosas juntos — deporte, piso compartido, clase, grupo de amigos — Wavelength encaja. Si no, ningún guión lo hace funcionar. Preferimos 20 creators bien-fit a 200 random. Responde al Mail 2 sí o sí — sí, no, o \"quizás, hablemos\"."
     }
   }
 }
