@@ -82,6 +82,9 @@ interface Inquiry {
   // S30d: Influencer-Wunsch-App aus dem Public-Form-Dropdown (pre-selection
   // bei /admin/inbox approve-form, plus visible chip in der Inbox-Tabelle).
   target_app?: string;
+  // Decline-Audit (klar_inquiries_status_check erweitert um 'declined').
+  declined_at?: string | null;
+  decline_reason?: string | null;
 }
 
 // Known source values + readable labels + Pill-color tokens. Falls back to
@@ -1558,7 +1561,7 @@ getklar.org`;
     ${suppressionSection}`;
 }
 
-async function inboxView(typeFilter: string, sourceFilter: string): Promise<string> {
+async function inboxView(typeFilter: string, sourceFilter: string, showDeclined: boolean): Promise<string> {
   if (!KLAR_INBOX_KEY)
     return `<h1>Inbox</h1><p class="sub muted">Fast fertig, es fehlt nur der Lese-Key. Setze <span class="warn">KLAR_INBOX_SERVICE_KEY</span> im klar-Vercel-Projekt (Wert: anime-vault &rarr; Settings &rarr; API &rarr; <em>service_role</em>). Optional <span class="warn">KLAR_INBOX_SUPABASE_URL</span>. Anfragen werden schon dauerhaft gespeichert, nur die Anzeige hier braucht den Key.</p>`;
   let rowsAll: Inquiry[] = [];
@@ -1582,12 +1585,15 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
     return `<h1>Inbox</h1><p class="sub muted">Netzwerkfehler beim Laden der Inbox. Einmal neu laden hilft meist.</p>`;
   }
 
-  // Filter rows by selected type + source (both default "all")
+  // Filter rows by selected type + source (both default "all"). Declined
+  // werden by default ausgeblendet, mit Toggle-Link am Listenende; counts
+  // unten zählen aber alle.
   const effectiveType = typeFilter === "consulting" || typeFilter === "affiliate" ? typeFilter : "all";
   const effectiveSource = sourceFilter && sourceFilter !== "all" ? sourceFilter : "all";
   const rows = rowsAll.filter((r) => {
     if (effectiveType !== "all" && r.type !== effectiveType) return false;
     if (effectiveSource !== "all" && (r.source ?? "") !== effectiveSource) return false;
+    if (!showDeclined && r.status === "declined") return false;
     return true;
   });
 
@@ -1597,6 +1603,7 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
   for (const k of SOURCE_KEYS) totalsBySource[k] = 0;
   totalsBySource["unknown"] = 0;
   let nNew = 0;
+  let nDeclined = 0;
   for (const r of rowsAll) {
     if (r.type === "affiliate") totalsByType.affiliate++;
     if (r.type === "consulting") totalsByType.consulting++;
@@ -1605,11 +1612,12 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
     else if (!s) totalsBySource["unknown"]++;
     else totalsBySource[s] = (totalsBySource[s] ?? 0) + 1;
     if (r.status === "new") nNew++;
+    if (r.status === "declined") nDeclined++;
   }
 
   // Filter UI: type-tabs (Alle / Affiliate / Consulting) + source-pills below.
   const buildHref = (t: string, s: string) =>
-    `/admin?view=inbox${t !== "all" ? `&type=${t}` : ""}${s !== "all" ? `&source=${encodeURIComponent(s)}` : ""}`;
+    `/admin?view=inbox${t !== "all" ? `&type=${t}` : ""}${s !== "all" ? `&source=${encodeURIComponent(s)}` : ""}${showDeclined ? `&show_declined=1` : ""}`;
   const tabBtn = (t: string, label: string, count: number) => `<a class="nav ${effectiveType === t ? "on" : ""}" href="${buildHref(t, effectiveSource)}" style="padding:8px 14px;border-radius:8px">${esc(label)} <span class="muted" style="margin-left:6px;font-size:11px">${count}</span></a>`;
   const typeTabs = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px 0">
     ${tabBtn("all", "Alle", totalsByType.all)}
@@ -1693,8 +1701,47 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
   // invited/active) or a collapsible approve-form (only for affiliate type
   // and only if still actionable). Collapsible defaults to open for "new"
   // so the admin sees the form immediately on first contact.
+  // Reject-Button: in einer Zeile mit Approve-Klappbereich, dezent. Setzt
+  // status='declined' (+ optional reason). Reopen kehrt auf 'new' zurück.
+  const declineForm = (r: Inquiry): string => {
+    if (!r.id) return "";
+    if (r.status === "declined") {
+      return `<form method="POST" action="/admin/decline" style="display:inline">
+        <input type="hidden" name="inquiry_id" value="${esc(r.id)}"/>
+        <input type="hidden" name="action" value="reopen"/>
+        <button type="submit" class="btn ghost" style="padding:6px 12px;font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.04em" title="Status wieder auf 'neu' setzen">↺ Wieder öffnen</button>
+      </form>`;
+    }
+    if (r.status === "new") {
+      return `<details style="display:inline-block">
+        <summary style="cursor:pointer;padding:6px 12px;font-size:11px;font-family:var(--font-mono);font-weight:600;color:var(--fg-3);text-transform:uppercase;letter-spacing:.04em;border:1px solid var(--line);border-radius:6px;user-select:none;list-style:none">✕ Ablehnen</summary>
+        <form method="POST" action="/admin/decline" style="display:flex;gap:6px;align-items:center;margin-top:8px;padding:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px" onsubmit="return confirm('Anfrage als abgelehnt markieren?')">
+          <input type="hidden" name="inquiry_id" value="${esc(r.id)}"/>
+          <input type="hidden" name="action" value="decline"/>
+          <input type="text" name="reason" maxlength="280" placeholder="Grund (optional, intern)" style="padding:5px 8px;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:5px;color:var(--fg);min-width:220px"/>
+          <button type="submit" class="btn" style="padding:5px 11px;font-size:11px;background:#475569;border-color:#475569">Ablehnen</button>
+        </form>
+      </details>`;
+    }
+    return "";
+  };
+
   const actionBlock = (r: Inquiry): string => {
-    if (r.type !== "affiliate") return "";
+    // Declined: nur Reopen-Button + ggf. Reason-Hinweis.
+    if (r.status === "declined") {
+      const reasonLine = r.decline_reason
+        ? `<div class="muted" style="margin-top:4px;font-size:11px;font-style:italic">Grund: ${esc(r.decline_reason)}</div>`
+        : "";
+      return `<div style="margin-top:14px;padding:10px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div style="font-size:12px;color:var(--fg-3)">Abgelehnt${r.declined_at ? ` ${fmt(r.declined_at)}` : ""}.${reasonLine}</div>
+        ${declineForm(r)}
+      </div>`;
+    }
+    if (r.type !== "affiliate") {
+      // Consulting/Coaching: nur Reject-Button (kein Approve-Flow).
+      const fr = declineForm(r);
+      return fr ? `<div style="margin-top:14px">${fr}</div>` : "";
+    }
 
     if ((r.status === "invited" || r.status === "approved" || r.status === "active") && r.approved_app && r.approved_code) {
       const link = setupLinkFor(r.approved_app, r.approved_code);
@@ -1752,7 +1799,8 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
         </label>
         <button type="submit" class="btn" style="padding:8px 16px;font-size:13px">Onboarding-Link →</button>
       </form>
-    </details>`;
+    </details>
+    <div style="margin-top:10px">${declineForm(r)}</div>`;
   };
 
   // Per-card status pill (top right corner). "new" affiliate gets a vivid
@@ -1761,6 +1809,7 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
     if (r.status === "active") return `<span class="pill" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-weight:600">✓ active</span>`;
     if (r.status === "invited" || r.status === "approved") return `<span class="pill" style="background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;font-weight:600">→ invited</span>`;
     if (r.status === "new") return `<span class="pill" style="background:#fef9c3;color:#854d0e;border:1px solid #fde047;font-weight:600">• neu</span>`;
+    if (r.status === "declined") return `<span class="pill" style="background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;font-weight:600">✕ abgelehnt</span>`;
     return `<span class="pill">${esc(r.status ?? "—")}</span>`;
   };
 
@@ -1791,6 +1840,7 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
     if (r.status === "active") return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#166534;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase">✓ active</span>`;
     if (r.status === "invited" || r.status === "approved") return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#1e40af;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase">→ invited</span>`;
     if (r.status === "new") return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#854d0e;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#eab308;box-shadow:0 0 0 0 #eab308a0;animation:klar-pulse 1.6s infinite"></span>neu</span>`;
+    if (r.status === "declined") return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#475569;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase">✕ abgelehnt</span>`;
     return `<span style="font-size:11px;font-family:var(--font-mono);color:var(--fg-3);letter-spacing:.04em;text-transform:uppercase">${esc(r.status ?? "")}</span>`;
   };
 
@@ -1812,7 +1862,8 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
       .join("");
 
     const isNew = r.status === "new";
-    return `<article class="inbox-card" style="background:var(--surface);border:1px solid ${isNew ? "var(--line-strong)" : "var(--line)"};border-radius:14px;padding:24px 26px;margin:0;transition:border-color .15s,box-shadow .2s;position:relative;${isNew ? "box-shadow:0 0 0 1px var(--line-strong) inset" : ""}">
+    const isDeclined = r.status === "declined";
+    return `<article class="inbox-card" style="background:var(--surface);border:1px solid ${isNew ? "var(--line-strong)" : "var(--line)"};border-radius:14px;padding:${isDeclined ? "16px 22px" : "24px 26px"};margin:0;transition:border-color .15s,box-shadow .2s,opacity .15s;position:relative;${isNew ? "box-shadow:0 0 0 1px var(--line-strong) inset;" : ""}${isDeclined ? "opacity:.55;" : ""}">
       <header style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:18px">
         <div style="display:flex;gap:14px;align-items:center;flex:1;min-width:0">
           ${avatarFor(r.email ?? "")}
@@ -1834,9 +1885,24 @@ async function inboxView(typeFilter: string, sourceFilter: string): Promise<stri
     </article>`;
   };
 
+  const declinedToggleHref = (() => {
+    const base = `/admin?view=inbox`;
+    const parts: string[] = [];
+    if (effectiveType !== "all") parts.push(`type=${effectiveType}`);
+    if (effectiveSource !== "all") parts.push(`source=${encodeURIComponent(effectiveSource)}`);
+    if (!showDeclined) parts.push("show_declined=1");
+    return parts.length ? `${base}&${parts.join("&")}` : base;
+  })();
+  const declinedToggle = nDeclined > 0
+    ? `<div style="margin-top:16px;padding:12px 16px;background:var(--surface-2);border:1px dashed var(--line);border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <span class="muted" style="font-size:12px;font-family:var(--font-mono);letter-spacing:.04em">${showDeclined ? "✕" : "•"} ${nDeclined} abgelehnt${showDeclined ? " (eingeblendet)" : " (versteckt)"}</span>
+        <a class="applink" href="${declinedToggleHref}" style="font-size:12px">${showDeclined ? "verstecken" : "zeigen"} →</a>
+      </div>`
+    : "";
+
   const body = rows.length
-    ? `<div style="display:flex;flex-direction:column;gap:14px;margin-top:8px">${rows.map(renderCard).join("")}</div>`
-    : `<div style="background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:48px 24px;text-align:center"><div style="font-family:var(--font-mono);font-size:11px;color:var(--fg-4);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">leer</div><span class="muted" style="font-size:13px">Keine Anfragen in dieser Auswahl.${effectiveType !== "all" || effectiveSource !== "all" ? ` <a class="applink" href="/admin?view=inbox">Filter zurücksetzen</a>` : ""}</span></div>`;
+    ? `<div style="display:flex;flex-direction:column;gap:14px;margin-top:8px">${rows.map(renderCard).join("")}</div>${declinedToggle}`
+    : `<div style="background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:48px 24px;text-align:center"><div style="font-family:var(--font-mono);font-size:11px;color:var(--fg-4);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">leer</div><span class="muted" style="font-size:13px">Keine Anfragen in dieser Auswahl.${effectiveType !== "all" || effectiveSource !== "all" ? ` <a class="applink" href="/admin?view=inbox">Filter zurücksetzen</a>` : ""}</span></div>${declinedToggle}`;
 
   const consultingHint = effectiveType === "consulting"
     ? `<p class="sub muted" style="margin:0 0 16px;font-size:13px">Consulting-Calls aus Cal.com (consulting + coaching event types) erscheinen unter <a class="applink" href="/admin?view=bookings">Bookings</a>. Hier nur die schriftlichen Anfragen vom Kontaktformular.</p>`
@@ -2236,7 +2302,8 @@ export async function GET(req: Request): Promise<Response> {
   else if (view === "inbox") {
     const typeFilter = url.searchParams.get("type") ?? "all";
     const sourceFilter = url.searchParams.get("source") ?? "all";
-    main = await inboxView(typeFilter, sourceFilter);
+    const showDeclined = url.searchParams.get("show_declined") === "1";
+    main = await inboxView(typeFilter, sourceFilter, showDeclined);
   }
   else if (view === "bookings") main = await bookingsView();
   else if (view === "cal") main = calView();
