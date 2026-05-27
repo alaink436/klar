@@ -103,16 +103,18 @@ export async function POST(req: NextRequest): Promise<Response> {
   const sizeBuckets = Array.from(new Set(rawBuckets.filter((b) => ALLOWED_BUCKETS.has(b))));
   if (sizeBuckets.length === 0) return back(req, "Mindestens eine Größe auswählen (Nano/Micro/Mid/Macro)");
 
-  // languages: multi-select chips. One wave-row gets created per (app, language)
-  // pair, so picking 3 apps × 2 langs = 6 rows. Each row carries its own
-  // language so the n8n wave-consumer picks the correct mail-template (DB row
-  // in klar_app_mail_templates keyed by app_slug + language) and the correct
-  // hashtag-bucket (region-specific tags vary per language). Default 'de' if
-  // nothing selected so the form stays compatible with the old single-app flow.
+  // languages: single-select radio. One wave = one region (per app). Multi-region
+  // was technically safe (UNIQUE on (platform,handle) with ignore-duplicates) but
+  // suboptimal cost-wise: parallel Apify scrapes spend $$ on overlapping hashtag
+  // pools, and "first wave wins" the language field — accounts caught by wave A
+  // are silently skipped by wave B and never get a B-language mail. The UI uses
+  // radio buttons, this validates as defense-in-depth (curl, replayed form).
+  // Default 'de' if nothing selected.
   const ALLOWED_LANGS = new Set(["de", "en", "es", "it", "fr"]);
   const rawLangs = form.getAll("languages").map((v) => String(v).trim().toLowerCase());
   const languages = Array.from(new Set(rawLangs.filter((l) => ALLOWED_LANGS.has(l))));
   if (languages.length === 0) languages.push("de");
+  if (languages.length > 1) return back(req, "Nur eine Region pro Welle (Multi-Region führt zu doppelten Apify-Scrapes mit überlappenden Hashtags)");
 
   const countRaw = String(form.get("count_per_app") ?? "").trim();
   const count = Number(countRaw);

@@ -903,10 +903,11 @@ getklar.org`;
       <span class="muted" style="font-size:10px;font-family:var(--font-mono)">${esc(b.range)}</span>
     </label>`).join("");
 
-  // Region/Language multi-select. Each picked region spawns a separate wave-row
-  // per app, with its own mail-template (klar_app_mail_templates row) and
-  // region-specific hashtag-bucket. Default DE only to keep the old single-lang
-  // behaviour as the safe default.
+  // Region/Language single-select. One wave = one region (per app). Multi-region
+  // was technically safe (UNIQUE on platform+handle + ignore-duplicates blocks
+  // double inserts) but suboptimal cost-wise (parallel Apify scrapes with
+  // overlapping hashtag pools spend $$ to find duplicates). Radio enforces
+  // pick-one in the UI, server-side validation rejects > 1 as defense-in-depth.
   const regionChips: Array<{ value: string; label: string; flag: string; market: string; defaultOn: boolean }> = [
     { value: "de", label: "DE", flag: "🇩🇪", market: "DACH",          defaultOn: true  },
     { value: "en", label: "EN", flag: "🌐", market: "Global EN",     defaultOn: false },
@@ -916,7 +917,7 @@ getklar.org`;
   ];
   const regionChipsHtml = regionChips
     .map((r) => `<label class="wave-pick" style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:8px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:12px;cursor:pointer;min-width:88px">
-      <input type="checkbox" name="languages" value="${esc(r.value)}"${r.defaultOn ? " checked" : ""} class="wave-lang-chk" style="margin:0"/>
+      <input type="radio" name="languages" value="${esc(r.value)}"${r.defaultOn ? " checked" : ""} class="wave-lang-chk" style="margin:0"/>
       <span style="font-weight:600">${esc(r.flag)} ${esc(r.label)}</span>
       <span class="muted" style="font-size:10px;font-family:var(--font-mono)">${esc(r.market)}</span>
     </label>`).join("");
@@ -946,7 +947,7 @@ getklar.org`;
           <div style="display:flex;gap:8px;flex-wrap:wrap">${sizeChips}</div>
         </div>
         <div style="grid-column:1/-1">
-          <div class="k" style="margin-bottom:10px">Regionen <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">Multi-Select. Pro Region + App entsteht 1 separate Welle mit region-spezifischen Hashtags + Mail-Template aus DB</span></div>
+          <div class="k" style="margin-bottom:10px">Region <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">Single-Select. Region wählt Hashtag-Bucket + Mail-Template aus DB. Multi-Region wäre cost-suboptimal (überlappende Scrapes).</span></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">${regionChipsHtml}</div>
         </div>
       </div>
