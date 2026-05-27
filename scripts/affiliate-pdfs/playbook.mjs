@@ -9,6 +9,7 @@ import {
   drawH1, drawH2, drawParagraph, drawBullets, drawRule, drawCallout, drawTable, ensureSpace, rgbFrom
 } from './layout.mjs';
 import { sanitise } from './sanitiser.mjs';
+import { expandTemplate } from './brief.mjs';
 
 export const PLAYBOOK_LANGS = ['en', 'de', 'it', 'fr', 'es'];
 
@@ -69,25 +70,28 @@ export async function buildPlaybook(common, app, lang) {
   }
 
   // 2. Science: UGC vs Faceless + sources
-  if (pb.science) {
+  // Falls back to common.shared_science[lang] if no app-specific science block.
+  const sharedScience = common.shared_science && common.shared_science[lang];
+  const science = pb.science || sharedScience;
+  if (science) {
     ensureSpace(cursor, 240, pdf, noChrome);
     drawH2(cursor, L.s2_title);
-    if (pb.science.headline) drawParagraph(cursor, pb.science.headline, { bold: true });
-    if (pb.science.what_research_says) drawParagraph(cursor, pb.science.what_research_says);
-    if (pb.science.caveat) {
+    if (science.headline) drawParagraph(cursor, science.headline, { bold: true });
+    if (science.what_research_says) drawParagraph(cursor, science.what_research_says);
+    if (science.caveat) {
       cursor.move(4);
       drawParagraph(cursor, L.caveatHeader, { bold: true });
-      drawParagraph(cursor, pb.science.caveat);
+      drawParagraph(cursor, science.caveat);
     }
-    if (pb.science.when_each_works) {
+    if (pb.science_when_each_works || (science.when_each_works)) {
       cursor.move(4);
       drawParagraph(cursor, L.whenEachWorksHeader, { bold: true });
-      drawParagraph(cursor, pb.science.when_each_works);
+      drawParagraph(cursor, pb.science_when_each_works || science.when_each_works);
     }
-    if (pb.science.sources && pb.science.sources.length) {
+    if (science.sources && science.sources.length) {
       cursor.move(4);
       drawParagraph(cursor, L.sourcesHeader, { bold: true });
-      drawBullets(cursor, pb.science.sources, { size: 9 });
+      drawBullets(cursor, science.sources, { size: 9 });
     }
   }
 
@@ -148,26 +152,32 @@ export async function buildPlaybook(common, app, lang) {
     drawParagraph(cursor, pb.conversion_math);
   }
 
-  // 9. Tracking summary
-  if (pb.tracking_summary || pb.tracking_model_lines) {
+  // 9. Tracking summary (falls back to common.shared_tracking_summary[lang])
+  const sharedTracking = common.shared_tracking_summary && common.shared_tracking_summary[lang];
+  const trackingText = pb.tracking_summary || sharedTracking;
+  if (trackingText || pb.tracking_model_lines) {
     ensureSpace(cursor, 140, pdf, noChrome);
     drawH2(cursor, L.s9_title);
-    if (pb.tracking_summary) drawParagraph(cursor, pb.tracking_summary);
+    if (trackingText) drawParagraph(cursor, expandTemplate(trackingText, app));
     else if (pb.tracking_model_lines) drawBullets(cursor, pb.tracking_model_lines);
   }
 
-  // 10. Onboarding
-  if (pb.onboarding_steps) {
+  // 10. Onboarding (falls back to common.shared_onboarding[lang])
+  const sharedOnboarding = common.shared_onboarding && common.shared_onboarding[lang];
+  const onboardingSteps = pb.onboarding_steps || sharedOnboarding;
+  if (onboardingSteps) {
     ensureSpace(cursor, 160, pdf, noChrome);
     drawH2(cursor, L.s10_title);
-    drawBullets(cursor, pb.onboarding_steps);
+    drawBullets(cursor, expandTemplate(onboardingSteps, app));
   }
 
-  // 11. Dashboard
-  if (pb.dashboard_lines) {
+  // 11. Dashboard (falls back to common.shared_dashboard[lang])
+  const sharedDashboard = common.shared_dashboard && common.shared_dashboard[lang];
+  const dashboardLines = pb.dashboard_lines || sharedDashboard;
+  if (dashboardLines) {
     ensureSpace(cursor, 120, pdf, noChrome);
     drawH2(cursor, L.s11_title);
-    drawBullets(cursor, pb.dashboard_lines);
+    drawBullets(cursor, expandTemplate(dashboardLines, app));
   }
 
   // 12. Brand assets

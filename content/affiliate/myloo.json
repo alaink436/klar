@@ -7,70 +7,113 @@
     "premium_price_usd_monthly": 4.99,
     "premium_price_usd_yearly": 29.99,
     "monetisation": "recurring Premium subscription",
-    "live_status": "iOS in Apple review (expected through within days), Android paused"
+    "live_status": "iOS in Apple review, Android paused"
   },
   "brief": {
     "en": {
       "short": {
         "tagline": "Privacy-first digestion tracker with AI Bristol classification and 30-day clinic export.",
-        "what_it_is": "MyLoo is a digestion and stool tracker for iOS (Android launch on hold due to Google's Health Policy 2026). Photo of the sample, Claude Vision AI classifies on the Bristol Stool Scale 1-7, plus volume / texture / blood / mucus flags. Privacy-first: photos are NOT stored on our side, only the structured result lives in the timeline. The timeline carries symptom tags (bloating, cramps, urgency, pain level), and the user exports a clean 30-day PDF for their GI appointment.",
-        "who_for": "Adults dealing with IBS, IBD, gut sensitivities, food intolerances, post-surgical follow-up. Plus parents tracking toddler health (adult-audience targeting only for now), and chronic-condition patients.",
+        "what_it_is": "MyLoo is a digestion and stool tracker for iOS (Android launch on hold — Google Health Policy 2026). Photo of the sample, Claude Vision AI classifies on the Bristol Stool Scale 1-7, plus volume / texture / blood / mucus flags. Privacy-first: photos are NOT stored, only the structured result lives in the timeline. Symptom tags (bloating, cramps, urgency, pain). 30-day PDF export for GI appointment.",
+        "who_for": "Adults with IBS, IBD, gut sensitivities, food intolerances, post-surgical follow-up. Parents tracking toddler health. Chronic-condition patients.",
         "key_features": [
-          "Photo-to-Bristol AI classification: Vision model returns Bristol 1-7 + volume / texture / blood / mucus flags from a single photo.",
-          "Privacy-first photo handling: image is processed in the Vision call and not persisted on Klar infrastructure.",
-          "Symptom tags timeline: bloating, cramps, urgency, pain level, cross-tagged with food entries.",
-          "30-day clinic PDF export: handed to GI at appointment, replaces 4 weeks of retrospective recall.",
-          "Discreet clinical UI: deliberately calm, not the wellness-influencer aesthetic."
+          "Photo-to-Bristol AI classification: Vision returns Bristol 1-7 + flags.",
+          "Privacy-first photo handling: not persisted on Klar infrastructure.",
+          "Symptom tags timeline: bloating, cramps, urgency, pain level.",
+          "30-day clinic PDF export for GI appointment.",
+          "Discreet clinical UI: deliberately calm, not wellness-influencer aesthetic."
         ],
         "business_model_lines": [
           "Single revenue stream: recurring Premium subscription.",
           "Pricing: 4.99 USD / month or 29.99 USD / year.",
           "Free tier: manual Bristol entry + tags, timeline, manual PDF export.",
-          "Premium unlocks: AI photo classification, email-inbound scanning, extended clinic export mode.",
-          "Platform: iOS only currently. Android paused — Google Health Policy 2026 requires registered org + D-U-N-S."
+          "Premium unlocks: AI photo classification, email-inbound scanning, extended clinic export.",
+          "Platform: iOS only. Android paused — Google Health Policy requires registered org + D-U-N-S."
         ],
-        "attribution_one_paragraph": "Your link myloo.org/i/[handle] works on every platform. iOS warm installs use Universal Links. iOS cold (~99% of creator traffic, given iOS-only) uses our own signed-token clipboard deferred-deeplink — live-verified, no Branch.io. RevenueCat fires when Premium is purchased and 50% of net revenue is credited to your handle for 24 months from each user's first paid month. Android attribution will activate via Google install-referrer once Android relaunches.",
-        "see_long_pointer": "For the full attribution walkthrough, the Google Health Policy context for Android pause, and how the privacy-first photo handling actually works, see the Extended Brief PDF in this folder."
+        "attribution_one_paragraph": "Your link myloo.org/i/[handle] works on every platform. iOS warm uses Universal Links. iOS cold (~99% of creator traffic, iOS-only) uses our signed-token clipboard deferred-deeplink — live-verified, no Branch.io. RevenueCat fires on Premium purchase, 50% of net revenue credited to your handle for 24 months. Android attribution activates via Google install-referrer once Android relaunches.",
+        "see_long_pointer": "For the full walkthrough, the Google Health Policy context for Android pause, and how the privacy-first photo handling actually works, see the Extended Brief PDF.",
+        "attribution_extra_note": "Android is currently paused due to Google's Health Policy 2026 (requires registered organisation + D-U-N-S verification). Your link works for Android users — they hit a waitlist page. Once Android relaunches, attribution applies retroactively to waitlisters."
       },
       "long": {
         "tagline": "Privacy-first digestion tracker with AI Bristol classification and 30-day clinic export.",
         "what_it_is": "MyLoo is a digestion and stool tracker for iOS (Android launch on hold due to Google's Health Policy 2026). Photo of the sample, Claude Vision AI classifies on the Bristol Stool Scale 1-7, plus volume / texture / blood / mucus flags. Privacy-first: photos are NOT stored on our side, only the structured result lives in the timeline. The timeline carries symptom tags (bloating, cramps, urgency, pain level), and the user exports a clean 30-day PDF for their GI appointment.",
-        "who_for": "Adults dealing with IBS, IBD, gut sensitivities, food intolerances, post-surgical follow-up. Plus parents tracking toddler health (adult-audience targeting only for now), and chronic-condition patients (coeliac etc.). Creator archetypes that convert well: gut-health educators with real lived experience, IBS day-in-the-life creators, low-FODMAP food channels, post-gastro-surgery journals, patient-advocate IBS/IBD pages, medical-professional accounts (nurses, dieticians, GI nurses) operating in a personal capacity.",
+        "who_for": "Adults dealing with IBS, IBD, gut sensitivities, food intolerances, post-surgical follow-up. Parents tracking toddler health (adult-audience targeting only). Chronic-condition patients (coeliac etc.). Creator archetypes that convert well: gut-health educators with real lived experience, IBS day-in-the-life creators, low-FODMAP food channels, post-gastro-surgery journals, patient-advocate IBS/IBD pages, medical-professional accounts (nurses, dieticians) in personal capacity.",
         "key_features": [
-          "Photo-to-Bristol AI classification: Vision model returns Bristol 1-7 + volume / texture / blood / mucus flags from a single photo.",
-          "Privacy-first photo handling: image is processed in the Vision call and not persisted on Klar infrastructure, only structured result lives in timeline.",
-          "Symptom tags timeline: bloating, cramps, urgency, pain level on a simple scale, cross-tagged with food entries.",
-          "30-day clinic PDF export: handed to GI at appointment, replaces 4 weeks of retrospective recall.",
-          "Email-inbound parsing mode (Premium): off / warranty-only / all — parses incoming lab or food-sensitivity test PDFs into the timeline.",
-          "Discreet clinical UI: deliberately calm visual identity, not the wellness-influencer aesthetic that drives away patients with real conditions."
+          "Photo-to-Bristol AI classification: Vision returns Bristol 1-7 + volume/texture/blood/mucus flags.",
+          "Privacy-first photo handling: image processed in Vision call, not persisted on Klar infrastructure.",
+          "Symptom tags timeline: bloating, cramps, urgency, pain level on simple scale, cross-tagged with food.",
+          "30-day clinic PDF export: handed to GI at appointment, replaces 4 weeks of recall.",
+          "Email-inbound parsing (Premium): parses lab or food-sensitivity test PDFs into the timeline.",
+          "Discreet clinical UI: deliberately calm, not the wellness-influencer aesthetic."
         ],
         "business_model_lines": [
           "Single revenue stream: recurring Premium subscription.",
           "Free tier: manual Bristol entry + tags, timeline, manual PDF export — useful enough alone.",
-          "Premium unlocks: AI photo classification, email-inbound scanning, extended clinic export mode.",
-          "Free Lifetime Premium for onboarded affiliates, no posting obligation.",
-          "Platform note: iOS only currently. Android paused since Jan 2026 — Google's Health Policy now requires registered org account + D-U-N-S verification, personal accounts are blocked at policy review. Affiliate work is iOS-focused while we resolve the corporate-account path."
+          "Premium unlocks: AI photo classification, email-inbound scanning, extended clinic export.",
+          "Free Lifetime Premium for onboarded affiliates.",
+          "Platform: iOS only. Android paused — Google's Health Policy 2026 requires registered org + D-U-N-S."
         ],
         "pricing_lines": [
           "4.99 USD / month.",
           "29.99 USD / year (~ half off vs monthly).",
-          "iOS only currently; affiliate share is always 50% of the then-current price."
+          "iOS only currently; affiliate share is 50% of the then-current price."
         ],
-        "market_gap": "IBS and IBD patients track their symptoms in Word docs, Notes apps, or notebooks. That is the actual baseline — surveys consistently find that 70-80% of patients arrive at GI appointments with no structured data. The wellness-influencer-flavoured apps in the App Store (Cara Care, Bowelle, Poop Tracker) are designed for the algorithm rather than the patient: bright colours, social features, gamification. Patients with real conditions describe these as 'cringe' or 'patronising' and abandon them. Meanwhile clinical-grade tools (Cara's clinical fork, Sentinel) live behind clinic walls and require referrals. MyLoo fills the gap: clinical visual identity, AI photo classification (the time-saver), 30-day GI-ready PDF export. The privacy-first photo handling (images never persisted) is the trust unlock that lets patients actually submit photos.",
-        "business_model_why_now": "Two shifts make MyLoo possible in 2026. First, Vision LLM costs dropped enough that classifying a Bristol photo at 0.01-0.02 USD per call is economically viable inside a 5 USD/month price point. Second, the privacy-first architecture (photos never persisted) is now table-stakes expectation in health apps post-2024 European Health Data Space regulations and US state-level health-data laws. Apps that store medical photos are increasingly liable and increasingly distrusted. MyLoo's no-persist design isn't just nice-to-have — it's the only way this works for a small operator without HIPAA-scale infrastructure.",
-        "attribution": {
-          "intro": "Most affiliate stacks ride on top of Branch.io, AppsFlyer or a similar paid attribution SDK. We built our own. Those tools charge per attributed install, they add a third party to the user's first-launch experience, and they make influencer payouts opaque. Health-app users in particular are sensitive to first-launch SDK chatter — every extra vendor reading device context erodes trust. Here is what runs in each stage.",
-          "why_diy": "Three reasons. (1) Cost: paid SDKs absorb 8-12% of the affiliate payout pool. (2) Privacy: health-app users specifically distrust apps that add tracking SDKs — and we read first-launch context as little as possible by design. (3) Transparency: when a number looks wrong, we read our own code in 10 minutes instead of debugging a vendor black box. The trade-off is we own the bugs. Every line of attribution code is in our repo.",
-          "android_install_referrer": "Android attribution via Play Install Referrer API is implemented and tested, but Android is currently paused for MyLoo: Google's Health Policy (2026 update) requires a registered organisation account with D-U-N-S verification for any app handling personal health data. We are working through that path; affiliates can expect Android to come back online once the corporate-account migration finishes. Meanwhile your link still works for Android users — they hit a landing page that explains the iOS-only status and a waitlist signup.",
-          "ios_warm_universal_link": "If the user already has MyLoo installed, iOS routes the tap through a Universal Link directly into the app with the handle in the URL path. We register `myloo.org/i/*` as a Universal Link, Apple's CDN serves the `apple-app-site-association` JSON, the OS routes the tap. Deep-link handler reads the URL path, extracts the handle, writes the attribution row.",
-          "ios_cold_clipboard": "The hard case — and ~99% of creator traffic for MyLoo since it's iOS-only — is iOS cold install. iOS gives the freshly installed app no context. Branch.io's whole business is solving this with device-fingerprinting heuristics that became unreliable after iOS 14.5. We do it differently. When a user taps your link in Safari, our redirect chain hits myloo.org/i/[handle]. That page writes a short-lived JSON token to the clipboard (handle, timestamp, app-key, HMAC-SHA256 signature) before redirecting to the App Store. After install, on first launch, the app reads the clipboard once, parses the JSON, verifies the signature, accepts the token if fresh and signed, and writes the attribution row. The user sees no extra screen when it works.",
-          "confirmation_step": "Optional fallback. On first open, after we've read whatever the clipboard provided, the app can show a single confirmation: \"Invited by @[suggested-handle]? Yes / No\". MyLoo runs the confirmer OFF currently — the clinical-calm onboarding philosophy avoids any extra screen, and the clipboard hit-rate has been high enough that the confirmer would mostly fire on edge cases we accept as missed attribution. This is a per-app config toggle we can revisit if the loss rate becomes meaningful.",
-          "revenuecat_webhook": "Premium purchases flow through RevenueCat. RC handles Apple StoreKit receipts, dedup, refund detection, and converts everything into a consistent webhook event format. When `INITIAL_PURCHASE`, `RENEWAL`, `PRODUCT_CHANGE`, or `CANCELLATION` fires, RC posts JSON to our Supabase Edge function `affiliate-rc-webhook`. The function: (1) verifies RC signature, (2) idempotency-check, (3) looks up the user's attribution row, (4) computes 50% of net after Apple's 15-30% cut, (5) credits `affiliate_earnings` with handle, app, gross, cut, net, our-share, holdback-until, source event ID.",
-          "payout_pipeline": "Each credited earning enters a 30-day refund holdback (Apple refund window). After holdback expires the row flips to `claimable`. A pg_cron job runs `build_payout_batch()` on the 5th of each month: groups claimable rows per affiliate, applies the 50 EUR minimum, creates a batch row per affiliate, enqueues to `wise_dispatch_queue`. wise-dispatch calls Wise's v3 transfer API with the affiliate's stored Wise recipient ID. Health-app users sometimes refund post-purchase if they didn't realise it required Premium for AI classification — those are handled cleanly via negative-adjustment rows.",
-          "dashboard_transparency": "Your dashboard at getklar.org/dashboard shows the funnel transparently: clicks per day/week/month, install split (iOS warm / iOS cold; Android paused indicator), active Premium subs in your bucket, claimable USD, paid USD, refund-holdback pipeline as a time-series, next payout date, per-app earnings funnel. If a number looks wrong, message us with details and we can show you the exact webhook payload and matching attribution row.",
-          "security_model": "Three layers. (1) Clipboard token is HMAC-signed; tampering invalidates the signature. (2) Token is timestamped and rejected after 7 days. (3) RC webhook is signature-verified plus idempotency-checked. Signing key is in Supabase Edge function secrets, rotatable without a client-app update. The narrow attack surface plus the no-persistence photo design means MyLoo has unusually low data-incident exposure for a health app of its size."
-        },
-        "why_this_works": "Gut-health content has explosive engagement on TikTok and Instagram, and the audience is genuinely seeking and willing to try new tools. MyLoo's clinical-calm visual identity is a real differentiator from the wellness-influencer aesthetic that dominates the category and feels untrustworthy to people with real conditions. AI Bristol classification is a feature most competitors do not have, which gives creators a concrete demo moment. Word-doc tracking is the reality for ~80% of IBS patients today — MyLoo solves exactly that switch."
+        "market_gap": "IBS and IBD patients track their symptoms in Word docs, Notes apps, or notebooks. That is the baseline — surveys consistently find 70-80% of patients arrive at GI appointments with no structured data. The wellness-influencer-flavoured apps (Cara Care, Bowelle, Poop Tracker) are designed for the algorithm rather than the patient: bright colours, social features, gamification. Patients with real conditions describe these as cringe or patronising and abandon them. Meanwhile clinical-grade tools (Cara's clinical fork, Sentinel) live behind clinic walls. MyLoo fills the gap: clinical visual identity, AI photo classification (the time-saver), 30-day GI-ready PDF export. Privacy-first photo handling (images never persisted) is the trust unlock.",
+        "business_model_why_now": "Two shifts make MyLoo possible in 2026. First, Vision LLM costs dropped enough that classifying a Bristol photo at 0.01-0.02 USD per call is economically viable inside a 5 USD/month price point. Second, the privacy-first architecture (photos never persisted) is now table-stakes expectation in health apps post-2024 European Health Data Space regulations and US state-level health-data laws.",
+        "why_this_works": "Gut-health content has explosive engagement on TikTok and Instagram, and the audience is genuinely seeking and willing to try new tools. MyLoo's clinical-calm visual identity is a real differentiator from the wellness-influencer aesthetic that dominates and feels untrustworthy to people with real conditions. AI Bristol classification is a feature most competitors do not have. Word-doc tracking is the reality for ~80% of IBS patients — MyLoo solves exactly that switch.",
+        "attribution_extra_note": "Android is currently paused due to Google's Health Policy 2026, which requires a registered organisation account with D-U-N-S verification for any app handling personal health data. We are working through that path; affiliates can expect Android to come back online once the corporate-account migration finishes. Meanwhile your link still works for Android users — they hit a landing page explaining the iOS-only status and a waitlist signup."
+      }
+    },
+    "de": {
+      "short": {
+        "tagline": "Privacy-first Verdauungs-Tracker mit KI Bristol-Klassifikation und 30-Tage-Klinik-Export.",
+        "what_it_is": "MyLoo ist ein Verdauungs- und Stuhl-Tracker für iOS (Android-Launch auf Eis — Google Health Policy 2026). Foto der Probe, Claude Vision KI klassifiziert auf Bristol-Stuhl-Skala 1-7, plus Volumen / Textur / Blut / Schleim-Flags. Privacy-first: Fotos werden NICHT gespeichert, nur das strukturierte Ergebnis lebt in der Timeline. Symptom-Tags (Blähungen, Krämpfe, Dringlichkeit, Schmerz). 30-Tage-PDF-Export für GI-Termin.",
+        "who_for": "Erwachsene mit IBS, IBD, Darm-Sensitivitäten, Lebensmittel-Intoleranzen, post-OP-Follow-up. Eltern die Kleinkind-Gesundheit tracken. Chronisch-Kranke.",
+        "key_features": [
+          "Foto-zu-Bristol KI-Klassifikation: Vision liefert Bristol 1-7 + Flags.",
+          "Privacy-first Foto-Handling: nicht auf Klar-Infrastruktur persistiert.",
+          "Symptom-Tags-Timeline: Blähungen, Krämpfe, Dringlichkeit, Schmerz-Level.",
+          "30-Tage-Klinik-PDF-Export für GI-Termin.",
+          "Diskrete klinische UI: bewusst ruhig, kein Wellness-Influencer-Look."
+        ],
+        "business_model_lines": [
+          "Einzelne Revenue-Quelle: wiederkehrende Premium-Subscription.",
+          "Pricing: 4,99 USD / Monat oder 29,99 USD / Jahr.",
+          "Free-Tier: manuelle Bristol-Eingabe + Tags, Timeline, manueller PDF-Export.",
+          "Premium schaltet frei: KI-Foto-Klassifikation, Email-Inbound-Scanning, erweiterter Klinik-Export.",
+          "Plattform: nur iOS. Android pausiert — Google Health Policy verlangt registrierte Org + D-U-N-S."
+        ],
+        "attribution_one_paragraph": "Dein Link myloo.org/i/[handle] funktioniert auf jeder Plattform. iOS warm nutzt Universal Links. iOS cold (~99% Creator-Traffic, iOS-only) nutzt unseren signed-Token Clipboard-Deferred-Deeplink — live-verifiziert, kein Branch.io. RevenueCat feuert beim Premium-Kauf, 50% des Netto-Umsatzes auf deinen Handle für 24 Monate. Android-Attribution aktiviert sich via Google Install-Referrer sobald Android relaunched.",
+        "see_long_pointer": "Für das volle Walkthrough, den Google-Health-Policy-Kontext für Android-Pause, und wie das Privacy-first-Foto-Handling tatsächlich funktioniert, siehe das Extended Brief PDF.",
+        "attribution_extra_note": "Android ist aktuell pausiert wegen Googles Health Policy 2026 (verlangt registrierte Organisation + D-U-N-S-Verifizierung). Dein Link funktioniert für Android-User — sie landen auf einer Waitlist-Seite. Sobald Android relaunched, gilt die Attribution rückwirkend für Waitlister."
+      },
+      "long": {
+        "tagline": "Privacy-first Verdauungs-Tracker mit KI Bristol-Klassifikation und 30-Tage-Klinik-Export.",
+        "what_it_is": "MyLoo ist ein Verdauungs- und Stuhl-Tracker für iOS (Android-Launch auf Eis wegen Googles Health Policy 2026). Foto der Probe, Claude Vision KI klassifiziert auf Bristol-Stuhl-Skala 1-7, plus Volumen / Textur / Blut / Schleim-Flags. Privacy-first: Fotos werden NICHT bei uns gespeichert, nur das strukturierte Ergebnis lebt in der Timeline. Die Timeline trägt Symptom-Tags (Blähungen, Krämpfe, Dringlichkeit, Schmerz-Level), und der User exportiert ein sauberes 30-Tage-PDF für seinen GI-Termin.",
+        "who_for": "Erwachsene mit IBS, IBD, Darm-Sensitivitäten, Lebensmittel-Intoleranzen, post-OP-Follow-up. Eltern die Kleinkind-Gesundheit tracken (nur Erwachsenen-Audience-Targeting). Chronisch-Kranke (Zöliakie etc.). Passende Creator: Gut-Health-Educator mit echter Erfahrung, IBS-Day-in-the-Life-Creator, Low-FODMAP-Food-Channels, Post-Gastro-OP-Journale, Patient-Advocate-IBS/IBD-Pages, Healthcare-Professionals (Pfleger, Diätberater) in privater Kapazität.",
+        "key_features": [
+          "Foto-zu-Bristol KI-Klassifikation: Vision liefert Bristol 1-7 + Volumen/Textur/Blut/Schleim-Flags.",
+          "Privacy-first Foto-Handling: Bild im Vision-Call verarbeitet, nicht auf Klar-Infrastruktur persistiert.",
+          "Symptom-Tags-Timeline: einfache Skala, cross-tagged mit Food-Entries.",
+          "30-Tage-Klinik-PDF-Export: beim Termin übergeben, ersetzt 4 Wochen Erinnerungsversuch.",
+          "Email-Inbound-Parsing (Premium): parst eingehende Labor- oder Food-Sensitivity-Test-PDFs in die Timeline.",
+          "Diskrete klinische UI: bewusst ruhig, kein Wellness-Influencer-Look."
+        ],
+        "business_model_lines": [
+          "Einzelne Revenue-Quelle: wiederkehrende Premium-Subscription.",
+          "Free-Tier: manuelle Bristol-Eingabe + Tags, Timeline, manueller PDF-Export — alleine nützlich genug.",
+          "Premium schaltet frei: KI-Foto-Klassifikation, Email-Inbound-Scanning, erweiterter Klinik-Export.",
+          "Free Lifetime Premium für onboarded Affiliates.",
+          "Plattform: nur iOS. Android pausiert — Googles Health Policy 2026 verlangt registrierte Org + D-U-N-S."
+        ],
+        "pricing_lines": [
+          "4,99 USD / Monat.",
+          "29,99 USD / Jahr (~ halb so viel wie monatlich).",
+          "Nur iOS aktuell; Affiliate-Share ist 50% des aktuellen Preises."
+        ],
+        "market_gap": "IBS- und IBD-Patienten tracken ihre Symptome in Word-Docs, Notes-Apps oder Notizbüchern. Das ist der Baseline — Studien zeigen konstant 70-80% der Patienten kommen ohne strukturierte Daten zum GI-Termin. Die Wellness-Influencer-flavored Apps (Cara Care, Bowelle, Poop Tracker) sind für den Algorithmus designed statt für den Patienten: bunte Farben, Social-Features, Gamification. Patienten mit echten Konditionen beschreiben sie als cringe oder bevormundend und brechen ab. Clinical-grade Tools (Caras klinischer Fork, Sentinel) leben hinter Klinik-Mauern. MyLoo füllt die Lücke: klinische visuelle Identität, KI-Foto-Klassifikation (der Zeit-Sparer), 30-Tage-GI-bereiter PDF-Export. Privacy-first-Foto-Handling (Bilder nie persistiert) ist der Trust-Unlock.",
+        "business_model_why_now": "Zwei Verschiebungen machen MyLoo 2026 möglich. Erstens, Vision-LLM-Kosten sind genug gefallen dass das Klassifizieren eines Bristol-Fotos bei 0,01-0,02 USD pro Call ökonomisch tragbar ist im 5-USD/Monat-Preispunkt. Zweitens, die Privacy-first-Architektur (Fotos nie persistiert) ist jetzt Table-Stakes-Erwartung in Health-Apps nach 2024er European Health Data Space-Regulierungen und US-State-Level-Health-Data-Gesetzen.",
+        "why_this_works": "Gut-Health-Content hat explosive Engagement auf TikTok und Instagram, und die Audience sucht aktiv und ist bereit neue Tools auszuprobieren. MyLoos klinisch-ruhige visuelle Identität ist ein echter Differentiator zur Wellness-Influencer-Ästhetik die die Kategorie dominiert und sich für Patienten mit echten Konditionen un-vertrauenswürdig anfühlt. KI Bristol-Klassifikation ist ein Feature das die meisten Konkurrenten nicht haben. Word-Doc-Tracking ist die Realität für ~80% der IBS-Patienten — MyLoo löst genau diesen Switch.",
+        "attribution_extra_note": "Android ist aktuell pausiert wegen Googles Health Policy 2026, die ein registriertes Organisations-Konto mit D-U-N-S-Verifizierung für jede App verlangt die persönliche Gesundheitsdaten handhabt. Wir arbeiten an dem Pfad; Affiliates können Android-Comeback erwarten sobald die Corporate-Account-Migration fertig ist. Bis dahin funktioniert dein Link für Android-User — sie landen auf einer Landing-Page die den iOS-only-Status erklärt und einer Waitlist-Anmeldung."
       }
     }
   },
@@ -78,161 +121,208 @@
     "en": {
       "subtitle": "for patient advocates and gut-health creators — and what the research says about how to pitch it",
       "hero_quote": "Photo in, AI classifies, clinic PDF out. Privacy-first. Earn from the value you already create.",
-      "sixty_seconds_intro": "MyLoo is a digestion / stool tracker for iOS (Android launch on hold due to Google's Health Policy 2026). Photo of the sample, Claude Vision AI classifies on the Bristol Stool Scale 1-7, plus volume / texture / blood / mucus flags. Privacy-first: photos are NOT stored on our side, only the structured result lives in the timeline. The timeline carries symptom tags (bloating, cramps, urgency, pain level), you export a clean 30-day PDF for your GI appointment.",
-      "why_this_works": "Word-doc tracking is the reality for 80% of IBS patients. MyLoo solves exactly that problem: at the GI appointment you no longer talk retrospectively for 4 weeks, you show a PDF with real data.",
+      "sixty_seconds_intro": "MyLoo is a digestion / stool tracker for iOS (Android on hold — Google Health Policy 2026). Photo of the sample, Claude Vision AI classifies on the Bristol Stool Scale 1-7. Privacy-first: photos NOT stored, only structured result lives in timeline. Symptom tags, 30-day PDF for GI appointment.",
+      "why_this_works": "Word-doc tracking is reality for 80% of IBS patients. MyLoo solves exactly that: at the GI appointment you show a PDF with real data instead of talking retrospectively for 4 weeks.",
       "free_vs_premium": [
         "Free: manual Bristol entry + symptom tags, timeline, manual PDF export.",
-        "Premium (4.99 USD/m or 29.99 USD/y): AI photo classification, email-inbound parsing, extended clinic export.",
-        "Free Lifetime Premium for onboarded affiliates, no posting obligation."
+        "Premium (4.99 USD/m or 29.99 USD/y): AI photo classification, email-inbound parsing, extended export.",
+        "Free Lifetime Premium for onboarded affiliates."
       ],
-      "science": {
-        "headline": "Face-on-camera content (UGC) converts higher than faceless content on average. For health-condition content, this gap is unusually large because trust matters more than scale.",
-        "what_research_says": "Two findings worth knowing. Sokolova and Kefi (2020) showed that parasocial interaction — feeling like a creator is a friend — is a strong driver of purchase intent. For health-condition content this matters disproportionately: patients trust other patients more than aesthetic accounts. Lou and Yuan (2019) found that perceived creator credibility (trustworthiness, expertise) increases consumer trust; for IBS / IBD content, lived-experience visibility is the credibility signal. Industry benchmarks from Influencer Marketing Hub confirm that health-vertical UGC outperforms faceless by a wider margin than other verticals.",
-        "caveat": "Faceless still has a role for MyLoo. Educational explainers (the Bristol scale, symptom-tracking how-tos, low-FODMAP basics) work well as silent screen-rec or carousel format, and many patients with real conditions don't want to be on camera. Some of the most-watched IBS accounts on TikTok use anonymous-narrator format precisely because privacy is part of their value.",
-        "when_each_works": "UGC fits when YOU have the condition (IBS, IBD, post-surgery, food intolerance) and audience follows your lived experience. Faceless fits when you teach (Bristol scale, low-FODMAP), when anonymity is part of the brand, or when you create patient-education content as a healthcare professional in personal capacity.",
-        "sources": [
-          "Sokolova, K., & Kefi, H. (2020). Instagram and YouTube bloggers promote it, why should I buy? How credibility and parasocial interaction influence purchase intentions. Journal of Retailing and Consumer Services, 53, 101742.",
-          "Lou, C., & Yuan, S. (2019). Influencer marketing: How message value and credibility affect consumer trust of branded content on social media. Journal of Interactive Advertising, 19(1), 58-73.",
-          "Influencer Marketing Hub. (2024). The State of Influencer Marketing Benchmark Report 2024.",
-          "HypeAuditor. (2024). State of Influencer Marketing Report."
-        ]
-      },
-      "creator_types_intro": "Find your row. For MyLoo specifically, lived-experience creators convert dramatically higher than aesthetic accounts — health audiences see straight through performance. The conversion ranges below are realistic for the gut-health vertical.",
+      "creator_types_intro": "For MyLoo specifically, lived-experience creators convert dramatically higher than aesthetic accounts — health audiences see through performance.",
       "creator_types_table": [
-        {
-          "type": "IBS / IBD day-in-the-life",
-          "path": "UGC strong",
-          "hooks": "Word-doc moment; \"how I prep for my GI appointment\"; the 30-day PDF reveal; \"finally got a tool I trust\"",
-          "expected_conversion": "3-5%, very high trust + share rate"
-        },
-        {
-          "type": "Low-FODMAP / food-intolerance",
-          "path": "UGC + Faceless mix",
-          "hooks": "Food-symptom correlation timeline; \"what I ate vs how I felt\"; trigger-discovery story",
-          "expected_conversion": "2-4% in elimination-diet niches"
-        },
-        {
-          "type": "Patient advocate / IBS-IBD educator",
-          "path": "UGC",
-          "hooks": "Educational explainer with personal data; \"why the Bristol scale matters\"; \"what to bring to your GI\"",
-          "expected_conversion": "2-4%, very high authority"
-        },
-        {
-          "type": "Healthcare professional in personal capacity",
-          "path": "UGC (with disclosure)",
-          "hooks": "\"What I wish my patients tracked\"; clinical-grade tool walkthrough; \"the PDF I want at appointments\"",
-          "expected_conversion": "2-4% but must respect professional regulations"
-        },
-        {
-          "type": "Anonymous gut-health TikTok",
-          "path": "Faceless",
-          "hooks": "Silent Bristol-scale education; symptom-tracking voiceless tutorial; privacy-first photo handling demo",
-          "expected_conversion": "1-2% per view but high posting cadence"
-        },
-        {
-          "type": "Post-surgery / chronic-condition journal",
-          "path": "UGC primary",
-          "hooks": "Recovery timeline; \"what helped me feel heard at appointments\"; the value of structured tracking",
-          "expected_conversion": "2-3% in chronic-condition communities"
-        }
+        {"type": "IBS / IBD day-in-the-life", "path": "UGC strong", "hooks": "Word-doc moment; \"how I prep for my GI appointment\"; 30-day PDF reveal; \"finally a tool I trust\"", "expected_conversion": "3-5%, very high trust + share rate"},
+        {"type": "Low-FODMAP / food-intolerance", "path": "UGC + Faceless mix", "hooks": "Food-symptom correlation timeline; \"what I ate vs how I felt\"; trigger-discovery story", "expected_conversion": "2-4% in elimination-diet niches"},
+        {"type": "Patient advocate / IBS-IBD educator", "path": "UGC", "hooks": "Educational explainer with personal data; \"why the Bristol scale matters\"; \"what to bring to your GI\"", "expected_conversion": "2-4%, very high authority"},
+        {"type": "Healthcare professional in personal capacity", "path": "UGC (with disclosure)", "hooks": "\"What I wish my patients tracked\"; clinical-grade tool walkthrough; \"the PDF I want at appointments\"", "expected_conversion": "2-4% but respect professional regulations"},
+        {"type": "Anonymous gut-health TikTok", "path": "Faceless", "hooks": "Silent Bristol-scale education; symptom-tracking voiceless tutorial; privacy-first photo handling demo", "expected_conversion": "1-2% per view, high posting cadence"},
+        {"type": "Post-surgery / chronic-condition", "path": "UGC primary", "hooks": "Recovery timeline; \"what helped me feel heard at appointments\"; structured tracking value", "expected_conversion": "2-3% in chronic-condition communities"}
       ],
       "ugc_strategy": {
-        "archetype": "You with the condition. IBS patient sharing day-in-the-life. Post-surgery person tracking recovery. Patient advocate with the credibility your audience trusts. For health-condition content, audiences see straight through performance — your lived experience is the entire credibility model.",
+        "archetype": "You with the condition. IBS patient sharing day-in-the-life. Post-surgery person tracking recovery. Patient advocate with credibility your audience trusts. Health-condition content sees through performance — your lived experience is the entire credibility model.",
         "hook_examples": [
-          "\"This replaced my Word doc\" — talking head, you opening a real 4-week Word doc, then MyLoo timeline.",
-          "\"How I prep for my GI appointment now\" — calm 60s walkthrough, ending with the PDF export.",
-          "\"Year one of IBS — what I wish I'd tracked from day one\" — retrospective reel, MyLoo as the answer.",
-          "\"My GI doc actually engaged with the data this time\" — emotional payoff reel, post-appointment debrief.",
-          "\"AI classified what I couldn't bring myself to look at\" — privacy-first photo handling angle, vulnerability.",
-          "\"What changed in 30 days of tracking\" — pattern-discovery story, you finding a trigger.",
-          "\"Why the Bristol scale matters and why nobody told you\" — educational explainer with your data.",
-          "\"My low-FODMAP elimination week — what the timeline showed\" — food correlation story."
+          "\"This replaced my Word doc\" — talking head with real 4-week Word doc, then MyLoo timeline.",
+          "\"How I prep for my GI appointment now\" — calm 60s, ending with PDF export.",
+          "\"Year one of IBS — what I wish I'd tracked from day one\" — retrospective.",
+          "\"My GI doc actually engaged with the data this time\" — post-appointment debrief.",
+          "\"AI classified what I couldn't bring myself to look at\" — privacy angle.",
+          "\"What changed in 30 days of tracking\" — pattern-discovery.",
+          "\"Why the Bristol scale matters and why nobody told you\" — educational.",
+          "\"My low-FODMAP elimination week — what the timeline showed\" — food correlation."
         ],
         "format_templates": [
-          "Talking head 60s: direct to camera, your honest tone, app screen as B-roll.",
-          "Day-in-the-life 90s: chronic-condition routine, MyLoo as a 5-second beat.",
-          "Educational vlog 75s: teach one thing about gut health, demo the app to show the data.",
-          "Emotional payoff reel: post-appointment debrief, the PDF moment.",
-          "Retrospective: \"year one with IBS — what I wish I knew\", MyLoo answers the tracking-question.",
-          "Comparison: Word doc vs MyLoo, your real-world before/after."
+          "Talking head 60s.",
+          "Day-in-the-life 90s.",
+          "Educational vlog 75s.",
+          "Emotional payoff reel: post-appointment debrief.",
+          "Retrospective: \"year one with IBS\".",
+          "Comparison: Word doc vs MyLoo."
         ],
         "do_dont": [
-          "Do: only post if you actually have the condition or work in the space. Health audiences detect performance instantly.",
-          "Do: name your condition or context specifically. \"My IBS-D\" reads true. \"For people with gut issues\" reads generic.",
-          "Do: discuss privacy honestly. The photos aren't stored — say that, explain why it matters to you.",
-          "Don't: give medical advice. \"App helps me track\" is fine. \"App will diagnose you\" is not.",
-          "Don't: medicalise the marketing. MyLoo helps with tracking, not diagnosis. Overpromising loses trust.",
-          "Don't: oversell the AI. \"AI classifies the Bristol scale\" is accurate. \"AI tells you what's wrong\" is not."
+          "Do: only post if you actually have the condition or work in the space.",
+          "Do: name your condition or context specifically.",
+          "Do: discuss privacy honestly.",
+          "Don't: give medical advice.",
+          "Don't: medicalise the marketing.",
+          "Don't: oversell the AI."
         ]
       },
       "faceless_strategy": {
-        "archetype": "Anonymous patient educator. Healthcare professional in personal capacity. Voiceover-only chronic-condition account. You're behind the camera, the education or the app demo carries the message. Many gut-health TikTok creators are intentionally anonymous because privacy is part of their value to audiences.",
+        "archetype": "Anonymous patient educator. Healthcare professional in personal capacity. Voiceover-only chronic-condition account. Many gut-health TikTok creators are intentionally anonymous because privacy is part of their value.",
         "hook_examples": [
-          "Silent Bristol-scale infographic carousel — caption tells the story.",
-          "30s screen-rec of the AI classification, voiceover explains what the labels mean.",
+          "Silent Bristol-scale infographic carousel.",
+          "30s screen-rec of AI classification with voiceover.",
           "\"Privacy-first photo handling — what 'not stored' actually means\" — explainer carousel.",
-          "\"What to bring to your first GI appointment\" — tutorial carousel ending with the MyLoo PDF.",
-          "\"5 apps that actually help with IBS\" — listicle, MyLoo at #1 or #2, no hard sell.",
-          "Symptom-tracking time-lapse — anonymous hand showing app interaction.",
-          "\"The Bristol scale — three things most patients don't know\" — silent educational reel.",
-          "Comparison: Word-doc-vs-MyLoo split-screen, ambient music, captions only."
+          "\"What to bring to your first GI appointment\" — tutorial carousel.",
+          "\"5 apps that actually help with IBS\" — listicle, MyLoo at #1-2.",
+          "Symptom-tracking time-lapse — anonymous hand.",
+          "\"The Bristol scale — three things most patients don't know\" — silent reel.",
+          "Comparison: Word-doc-vs-MyLoo split-screen."
         ],
         "format_templates": [
-          "Educational carousel: 6 IG slides, calm clinical aesthetic, slide 6 = link.",
-          "Screen-rec demo 20-30s: app does the work, captions explain.",
-          "Voiceover narrative 45s: anonymous voice over screen-rec.",
-          "Listicle: \"X apps every IBS patient should know\" with MyLoo at #1-2.",
-          "Tutorial: step-by-step setup of the 30-day clinic export.",
-          "Silent comparison: Word doc vs MyLoo, captions only."
+          "Educational carousel: 6 slides, calm clinical aesthetic.",
+          "Screen-rec demo 20-30s.",
+          "Voiceover narrative 45s.",
+          "Listicle.",
+          "Tutorial: step-by-step setup.",
+          "Silent comparison."
         ],
         "do_dont": [
-          "Do: keep the clinical-calm tone. MyLoo's whole audience-fit is patients who hate wellness-influencer aesthetics.",
-          "Do: caption every step. Sound-off viewing is the norm in health content.",
-          "Do: cite credible sources when teaching (NHS, Mayo Clinic, Rome IV criteria for IBS). Generic claims sound suspect.",
-          "Do: link in caption + bio. Health audiences read carefully and tap deliberately.",
-          "Don't: use bright wellness-aesthetic colours. MyLoo's brand is deliberately clinical-calm.",
-          "Don't: pretend to be a patient if you're not. Healthcare professionals in personal capacity work; fake-patient content destroys trust on contact."
+          "Do: clinical-calm tone — MyLoo's audience-fit is patients who hate wellness aesthetics.",
+          "Do: caption every step.",
+          "Do: cite credible sources (NHS, Mayo Clinic, Rome IV) when teaching.",
+          "Do: link in caption + bio.",
+          "Don't: bright wellness-aesthetic colours.",
+          "Don't: pretend to be a patient if you're not."
         ]
       },
       "audience_fit_good": [
-        "IBS / IBD day-in-the-life creators (10k-200k, very high trust + share).",
-        "Low-FODMAP food channels (food + symptom correlation angle).",
-        "Patient-advocate IBS/IBD pages (medical authority).",
+        "IBS / IBD day-in-the-life creators.",
+        "Low-FODMAP food channels.",
+        "Patient-advocate IBS/IBD pages.",
         "Post-surgery / chronic-condition journals.",
-        "Anonymous gut-health TikTok accounts (privacy as brand).",
-        "Healthcare professionals in personal capacity (nurses, dieticians, GI nurses)."
+        "Anonymous gut-health TikTok (privacy as brand).",
+        "Healthcare professionals in personal capacity."
       ],
       "audience_fit_poor": [
-        "Wellness-influencer aesthetic (clashes with MyLoo's clinical-calm brand).",
-        "Diagnostic / 'AI tells you what's wrong' angle (MyLoo doesn't do this, never frame it that way).",
-        "General lifestyle accounts without a real gut-health connection."
+        "Wellness-influencer aesthetic.",
+        "Diagnostic / 'AI tells you what's wrong' angle.",
+        "General lifestyle accounts without real gut-health connection."
       ],
-      "posting_cadence": "Gut-health audience: highest engagement Sunday evening (\"prep-for-the-week\") and Wednesday evening (\"midweek\"). IBS day-in-the-life creators see best results Tuesday-Thursday morning posts (audience checks first thing). Patient-advocate educational content performs all week, especially late evening 9-11pm. Frequency: 1 reel per week is plenty for affiliate conversion in this niche. Story sequences with link sticker after GI appointments drive strong conversion.",
-      "conversion_math": "50% rev share, 24 months per attributed user. Premium 4.99 USD/m or 29.99 USD/y. IBS day-in-the-life micro (40k followers, 1 reel): 20,000 views x 2.5% CTR = 500 clicks, 40% install = 200 installs, 6% Premium = 12 subs, 12 months x 29.99 USD x 50% = ~180 USD per reel. Patient-advocate mid-tier (100k, 1 reel): 50,000 views x 2% CTR = 1,000 clicks, 35% install = 350 installs, 5% Premium = 17 subs, ~255 USD per reel. Anonymous gut-health macro (300k TT, 1 reel): 150,000 views x 1% CTR = 1,500 clicks, 30% install = 450 installs, 4% Premium = 18 subs, ~270 USD per reel. Conversion in this niche is unusually durable — chronic-condition users keep their subs longer than average, so the 24-month attribution window pays out fully more often than in lifestyle niches.",
-      "tracking_summary": "Your link myloo.org/i/[yourhandle] works on every platform. iOS warm uses Universal Link (deterministic). iOS cold (~99% of creator traffic, given iOS-only) uses our DIY signed-token clipboard deferred-deeplink, live-verified, no Branch.io. RevenueCat fires on Premium purchase, 50% credited to your handle for 24 months from each user's first paid month. 30-day refund holdback before payout becomes claimable. Android attribution is built and tested but currently paused at the Google Health Policy step — affiliates can expect Android revenue once the corporate-account migration finishes. Full walkthrough in the Extended Brief PDF.",
-      "onboarding_steps": [
-        "Click the personal link from Mail 2 (valid 7 days).",
-        "Land on myloo.org/affiliate/[your-token].",
-        "Fill in: handle, Wise payout details, country (tax docs), billing address.",
-        "Get your personal tracking link by mail + dashboard unlock.",
-        "Free Lifetime Premium activated on your MyLoo account."
-      ],
-      "dashboard_lines": [
-        "Live at getklar.org/dashboard (magic-link login).",
-        "Clicks, installs (iOS warm / iOS cold; Android paused indicator), active Premium subs in your bucket.",
-        "Claimable USD + paid USD + next payout date.",
-        "Refund-holdback pipeline + per-app earnings funnel."
-      ],
-      "brand_assets": "Logo, app screenshots, Bristol-scale educational slides (medically reviewed), clinical-calm visual identity guide and ready-made captions: getklar.org/i/myloo/brand-assets (link goes live with your onboarding mail).",
+      "posting_cadence": "Gut-health: Sunday evening + Wednesday evening. IBS day-in-the-life: Tue-Thu morning. Patient-advocate: late evening 9-11pm. 1 reel per week. Stories with link after GI appointments drive conversion.",
+      "conversion_math": "50% rev share, 24 months. Premium 4.99 USD/m or 29.99 USD/y. IBS day-in-the-life micro (40k followers): 20,000 views x 2.5% CTR = 500 clicks, 40% install = 200 installs, 6% Premium = 12 subs, ~180 USD per reel. Patient-advocate mid-tier (100k): 50,000 views x 2% CTR = 1,000 clicks, 35% install = 350 installs, 5% Premium = 17 subs, ~255 USD. Anonymous gut-health macro (300k TT): 150,000 views x 1% CTR = 1,500 clicks, 30% install = 450 installs, 4% Premium = 18 subs, ~270 USD. Chronic-condition users keep subs longer than average, so 24-month attribution pays out fully more often.",
+      "brand_assets": "Logo, app screenshots, Bristol-scale educational slides (medically reviewed), clinical-calm visual identity and ready-made captions: getklar.org/i/myloo/brand-assets.",
       "faq": [
-        ["I'm a healthcare professional, can I post about MyLoo?", "Yes, in personal capacity with disclosure. Frame as 'a tool patients can use', not 'a tool that diagnoses'. Follow your local regulatory rules (UK GMC, German Berufsordnung, US state-level)."],
-        ["What about Android?", "Android is built and tested but paused at Google's Health Policy step (corporate-account + D-U-N-S required). Your link still works for Android users — they hit a waitlist page. Once Android relaunches, your attribution applies retroactively to anyone who joined the waitlist."],
-        ["Can I show real photos?", "No, and you shouldn't want to. The privacy-first design means photos are never stored — that's the trust unlock. Use the app's structured-result view (timeline, Bristol number, tags) for any demo footage."],
-        ["Disclosure obligation?", "Yes, rev-share counts as paid recommendation. #ad / #sponsored / IG \"Paid Partnership\". Plus: if you're a healthcare professional, your local professional-conduct rules apply on top."],
-        ["Flat fee?", "Yes. Mid-tier $150-500 per post, macros $500+ (health vertical CPMs are above average). Rev share stays on top. Reply to Mail 2 to discuss."],
-        ["What if I lose my niche credibility because of a sponsored post?", "Don't post if MyLoo doesn't fit your actual lived experience or professional context. We'd rather miss the post than damage your credibility. That's a real answer."]
+        ["I'm a healthcare professional, can I post about MyLoo?", "Yes, in personal capacity with disclosure. Frame as 'a tool patients can use', not 'a tool that diagnoses'. Follow your local regulatory rules."],
+        ["What about Android?", "Built and tested but paused at Google's Health Policy step (corporate-account + D-U-N-S required). Your link works for Android — waitlist page. Attribution applies retroactively when Android relaunches."],
+        ["Can I show real photos?", "No. Privacy-first means photos are never stored — that's the trust unlock. Use structured-result view (timeline, Bristol, tags)."],
+        ["Disclosure?", "Yes, rev-share = paid recommendation. Plus: healthcare professionals follow local conduct rules."],
+        ["Flat fee?", "Mid-tier $150-500, macros $500+. Rev share stays on top."],
+        ["What if I lose niche credibility?", "Don't post if MyLoo doesn't fit your lived experience or professional context. We'd rather miss the post than damage credibility."]
       ],
-      "closing": "Honest read: MyLoo fits creators with real gut-health experience or professional context. If you don't have IBS, don't work in healthcare, and your audience isn't in a health niche, this is not a fit and we'd rather you not post. Patient audiences see through performance instantly. Reply to Mail 2 if you want to talk — yes, no, or 'maybe, let's see if my audience actually has this'. A 15-minute call goes a long way."
+      "closing": "Honest read: MyLoo fits creators with real gut-health experience or professional context. If you don't have IBS, don't work in healthcare, and your audience isn't in a health niche, this is not a fit and we'd rather you not post. Patient audiences see through performance. Reply to Mail 2 if you want to talk — yes, no, or 'maybe, let's see'."
+    },
+    "de": {
+      "subtitle": "für Patient-Advocates und Gut-Health-Creator — und was die Forschung über das Pitching sagt",
+      "hero_quote": "Foto rein, KI klassifiziert, Klinik-PDF raus. Privacy-first. Verdien am Wert den du eh erschaffst.",
+      "sixty_seconds_intro": "MyLoo ist ein Verdauungs- / Stuhl-Tracker für iOS (Android pausiert — Google Health Policy 2026). Foto der Probe, Claude Vision KI klassifiziert auf Bristol-Stuhl-Skala 1-7. Privacy-first: Fotos NICHT gespeichert, nur strukturiertes Ergebnis in Timeline. Symptom-Tags, 30-Tage-PDF für GI-Termin.",
+      "why_this_works": "Word-Doc-Tracking ist die Realität für 80% der IBS-Patienten. MyLoo löst genau das: beim GI-Termin zeigst du ein PDF mit echten Daten statt 4 Wochen retrospektiv zu reden.",
+      "free_vs_premium": [
+        "Free: manuelle Bristol-Eingabe + Symptom-Tags, Timeline, manueller PDF-Export.",
+        "Premium (4,99 USD/m oder 29,99 USD/y): KI-Foto-Klassifikation, Email-Inbound-Parsing, erweiterter Export.",
+        "Free Lifetime Premium für onboarded Affiliates."
+      ],
+      "creator_types_intro": "Für MyLoo speziell konvertieren Creator mit echter Erfahrung deutlich höher als Ästhetik-Accounts — Health-Audiences durchschauen Performance.",
+      "creator_types_table": [
+        {"type": "IBS / IBD Day-in-the-Life", "path": "UGC stark", "hooks": "Word-Doc-Moment; \"wie ich meinen GI-Termin vorbereite\"; 30-Tage-PDF-Reveal; \"endlich ein Tool dem ich vertraue\"", "expected_conversion": "3-5%, sehr hohes Vertrauen + Share-Rate"},
+        {"type": "Low-FODMAP / Food-Intoleranz", "path": "UGC + Faceless Mix", "hooks": "Food-Symptom-Korrelations-Timeline; \"was ich ass vs wie ich mich fühlte\"; Trigger-Discovery-Story", "expected_conversion": "2-4% in Eliminations-Diät-Nischen"},
+        {"type": "Patient-Advocate / IBS-IBD-Educator", "path": "UGC", "hooks": "Educational mit persönlichen Daten; \"warum die Bristol-Skala zählt\"; \"was du zum GI mitnimmst\"", "expected_conversion": "2-4%, sehr hohe Autorität"},
+        {"type": "Healthcare-Professional in privater Kapazität", "path": "UGC (mit Disclosure)", "hooks": "\"Was ich mir wünschte meine Patienten würden tracken\"; Clinical-Tool-Walkthrough; \"das PDF das ich beim Termin sehen will\"", "expected_conversion": "2-4% aber Berufs-Regeln respektieren"},
+        {"type": "Anonymer Gut-Health-TikTok", "path": "Faceless", "hooks": "Stille Bristol-Skala-Erklärung; Symptom-Tracking-Voiceless-Tutorial; Privacy-first-Foto-Handling-Demo", "expected_conversion": "1-2% pro View, hohe Posting-Frequenz"},
+        {"type": "Post-OP / Chronisch-Krank", "path": "UGC primär", "hooks": "Recovery-Timeline; \"was mich beim Termin gehört fühlen ließ\"; strukturiertes Tracking", "expected_conversion": "2-3% in Chronisch-Krank-Communities"}
+      ],
+      "ugc_strategy": {
+        "archetype": "Du mit der Kondition. IBS-Patient der Day-in-the-Life teilt. Post-OP-Person die Recovery trackt. Patient-Advocate mit Glaubwürdigkeit. Health-Condition-Content durchschaut Performance — deine echte Erfahrung ist das ganze Glaubwürdigkeits-Modell.",
+        "hook_examples": [
+          "\"Das hat mein Word-Doc ersetzt\" — Talking Head mit echtem 4-Wochen-Word-Doc, dann MyLoo-Timeline.",
+          "\"Wie ich meinen GI-Termin jetzt vorbereite\" — ruhig 60s, endend mit PDF-Export.",
+          "\"Jahr eins mit IBS — was ich vom ersten Tag an tracken hätte sollen\" — Retrospektive.",
+          "\"Mein GI-Arzt hat dieses Mal tatsächlich mit den Daten gearbeitet\" — Post-Termin-Debrief.",
+          "\"KI klassifizierte was ich mich nicht anzuschauen brachte\" — Privacy-Angle.",
+          "\"Was sich in 30 Tagen Tracking veränderte\" — Pattern-Discovery.",
+          "\"Warum die Bristol-Skala zählt und warum keiner es dir sagte\" — Educational.",
+          "\"Meine Low-FODMAP-Eliminations-Woche — was die Timeline zeigte\" — Food-Korrelation."
+        ],
+        "format_templates": [
+          "Talking Head 60s.",
+          "Day-in-the-Life 90s.",
+          "Educational-Vlog 75s.",
+          "Emotionaler Payoff: Post-Termin-Debrief.",
+          "Retrospektive: \"Jahr eins mit IBS\".",
+          "Vergleich: Word-Doc vs MyLoo."
+        ],
+        "do_dont": [
+          "Do: nur posten wenn du die Kondition hast oder im Feld arbeitest.",
+          "Do: Kondition oder Kontext spezifisch nennen.",
+          "Do: Privacy ehrlich besprechen.",
+          "Don't: Medical Advice geben.",
+          "Don't: das Marketing medikalisieren.",
+          "Don't: die KI oversellen."
+        ]
+      },
+      "faceless_strategy": {
+        "archetype": "Anonymer Patient-Educator. Healthcare-Professional in privater Kapazität. Voiceover-only Chronisch-Krank-Account. Viele Gut-Health-TikTok-Creator sind absichtlich anonym weil Privacy Teil ihres Werts ist.",
+        "hook_examples": [
+          "Stille Bristol-Skala-Infografik-Carousel.",
+          "30s Screen-Rec der KI-Klassifikation mit Voiceover.",
+          "\"Privacy-first Foto-Handling — was 'nicht gespeichert' wirklich bedeutet\" — Erklärer-Carousel.",
+          "\"Was du zu deinem ersten GI-Termin mitnimmst\" — Tutorial-Carousel.",
+          "\"5 Apps die wirklich bei IBS helfen\" — Listicle, MyLoo auf #1-2.",
+          "Symptom-Tracking-Time-Lapse — anonyme Hand.",
+          "\"Die Bristol-Skala — drei Dinge die die meisten Patienten nicht kennen\" — stille Reel.",
+          "Vergleich: Word-Doc-vs-MyLoo Split-Screen."
+        ],
+        "format_templates": [
+          "Educational-Carousel: 6 Slides, ruhig-klinisch.",
+          "Screen-Rec-Demo 20-30s.",
+          "Voiceover-Narrative 45s.",
+          "Listicle.",
+          "Tutorial: step-by-step Setup.",
+          "Stiller Vergleich."
+        ],
+        "do_dont": [
+          "Do: klinisch-ruhigen Ton — MyLoos Audience-Fit sind Patienten die Wellness-Ästhetik hassen.",
+          "Do: jeden Schritt captionen.",
+          "Do: glaubwürdige Quellen zitieren (NHS, Mayo Clinic, Rom IV) beim Lehren.",
+          "Do: Link in Caption + Bio.",
+          "Don't: bunte Wellness-Ästhetik-Farben.",
+          "Don't: tun als wärst du Patient wenn du es nicht bist."
+        ]
+      },
+      "audience_fit_good": [
+        "IBS / IBD Day-in-the-Life Creator.",
+        "Low-FODMAP-Food-Channels.",
+        "Patient-Advocate-IBS/IBD-Pages.",
+        "Post-OP / Chronisch-Krank-Journale.",
+        "Anonyme Gut-Health-TikTok (Privacy als Brand).",
+        "Healthcare-Professionals in privater Kapazität."
+      ],
+      "audience_fit_poor": [
+        "Wellness-Influencer-Ästhetik.",
+        "Diagnostischer / 'KI sagt dir was du hast'-Angle.",
+        "Generelle Lifestyle-Accounts ohne echte Gut-Health-Verbindung."
+      ],
+      "posting_cadence": "Gut-Health: Sonntag-Abend + Mittwoch-Abend. IBS Day-in-the-Life: Di-Do-Morgen. Patient-Advocate: später Abend 21-23h. 1 Reel pro Woche. Stories mit Link nach GI-Terminen treiben Conversion.",
+      "conversion_math": "50% Rev-Share, 24 Monate. Premium 4,99 USD/m oder 29,99 USD/y. IBS Day-in-the-Life Mikro (40k Follower): 20.000 Views x 2,5% CTR = 500 Clicks, 40% Install = 200 Installs, 6% Premium = 12 Subs, ~180 USD pro Reel. Patient-Advocate Mid-Tier (100k): 50.000 Views x 2% CTR = 1.000 Clicks, 35% Install = 350 Installs, 5% Premium = 17 Subs, ~255 USD. Anonymer Gut-Health Macro (300k TT): 150.000 Views x 1% CTR = 1.500 Clicks, 30% Install = 450 Installs, 4% Premium = 18 Subs, ~270 USD. Chronisch-Krank-User halten Subs länger als Durchschnitt, also 24-Monate-Attribution zahlt häufiger voll aus.",
+      "brand_assets": "Logo, App-Screenshots, Bristol-Skala-Educational-Slides (medizinisch reviewed), klinisch-ruhige visuelle Identität und fertige Captions: getklar.org/i/myloo/brand-assets.",
+      "faq": [
+        ["Ich bin Healthcare-Professional, kann ich über MyLoo posten?", "Ja, in privater Kapazität mit Disclosure. Framen als 'Tool das Patienten nutzen können', nicht 'Tool das diagnostiziert'. Lokale Berufs-Regeln befolgen."],
+        ["Was ist mit Android?", "Gebaut und getestet aber pausiert beim Google-Health-Policy-Schritt (Corporate-Account + D-U-N-S erforderlich). Dein Link funktioniert für Android — Waitlist-Page. Attribution gilt rückwirkend wenn Android relaunched."],
+        ["Kann ich echte Fotos zeigen?", "Nein. Privacy-first bedeutet Fotos werden nie gespeichert — das ist der Trust-Unlock. Nutze die strukturierte Ergebnis-Ansicht (Timeline, Bristol, Tags)."],
+        ["Kennzeichnung?", "Ja, Rev-Share = bezahlte Empfehlung. Plus: Healthcare-Professionals folgen lokalen Berufs-Regeln."],
+        ["Flat-Fee?", "Mid-Tier $150-500, Macros $500+. Rev-Share bleibt obendrauf."],
+        ["Was wenn ich Nischen-Glaubwürdigkeit verliere?", "Nicht posten wenn MyLoo nicht zu deiner echten Erfahrung oder beruflichem Kontext passt. Wir verzichten lieber auf den Post als deine Glaubwürdigkeit zu schädigen."]
+      ],
+      "closing": "Ehrlich: MyLoo passt zu Creators mit echter Gut-Health-Erfahrung oder beruflichem Kontext. Wenn du kein IBS hast, nicht im Healthcare arbeitest, und deine Audience nicht in einer Health-Nische ist, passt nicht und wir hätten lieber dass du nicht postest. Patient-Audiences durchschauen Performance. Antworte auf Mail 2 wenn du reden willst — ja, nein, oder 'vielleicht, lass mal schauen'."
     }
   }
 }

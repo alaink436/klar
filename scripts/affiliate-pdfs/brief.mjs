@@ -166,43 +166,56 @@ async function renderLong(common, app, lang, b) {
   drawBullets(cursor, affiliateCompensationBullets(lang, aff));
 
   // ===== Codebase / DIY attribution deep dive =====
-  if (b.attribution) {
-    const a = b.attribution;
+  // App-specific attribution overrides; otherwise pull from common.shared_attribution[lang]
+  // with {{domain}} / {{app_name}} substitution.
+  const sharedAttr = common.shared_attribution && common.shared_attribution[lang];
+  const a = b.attribution || sharedAttr;
+  if (a) {
     ensureSpace(cursor, 220, pdf, noChrome);
     drawH2(cursor, L.attributionLong);
-    if (a.intro) drawParagraph(cursor, a.intro);
+    const expand = (t) => expandTemplate(t, app);
+    if (a.intro) drawParagraph(cursor, expand(a.intro));
     if (a.why_diy) {
       drawParagraph(cursor, L.whyDIY, { bold: true });
-      drawParagraph(cursor, a.why_diy);
+      drawParagraph(cursor, expand(a.why_diy));
     }
     if (a.android_install_referrer) {
       drawParagraph(cursor, L.androidReferrer, { bold: true });
-      drawParagraph(cursor, a.android_install_referrer);
+      drawParagraph(cursor, expand(a.android_install_referrer));
     }
     if (a.ios_warm_universal_link) {
       drawParagraph(cursor, L.iosWarm, { bold: true });
-      drawParagraph(cursor, a.ios_warm_universal_link);
+      drawParagraph(cursor, expand(a.ios_warm_universal_link));
     }
     if (a.ios_cold_clipboard) {
       drawParagraph(cursor, L.iosCold, { bold: true });
-      drawParagraph(cursor, a.ios_cold_clipboard);
+      drawParagraph(cursor, expand(a.ios_cold_clipboard));
     }
     if (a.confirmation_step) {
       drawParagraph(cursor, L.confirmStep, { bold: true });
-      drawParagraph(cursor, a.confirmation_step);
+      drawParagraph(cursor, expand(a.confirmation_step));
     }
     if (a.revenuecat_webhook) {
       drawParagraph(cursor, L.rcWebhook, { bold: true });
-      drawParagraph(cursor, a.revenuecat_webhook);
+      drawParagraph(cursor, expand(a.revenuecat_webhook));
     }
     if (a.payout_pipeline) {
       drawParagraph(cursor, L.payoutPipeline, { bold: true });
-      drawParagraph(cursor, a.payout_pipeline);
+      drawParagraph(cursor, expand(a.payout_pipeline));
     }
     if (a.dashboard_transparency) {
       drawParagraph(cursor, L.dashboardTransparency, { bold: true });
-      drawParagraph(cursor, a.dashboard_transparency);
+      drawParagraph(cursor, expand(a.dashboard_transparency));
     }
+    if (a.security_model) {
+      drawParagraph(cursor, L.securityModel || 'Security model', { bold: true });
+      drawParagraph(cursor, expand(a.security_model));
+    }
+  }
+  // App-specific extra note (e.g. "Android paused due to Google Health Policy" for MyLoo)
+  if (b.attribution_extra_note) {
+    cursor.move(4);
+    drawParagraph(cursor, b.attribution_extra_note, { italic: true });
   }
 
   if (b.why_this_works) {
@@ -239,6 +252,16 @@ function drawStandLabel(page, doc, fonts, label) {
   page.drawText(sanitise(label), { x: doc.margin, y: 44, size: small, font: fonts.regular, color: muted });
 }
 
+export function expandTemplate(text, app) {
+  if (text == null) return '';
+  const arr = Array.isArray(text);
+  const one = (s) => String(s)
+    .replaceAll('{{domain}}', app.app.domain)
+    .replaceAll('{{app_name}}', app.app.name)
+    .replaceAll('{{app_key}}', app.app.key);
+  return arr ? text.map(one) : one(text);
+}
+
 function affiliateCompensationBullets(lang, aff) {
   const t = COMP_TEMPLATES[lang];
   return [
@@ -273,6 +296,7 @@ const BRIEF_LABELS = {
     rcWebhook: 'RevenueCat webhook → payout queue',
     payoutPipeline: 'Holdback → batch → Wise',
     dashboardTransparency: 'What you see on your dashboard',
+    securityModel: 'Security model',
     whyThisWorks: 'Why this works as an affiliate pitch',
   },
   de: {
@@ -297,6 +321,7 @@ const BRIEF_LABELS = {
     rcWebhook: 'RevenueCat-Webhook → Payout-Queue',
     payoutPipeline: 'Holdback → Batch → Wise',
     dashboardTransparency: 'Was du im Dashboard siehst',
+    securityModel: 'Sicherheits-Modell',
     whyThisWorks: 'Warum das als Affiliate-Pitch funktioniert',
   },
   it: {
@@ -308,6 +333,8 @@ const BRIEF_LABELS = {
     keyFeatures: 'Funzionalità principali',
     businessModel: 'Modello di business',
     pricingHeader: 'Prezzo',
+    marketGapHeader: 'Gap di mercato — cosa mancava',
+    whyNowHeader: 'Perché ora',
     affiliateComp: 'Compenso per affiliati',
     attributionShort: 'Come funziona il tracciamento (un paragrafo)',
     attributionLong: 'Come funziona il tracciamento — stack di attribuzione DIY',
@@ -319,6 +346,7 @@ const BRIEF_LABELS = {
     rcWebhook: 'Webhook RevenueCat → coda pagamenti',
     payoutPipeline: 'Trattenuta → batch → Wise',
     dashboardTransparency: 'Cosa vedi nella dashboard',
+    securityModel: 'Modello di sicurezza',
     whyThisWorks: 'Perché funziona come pitch per affiliati',
   },
   fr: {
@@ -330,6 +358,8 @@ const BRIEF_LABELS = {
     keyFeatures: 'Fonctionnalités clés',
     businessModel: 'Modèle économique',
     pricingHeader: 'Prix',
+    marketGapHeader: 'Lacune du marché — ce qui manquait',
+    whyNowHeader: 'Pourquoi maintenant',
     affiliateComp: 'Rémunération des affiliés',
     attributionShort: 'Comment fonctionne le tracking (un paragraphe)',
     attributionLong: 'Comment fonctionne le tracking — stack d\'attribution DIY',
@@ -341,6 +371,7 @@ const BRIEF_LABELS = {
     rcWebhook: 'Webhook RevenueCat → queue de paiement',
     payoutPipeline: 'Retenue → batch → Wise',
     dashboardTransparency: 'Ce que tu vois sur ton tableau de bord',
+    securityModel: 'Modèle de sécurité',
     whyThisWorks: 'Pourquoi ça marche comme pitch affilié',
   },
   es: {
@@ -352,6 +383,8 @@ const BRIEF_LABELS = {
     keyFeatures: 'Funciones principales',
     businessModel: 'Modelo de negocio',
     pricingHeader: 'Precio',
+    marketGapHeader: 'Hueco de mercado — qué faltaba',
+    whyNowHeader: 'Por qué ahora',
     affiliateComp: 'Compensación para afiliados',
     attributionShort: 'Cómo funciona el tracking (un párrafo)',
     attributionLong: 'Cómo funciona el tracking — stack de atribución DIY',
@@ -363,6 +396,7 @@ const BRIEF_LABELS = {
     rcWebhook: 'Webhook RevenueCat → cola de pago',
     payoutPipeline: 'Retención → batch → Wise',
     dashboardTransparency: 'Lo que ves en tu panel',
+    securityModel: 'Modelo de seguridad',
     whyThisWorks: 'Por qué funciona como pitch para afiliados',
   },
 };
