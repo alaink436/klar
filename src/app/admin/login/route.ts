@@ -71,7 +71,24 @@ function htmlShell(inner: string): Response {
 <canvas id="klar-smoke-bg" aria-hidden="true"></canvas>
 ${GLASS_SVG_DEFS}
 ${inner}
-<script>${THEME_TOGGLE_SCRIPT}${SMOKE_BG_SCRIPT}</script>
+<script>${THEME_TOGGLE_SCRIPT}${SMOKE_BG_SCRIPT}
+(function(){
+  // Auto-advance TOTP: on 6 digits, submit. Also smooth digit-typing UX.
+  var t = document.getElementById('totp-input');
+  if (t) {
+    t.addEventListener('input', function(){
+      t.value = t.value.replace(/[^0-9]/g,'').slice(0,6);
+      if (t.value.length === 6) {
+        // Defer one tick so the value paints before submit-redirect.
+        setTimeout(function(){
+          var f = t.form;
+          if (f && f.checkValidity()) f.requestSubmit ? f.requestSubmit() : f.submit();
+        }, 30);
+      }
+    });
+  }
+})();
+</script>
 </body></html>`;
   return new Response(body, {
     status: 200,
@@ -79,25 +96,42 @@ ${inner}
   });
 }
 
+// Tiny theme-toggle button for the login chrome. SVGs come from _shared.ICON
+// but we inline a slim sun/moon pair here to avoid pulling the whole admin
+// chrome into the login route.
+const LOGIN_THEME_TOGGLE = `<button type="button" class="tbtn" onclick="klarToggleTheme()" aria-label="Theme wechseln" title="Theme wechseln">
+  <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+  <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+</button>`;
+
 function setupHint(): Response {
   const missing = [
     KEY() ? "" : "KLAR_ADMIN_KEY",
     TOTP_SECRET() ? "" : "KLAR_TOTP_SECRET",
     DEVICE_SECRET() ? "" : "KLAR_DEVICE_SECRET",
   ].filter(Boolean);
-  return htmlShell(`<div class="login"><div class="login-card">
-    <div class="login-mark">Klar<span class="dot">.</span></div>
-    <p class="login-tag">Setup erforderlich.</p>
-    <div class="login-rule"></div>
-    <p style="font-family:var(--font-body);font-size:13.5px;color:var(--fg-2);text-align:left;line-height:1.55">
-      Folgende Server-Variablen fehlen in Vercel:<br/><br/>
-      ${missing.map((m) => `<code style="font-family:var(--font-mono);background:var(--surface-2);padding:2px 8px;border-radius:4px;display:inline-block;margin:2px 0">${esc(m)}</code>`).join("<br/>")}
-    </p>
-    <p style="font-family:var(--font-body);font-size:12px;color:var(--fg-3);text-align:left;margin-top:18px;line-height:1.5">
-      Anleitung: <code>SECURITY-SETUP.md</code> im Klar-Repo.
-    </p>
-    <p class="login-foot">Intern · getklar.org</p>
-  </div></div>`);
+  return htmlShell(`<div class="login">
+    <div class="login-meta">${LOGIN_THEME_TOGGLE}</div>
+    <div class="login-card">
+      <div class="login-head">
+        <div class="login-badge"><img src="/logo/klar-symbol.png" alt="Klar"/></div>
+        <div class="login-head-text">
+          <span class="login-eyebrow">Klar Control</span>
+          <span class="login-mark">Setup<span class="dot">.</span></span>
+        </div>
+      </div>
+      <p class="login-tag">Bevor sich jemand anmelden kann, müssen ein paar Server-Variablen in Vercel gesetzt werden.</p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        ${missing.map((m) => `<code style="font-family:var(--font-mono);font-size:12.5px;background:var(--surface-2);border:1px solid var(--line);padding:8px 12px;border-radius:6px;color:var(--fg);display:flex;align-items:center;gap:8px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warning)"></span>${esc(m)}</code>`).join("")}
+      </div>
+      <p style="font-family:var(--font-body);font-size:13px;color:var(--fg-3);margin:0;line-height:1.5">
+        Anleitung: <code style="font-family:var(--font-mono);font-size:12px;background:var(--surface-2);padding:1px 6px;border-radius:4px">SECURITY-SETUP.md</code> im Klar-Repo.
+      </p>
+      <div class="login-foot">
+        <span class="login-foot-text">Intern · getklar.org</span>
+      </div>
+    </div>
+  </div>`);
 }
 
 function renderForm({
@@ -117,33 +151,56 @@ function renderForm({
   // still require device-name + TOTP. Known-device flow ignores invites.
   const showKeyInput = isNewDevice && !hasInvite;
   const showNameInput = isNewDevice; // both new-device paths need a name
-  const tag = hasInvite
-    ? `Eingeladen${inviteName ? `, ${esc(inviteName)}` : ""}`
+  const eyebrow = hasInvite
+    ? "Klar Control · Invite"
     : isNewDevice
-      ? "Neues Gerät einrichten"
-      : `Willkommen zurück, ${esc(knownDeviceName ?? "")}`;
+      ? "Klar Control · Neues Gerät"
+      : "Klar Control";
+  const mark = hasInvite || isNewDevice ? "Einrichten" : "Willkommen";
+  const tag = hasInvite
+    ? `Einmal-Invite${inviteName ? ` für ${esc(inviteName)}` : ""}. Wähle einen Namen für dieses Gerät und gib deinen Code ein.`
+    : isNewDevice
+      ? "Neues Gerät einrichten. Wir merken uns den Browser danach für 10 Jahre."
+      : `Schön dass du wieder da bist, ${esc(knownDeviceName ?? "")}. Code aus der Authenticator-App reicht.`;
   const foot = hasInvite
-    ? "Einmal-Invite. Nach Anmeldung wird der Token verbraucht."
+    ? "Token wird nach Anmeldung verbraucht"
     : isNewDevice
       ? "Gerät wird nach erfolgreicher Anmeldung registriert"
-      : "Code aus deiner Authenticator-App";
-  return htmlShell(`<div class="login"><div class="login-card">
-    <div class="login-badge" aria-hidden="true" style="width:56px;height:56px;padding:6px">
-      <img src="/logo/klar-symbol.png" alt="Klar" style="width:100%;height:100%;object-fit:contain;display:block"/>
+      : "TOTP läuft alle 30 Sekunden";
+  return htmlShell(`<div class="login">
+    <div class="login-meta">${LOGIN_THEME_TOGGLE}</div>
+    <div class="login-card">
+      <div class="login-head">
+        <div class="login-badge"><img src="/logo/klar-symbol.png" alt="Klar"/></div>
+        <div class="login-head-text">
+          <span class="login-eyebrow">${eyebrow}</span>
+          <span class="login-mark">${mark}<span class="dot">.</span></span>
+        </div>
+      </div>
+      <p class="login-tag">${tag}</p>
+      ${err ? `<div class="login-err" role="alert">${esc(err)}</div>` : ""}
+      <form method="POST" action="/admin/login" style="display:flex;flex-direction:column;gap:14px" autocomplete="off">
+        ${hasInvite ? `<input type="hidden" name="invite" value="${esc(inviteToken)}"/>` : ""}
+        ${showKeyInput ? `<div class="login-field">
+          <label class="login-label" for="key-input">Admin-Key</label>
+          <input class="login-input" id="key-input" name="key" type="password" placeholder="••••••••" autocomplete="off" required/>
+        </div>` : ""}
+        ${showNameInput ? `<div class="login-field">
+          <label class="login-label" for="name-input">Gerätename</label>
+          <input class="login-input" id="name-input" name="name" type="text" placeholder="z.B. MacBook, Büro-PC" autocomplete="off" maxlength="40" required/>
+        </div>` : ""}
+        <div class="login-field">
+          <label class="login-label" for="totp-input">Authenticator-Code</label>
+          <input class="login-input code" id="totp-input" name="totp" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="123 456" autocomplete="one-time-code" autofocus required/>
+        </div>
+        <button class="btn login-submit" type="submit">Anmelden</button>
+      </form>
+      <div class="login-foot">
+        <span class="login-foot-text">${foot}</span>
+        <span class="login-foot-text" style="opacity:.7">getklar.org</span>
+      </div>
     </div>
-    <div class="login-mark">Klar</div>
-    <p class="login-tag">${tag}</p>
-    <div class="login-rule"></div>
-    ${err ? `<p class="login-err">${esc(err)}</p>` : ""}
-    <form method="POST" action="/admin/login" style="display:flex;flex-direction:column;gap:10px">
-      ${hasInvite ? `<input type="hidden" name="invite" value="${esc(inviteToken)}"/>` : ""}
-      ${showKeyInput ? `<input class="login-input" name="key" type="password" placeholder="Admin-Key" autocomplete="off" required/>` : ""}
-      ${showNameInput ? `<input class="login-input" name="name" type="text" placeholder="Gerätename (z.B. PC, Laptop)" autocomplete="off" maxlength="40" required/>` : ""}
-      <input class="login-input" name="totp" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6-stelliger Code" autocomplete="one-time-code" autofocus required/>
-      <button class="btn" style="margin-top:8px;width:100%;padding:12px;justify-content:center" type="submit">Anmelden</button>
-    </form>
-    <p class="login-foot">${foot}</p>
-  </div></div>`);
+  </div>`);
 }
 
 void ICON; // imported for parity with /admin route, used by shared chrome

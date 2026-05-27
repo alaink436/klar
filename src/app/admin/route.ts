@@ -38,6 +38,8 @@ import {
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
   SMOKE_BG_SCRIPT,
+  MODAL_HTML,
+  MODAL_SCRIPT,
   checkAuth,
   esc,
 } from "./_shared";
@@ -152,10 +154,12 @@ function doc(inner: string): Response {
 <canvas id="klar-smoke-bg" aria-hidden="true"></canvas>
 <div class="klar-aurora" aria-hidden="true"></div>
 ${GLASS_SVG_DEFS}
+${MODAL_HTML}
 ${inner}
 <script>
 ${THEME_TOGGLE_SCRIPT}
 ${SMOKE_BG_SCRIPT}
+${MODAL_SCRIPT}
 if("serviceWorker"in navigator){addEventListener("load",function(){navigator.serviceWorker.register("/admin-sw.js",{scope:"/admin"}).catch(function(){})})}
 </script></body></html>`,
     { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } },
@@ -437,13 +441,13 @@ async function appView(app: AdminApp): Promise<string> {
     // suspended/banned → reactivate
     const buttons: string[] = [];
     if (i.status === "active" || i.status === "pending") {
-      buttons.push(`<form method="POST" action="/admin/influencer/suspend" style="display:inline" onsubmit="return confirm('Suspend @${handle}? Bestehende Payouts laufen aus, neue Events kriegen counts_for_payout=false.');">
+      buttons.push(`<form method="POST" action="/admin/influencer/suspend" style="display:inline" data-klar-confirm="Bestehende Payouts laufen aus, neue Events kriegen counts_for_payout=false." data-klar-confirm-title="@${handle} suspendieren?" data-klar-confirm-variant="warn" data-klar-confirm-ok="Suspendieren">
         <input type="hidden" name="app" value="${slug}"/>
         <input type="hidden" name="handle" value="${handle}"/>
         <input type="hidden" name="status" value="suspended"/>
         <button type="submit" class="btn ghost" style="padding:3px 9px;font-size:11px;color:var(--danger)">Suspend</button>
       </form>`);
-      buttons.push(`<form method="POST" action="/admin/influencer/suspend" style="display:inline" onsubmit="return confirm('PERMANENT BAN für @${handle}? Wie Suspend, aber als bleibend markiert.');">
+      buttons.push(`<form method="POST" action="/admin/influencer/suspend" style="display:inline" data-klar-confirm="Wie Suspend, aber als bleibend markiert. Affiliate kann nicht reaktiviert werden." data-klar-confirm-title="@${handle} permanent bannen?" data-klar-confirm-variant="danger" data-klar-confirm-ok="Permanent bannen">
         <input type="hidden" name="app" value="${slug}"/>
         <input type="hidden" name="handle" value="${handle}"/>
         <input type="hidden" name="status" value="banned"/>
@@ -460,7 +464,7 @@ async function appView(app: AdminApp): Promise<string> {
     }
     // Hard delete nur erlauben wenn pending (kein referral/event history yet)
     if (i.status === "pending") {
-      buttons.push(`<form method="POST" action="/admin/influencer/delete" style="display:inline" onsubmit="return confirm('HART LÖSCHEN @${handle}? Geht nur wenn keine referrals/events existieren. Bei Active/Suspended bitte ban statt delete.');">
+      buttons.push(`<form method="POST" action="/admin/influencer/delete" style="display:inline" data-klar-confirm="Geht nur wenn keine referrals/events existieren. Bei Active oder Suspended bitte ban statt delete." data-klar-confirm-title="@${handle} hart löschen?" data-klar-confirm-variant="danger" data-klar-confirm-ok="Endgültig löschen">
         <input type="hidden" name="app" value="${slug}"/>
         <input type="hidden" name="handle" value="${handle}"/>
         <button type="submit" class="btn ghost" style="padding:3px 9px;font-size:11px;color:var(--danger)" title="Hard delete">✕</button>
@@ -623,12 +627,22 @@ function fmtBigNum(n: number | null | undefined): string {
   return String(n);
 }
 
+// Heuristik: Outreach-Target stammt aus internem Self-Test.
+const isTestTarget = (t: OutreachTarget): boolean => {
+  const h = (t.handle ?? "").toLowerCase();
+  const e = (t.contact_email ?? "").toLowerCase();
+  if (e === "alainkessler04@gmail.com") return true;
+  if (h.includes("selftest") || h === "klar_test" || h.startsWith("klar_s")) return true;
+  return false;
+};
+
 async function outreachView(
   filterPlatform: string,
   filterStatus: string,
   filterApp: string,
   query: string,
   autoRefresh: boolean,
+  showTests: boolean,
 ): Promise<string> {
   if (!isOutreachConfigured()) {
     return `<h1>Outreach</h1><p class="sub muted">Outreach-Tracker braucht <span class="warn">KLAR_INBOX_SERVICE_KEY</span> in Vercel (anime-vault Service-Role). Tabelle <code>klar_outreach_targets</code> ist via Migration <code>klar_outreach_targets_v1</code> + <code>v2_metrics</code> angelegt.</p>`;
@@ -642,7 +656,7 @@ async function outreachView(
   const app = filterApp && filterApp !== "all" ? filterApp : "all";
   const q = query.trim().slice(0, 80);
 
-  const [stats, rows, runs, costSummary, allTargets, apifyAccount, brevoQuota, suppressions] = await Promise.all([
+  const [stats, rowsRaw, runs, costSummary, allTargets, apifyAccount, brevoQuota, suppressions] = await Promise.all([
     getOutreachStats(),
     listOutreachTargets({ platform, status, app, query: q, limit: 200 }),
     listOutreachRuns(10),
@@ -652,6 +666,11 @@ async function outreachView(
     getBrevoQuota(),
     listSuppressions(20),
   ]);
+  // Test-Targets standardmäßig ausblenden, mit Toggle. Counter zählt aus
+  // dem aktuell geladenen Subset (rowsRaw), nicht aus allTargets — sonst
+  // verwirrt die Zahl wenn ein anderer Filter aktiv ist.
+  const nTests = rowsRaw.filter(isTestTarget).length;
+  const rows = showTests ? rowsRaw : rowsRaw.filter((t) => !isTestTarget(t));
 
   // Auto-refresh meta-tag (15s). Off by default — toggle via ?ar=1.
   // Wird inline am Anfang der Outreach-View ausgespuckt — Next legt das in
@@ -669,7 +688,7 @@ async function outreachView(
     <div class="card"><div class="k">Converted (30d)</div><div class="v">${stats.converted_last_30d}</div><div class="s">${stats.conversion_rate_pct ?? "—"}% Conversion-Rate</div></div>
   </div>`;
 
-  // Filter-Strip: hält query+autoRefresh-Param mit
+  // Filter-Strip: hält query+autoRefresh+showTests mit
   const buildFilterHref = (p: string, s: string, a: string): string => {
     const parts: string[] = ["view=outreach"];
     if (p !== "all") parts.push(`p=${encodeURIComponent(p)}`);
@@ -677,8 +696,25 @@ async function outreachView(
     if (a !== "all") parts.push(`a=${encodeURIComponent(a)}`);
     if (q) parts.push(`q=${encodeURIComponent(q)}`);
     if (autoRefresh) parts.push(`ar=1`);
+    if (showTests) parts.push("show_tests=1");
     return `/admin?${parts.join("&")}`;
   };
+  const testsToggleHref = (() => {
+    const parts: string[] = ["view=outreach"];
+    if (platform !== "all") parts.push(`p=${encodeURIComponent(platform)}`);
+    if (status !== "all") parts.push(`s=${encodeURIComponent(status)}`);
+    if (app !== "all") parts.push(`a=${encodeURIComponent(app)}`);
+    if (q) parts.push(`q=${encodeURIComponent(q)}`);
+    if (autoRefresh) parts.push("ar=1");
+    if (!showTests) parts.push("show_tests=1");
+    return `/admin?${parts.join("&")}`;
+  })();
+  const testsToggle = nTests > 0
+    ? `<div style="margin:0 0 14px;padding:10px 14px;background:var(--surface-2);border:1px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <span class="muted" style="font-size:12px;font-family:var(--font-mono);letter-spacing:.04em">${showTests ? "⚙" : "•"} ${nTests} Test-Target${nTests === 1 ? "" : "s"}${showTests ? " (eingeblendet)" : " (versteckt)"}</span>
+        <a class="applink" href="${testsToggleHref}" style="font-size:12px">${showTests ? "verstecken" : "zeigen"} →</a>
+      </div>`
+    : "";
   const segPlatform = `<div class="seg">
     <a href="${buildFilterHref("all", status, app)}" class="${platform === "all" ? "on" : ""}">Alle</a>
     <a href="${buildFilterHref("tiktok", status, app)}" class="${platform === "tiktok" ? "on" : ""}">TikTok</a>
@@ -794,17 +830,17 @@ async function outreachView(
       ? t.for_apps.map((a) => `<span class="pill" style="font-size:9px;padding:1px 6px">${esc(a)}</span>`).join(" ")
       : `<span class="muted" style="font-size:11px">—</span>`;
 
-    // Status-Quick-Actions: nur Vorwärts-Pfeile zeigen, basierend auf aktuellem Status.
+    // Status-Quick-Actions: nur Vorwärts-Pfeile zeigen. Decline wird separat
+    // als Klapp-Form mit reason + suppress-checkbox gerendert (s.u.), damit
+    // beim Ablehnen direkt die Suppression-Liste mitgepflegt wird.
     const actions: { label: string; status: OutreachStatus }[] = [];
     if (t.status === "queued")  actions.push({ label: "DM ✓", status: "dm_sent" });
     if (t.status === "dm_sent") actions.push(
       { label: "Antwort", status: "replied" },
-      { label: "Abgelehnt", status: "declined" },
       { label: "Dead", status: "dead" },
     );
     if (t.status === "replied") actions.push(
       { label: "Converted", status: "converted" },
-      { label: "Abgelehnt", status: "declined" },
     );
     const actionForms = actions.map((a) =>
       `<form method="POST" action="/admin/outreach/update" style="display:inline">
@@ -820,7 +856,26 @@ async function outreachView(
       <button type="submit" class="btn ghost" style="padding:4px 9px;font-size:11px">✉ ${t.mails_sent}</button>
     </form>`;
 
-    const deleteForm = `<form method="POST" action="/admin/outreach/delete" style="display:inline" onsubmit="return confirm('Lead @${esc(t.handle)} löschen?')">
+    // Decline-Klapp-Form: Reason + optional Suppression. Nur für aktive
+    // Konversations-Stadien (dm_sent + replied). Modal-Confirm zusätzlich
+    // gegen versehentliche Klicks.
+    const showDecline = t.status === "dm_sent" || t.status === "replied";
+    const declineForm = showDecline
+      ? `<details style="display:inline-block;vertical-align:middle">
+          <summary style="cursor:pointer;padding:4px 9px;font-size:11px;font-family:var(--font-body);color:var(--fg-3);border:1px solid var(--line);border-radius:6px;user-select:none;list-style:none">✕ Ablehnen</summary>
+          <form method="POST" action="/admin/outreach/decline" style="display:flex;gap:6px;align-items:center;margin-top:6px;padding:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;flex-wrap:wrap" data-klar-confirm="Status wird auf 'declined' gesetzt. Bei aktivierter Suppression wird @${esc(t.handle)} in zukünftigen Wellen übersprungen." data-klar-confirm-title="@${esc(t.handle)} ablehnen?" data-klar-confirm-variant="warn" data-klar-confirm-ok="Ablehnen">
+            <input type="hidden" name="id" value="${esc(t.id)}"/>
+            <input type="text" name="reason" maxlength="280" placeholder="Grund (optional, intern)" style="padding:5px 8px;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:5px;color:var(--fg);min-width:200px"/>
+            <label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--fg-2);cursor:pointer;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em" title="Influencer auf Suppression-Liste setzen">
+              <input type="checkbox" name="suppress" value="1" checked style="cursor:pointer"/>
+              Suppress
+            </label>
+            <button type="submit" class="btn" style="padding:5px 11px;font-size:11px;background:#475569;border-color:#475569">Ablehnen</button>
+          </form>
+        </details>`
+      : "";
+
+    const deleteForm = `<form method="POST" action="/admin/outreach/delete" style="display:inline" data-klar-confirm="Lead wird komplett aus der Outreach-Tabelle entfernt. Falls bereits eine Mail rausging, bleibt die in der Inbox des Influencers." data-klar-confirm-title="@${esc(t.handle)} löschen?" data-klar-confirm-variant="danger" data-klar-confirm-ok="Lead löschen">
       <input type="hidden" name="id" value="${esc(t.id)}"/>
       <button type="submit" class="btn ghost" style="padding:4px 9px;font-size:11px;color:var(--danger)" title="Hard delete">✕</button>
     </form>`;
@@ -832,7 +887,7 @@ async function outreachView(
       <td class="r"><span title="Total Views">${fmtBigNum(t.total_views_estimate)}</span>${t.avg_views_per_post ? `<div class="muted" style="font-size:10px">Ø ${fmtBigNum(t.avg_views_per_post)}/post</div>` : ""}${t.engagement_rate_pct ? `<div class="muted" style="font-size:10px">${t.engagement_rate_pct}% eng.</div>` : ""}</td>
       <td>${apps}</td>
       <td>${statusPill(t.status)}<div class="muted" style="font-size:10px;margin-top:2px">${fmtRelative(t.updated_at)}</div></td>
-      <td class="r" style="white-space:nowrap">${actionForms} ${mailForm} ${deleteForm}</td>
+      <td class="r" style="white-space:nowrap">${actionForms} ${mailForm} ${declineForm} ${deleteForm}</td>
     </tr>
     <tr data-edit-for="${esc(t.id)}" style="display:none"><td colspan="7" style="padding:8px 14px;background:var(--surface-2)">
       <form method="POST" action="/admin/outreach/update-metrics" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">
@@ -1113,9 +1168,21 @@ getklar.org`;
             f.appendChild(hidden);
           }
           if (usd >= 2.00) {
-            var ok = window.confirm('Diese Welle kostet geschätzt $' + usd.toFixed(2) + ' Apify-Spend. Wirklich starten?');
-            if (!ok) { ev.preventDefault(); return; }
-            hidden.value = '1';
+            if (f.dataset.klarConfirmed === '1') {
+              f.dataset.klarConfirmed = '';
+              hidden.value = '1';
+              return; // allow native submit
+            }
+            ev.preventDefault();
+            window.klarConfirm({
+              title: 'Welle wirklich starten?',
+              body: 'Geschätzter Apify-Spend: $' + usd.toFixed(2) + '. Wird sofort ausgeführt.',
+              variant: 'warn',
+              confirmText: 'Welle starten',
+            }).then(function(ok){
+              if (ok) { hidden.value = '1'; f.dataset.klarConfirmed = '1'; f.requestSubmit ? f.requestSubmit() : f.submit(); }
+            });
+            return;
           } else {
             hidden.value = '';
           }
@@ -1555,6 +1622,7 @@ getklar.org`;
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px">${segPlatform}${segStatus}</div>
     <div style="margin-bottom:18px">${segApp}</div>
     <h2>Targets <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${rows.length} angezeigt${q ? ` · Suche: <em>${esc(q)}</em>` : ""}</span></h2>
+    ${testsToggle}
     <table>
       <thead><tr><th>Lead</th><th>Plattform</th><th class="r">Follower</th><th class="r">Views</th><th>Apps</th><th>Status</th><th class="r">Aktionen</th></tr></thead>
       <tbody>${tableBody}</tbody>
@@ -1562,7 +1630,18 @@ getklar.org`;
     ${suppressionSection}`;
 }
 
-async function inboxView(typeFilter: string, sourceFilter: string, showDeclined: boolean): Promise<string> {
+// Heuristik: Eintrag stammt vermutlich aus internem Self-Test.
+// Halten wir bewusst eng (Owner-Email + bekannte Test-Handles), damit ein
+// echter Influencer mit "test" im Namen nicht versehentlich versteckt wird.
+const isTestInquiry = (r: Inquiry): boolean => {
+  const email = (r.email ?? "").toLowerCase();
+  const handle = (r.handle ?? "").toLowerCase();
+  if (email === "alainkessler04@gmail.com") return true;
+  if (handle.includes("selftest") || handle === "klar_test" || handle === "@bombo") return true;
+  return false;
+};
+
+async function inboxView(typeFilter: string, sourceFilter: string, showDeclined: boolean, showTests: boolean): Promise<string> {
   if (!KLAR_INBOX_KEY)
     return `<h1>Inbox</h1><p class="sub muted">Fast fertig, es fehlt nur der Lese-Key. Setze <span class="warn">KLAR_INBOX_SERVICE_KEY</span> im klar-Vercel-Projekt (Wert: anime-vault &rarr; Settings &rarr; API &rarr; <em>service_role</em>). Optional <span class="warn">KLAR_INBOX_SUPABASE_URL</span>. Anfragen werden schon dauerhaft gespeichert, nur die Anzeige hier braucht den Key.</p>`;
   let rowsAll: Inquiry[] = [];
@@ -1595,8 +1674,10 @@ async function inboxView(typeFilter: string, sourceFilter: string, showDeclined:
     if (effectiveType !== "all" && r.type !== effectiveType) return false;
     if (effectiveSource !== "all" && (r.source ?? "") !== effectiveSource) return false;
     if (!showDeclined && r.status === "declined") return false;
+    if (!showTests && isTestInquiry(r)) return false;
     return true;
   });
+  const nTests = rowsAll.filter(isTestInquiry).length;
 
   // Build aggregate counts so filter tabs/pills show live totals.
   const totalsByType: Record<string, number> = { all: rowsAll.length, affiliate: 0, consulting: 0 };
@@ -1618,7 +1699,7 @@ async function inboxView(typeFilter: string, sourceFilter: string, showDeclined:
 
   // Filter UI: type-tabs (Alle / Affiliate / Consulting) + source-pills below.
   const buildHref = (t: string, s: string) =>
-    `/admin?view=inbox${t !== "all" ? `&type=${t}` : ""}${s !== "all" ? `&source=${encodeURIComponent(s)}` : ""}${showDeclined ? `&show_declined=1` : ""}`;
+    `/admin?view=inbox${t !== "all" ? `&type=${t}` : ""}${s !== "all" ? `&source=${encodeURIComponent(s)}` : ""}${showDeclined ? `&show_declined=1` : ""}${showTests ? `&show_tests=1` : ""}`;
   const tabBtn = (t: string, label: string, count: number) => `<a class="nav ${effectiveType === t ? "on" : ""}" href="${buildHref(t, effectiveSource)}" style="padding:8px 14px;border-radius:8px">${esc(label)} <span class="muted" style="margin-left:6px;font-size:11px">${count}</span></a>`;
   const typeTabs = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px 0">
     ${tabBtn("all", "Alle", totalsByType.all)}
@@ -1716,7 +1797,7 @@ async function inboxView(typeFilter: string, sourceFilter: string, showDeclined:
     if (r.status === "new") {
       return `<details style="display:inline-block">
         <summary style="cursor:pointer;padding:6px 12px;font-size:11px;font-family:var(--font-mono);font-weight:600;color:var(--fg-3);text-transform:uppercase;letter-spacing:.04em;border:1px solid var(--line);border-radius:6px;user-select:none;list-style:none">✕ Ablehnen</summary>
-        <form method="POST" action="/admin/decline" style="display:flex;gap:6px;align-items:center;margin-top:8px;padding:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px" onsubmit="return confirm('Anfrage als abgelehnt markieren?')">
+        <form method="POST" action="/admin/decline" style="display:flex;gap:6px;align-items:center;margin-top:8px;padding:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px" data-klar-confirm="Status wird auf 'abgelehnt' gesetzt. Mit ↺ jederzeit wieder öffnen." data-klar-confirm-title="Anfrage ablehnen?" data-klar-confirm-variant="warn" data-klar-confirm-ok="Ablehnen">
           <input type="hidden" name="inquiry_id" value="${esc(r.id)}"/>
           <input type="hidden" name="action" value="decline"/>
           <input type="text" name="reason" maxlength="280" placeholder="Grund (optional, intern)" style="padding:5px 8px;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:5px;color:var(--fg);min-width:220px"/>
@@ -1886,24 +1967,31 @@ async function inboxView(typeFilter: string, sourceFilter: string, showDeclined:
     </article>`;
   };
 
-  const declinedToggleHref = (() => {
+  const buildToggleHref = (target: "declined" | "tests") => {
     const base = `/admin?view=inbox`;
     const parts: string[] = [];
     if (effectiveType !== "all") parts.push(`type=${effectiveType}`);
     if (effectiveSource !== "all") parts.push(`source=${encodeURIComponent(effectiveSource)}`);
-    if (!showDeclined) parts.push("show_declined=1");
+    if (target === "declined" ? !showDeclined : showDeclined) parts.push("show_declined=1");
+    if (target === "tests" ? !showTests : showTests) parts.push("show_tests=1");
     return parts.length ? `${base}&${parts.join("&")}` : base;
-  })();
+  };
   const declinedToggle = nDeclined > 0
     ? `<div style="margin-top:16px;padding:12px 16px;background:var(--surface-2);border:1px dashed var(--line);border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
         <span class="muted" style="font-size:12px;font-family:var(--font-mono);letter-spacing:.04em">${showDeclined ? "✕" : "•"} ${nDeclined} abgelehnt${showDeclined ? " (eingeblendet)" : " (versteckt)"}</span>
-        <a class="applink" href="${declinedToggleHref}" style="font-size:12px">${showDeclined ? "verstecken" : "zeigen"} →</a>
+        <a class="applink" href="${buildToggleHref("declined")}" style="font-size:12px">${showDeclined ? "verstecken" : "zeigen"} →</a>
+      </div>`
+    : "";
+  const testsToggle = nTests > 0
+    ? `<div style="margin-top:10px;padding:12px 16px;background:var(--surface-2);border:1px dashed var(--line);border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <span class="muted" style="font-size:12px;font-family:var(--font-mono);letter-spacing:.04em">${showTests ? "⚙" : "•"} ${nTests} Test-Eintrag${nTests === 1 ? "" : "e"}${showTests ? " (eingeblendet)" : " (versteckt)"}</span>
+        <a class="applink" href="${buildToggleHref("tests")}" style="font-size:12px">${showTests ? "verstecken" : "zeigen"} →</a>
       </div>`
     : "";
 
   const body = rows.length
-    ? `<div style="display:flex;flex-direction:column;gap:14px;margin-top:8px">${rows.map(renderCard).join("")}</div>${declinedToggle}`
-    : `<div style="background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:48px 24px;text-align:center"><div style="font-family:var(--font-mono);font-size:11px;color:var(--fg-4);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">leer</div><span class="muted" style="font-size:13px">Keine Anfragen in dieser Auswahl.${effectiveType !== "all" || effectiveSource !== "all" ? ` <a class="applink" href="/admin?view=inbox">Filter zurücksetzen</a>` : ""}</span></div>${declinedToggle}`;
+    ? `<div style="display:flex;flex-direction:column;gap:14px;margin-top:8px">${rows.map(renderCard).join("")}</div>${testsToggle}${declinedToggle}`
+    : `<div style="background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:48px 24px;text-align:center"><div style="font-family:var(--font-mono);font-size:11px;color:var(--fg-4);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">leer</div><span class="muted" style="font-size:13px">Keine Anfragen in dieser Auswahl.${effectiveType !== "all" || effectiveSource !== "all" ? ` <a class="applink" href="/admin?view=inbox">Filter zurücksetzen</a>` : ""}</span></div>${testsToggle}${declinedToggle}`;
 
   const consultingHint = effectiveType === "consulting"
     ? `<p class="sub muted" style="margin:0 0 16px;font-size:13px">Consulting-Calls aus Cal.com (consulting + coaching event types) erscheinen unter <a class="applink" href="/admin?view=bookings">Bookings</a>. Hier nur die schriftlichen Anfragen vom Kontaktformular.</p>`
@@ -2298,13 +2386,15 @@ export async function GET(req: Request): Promise<Response> {
     // Auto-Refresh default-OFF (full-page reload reisst aus Scroll-Position).
     // ?ar=1 schaltet es opt-in ein. Persistiert via URL state.
     const ar = url.searchParams.get("ar") === "1";
-    main = await outreachView(p, s, a, q, ar);
+    const showTests = url.searchParams.get("show_tests") === "1";
+    main = await outreachView(p, s, a, q, ar, showTests);
   }
   else if (view === "inbox") {
     const typeFilter = url.searchParams.get("type") ?? "all";
     const sourceFilter = url.searchParams.get("source") ?? "all";
     const showDeclined = url.searchParams.get("show_declined") === "1";
-    main = await inboxView(typeFilter, sourceFilter, showDeclined);
+    const showTests = url.searchParams.get("show_tests") === "1";
+    main = await inboxView(typeFilter, sourceFilter, showDeclined, showTests);
   }
   else if (view === "bookings") main = await bookingsView();
   else if (view === "cal") main = calView();

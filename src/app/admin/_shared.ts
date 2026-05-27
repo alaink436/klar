@@ -278,17 +278,55 @@ iframe{width:100%;height:88vh;border:0;display:block}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:160ms}
 input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border-color:var(--fg);box-shadow:0 0 0 3px color-mix(in oklab,var(--fg) 12%,transparent)}
 
-.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(800px 400px at 80% -10%,color-mix(in oklab,var(--fg) 4%,transparent),transparent),radial-gradient(600px 300px at 10% 110%,color-mix(in oklab,var(--fg) 3%,transparent),transparent),var(--bg)}
-.login-card{width:100%;max-width:380px;text-align:center;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-lg);padding:44px 36px;box-shadow:var(--shadow-lg)}
-.login-badge{display:flex;align-items:center;justify-content:center;width:44px;height:44px;margin:0 auto 20px;border-radius:var(--radius);background:var(--surface-2);color:var(--fg-2)}
-.login-mark{font-family:var(--font-display);font-weight:800;font-size:52px;letter-spacing:-.035em;line-height:1;color:var(--fg)}
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(800px 400px at 80% -10%,color-mix(in oklab,var(--fg) 4%,transparent),transparent),radial-gradient(600px 300px at 10% 110%,color-mix(in oklab,var(--fg) 3%,transparent),transparent),var(--bg);position:relative}
+.login-card{width:100%;max-width:420px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-lg);padding:40px 38px 32px;box-shadow:var(--shadow-lg);position:relative}
+.login-head{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+.login-badge{display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:14px;background:var(--surface-2);color:var(--fg-2);overflow:hidden;flex-shrink:0;border:1px solid var(--line)}
+[data-theme="dark"] .login-badge{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10);box-shadow:0 1px 0 rgba(255,255,255,.06) inset}
+.login-badge img{width:30px;height:30px;object-fit:contain;display:block}
+.login-head-text{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.login-eyebrow{font-family:var(--font-mono);color:var(--fg-3);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.18em}
+.login-mark{font-family:var(--font-display);font-weight:800;font-size:30px;letter-spacing:-.025em;line-height:1;color:var(--fg)}
 .login-mark .dot{color:var(--fg-3)}
-.login-tag{font-family:var(--font-editorial);font-style:italic;font-size:16px;color:var(--fg-3);margin:10px 0 0}
-.login-rule{height:1px;background:var(--line);margin:24px 0 22px}
-.login-err{font-family:var(--font-mono);color:var(--danger);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin:0 0 14px}
-.login-input{width:100%;padding:12px 14px;border:1px solid var(--line-strong);background:var(--bg);color:var(--fg);font-size:14px;font-family:var(--font-mono);letter-spacing:.03em;border-radius:var(--radius-sm);transition:border-color .15s,box-shadow .15s}
+.login-tag{font-family:var(--font-editorial);font-style:italic;font-size:17px;color:var(--fg-2);margin:0 0 26px;line-height:1.4}
+.login-err{display:flex;align-items:center;gap:10px;background:color-mix(in oklab,var(--danger) 10%,transparent);border:1px solid color-mix(in oklab,var(--danger) 30%,var(--line));border-radius:8px;padding:10px 14px;color:var(--fg);font-size:13px;line-height:1.4;margin:0 0 16px}
+.login-err::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--danger);flex-shrink:0}
+.login-field{display:flex;flex-direction:column;gap:6px}
+.login-label{font-family:var(--font-mono);color:var(--fg-3);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;padding-left:2px}
+.login-input{width:100%;padding:12px 14px;border:1px solid var(--line-strong);background:var(--bg);color:var(--fg);font-size:14px;font-family:var(--font-body);border-radius:var(--radius-sm);transition:border-color .15s,box-shadow .15s,background .15s}
 .login-input::placeholder{color:var(--fg-4)}
-.login-foot{font-family:var(--font-mono);color:var(--fg-4);font-size:10px;letter-spacing:.18em;text-transform:uppercase;margin-top:24px}
+.login-input:focus{border-color:var(--fg);background:var(--surface);box-shadow:0 0 0 3px color-mix(in oklab,var(--fg) 12%,transparent)}
+.login-input.code{font-family:var(--font-mono);letter-spacing:.5em;text-align:center;font-size:22px;padding:14px 14px;font-weight:600}
+.login-input.code::placeholder{letter-spacing:.3em;font-weight:400;font-size:14px}
+.login-submit{width:100%;justify-content:center;padding:13px 16px;margin-top:6px;font-size:14px;font-weight:600;letter-spacing:.01em;font-family:var(--font-body)}
+.login-foot{margin-top:24px;padding-top:18px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.login-foot-text{font-family:var(--font-mono);color:var(--fg-4);font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+.login-meta{position:absolute;top:18px;right:18px;display:flex;gap:8px;align-items:center;z-index:2}
+@media(max-width:520px){.login-card{padding:32px 24px 26px}.login-mark{font-size:26px}.login-badge{width:44px;height:44px;border-radius:12px}.login-badge img{width:24px;height:24px}}
+
+/* ===== Custom confirm/alert modal — replaces window.confirm in admin ===== */
+.klar-modal-back{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(8,8,8,.42);backdrop-filter:blur(10px) saturate(120%);-webkit-backdrop-filter:blur(10px) saturate(120%);opacity:0;transition:opacity .18s ease}
+.klar-modal-back.on{display:flex;opacity:1}
+.klar-modal-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:26px 28px 22px;transform:translateY(8px) scale(.985);transition:transform .22s cubic-bezier(.2,.7,.3,1),box-shadow .22s ease;text-align:left;font-family:var(--font-body);color:var(--fg)}
+[data-theme="dark"] .klar-modal-card{backdrop-filter:blur(28px) saturate(120%);-webkit-backdrop-filter:blur(28px) saturate(120%);background:rgba(17,17,17,.72);border:1px solid rgba(255,255,255,.12);box-shadow:0 1px 0 rgba(255,255,255,.10) inset,0 40px 80px -20px rgba(0,0,0,.7)}
+.klar-modal-back.on .klar-modal-card{transform:translateY(0) scale(1)}
+.klar-modal-eyebrow{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-3);margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.klar-modal-eyebrow::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--fg-3)}
+.klar-modal-card.danger .klar-modal-eyebrow{color:var(--danger)}
+.klar-modal-card.danger .klar-modal-eyebrow::before{background:var(--danger)}
+.klar-modal-card.warn .klar-modal-eyebrow{color:var(--warning)}
+.klar-modal-card.warn .klar-modal-eyebrow::before{background:var(--warning)}
+.klar-modal-title{font-family:var(--font-display);font-weight:700;font-size:21px;letter-spacing:-.015em;line-height:1.18;margin:0 0 10px;color:var(--fg)}
+.klar-modal-body{font-family:var(--font-body);font-size:14px;line-height:1.55;color:var(--fg-2);margin:0 0 22px;white-space:pre-line}
+.klar-modal-body code{font-family:var(--font-mono);font-size:12.5px;background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 7px;color:var(--fg)}
+.klar-modal-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.klar-modal-actions .btn{padding:9px 18px;font-size:13px;border-radius:var(--radius-sm);min-width:104px;justify-content:center}
+.klar-modal-actions .btn.ghost{background:var(--surface);color:var(--fg-2);border:1px solid var(--line-strong)}
+.klar-modal-actions .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+[data-theme="dark"] .klar-modal-actions .btn.danger{box-shadow:0 4px 14px -4px rgba(220,38,38,.45),0 1px 0 rgba(255,255,255,.18) inset}
+.klar-modal-actions .btn.danger:hover{opacity:.92}
+@media(prefers-reduced-motion:reduce){.klar-modal-back,.klar-modal-card{transition:none}}
+@media(max-width:520px){.klar-modal-card{padding:22px 20px 18px}.klar-modal-title{font-size:19px}.klar-modal-actions{flex-direction:column-reverse}.klar-modal-actions .btn{width:100%}}
 
 /* ===== Liquid Glass Layer (dark-mode only, smoke-bg behind glass cards) ===== */
 /* Smoke canvas: full-viewport, fixed behind everything, fades to 0 in light mode */
@@ -341,6 +379,124 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
  h1{font-size:26px}
 }
 `;
+
+// Custom confirm modal — single DOM node, reused per call. Mounted once in
+// the body of every admin page. The JS helper takes over forms with
+// data-klar-confirm-* attributes and intercepts their submit until the
+// user clicks the primary action. Replaces all window.confirm() calls.
+export const MODAL_HTML = `<div class="klar-modal-back" id="klar-modal" role="dialog" aria-modal="true" aria-labelledby="klar-modal-title" aria-describedby="klar-modal-body" hidden>
+  <div class="klar-modal-card" data-klar-card>
+    <p class="klar-modal-eyebrow" data-klar-eyebrow>Bestätigung</p>
+    <h2 class="klar-modal-title" id="klar-modal-title" data-klar-title>Wirklich fortfahren?</h2>
+    <div class="klar-modal-body" id="klar-modal-body" data-klar-body></div>
+    <div class="klar-modal-actions">
+      <button type="button" class="btn ghost" data-klar-cancel>Abbrechen</button>
+      <button type="button" class="btn" data-klar-ok autofocus>Bestätigen</button>
+    </div>
+  </div>
+</div>`;
+
+export const MODAL_SCRIPT = String.raw`(function(){
+  var back = document.getElementById('klar-modal');
+  if (!back) return;
+  var card = back.querySelector('[data-klar-card]');
+  var elTitle = back.querySelector('[data-klar-title]');
+  var elBody = back.querySelector('[data-klar-body]');
+  var elEye = back.querySelector('[data-klar-eyebrow]');
+  var btnOk = back.querySelector('[data-klar-ok]');
+  var btnCancel = back.querySelector('[data-klar-cancel]');
+  var lastFocused = null;
+  var current = null; // { resolve }
+
+  function close(result){
+    if (!current) return;
+    var r = current.resolve;
+    current = null;
+    back.classList.remove('on');
+    back.setAttribute('hidden','');
+    document.body.style.overflow = '';
+    if (lastFocused && lastFocused.focus) { try { lastFocused.focus(); } catch(e){} }
+    r(result);
+  }
+
+  function open(opts){
+    return new Promise(function(resolve){
+      if (current) { current.resolve(false); current = null; }
+      current = { resolve: resolve };
+      var o = opts || {};
+      var variant = o.variant || 'default'; // default | danger | warn
+      var eye = o.eyebrow || (variant === 'danger' ? 'Achtung' : variant === 'warn' ? 'Hinweis' : 'Bestätigung');
+      elEye.textContent = eye;
+      elTitle.textContent = o.title || 'Wirklich fortfahren?';
+      // body can include simple <code> escaped html; we accept either text or
+      // pre-escaped html via 'html: true' opt.
+      if (o.html) { elBody.innerHTML = o.body || ''; } else { elBody.textContent = o.body || ''; }
+      btnOk.textContent = o.confirmText || (variant === 'danger' ? 'Löschen' : 'Bestätigen');
+      btnCancel.textContent = o.cancelText || 'Abbrechen';
+      card.classList.remove('danger','warn');
+      if (variant === 'danger') card.classList.add('danger');
+      if (variant === 'warn') card.classList.add('warn');
+      btnOk.classList.remove('danger');
+      if (variant === 'danger') btnOk.classList.add('danger');
+      lastFocused = document.activeElement;
+      back.removeAttribute('hidden');
+      // force reflow so transition runs
+      void back.offsetWidth;
+      back.classList.add('on');
+      document.body.style.overflow = 'hidden';
+      setTimeout(function(){ try { btnOk.focus(); } catch(e){} }, 30);
+    });
+  }
+
+  btnOk.addEventListener('click', function(){ close(true); });
+  btnCancel.addEventListener('click', function(){ close(false); });
+  back.addEventListener('click', function(e){ if (e.target === back) close(false); });
+  document.addEventListener('keydown', function(e){
+    if (!current) return;
+    if (e.key === 'Escape') { e.preventDefault(); close(false); }
+    if (e.key === 'Enter' && document.activeElement !== btnCancel) { e.preventDefault(); close(true); }
+  });
+
+  // Public API
+  window.klarConfirm = open;
+
+  // Form helper: stick data-klar-confirm-* attrs on a <form> instead of
+  // onsubmit="return confirm(...)" and the helper handles it.
+  // Supported attrs:
+  //   data-klar-confirm        — body text (required to opt in)
+  //   data-klar-confirm-title  — title
+  //   data-klar-confirm-variant — 'danger' | 'warn' | 'default'
+  //   data-klar-confirm-ok     — primary button label
+  //   data-klar-confirm-cancel — cancel button label
+  function bind(form){
+    if (form.__klarBound) return;
+    form.__klarBound = true;
+    form.addEventListener('submit', function(ev){
+      if (form.dataset.klarConfirmed === '1') {
+        form.dataset.klarConfirmed = '';
+        return; // allow native submit
+      }
+      ev.preventDefault();
+      open({
+        title: form.getAttribute('data-klar-confirm-title') || undefined,
+        body: form.getAttribute('data-klar-confirm') || '',
+        variant: form.getAttribute('data-klar-confirm-variant') || 'default',
+        confirmText: form.getAttribute('data-klar-confirm-ok') || undefined,
+        cancelText: form.getAttribute('data-klar-confirm-cancel') || undefined,
+      }).then(function(ok){
+        if (ok) { form.dataset.klarConfirmed = '1'; form.requestSubmit ? form.requestSubmit() : form.submit(); }
+      });
+    });
+  }
+  function scan(){
+    var forms = document.querySelectorAll('form[data-klar-confirm]');
+    for (var i = 0; i < forms.length; i++) bind(forms[i]);
+  }
+  scan();
+  // Late-rendered forms: rescan on DOM mutations within main.
+  var mo = new MutationObserver(function(){ scan(); });
+  mo.observe(document.body, { childList: true, subtree: true });
+})();`;
 
 export const FONTS_LINK =
   `https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Fraunces:ital@0;1&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap`;
