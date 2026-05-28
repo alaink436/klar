@@ -119,7 +119,7 @@ async function unclaimInquiry(inquiryId: string): Promise<void> {
   });
 }
 
-async function sendOnboardingMail(args: {
+export async function sendOnboardingMail(args: {
   to: string;
   appSlug: string;
   handle: string;

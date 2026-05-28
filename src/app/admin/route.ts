@@ -10,6 +10,7 @@
 // Env: KLAR_ADMIN_KEY, KLAR_ADMIN_APPS (JSON registry, see lib/adminApps).
 
 import { getApps, sbGet, setupLandingUrl, listInfluencers, type AdminApp, type InfluencerRow } from "../../lib/adminApps";
+import { getTrackingUrl, type BrandKey } from "../affiliate/_shared/brands";
 import { KLAR_APPS, type KlarAppMeta } from "../../lib/klarApps";
 import {
   getOutreachStats,
@@ -46,6 +47,60 @@ import {
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+// App-Slug → Brand-Key (siehe api/affiliate/complete + affiliate-create).
+const APP_TO_BRAND: Record<string, BrandKey> = {
+  "yarn-stash": "yarnstash",
+  moto: "throttleup",
+  wavelength: "wavelength",
+  kelva: "kelva",
+  trubel: "trubel",
+  myloo: "myloo",
+};
+// Apps deren Tracking über influencer_codes läuft (Shape B). Bei denen ist der
+// Tracking-Slug der interne Code, sonst der Handle.
+const SHAPE_B_APPS = new Set(["yarn-stash", "moto", "kelva"]);
+
+// Deterministische Code-Ableitung aus dem Handle, identisch zu affiliate-create
+// + api/affiliate/complete, damit der Tracking-Link auch ohne gesetztes
+// promo_code rekonstruierbar ist.
+function deriveCode(handle: string): string {
+  const c = handle.toUpperCase().replace(/[^A-Z0-9_.-]/g, "").slice(0, 32);
+  return c.length >= 2 ? c : "";
+}
+
+// Fertiger Tracking-Link für eine Affiliate-Zeile, oder "" wenn die App keine
+// Brand-Zuordnung hat.
+function trackingLinkFor(app: AdminApp, row: InfluencerRow): string {
+  const brand = APP_TO_BRAND[app.slug];
+  if (!brand) return "";
+  const slug = SHAPE_B_APPS.has(app.slug)
+    ? (row.promo_code || deriveCode(row.handle))
+    : row.handle;
+  return slug ? getTrackingUrl(brand, slug) : "";
+}
+
+// "Affiliate selbst anlegen (DM)"-Formular. App ist implizit (hidden), weil es
+// pro App-View gerendert wird. Wird sowohl im Empty-State als auch über der
+// Affiliate-Tabelle eingehängt.
+function createAffiliateForm(app: AdminApp): string {
+  const lab = "display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px";
+  const inp = "margin-top:3px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;color:var(--fg);font-size:13px";
+  return `<details style="margin:0 0 22px">
+    <summary style="cursor:pointer;padding:9px 14px;background:var(--surface-2);border:1px solid var(--line-strong);border-radius:8px;font-size:11px;color:var(--fg-2);font-weight:700;text-transform:uppercase;letter-spacing:0.6px;user-select:none;display:inline-block">+ Affiliate selbst anlegen (DM)</summary>
+    <form method="POST" action="/admin/affiliate-create" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:14px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;margin-top:8px">
+      <input type="hidden" name="app" value="${esc(app.slug)}"/>
+      <label style="${lab}">Handle<input type="text" name="handle" required maxlength="64" placeholder="username" style="${inp};width:150px"/></label>
+      <label style="${lab}">Email <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">· optional</span><input type="email" name="email" maxlength="120" placeholder="leer = nur Link" style="${inp};width:200px"/></label>
+      <label style="${lab}">Display<input type="text" name="display_name" maxlength="64" style="${inp};width:150px"/></label>
+      <label style="${lab}">Lang<select name="language" style="${inp};width:70px"><option value="de" selected>DE</option><option value="en">EN</option><option value="fr">FR</option><option value="es">ES</option><option value="it">IT</option></select></label>
+      <label style="${lab}">Share %<input type="number" name="share_pct" min="1" max="100" step="1" value="50" style="${inp};width:70px"/></label>
+      <label style="${lab}">Months<input type="number" name="share_months" min="1" max="60" step="1" value="24" style="${inp};width:70px"/></label>
+      <button type="submit" class="btn" style="padding:8px 16px;font-size:13px">Anlegen + Links →</button>
+    </form>
+    <p class="muted" style="margin:8px 2px 0;font-size:11px;max-width:62ch">Legt einen <strong>pending</strong> Affiliate an und mintet den Tracking-Link sofort. Auszahlungsdaten holt der Influencer übers Onboarding nach. Mit Email geht die Onboarding-Mail automatisch raus, ohne Email bekommst du nur den Link zum Reinpasten in die DM.</p>
+  </details>`;
+}
 
 // Auth lives in _shared.ts (checkAuth) — requires KLAR_ADMIN_KEY +
 // KLAR_TOTP_SECRET + KLAR_DEVICE_SECRET. /admin/login handles the form.
@@ -383,6 +438,7 @@ async function appView(app: AdminApp): Promise<string> {
   if (inf.length === 0 && claim.length === 0 && batches.length === 0 && outreachTargets.length === 0)
     return `<h1>${esc(app.name)}</h1>
       <p class="sub">Noch keine Affiliates aktiv für ${esc(app.name)}. Schema ist ausgerollt und bereit.</p>
+      ${createAffiliateForm(app)}
       <div class="card" style="margin-top:18px;padding:20px;max-width:560px">
         <div class="k" style="margin-bottom:8px">So kommt der erste Affiliate rein</div>
         <ol class="muted" style="margin:0 0 14px 18px;padding:0;line-height:1.7;font-size:13px">
@@ -462,8 +518,13 @@ async function appView(app: AdminApp): Promise<string> {
         <button type="submit" class="btn ghost" style="padding:3px 9px;font-size:11px;color:var(--success)">Reaktivieren</button>
       </form>`);
     }
-    // Hard delete nur erlauben wenn pending (kein referral/event history yet)
+    // Rotate (neuen Onboarding-Link erzeugen) + Hard delete nur bei pending.
     if (i.status === "pending") {
+      buttons.push(`<form method="POST" action="/admin/affiliate-rotate" style="display:inline" data-klar-confirm="Erzeugt einen neuen Onboarding-Link (7 Tage gültig). Der alte Link wird sofort ungültig." data-klar-confirm-title="@${handle} Link rotieren?" data-klar-confirm-variant="warn" data-klar-confirm-ok="Rotieren">
+        <input type="hidden" name="app" value="${slug}"/>
+        <input type="hidden" name="handle" value="${handle}"/>
+        <button type="submit" class="btn ghost" style="padding:3px 9px;font-size:11px">Rotate</button>
+      </form>`);
       buttons.push(`<form method="POST" action="/admin/influencer/delete" style="display:inline" data-klar-confirm="Geht nur wenn keine referrals/events existieren. Bei Active oder Suspended bitte ban statt delete." data-klar-confirm-title="@${handle} hart löschen?" data-klar-confirm-variant="danger" data-klar-confirm-ok="Endgültig löschen">
         <input type="hidden" name="app" value="${slug}"/>
         <input type="hidden" name="handle" value="${handle}"/>
@@ -484,8 +545,17 @@ async function appView(app: AdminApp): Promise<string> {
             ? `<span class="pill" style="background:#fee2e2;color:#991b1b;font-size:9px">Token expired</span>`
             : `<span class="pill" style="background:#dbeafe;color:#1e40af;font-size:9px">invited</span>`
           : "";
+        const onboardingUrl = i.status === "pending" && i.setup_token && !setupExpired
+          ? setupLandingUrl(app.slug, i.setup_token)
+          : "";
+        const trackingUrl = trackingLinkFor(app, i);
+        const copyBtn = (label: string, url: string): string =>
+          `<button type="button" class="btn ghost" title="${esc(url)}" style="padding:2px 8px;font-size:10px" onclick="navigator.clipboard.writeText('${url}').then(()=>this.textContent='&#10003; ${label}').catch(()=>this.textContent='copy failed')">Copy ${label}</button>`;
+        const links = onboardingUrl || trackingUrl
+          ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${onboardingUrl ? copyBtn("Onboarding", onboardingUrl) : ""}${trackingUrl ? copyBtn("Tracking", trackingUrl) : ""}</div>`
+          : "";
         return `<tr>
-          <td>${esc(i.handle)}<div class="muted" style="font-size:11px">${esc(i.display_name ?? "")}${i.promo_code ? ` · code <strong>${esc(i.promo_code)}</strong>` : ""}</div></td>
+          <td>${esc(i.handle)}<div class="muted" style="font-size:11px">${esc(i.display_name ?? "")}${i.promo_code ? ` · code <strong>${esc(i.promo_code)}</strong>` : ""}</div>${links}</td>
           <td>${infStatusPill(i.status)} ${setupBadge}</td>
           <td>${esc(i.contact_email ?? "—")}</td>
           <td>${esc(i.payout_method ?? "—")}<div class="muted" style="font-size:11px">${esc(i.country ?? "")}</div></td>
@@ -555,6 +625,7 @@ async function appView(app: AdminApp): Promise<string> {
 
   return `<h1>${esc(app.name)}</h1><p class="sub">Affiliate-Salden, Auszahlungen und Affiliates für ${esc(app.name)}.</p>${cards}
     <form method="POST" action="/admin/reconcile" style="margin:0 0 18px"><input type="hidden" name="app" value="${esc(app.slug)}"/><button class="btn ghost" type="submit">Status aktualisieren · Wise nach DB</button></form>
+    ${createAffiliateForm(app)}
     <h2>Affiliates <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${inf.length} Einträge</span></h2>
     <table>
       <thead><tr><th>Handle</th><th>Status</th><th>Email</th><th>Auszahlung</th><th class="r">Share</th><th class="r">Aktionen</th></tr></thead>
