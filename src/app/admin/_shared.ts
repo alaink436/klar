@@ -172,7 +172,7 @@ export function adminSidebar(
     ${item("brain", "AI-Brain", ICON.brain, "/admin/brain")}
     <div class="navsec">Affiliate</div>
     ${item("revenue", "Einnahmen", ICON.revenue, "/admin/revenue")}
-    ${item("payouts", "Auszahlungen", ICON.payouts)}
+    ${item("payouts", "Auszahlungen", ICON.payouts, "/admin/payouts")}
     ${appNav || `<span class="nav muted"><span class="d">${ICON.app}</span>keine Apps</span>`}
     <div class="navsec">Extern</div>
     ${item("outreach", "Outreach", ICON.outreach)}

@@ -32,7 +32,7 @@ function back(msg: string): Response {
   return new Response(null, {
     status: 303,
     headers: {
-      Location: `/admin?view=payouts&msg=${encodeURIComponent(msg.slice(0, 600))}`,
+      Location: `/admin/payouts?msg=${encodeURIComponent(msg.slice(0, 600))}`,
     },
   });
 }
