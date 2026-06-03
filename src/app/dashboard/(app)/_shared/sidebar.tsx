@@ -40,11 +40,18 @@ const ICON_USER = (
     <path d="M4 21c0-4 4-7 8-7s8 3 8 7" />
   </svg>
 );
+const ICON_BRAIN = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 7v13" />
+    <path d="M3 5.5C3 4.7 3.7 4 4.5 4H9a3 3 0 0 1 3 3 3 3 0 0 1 3-3h4.5c.8 0 1.5.7 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5H15a3 3 0 0 0-3 1.5 3 3 0 0 0-3-1.5H4.5A1.5 1.5 0 0 1 3 18z" />
+  </svg>
+);
 
 const NAV: NavItem[] = [
   { href: "/dashboard",          label: "Overview", icon: ICON_GRID },
   { href: "/dashboard/earnings", label: "Earnings", icon: ICON_COIN },
   { href: "/dashboard/funnel",   label: "Funnel",   icon: ICON_FUNNEL },
+  { href: "/dashboard/brain",    label: "Brain",    icon: ICON_BRAIN },
   { href: "/dashboard/account",  label: "Account",  icon: ICON_USER },
 ];
 
