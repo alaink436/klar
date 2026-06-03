@@ -1960,10 +1960,10 @@ getklar.org`;
     // Eingehende Reply (mode "reply") bzw. "noch keine Antwort"-Hinweis
     // (mode "awaiting").
     const incoming = awaiting
-      ? `<div style="background:var(--surface-2);border-left:3px solid var(--line);border-radius:6px;padding:10px 12px;margin:10px 0">
+      ? `<div style="background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin:10px 0">
           <div class="muted" style="font-size:12px;font-style:italic">Noch keine Antwort. Kontaktiert ${esc(whenRel)}${t.mails_sent ? ` · ${t.mails_sent} Mail(s) gesendet` : ""}. Sobald geantwortet wird, erscheint hier der volle Text mit Übersetzen-Button.</div>
         </div>`
-      : `<div style="background:var(--surface-2);border-left:3px solid var(--line-strong);border-radius:6px;padding:10px 12px;margin:10px 0">
+      : `<div style="background:var(--surface-2);border:1px solid var(--line-strong);border-radius:6px;padding:10px 12px;margin:10px 0">
           ${t.reply_subject ? `<div style="font-weight:600;font-size:12px;margin-bottom:4px">${esc(t.reply_subject)}</div>` : ""}
           ${
             t.last_message

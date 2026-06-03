@@ -199,7 +199,7 @@ h1{font-family:var(--font-display);font-weight:800;font-size:clamp(34px,4.6vw,52
 h2{font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-3);margin:32px 0 12px;display:flex;align-items:center;gap:10px}
 h2::after{content:"";flex:1;height:1px;background:var(--line)}
 
-.flash{border:1px solid var(--line-strong);border-left:3px solid var(--fg);padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:24px;font-size:13.5px;background:var(--surface);box-shadow:var(--shadow-sm);color:var(--fg-2)}
+.flash{border:1px solid var(--line-strong);padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:24px;font-size:13.5px;background:var(--surface-2);box-shadow:var(--shadow-sm);color:var(--fg-2)}
 
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:28px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;position:relative;overflow:hidden}
