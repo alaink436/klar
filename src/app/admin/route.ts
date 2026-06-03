@@ -32,7 +32,6 @@ import {
 import { getApifyAccountStatus } from "../../lib/apifyAccount";
 import { getBrevoQuota } from "../../lib/brevoQuota";
 import { REPLY_TEMPLATES, replyLang, type ReplyLang } from "../../lib/replyTemplates";
-import { isTranslateConfigured } from "../../lib/translate";
 import {
   STYLE,
   ICON,
@@ -1689,7 +1688,26 @@ getklar.org`;
       const bx = new Date(b.last_message_at || b.replied_at || b.updated_at).getTime();
       return bx - ax;
     });
-  const canTranslate = isTranslateConfigured();
+  // "Offene Anfragen": bereits kontaktiert (dm_sent / mail1/2_sent), aber noch
+  // keine Antwort und nicht in einem Endzustand. Gleiche Karten-Optik wie die
+  // Replies, damit man den Eingangs-Look an echten Daten sieht. Aktionen sind
+  // real (Nachfassen-Mail / Annehmen / Ablehnen). Auf 24 gedeckelt.
+  const TERMINAL = new Set(["replied", "converted", "declined", "dead"]);
+  const openTargets = allTargets
+    .filter(
+      (t) =>
+        !TERMINAL.has(t.status) &&
+        (t.status === "dm_sent" ||
+          t.mail_status === "mail1_sent" ||
+          t.mail_status === "mail2_sent"),
+    )
+    .filter((t) => showTests || !isTestTarget(t))
+    .sort((a, b) => {
+      const ax = new Date(a.last_mail_at || a.mail1_sent_at || a.contacted_at || a.updated_at).getTime();
+      const bx = new Date(b.last_mail_at || b.mail1_sent_at || b.contacted_at || b.updated_at).getTime();
+      return bx - ax;
+    })
+    .slice(0, 24);
 
   // Template-Lookup für den Client (lang -> id -> {subject, body}). `<` wird
   // escaped, damit der JSON-Blob den <script>-Kontext nicht sprengen kann.
@@ -1720,7 +1738,11 @@ getklar.org`;
       .join("");
 
   const LANG_OK = /^(de|en|fr|es|it|nl|pt|pl)$/;
-  const replyCard = (t: OutreachTarget): string => {
+  // mode "reply" = echte Antwort eingegangen; "awaiting" = kontaktiert, noch
+  // keine Antwort (gleiche Optik, aber kein Reply-Text/Übersetzung, Composer
+  // standardmäßig zugeklappt = "Nachfassen").
+  const replyCard = (t: OutreachTarget, mode: "reply" | "awaiting" = "reply"): string => {
+    const awaiting = mode === "awaiting";
     const name = t.display_name || t.handle;
     const tplLang = replyLang(t.language);
     const acceptLang = LANG_OK.test((t.language ?? "").toLowerCase())
@@ -1746,11 +1768,9 @@ getklar.org`;
     const platLabel = t.platform === "tiktok" ? "TikTok" : "Instagram";
     const hasEmail = Boolean(t.contact_email);
     const toEmail = t.contact_email ?? "";
-    const whenRel = t.last_message_at
-      ? fmtRelative(t.last_message_at)
-      : t.replied_at
-        ? fmtRelative(t.replied_at)
-        : fmtRelative(t.updated_at);
+    const whenRel = awaiting
+      ? fmtRelative(t.last_mail_at || t.mail1_sent_at || t.contacted_at || t.updated_at)
+      : fmtRelative(t.last_message_at || t.replied_at || t.updated_at);
 
     // Annehmen: App-Auswahl aus for_apps[] (fallback alle Apps).
     const acceptApps = t.for_apps && t.for_apps.length > 0 ? t.for_apps : KLAR_APPS.map((a) => a.slug);
@@ -1763,27 +1783,30 @@ getklar.org`;
             </select>
           </label>`;
 
-    // Eingehende Reply.
-    const incoming = `<div style="background:var(--surface-2);border-left:3px solid var(--line-strong);border-radius:6px;padding:10px 12px;margin:10px 0">
-      ${t.reply_subject ? `<div style="font-weight:600;font-size:12px;margin-bottom:4px">${esc(t.reply_subject)}</div>` : ""}
-      ${
-        t.last_message
-          ? `<div class="reply-incoming" data-raw="${esc(rawForTrans)}" data-src-lang="${esc(tplLang)}" style="white-space:pre-wrap;font-size:13px;color:var(--fg);font-family:var(--font-body)">${esc(t.last_message)}</div>`
-          : `<div class="muted" style="font-size:12px;font-style:italic">Kein Reply-Text erfasst (Status wurde manuell auf "Antwort" gesetzt).</div>`
-      }
-      ${
-        t.last_message && canTranslate
-          ? `<div style="margin-top:8px"><button type="button" class="btn ghost" style="padding:3px 9px;font-size:11px" onclick="klarTranslate(this)">DE übersetzen</button><div class="reply-trans muted" style="margin-top:6px;font-size:12px;white-space:pre-wrap"></div></div>`
-          : t.last_message
-            ? `<div class="muted" style="margin-top:6px;font-size:10px;font-style:italic">Übersetzen aktiv sobald <code>DEEPL_API_KEY</code> in Vercel gesetzt ist.</div>`
-            : ""
-      }
-    </div>`;
+    // Eingehende Reply (mode "reply") bzw. "noch keine Antwort"-Hinweis
+    // (mode "awaiting").
+    const incoming = awaiting
+      ? `<div style="background:var(--surface-2);border-left:3px solid var(--line);border-radius:6px;padding:10px 12px;margin:10px 0">
+          <div class="muted" style="font-size:12px;font-style:italic">Noch keine Antwort. Kontaktiert ${esc(whenRel)}${t.mails_sent ? ` · ${t.mails_sent} Mail(s) gesendet` : ""}. Sobald geantwortet wird, erscheint hier der volle Text mit Übersetzen-Button.</div>
+        </div>`
+      : `<div style="background:var(--surface-2);border-left:3px solid var(--line-strong);border-radius:6px;padding:10px 12px;margin:10px 0">
+          ${t.reply_subject ? `<div style="font-weight:600;font-size:12px;margin-bottom:4px">${esc(t.reply_subject)}</div>` : ""}
+          ${
+            t.last_message
+              ? `<div class="reply-incoming" data-raw="${esc(rawForTrans)}" data-src-lang="${esc(tplLang)}" style="white-space:pre-wrap;font-size:13px;color:var(--fg);font-family:var(--font-body)">${esc(t.last_message)}</div>`
+              : `<div class="muted" style="font-size:12px;font-style:italic">Kein Reply-Text erfasst (Status wurde manuell auf "Antwort" gesetzt).</div>`
+          }
+          ${
+            t.last_message
+              ? `<div style="margin-top:8px"><button type="button" class="btn ghost" style="padding:3px 9px;font-size:11px" onclick="klarTranslate(this)">DE übersetzen</button><div class="reply-trans muted" style="margin-top:6px;font-size:12px;white-space:pre-wrap"></div></div>`
+              : ""
+          }
+        </div>`;
 
     // Antwort-Composer.
-    const composer = `<details open style="margin-top:4px">
-      <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--fg-2);user-select:none">Antworten (Mail)</summary>
-      <form method="POST" action="/admin/outreach/reply" style="margin-top:10px;display:flex;flex-direction:column;gap:8px" data-klar-confirm="Mail geht sofort an ${esc(toEmail)}. Status bleibt auf 'Antwort', der Influencer wird dadurch NICHT angenommen." data-klar-confirm-title="Antwort an @${esc(t.handle)} senden?" data-klar-confirm-ok="Senden">
+    const composer = `<details ${awaiting ? "" : "open"} style="margin-top:4px">
+      <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--fg-2);user-select:none">${awaiting ? "Nachfassen (Mail)" : "Antworten (Mail)"}</summary>
+      <form method="POST" action="/admin/outreach/reply" style="margin-top:10px;display:flex;flex-direction:column;gap:8px" data-klar-confirm="Mail geht sofort an ${esc(toEmail)}. Status bleibt ${awaiting ? "unverändert (kontaktiert)" : "auf 'Antwort'"}, der Influencer wird dadurch NICHT angenommen." data-klar-confirm-title="${awaiting ? "Nachfass-Mail" : "Antwort"} an @${esc(t.handle)} senden?" data-klar-confirm-ok="Senden">
         <input type="hidden" name="id" value="${esc(t.id)}"/>
         <input type="hidden" name="to" value="${esc(toEmail)}"/>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -1833,6 +1856,7 @@ getklar.org`;
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           ${profileLink}
           <span class="pill" style="font-size:9px;padding:1px 6px">${platLabel}</span>
+          ${awaiting ? `<span class="pill" style="font-size:8px;padding:1px 5px">wartet</span>` : ""}
           ${fLabel ? `<span class="muted" style="font-size:11px;font-family:var(--font-mono)">${esc(fLabel)}</span>` : ""}
           ${t.display_name ? `<span class="muted" style="font-size:11px">${esc(t.display_name)}</span>` : ""}
           ${(t.for_apps ?? []).map((a) => `<span class="pill" style="font-size:8px;padding:1px 5px">${esc(a)}</span>`).join(" ")}
@@ -1883,9 +1907,24 @@ function klarCopyDraft(btn){
       : `<h2 style="margin-top:8px">Eingegangene Antworten <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${replyTargets.length} offen · Antwort ≠ angenommen</span></h2>
         <p class="sub muted" style="margin:0 0 14px">Voller Reply-Text, Übersetzung nach DE, Antwort per Vorlage oder frei. Der Onboarding-Link geht erst über "Als Affiliate annehmen" raus.</p>
         <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:8px">
-          ${replyTargets.map(replyCard).join("")}
-        </div>
-        <script>${repliesInboxJs}</script>`;
+          ${replyTargets.map((t) => replyCard(t)).join("")}
+        </div>`;
+
+  // Offene Anfragen in derselben Karten-Optik (kontaktiert, wartet auf Antwort).
+  const openInbox =
+    openTargets.length === 0
+      ? ""
+      : `<h2 style="margin-top:18px">Offene Anfragen <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${openTargets.length} kontaktiert · wartet auf Antwort</span></h2>
+        <p class="sub muted" style="margin:0 0 14px">Bereits angeschriebene Influencer ohne Antwort, in derselben Optik wie ein echter Eingang. Antwortet jemand, wandert die Karte hoch zu "Eingegangene Antworten" mit vollem Text und Übersetzen-Button. Hier kannst du nachfassen, direkt annehmen oder ablehnen.</p>
+        <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:8px">
+          ${openTargets.map((t) => replyCard(t, "awaiting")).join("")}
+        </div>`;
+
+  // Shared Inbox-JS einmal einbinden, sobald irgendeine Sektion Karten zeigt.
+  const inboxJs =
+    replyTargets.length > 0 || openTargets.length > 0
+      ? `<script>${repliesInboxJs}</script>`
+      : "";
 
   return `${refreshMeta}<h1>Outreach</h1>
     <p class="sub">Influencer-Outreach-Tracker. <em>Queued → DM gesendet → Antwort → Converted</em>. Auto-Refresh ${autoRefresh ? "alle 15s" : "aus"}, Daten aus Supabase anime-vault.</p>
@@ -1894,6 +1933,8 @@ function klarCopyDraft(btn){
     ${cards}
     ${costCard}
     ${repliesInbox}
+    ${openInbox}
+    ${inboxJs}
     ${waveForm}
     <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
     ${runsTable}
