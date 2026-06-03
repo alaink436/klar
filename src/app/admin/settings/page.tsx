@@ -32,6 +32,8 @@ import {
   type AdminSettings,
   type AdminInvite,
 } from "../../../lib/adminSettings";
+import { listBrainMembers, type BrainMember } from "@/lib/brainMembers";
+import { availableFolders, SHOWCASE_FOLDERS, type Group } from "@/lib/brainVault";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -192,6 +194,87 @@ function invitesCardHtml(invites: AdminInvite[], origin: string): string {
   `;
 }
 
+function brainAccessCardHtml(members: BrainMember[], folders: Group[]): string {
+  const memberRows = members.length === 0
+    ? `<tr><td colspan="5" class="empty">Noch keine Brain-Mitglieder.</td></tr>`
+    : members
+        .map((m) => {
+          const revoked = Boolean(m.revoked_at);
+          const clearanceBadge =
+            m.clearance === "full"
+              ? `<span class="badge badge-full">voll</span>`
+              : `<span class="badge badge-used">${m.folders.length} Bereiche</span>`;
+          const status = revoked
+            ? `<span class="badge badge-expired">entzogen</span>`
+            : `<span class="badge badge-open">aktiv</span>`;
+          const seen = m.last_seen_at
+            ? new Date(m.last_seen_at).toLocaleDateString("de-CH")
+            : "—";
+          const scope = m.clearance === "full" ? "voller Zugriff" : m.folders.join(", ");
+          const action = revoked
+            ? ""
+            : `<form method="POST" action="/admin/brain-invite" style="display:inline">
+                 <input type="hidden" name="action" value="revoke"/>
+                 <input type="hidden" name="email" value="${esc(m.email)}"/>
+                 <button type="submit" class="btn" style="padding:5px 10px;font-size:12px">Entziehen</button>
+               </form>`;
+          return `
+          <tr>
+            <td><div class="invite-name">${esc(m.email)}</div><div class="invite-mail">${esc(scope)}</div></td>
+            <td>${clearanceBadge}</td>
+            <td>${esc(seen)}</td>
+            <td>${status}</td>
+            <td>${action}</td>
+          </tr>`;
+        })
+        .join("");
+
+  const checks = folders
+    .map((f) => {
+      const checked = SHOWCASE_FOLDERS.includes(f.key) ? "checked" : "";
+      return `<label class="chk">
+        <input type="checkbox" name="folders" value="${esc(f.key)}" ${checked}/>
+        <span class="dot" style="background:${esc(f.color)}"></span>${esc(f.label)} <span style="color:var(--fg-4)">(${f.count})</span>
+      </label>`;
+    })
+    .join("");
+
+  return `
+  <section class="card">
+    <h3>AI-Brain · Zugriff</h3>
+    <p class="card-sub">Lade jemanden ein, das AI-Brain unter /brain zu lesen. Clearance "Voll" = alle Bereiche (ausser Secrets), "Nur Bereiche" = nur die ausgewählten Ordner. Die Person meldet sich danach selbst per Magic-Link unter /brain/login an.</p>
+    <form method="POST" action="/admin/brain-invite" class="settings-form invite-form">
+      <input type="hidden" name="action" value="invite"/>
+      <div class="field-row">
+        <label class="field">
+          <span class="field-label">Email</span>
+          <input type="email" name="email" class="input" required placeholder="person@example.com"/>
+        </label>
+        <label class="field" style="flex:0 0 200px">
+          <span class="field-label">Clearance</span>
+          <select name="clearance" class="select">
+            <option value="brain">Nur Bereiche</option>
+            <option value="full">Voll (alle Ordner)</option>
+          </select>
+        </label>
+      </div>
+      <div class="field">
+        <span class="field-label">Bereiche (bei Clearance "Nur Bereiche")</span>
+        <div class="chk-grid">${checks}</div>
+      </div>
+      <div class="form-foot">
+        <button type="submit" class="btn primary">Zugang erstellen</button>
+      </div>
+    </form>
+
+    <table class="invite-table">
+      <thead><tr><th>Mitglied</th><th>Clearance</th><th>Zuletzt</th><th>Status</th><th></th></tr></thead>
+      <tbody>${memberRows}</tbody>
+    </table>
+  </section>
+  `;
+}
+
 // Local style additions on top of STYLE — toggles, fieldsets, table, flash.
 const SETTINGS_STYLE = `
 .flash{background:var(--surface-2);border:1px solid var(--line);color:var(--fg-2);padding:10px 14px;border-radius:var(--radius-sm);font-size:13.5px;margin:0 0 22px}
@@ -251,6 +334,14 @@ const SETTINGS_STYLE = `
 [data-theme="dark"] .badge-expired{background:#450a0a;color:#fecaca}
 
 .invite-form{margin-bottom:10px}
+
+.chk-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+.chk{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid var(--line);border-radius:999px;background:var(--surface-2);font-size:12.5px;color:var(--fg-2);cursor:pointer;transition:border-color .15s}
+.chk:hover{border-color:var(--line-strong)}
+.chk input{accent-color:var(--accent)}
+.chk .dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+.badge-full{background:#ccfbf1;color:#0f766e}
+[data-theme="dark"] .badge-full{background:#042f2e;color:#5eead4}
 `;
 
 export default async function SettingsPage({
@@ -272,10 +363,12 @@ export default async function SettingsPage({
   if (session !== KEY) redirect("/admin/login");
 
   const sp = await searchParams;
-  const [settings, invites] = await Promise.all([
+  const [settings, invites, brainMembers] = await Promise.all([
     getAdminSettings(),
     listInvites(),
+    listBrainMembers(),
   ]);
+  const brainFolders = availableFolders();
   const origin = originFromHeaders(h);
 
   // Flash bubble. err= shown with danger styling, msg= neutral.
@@ -316,7 +409,7 @@ export default async function SettingsPage({
               für Affiliate-Inquiries, Benachrichtigungs-Trigger und Einladungen
               für neue Admin-Geräte.
             </p>
-            <div dangerouslySetInnerHTML={{ __html: flash + settingsCardHtml(settings, null) + invitesCardHtml(invites, origin) }} />
+            <div dangerouslySetInnerHTML={{ __html: flash + settingsCardHtml(settings, null) + brainAccessCardHtml(brainMembers, brainFolders) + invitesCardHtml(invites, origin) }} />
           </div>
         </main>
       </div>

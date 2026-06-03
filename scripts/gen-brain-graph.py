@@ -21,7 +21,10 @@ import networkx as nx
 VAULT = Path(r"C:\Users\Alain Kessler\AI-Brain")
 OUT = Path(__file__).resolve().parent.parent / "src" / "app" / "data" / "brainGraph.json"
 
-SKIP_DIRS = {".git", "node_modules", ".obsidian", ".trash"}
+# Folders that must never reach the public/site graph. Secrets + Credentials
+# hold keys; excluding them here means their note *names* never ship in
+# brainGraph.json (the file is read by the public landing graph too).
+SKIP_DIRS = {".git", "node_modules", ".obsidian", ".trash", "Secrets", "Credentials"}
 
 # top-level folder -> (label, colour). Restrained palette, distinct on dark.
 GROUPS = {
@@ -241,6 +244,7 @@ for i, rid in enumerate(ids):
         "g": gindex[notes[rid]["group"]],
         "c": rank[i],
         "l": notes[rid]["label"][:48],
+        "p": rid,  # vault-relative path, lets the viewer open the note on click
     })
 
 order_dates = [notes[ids[i]]["date"] for i in order_ids]
