@@ -2853,23 +2853,6 @@ async function payoutsView(apps: AdminApp[]): Promise<string> {
     ${historyTbl}`;
 }
 
-function calView(): string {
-  // Full-bleed iframe of cal.getklar.org. Nginx is configured to send
-  // Content-Security-Policy: frame-ancestors 'self' https://getklar.org so
-  // the embed is permitted. User must sign in once inside the iframe; the
-  // session cookie persists on the cal.getklar.org domain afterwards.
-  return `<div style="margin:-24px -28px -28px -28px;height:calc(100vh - 56px);position:relative">
-    <iframe
-      src="https://cal.getklar.org"
-      title="Cal Admin"
-      style="width:100%;height:100%;border:0;display:block;background:var(--surface)"
-      sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads allow-storage-access-by-user-activation"
-      allow="clipboard-read; clipboard-write; camera; microphone"
-      referrerpolicy="origin"
-    ></iframe>
-  </div>`;
-}
-
 export async function GET(req: Request): Promise<Response> {
   const auth = await checkAuth(req);
   if (!auth.authed) {
@@ -2906,7 +2889,6 @@ export async function GET(req: Request): Promise<Response> {
     main = await inboxView(typeFilter, sourceFilter, showDeclined, showTests);
   }
   else if (view === "bookings") main = await bookingsView();
-  else if (view === "cal") main = calView();
   else if (view === "revenue") main = await revenueView(apps);
   else if (view === "payouts") main = await payoutsView(apps);
   else if (view === "templates") main = await templatesView();
