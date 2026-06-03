@@ -101,6 +101,45 @@ export const ICON: Record<string, string> = {
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v13"/><path d="M3 5.5C3 4.7 3.7 4 4.5 4H9a3 3 0 0 1 3 3 3 3 0 0 1 3-3h4.5c.8 0 1.5.7 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5H15a3 3 0 0 0-3 1.5 3 3 0 0 0-3-1.5H4.5A1.5 1.5 0 0 1 3 18z"/></svg>`,
 };
 
+// Shared admin sidebar — single source of truth for the nav, used by route.ts
+// (HTML views) AND every React admin page (analytics, brain, settings, …) so
+// the rail stays byte-identical everywhere and a view migration only touches
+// ONE link here. Returns the inner HTML of <aside class="side">; callers wrap
+// it (route.ts inlines it, React pages use dangerouslySetInnerHTML).
+//   active: the current view key (marks the matching item ".on")
+//   apps:   the app registry (per-app links); pass getApps()
+export function adminSidebar(
+  active: string,
+  apps: { slug: string; name: string }[],
+): string {
+  const item = (v: string, label: string, icon: string, href?: string) =>
+    `<a class="nav ${active === v ? "on" : ""}" href="${href ?? `/admin?view=${encodeURIComponent(v)}`}"><span class="d">${icon}</span>${esc(label)}</a>`;
+  const appNav = apps.map((a) => item(a.slug, a.name, ICON.app)).join("");
+  return `
+    <a class="brand" href="/admin?view=overview" aria-label="Klar Control Home">
+      <span class="brand-mark"><img src="/logo/klar-symbol.png" alt="" width="40" height="40"/></span>
+      <span class="brand-text"><span class="brand-name">Klar</span><span class="brand-sub">Control</span></span>
+    </a>
+    <div class="navsec">Studio</div>
+    ${item("overview", "Übersicht", ICON.overview)}
+    ${item("inbox", "Inbox", ICON.inbox)}
+    ${item("bookings", "Bookings", ICON.calendar)}
+    ${item("cal", "Cal Admin", ICON.calendar)}
+    ${item("analytics", "Analytics", ICON.analytics, "/admin/analytics")}
+    ${item("brain", "AI-Brain", ICON.brain, "/admin/brain")}
+    <div class="navsec">Affiliate</div>
+    ${item("revenue", "Einnahmen", ICON.revenue)}
+    ${item("payouts", "Auszahlungen", ICON.payouts)}
+    ${appNav || `<span class="nav muted"><span class="d">${ICON.app}</span>keine Apps</span>`}
+    <div class="navsec">Extern</div>
+    ${item("outreach", "Outreach", ICON.outreach)}
+    <a class="nav" href="https://cal.getklar.org" target="_blank" rel="noopener"><span class="d">${ICON.calendar}</span>Cal in neuem Tab <span style="margin-left:auto;font-size:10px;opacity:.6">↗</span></a>
+    <div class="spacer"></div>
+    ${item("settings", "Einstellungen", ICON.lock, "/admin/settings")}
+    <a class="nav logout" href="/admin/logout"><span class="d">${ICON.logout}</span>Logout</a>
+  `;
+}
+
 // Shared CSS for /admin and /admin/analytics. Light by default, dark via
 // prefers-color-scheme or [data-theme]. Inlined as a <style> tag in both
 // routes so there's no extra render-blocking request.

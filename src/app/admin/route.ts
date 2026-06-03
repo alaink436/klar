@@ -44,6 +44,7 @@ import {
   MODAL_SCRIPT,
   checkAuth,
   esc,
+  adminSidebar,
 } from "./_shared";
 
 export const dynamic = "force-dynamic";
@@ -240,38 +241,13 @@ if("serviceWorker"in navigator){addEventListener("load",function(){navigator.ser
 // ICON record is now exported from ./_shared.
 
 function shell(view: string, apps: AdminApp[], flash: string | null, main: string): string {
-  const item = (v: string, label: string, icon: string, href?: string) =>
-    `<a class="nav ${view === v ? "on" : ""}" href="${href ?? `/admin?view=${encodeURIComponent(v)}`}"><span class="d">${icon}</span>${esc(label)}</a>`;
-  const appLinks = apps.map((a) => item(a.slug, a.name, ICON.app)).join("");
   const labels: Record<string, string> = {
     overview: "Übersicht", inbox: "Inbox", bookings: "Bookings", cal: "Cal Admin", revenue: "Einnahmen", payouts: "Auszahlungen", analytics: "Analytics", outreach: "Outreach",
   };
   const here =
     labels[view] ?? apps.find((a) => a.slug === view)?.name ?? "Übersicht";
   return `<div class="layout">
-    <aside class="side">
-      <a class="brand" href="/admin?view=overview" aria-label="Klar Control Home">
-        <span class="brand-mark"><img src="/logo/klar-symbol.png" alt="" width="34" height="34"/></span>
-        <span class="brand-text"><span class="brand-name">Klar</span><span class="brand-sub">Control</span></span>
-      </a>
-      <div class="navsec">Studio</div>
-      ${item("overview", "Übersicht", ICON.overview)}
-      ${item("inbox", "Inbox", ICON.inbox)}
-      ${item("bookings", "Bookings", ICON.calendar)}
-      ${item("cal", "Cal Admin", ICON.calendar)}
-      ${item("analytics", "Analytics", ICON.analytics, "/admin/analytics")}
-      ${item("brain", "AI-Brain", ICON.brain, "/admin/brain")}
-      <div class="navsec">Affiliate</div>
-      ${item("revenue", "Einnahmen", ICON.revenue)}
-      ${item("payouts", "Auszahlungen", ICON.payouts)}
-      ${appLinks || `<span class="nav muted"><span class="d">${ICON.app}</span>keine Apps</span>`}
-      <div class="navsec">Extern</div>
-      ${item("outreach", "Outreach", ICON.outreach)}
-      <a class="nav" href="https://cal.getklar.org" target="_blank" rel="noopener"><span class="d">${ICON.calendar}</span>Cal in neuem Tab <span style="margin-left:auto;font-size:10px;opacity:.6">↗</span></a>
-      <div class="spacer"></div>
-      ${item("settings", "Einstellungen", ICON.lock, "/admin/settings")}
-      <a class="nav logout" href="/admin/logout"><span class="d">${ICON.logout}</span>Logout</a>
-    </aside>
+    <aside class="side">${adminSidebar(view, apps)}</aside>
     <main class="main">
       <div class="topbar">
         <span class="crumb"><b>${esc(here)}</b>${ICON.chevron}<span>Klar Control</span></span>

@@ -19,7 +19,7 @@ import {
   GLASS_SVG_DEFS,
   SMOKE_BG_SCRIPT,
   readCookieFromString,
-  esc,
+  adminSidebar,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps } from "../../../lib/adminApps";
@@ -60,17 +60,6 @@ async function ghContents(path: string): Promise<LoadResult> {
   const b64 = (data.content ?? "").replace(/\n/g, "");
   const text = b64 ? Buffer.from(b64, "base64").toString("utf-8") : "";
   return { kind: "file", name: data.name as string, text };
-}
-
-// Sidebar (HTML string, same approach as analytics/page.tsx so the chrome stays
-// identical to the route.ts views). "AI-Brain" entry marked active here.
-const navItem = (v: string, label: string, icon: string, active: boolean, href?: string) =>
-  `<a class="nav ${active ? "on" : ""}" href="${href ?? `/admin?view=${encodeURIComponent(v)}`}"><span class="d">${icon}</span>${esc(label)}</a>`;
-
-function appLinks(): string {
-  return getApps()
-    .map((a) => navItem(a.slug, a.name, ICON.app, false))
-    .join("");
 }
 
 const FolderIcon = (
@@ -148,27 +137,7 @@ export default async function BrainPage({
 
   const result: LoadResult | null = TOKEN ? await ghContents(cleanPath) : null;
 
-  const sidebar = `
-    <a class="brand" href="/admin?view=overview" aria-label="Klar Control Home">
-      <span class="brand-mark"><img src="/logo/klar-symbol.png" alt="" width="40" height="40"/></span>
-      <span class="brand-text"><span class="brand-name">Klar</span><span class="brand-sub">Control</span></span>
-    </a>
-    <div class="navsec">Studio</div>
-    ${navItem("overview", "Übersicht", ICON.overview, false)}
-    ${navItem("inbox", "Inbox", ICON.inbox, false)}
-    ${navItem("bookings", "Bookings", ICON.calendar, false)}
-    ${navItem("cal", "Cal Admin", ICON.calendar, false)}
-    ${navItem("analytics", "Analytics", ICON.analytics, false, "/admin/analytics")}
-    ${navItem("brain", "AI-Brain", ICON.brain, true, "/admin/brain")}
-    <div class="navsec">Affiliate</div>
-    ${navItem("revenue", "Einnahmen", ICON.revenue, false)}
-    ${appLinks() || `<span class="nav muted"><span class="d">${ICON.app}</span>keine Apps</span>`}
-    <div class="navsec">Extern</div>
-    ${navItem("outreach", "Outreach", ICON.outreach, false)}
-    <a class="nav" href="https://cal.getklar.org" target="_blank" rel="noopener"><span class="d">${ICON.calendar}</span>Cal in neuem Tab <span style="margin-left:auto;font-size:10px;opacity:.6">↗</span></a>
-    <div class="spacer"></div>
-    <a class="nav logout" href="/admin/logout"><span class="d">${ICON.logout}</span>Logout</a>
-  `;
+  const sidebar = adminSidebar("brain", getApps());
   const topbar = `
     <span class="crumb"><b>AI-Brain</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
