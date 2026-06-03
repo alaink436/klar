@@ -16,19 +16,22 @@ export async function POST(req: NextRequest): Promise<Response> {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  let body: { text?: string; target?: string };
+  let body: { text?: string; target?: string; source?: string };
   try {
-    body = (await req.json()) as { text?: string; target?: string };
+    body = (await req.json()) as { text?: string; target?: string; source?: string };
   } catch {
     return NextResponse.json({ ok: false, error: "bad json" }, { status: 400 });
   }
 
   const text = String(body.text ?? "");
   const target = String(body.target ?? "DE");
+  // Quellsprache-Hint (Sprache des Targets) — nur der MyMemory-Fallback nutzt
+  // ihn, Google/DeepL erkennen selbst. Optional.
+  const source = body.source ? String(body.source) : undefined;
   if (!text.trim()) {
     return NextResponse.json({ ok: false, error: "empty" }, { status: 400 });
   }
 
-  const r = await translateText(text, target);
+  const r = await translateText(text, target, source);
   return NextResponse.json(r, { status: r.ok ? 200 : 502 });
 }

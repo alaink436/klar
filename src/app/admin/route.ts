@@ -1768,7 +1768,7 @@ getklar.org`;
       ${t.reply_subject ? `<div style="font-weight:600;font-size:12px;margin-bottom:4px">${esc(t.reply_subject)}</div>` : ""}
       ${
         t.last_message
-          ? `<div class="reply-incoming" data-raw="${esc(rawForTrans)}" style="white-space:pre-wrap;font-size:13px;color:var(--fg);font-family:var(--font-body)">${esc(t.last_message)}</div>`
+          ? `<div class="reply-incoming" data-raw="${esc(rawForTrans)}" data-src-lang="${esc(tplLang)}" style="white-space:pre-wrap;font-size:13px;color:var(--fg);font-family:var(--font-body)">${esc(t.last_message)}</div>`
           : `<div class="muted" style="font-size:12px;font-style:italic">Kein Reply-Text erfasst (Status wurde manuell auf "Antwort" gesetzt).</div>`
       }
       ${
@@ -1862,10 +1862,11 @@ function klarTranslate(btn){
   var src = card.querySelector('.reply-incoming'); var out = card.querySelector('.reply-trans');
   if(!src||!out) return;
   var text = src.getAttribute('data-raw') || src.textContent || '';
+  var srcLang = src.getAttribute('data-src-lang') || '';
   out.textContent = 'Übersetze…';
-  fetch('/admin/outreach/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text,target:'DE'})})
+  fetch('/admin/outreach/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text,target:'DE',source:srcLang})})
     .then(function(r){return r.json();})
-    .then(function(d){ out.textContent = (d&&d.ok) ? ('['+(d.source||'?')+' \\u2192 DE] '+d.text) : ('Übersetzung fehlgeschlagen: '+((d&&d.error)||'?')); })
+    .then(function(d){ out.textContent = (d&&d.ok) ? ('['+(d.source||'?')+' \\u2192 DE'+(d.provider?' · '+d.provider:'')+'] '+d.text) : ('Übersetzung fehlgeschlagen: '+((d&&d.error)||'?')); })
     .catch(function(e){ out.textContent = 'Fehler: '+e; });
 }
 function klarCopyDraft(btn){
