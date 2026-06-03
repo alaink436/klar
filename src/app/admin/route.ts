@@ -45,6 +45,9 @@ import {
   checkAuth,
   esc,
   adminSidebar,
+  REPORTING_CURRENCY,
+  eur,
+  barChart,
 } from "./_shared";
 
 export const dynamic = "force-dynamic";
@@ -181,20 +184,8 @@ function sourcePill(s: string | undefined): string {
   return quietPill(m ? m.label : s, "neutral", "font-size:10px");
 }
 
-// Klar Studio is CH-based, payouts run through Wise from a CHF balance.
-// DB columns are still named `*_eur_cents` for historical reasons (Wavelength's
-// richer schema established the name first); semantically they hold the
-// reporting currency configured below.
-const REPORTING_CURRENCY = process.env.KLAR_REPORTING_CURRENCY ?? "CHF";
-const money = (c: number | null | undefined) =>
-  (Number(c ?? 0) / 100).toLocaleString("de-CH", {
-    style: "currency",
-    currency: REPORTING_CURRENCY,
-  });
-// Back-compat alias so existing eur() callsites stay valid.
-const eur = money;
-
-// STYLE moved to ./_shared.ts so /admin/analytics can reuse it.
+// REPORTING_CURRENCY / money / eur moved to ./_shared.ts so the React admin
+// routes (revenue, payouts) can reuse them. STYLE lives there too.
 
 function doc(inner: string): Response {
   return new Response(
@@ -246,35 +237,7 @@ function shell(view: string, apps: AdminApp[], flash: string | null, main: strin
     </main></div>`;
 }
 
-// Server-rendered SVG grouped bar chart. series: [{label, gross, payout}] in cents.
-// Colours reference --chart-* CSS vars so the chart adapts to light/dark theme.
-function barChart(series: { label: string; gross: number; payout: number }[]): string {
-  if (series.length === 0)
-    return `<div class="chart muted" style="font-size:13px">Noch keine Einnahmen-Daten.</div>`;
-  const W = 1000, H = 260, padL = 60, padB = 34, padT = 14, padR = 14;
-  const cw = (W - padL - padR) / series.length;
-  const max = Math.max(1, ...series.map((d) => Math.max(d.gross, d.payout)));
-  const niceMax = Math.ceil(max / 100) * 100;
-  const y = (v: number) => padT + (H - padT - padB) * (1 - v / niceMax);
-  const gridLines = [0, 0.25, 0.5, 0.75, 1].map((f) => {
-    const val = niceMax * f, yy = y(val);
-    return `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 3"/>
-      <text x="${padL - 8}" y="${yy + 3}" text-anchor="end" font-family="'JetBrains Mono',monospace" font-size="9" fill="var(--fg-3)">${(val / 100).toFixed(0)}</text>`;
-  }).join("");
-  const bars = series.map((d, i) => {
-    const x0 = padL + i * cw;
-    const bw = Math.max(6, cw * 0.30);
-    const gx = x0 + cw / 2 - bw - 3, px = x0 + cw / 2 + 3;
-    const gy = y(Math.max(0, d.gross)), py = y(Math.max(0, d.payout));
-    const base = y(0);
-    return `<rect x="${gx}" y="${gy}" width="${bw}" height="${Math.max(0, base - gy)}" rx="2" fill="var(--chart-1)"/>
-      <rect x="${px}" y="${py}" width="${bw}" height="${Math.max(0, base - py)}" rx="2" fill="var(--chart-2)"/>
-      <text x="${x0 + cw / 2}" y="${H - padB + 16}" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="var(--fg-3)">${esc(d.label)}</text>`;
-  }).join("");
-  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Einnahmen pro Monat">
-    ${gridLines}<line x1="${padL}" y1="${y(0)}" x2="${W - padR}" y2="${y(0)}" stroke="var(--line-strong)" stroke-width="1"/>${bars}</svg>
-    <div class="legend"><span><i style="background:var(--chart-1)"></i>Affiliate-Umsatz</span><span><i style="background:var(--chart-2)"></i>Auszahlung an Affiliates</span><span>${esc(REPORTING_CURRENCY)} pro Monat</span></div></div>`;
-}
+// barChart moved to ./_shared.ts (shared by overview + revenue + payouts).
 
 // Tab strip with all six Klar apps. Apps that are wired up in KLAR_ADMIN_APPS
 // link to /admin?view=<slug>; the rest are dimmed but still visible so the
@@ -487,62 +450,7 @@ async function overview(apps: AdminApp[]): Promise<string> {
     <h2>Affiliate-Stand · Outreach-Funnel pro App</h2>${tbl}`;
 }
 
-async function revenueView(apps: AdminApp[]): Promise<string> {
-  if (apps.length === 0)
-    return `<h1>Einnahmen</h1><p class="sub">Noch keine Apps konfiguriert, darum gibt es hier nichts zu zeigen.</p>`;
-  const monthly = new Map<string, { gross: number; payout: number }>();
-  let totalGross = 0, totalPayout = 0, totalOpen = 0, totalAff = 0;
-
-  const perApp = await Promise.all(apps.map(async (app) => {
-    const [inf, claim, events] = await Promise.all([
-      sbGet(app, "influencers?select=status"),
-      sbGet(app, "influencer_claimable?select=claimable_eur_cents"),
-      sbGet(app, "referral_revenue_events?select=event_at,gross_revenue_cents,share_cents_eur&order=event_at&limit=4000"),
-    ]);
-    let gross = 0, payout = 0;
-    for (const e of events) {
-      const g = Number(e.gross_revenue_cents ?? 0);
-      const p = Number(e.share_cents_eur ?? 0);
-      gross += g; payout += p;
-      const mkey = String(e.event_at ?? "").slice(0, 7);
-      if (mkey) {
-        const m = monthly.get(mkey) ?? { gross: 0, payout: 0 };
-        m.gross += g; m.payout += p;
-        monthly.set(mkey, m);
-      }
-    }
-    const open = claim.reduce((s: number, c: any) => s + Number(c.claimable_eur_cents ?? 0), 0);
-    totalGross += gross; totalPayout += payout; totalOpen += open; totalAff += inf.length;
-    return { app, affiliates: inf.length, gross, payout, open };
-  }));
-
-  const series = [...monthly.entries()].sort((a, b) => a[0].localeCompare(b[0]))
-    .slice(-12)
-    .map(([k, v]) => {
-      const [yy, mm] = k.split("-");
-      return { label: `${mm}/${yy.slice(2)}`, gross: v.gross, payout: v.payout };
-    });
-
-  const cards = `<div class="cards">
-    <div class="card"><div class="k">Affiliate-Umsatz gesamt</div><div class="v">${eur(totalGross)}</div><div class="s">von geworbenen Usern</div></div>
-    <div class="card"><div class="k">Auszahlung an Affiliates</div><div class="v">${eur(totalPayout)}</div><div class="s">verbucht (50% Anteil)</div></div>
-    <div class="card"><div class="k">Davon offen</div><div class="v">${eur(totalOpen)}</div><div class="s">noch nicht ausgezahlt</div></div>
-    <div class="card"><div class="k">Affiliates gesamt</div><div class="v">${totalAff}</div></div>
-  </div>`;
-
-  const tbl = `<table><thead><tr><th>App</th><th class="r">Affiliates</th><th class="r">Affiliate-Umsatz</th><th class="r">Auszahlung verbucht</th><th class="r">Offen</th></tr></thead><tbody>
-    ${perApp.map((r) => `<tr>
-      <td><a class="applink" href="/admin?view=${esc(r.app.slug)}">${esc(r.app.name)}</a></td>
-      <td class="r">${r.affiliates}</td>
-      <td class="r">${eur(r.gross)}</td>
-      <td class="r">${eur(r.payout)}</td>
-      <td class="r">${eur(r.open)}</td>
-    </tr>`).join("")}
-  </tbody></table>`;
-
-  return `<h1>Einnahmen</h1><p class="sub">Affiliate-attribuierter Umsatz pro App und Monat. Nicht der gesamte App-Umsatz, der bräuchte RevenueCat- und Store-Daten als separate Integration.</p>
-    ${cards}<h2>Pro Monat</h2>${barChart(series)}<h2>Pro App</h2>${tbl}`;
-}
+// revenueView migrated to its own React route at /admin/revenue/page.tsx.
 
 async function appView(app: AdminApp): Promise<string> {
   const [inf, claim, batches, outreachTargets] = await Promise.all([
@@ -2792,7 +2700,6 @@ export async function GET(req: Request): Promise<Response> {
     const showTests = url.searchParams.get("show_tests") === "1";
     main = await inboxView(typeFilter, sourceFilter, showDeclined, showTests);
   }
-  else if (view === "revenue") main = await revenueView(apps);
   else if (view === "payouts") main = await payoutsView(apps);
   else if (view === "templates") main = await templatesView();
   else {

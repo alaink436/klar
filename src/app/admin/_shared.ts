@@ -40,6 +40,49 @@ export function esc(s: unknown): string {
     .replace(/'/g, "&#39;");
 }
 
+// Klar Studio is CH-based, payouts run through Wise from a CHF balance.
+// DB columns are still named `*_eur_cents` for historical reasons;
+// semantically they hold the reporting currency configured here.
+export const REPORTING_CURRENCY = process.env.KLAR_REPORTING_CURRENCY ?? "CHF";
+export const money = (c: number | null | undefined) =>
+  (Number(c ?? 0) / 100).toLocaleString("de-CH", {
+    style: "currency",
+    currency: REPORTING_CURRENCY,
+  });
+// Back-compat alias so existing eur() callsites stay valid.
+export const eur = money;
+
+// Server-rendered SVG grouped bar chart. series: [{label, gross, payout}] in cents.
+// Colours reference --chart-* CSS vars so the chart adapts to light/dark theme.
+// Shared by /admin overview + revenue + payouts so the chart stays identical.
+export function barChart(series: { label: string; gross: number; payout: number }[]): string {
+  if (series.length === 0)
+    return `<div class="chart muted" style="font-size:13px">Noch keine Einnahmen-Daten.</div>`;
+  const W = 1000, H = 260, padL = 60, padB = 34, padT = 14, padR = 14;
+  const cw = (W - padL - padR) / series.length;
+  const max = Math.max(1, ...series.map((d) => Math.max(d.gross, d.payout)));
+  const niceMax = Math.ceil(max / 100) * 100;
+  const y = (v: number) => padT + (H - padT - padB) * (1 - v / niceMax);
+  const gridLines = [0, 0.25, 0.5, 0.75, 1].map((f) => {
+    const val = niceMax * f, yy = y(val);
+    return `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 3"/>
+      <text x="${padL - 8}" y="${yy + 3}" text-anchor="end" font-family="'JetBrains Mono',monospace" font-size="9" fill="var(--fg-3)">${(val / 100).toFixed(0)}</text>`;
+  }).join("");
+  const bars = series.map((d, i) => {
+    const x0 = padL + i * cw;
+    const bw = Math.max(6, cw * 0.30);
+    const gx = x0 + cw / 2 - bw - 3, px = x0 + cw / 2 + 3;
+    const gy = y(Math.max(0, d.gross)), py = y(Math.max(0, d.payout));
+    const base = y(0);
+    return `<rect x="${gx}" y="${gy}" width="${bw}" height="${Math.max(0, base - gy)}" rx="2" fill="var(--chart-1)"/>
+      <rect x="${px}" y="${py}" width="${bw}" height="${Math.max(0, base - py)}" rx="2" fill="var(--chart-2)"/>
+      <text x="${x0 + cw / 2}" y="${H - padB + 16}" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="var(--fg-3)">${esc(d.label)}</text>`;
+  }).join("");
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Einnahmen pro Monat">
+    ${gridLines}<line x1="${padL}" y1="${y(0)}" x2="${W - padR}" y2="${y(0)}" stroke="var(--line-strong)" stroke-width="1"/>${bars}</svg>
+    <div class="legend"><span><i style="background:var(--chart-1)"></i>Affiliate-Umsatz</span><span><i style="background:var(--chart-2)"></i>Auszahlung an Affiliates</span><span>${esc(REPORTING_CURRENCY)} pro Monat</span></div></div>`;
+}
+
 // Hardened auth:
 //   1) klar_device cookie must verify against KLAR_DEVICE_SECRET (HMAC).
 //      Without it, the browser is unknown and gets redirected to login.
@@ -128,7 +171,7 @@ export function adminSidebar(
     ${item("analytics", "Analytics", ICON.analytics, "/admin/analytics")}
     ${item("brain", "AI-Brain", ICON.brain, "/admin/brain")}
     <div class="navsec">Affiliate</div>
-    ${item("revenue", "Einnahmen", ICON.revenue)}
+    ${item("revenue", "Einnahmen", ICON.revenue, "/admin/revenue")}
     ${item("payouts", "Auszahlungen", ICON.payouts)}
     ${appNav || `<span class="nav muted"><span class="d">${ICON.app}</span>keine Apps</span>`}
     <div class="navsec">Extern</div>
