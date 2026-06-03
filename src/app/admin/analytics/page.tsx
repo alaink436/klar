@@ -19,7 +19,7 @@ import {
   GLASS_SVG_DEFS,
   SMOKE_BG_SCRIPT,
   readCookieFromString,
-  esc,
+  adminSidebar,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps, sbGet, type AdminApp } from "../../../lib/adminApps";
@@ -209,15 +209,6 @@ function aggregate(rows: RawPageview[], period: Period, since: string): Analytic
   };
 }
 
-function appLinks(): string {
-  return getApps()
-    .map(
-      (a) =>
-        `<a class="nav" href="/admin?view=${encodeURIComponent(a.slug)}"><span class="d">${ICON.app}</span>${esc(a.name)}</a>`,
-    )
-    .join("");
-}
-
 // ===== Funnel data (Stage A) =====
 //
 // For each KLAR_APP (full marketing roster), we want:
@@ -365,10 +356,6 @@ async function buildFunnel(
   return { perApp, totalClicks, totalInstalls, totalPremiums };
 }
 
-function navItem(v: string, label: string, icon: string, on: boolean, href?: string): string {
-  return `<a class="nav ${on ? "on" : ""}" href="${href ?? `/admin?view=${encodeURIComponent(v)}`}"><span class="d">${icon}</span>${esc(label)}</a>`;
-}
-
 function parseTab(t: string | undefined): AnalyticsTab {
   if (t === "affiliate" || t === "funnel") return t;
   return "public";
@@ -426,28 +413,7 @@ export default async function AnalyticsPage({
   const funnel: FunnelPayload =
     tab === "funnel" ? await buildFunnel(rows, since) : EMPTY_FUNNEL;
 
-  const sidebar = `
-    <a class="brand" href="/admin?view=overview" aria-label="Klar Control Home">
-      <span class="brand-mark"><img src="/logo/klar-symbol.png" alt="" width="40" height="40"/></span>
-      <span class="brand-text"><span class="brand-name">Klar</span><span class="brand-sub">Control</span></span>
-    </a>
-    <div class="navsec">Studio</div>
-    ${navItem("overview", "Übersicht", ICON.overview, false)}
-    ${navItem("inbox", "Inbox", ICON.inbox, false)}
-    ${navItem("bookings", "Bookings", ICON.calendar, false)}
-    ${navItem("cal", "Cal Admin", ICON.calendar, false)}
-    ${navItem("analytics", "Analytics", ICON.analytics, true, "/admin/analytics")}
-    ${navItem("brain", "AI-Brain", ICON.brain, false, "/admin/brain")}
-    <div class="navsec">Affiliate</div>
-    ${navItem("revenue", "Einnahmen", ICON.revenue, false)}
-    ${appLinks() || `<span class="nav muted"><span class="d">${ICON.app}</span>keine Apps</span>`}
-    <div class="navsec">Extern</div>
-    ${navItem("outreach", "Outreach", ICON.outreach, false)}
-    <a class="nav" href="https://cal.getklar.org" target="_blank" rel="noopener"><span class="d">${ICON.calendar}</span>Cal in neuem Tab <span style="margin-left:auto;font-size:10px;opacity:.6">↗</span></a>
-    <div class="spacer"></div>
-    ${navItem("settings", "Einstellungen", ICON.lock, false, "/admin/settings")}
-    <a class="nav logout" href="/admin/logout"><span class="d">${ICON.logout}</span>Logout</a>
-  `;
+  const sidebar = adminSidebar("analytics", getApps());
 
   const topbar = `
     <span class="crumb"><b>Analytics</b>${ICON.chevron}<span>Klar Control</span></span>
