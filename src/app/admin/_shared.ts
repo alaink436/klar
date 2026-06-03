@@ -97,6 +97,8 @@ export const ICON: Record<string, string> = {
     `<svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>`,
   calendar:
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+  brain:
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v13"/><path d="M3 5.5C3 4.7 3.7 4 4.5 4H9a3 3 0 0 1 3 3 3 3 0 0 1 3-3h4.5c.8 0 1.5.7 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5H15a3 3 0 0 0-3 1.5 3 3 0 0 0-3-1.5H4.5A1.5 1.5 0 0 1 3 18z"/></svg>`,
 };
 
 // Shared CSS for /admin and /admin/analytics. Light by default, dark via

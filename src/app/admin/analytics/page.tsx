@@ -437,6 +437,7 @@ export default async function AnalyticsPage({
     ${navItem("bookings", "Bookings", ICON.calendar, false)}
     ${navItem("cal", "Cal Admin", ICON.calendar, false)}
     ${navItem("analytics", "Analytics", ICON.analytics, true, "/admin/analytics")}
+    ${navItem("brain", "AI-Brain", ICON.brain, false, "/admin/brain")}
     <div class="navsec">Affiliate</div>
     ${navItem("revenue", "Einnahmen", ICON.revenue, false)}
     ${appLinks() || `<span class="nav muted"><span class="d">${ICON.app}</span>keine Apps</span>`}
