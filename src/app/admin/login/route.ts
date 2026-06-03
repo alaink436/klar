@@ -104,6 +104,11 @@ const LOGIN_THEME_TOGGLE = `<button type="button" class="tbtn" onclick="klarTogg
   <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
 </button>`;
 
+// Slim "back to the public site" link, top-left of the login chrome (mirrors
+// the auth-block convention of a Home affordance). Relative "/" so it works on
+// getklar.org as well as preview hosts.
+const LOGIN_BACK = `<a class="login-back" href="/" title="Zurück zu getklar.org"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>getklar.org</a>`;
+
 function setupHint(): Response {
   const missing = [
     KEY() ? "" : "KLAR_ADMIN_KEY",
@@ -111,6 +116,7 @@ function setupHint(): Response {
     DEVICE_SECRET() ? "" : "KLAR_DEVICE_SECRET",
   ].filter(Boolean);
   return htmlShell(`<div class="login">
+    ${LOGIN_BACK}
     <div class="login-meta">${LOGIN_THEME_TOGGLE}</div>
     <div class="login-card">
       <div class="login-head">
@@ -168,6 +174,7 @@ function renderForm({
       ? "Gerät wird nach erfolgreicher Anmeldung registriert"
       : "TOTP läuft alle 30 Sekunden";
   return htmlShell(`<div class="login">
+    ${LOGIN_BACK}
     <div class="login-meta">${LOGIN_THEME_TOGGLE}</div>
     <div class="login-card">
       <div class="login-head">

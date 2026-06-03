@@ -279,9 +279,10 @@ iframe{width:100%;height:88vh;border:0;display:block}
 input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border-color:var(--fg);box-shadow:0 0 0 3px color-mix(in oklab,var(--fg) 12%,transparent)}
 
 .login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(800px 400px at 80% -10%,color-mix(in oklab,var(--fg) 4%,transparent),transparent),radial-gradient(600px 300px at 10% 110%,color-mix(in oklab,var(--fg) 3%,transparent),transparent),var(--bg);position:relative}
-.login-card{width:100%;max-width:420px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-lg);padding:40px 38px 32px;box-shadow:var(--shadow-lg);position:relative}
+.login-card{width:100%;max-width:430px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-lg);padding:42px 38px 30px;box-shadow:0 1px 0 rgba(255,255,255,.7) inset,var(--shadow-lg);position:relative;overflow:hidden}
+.login-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent) 28%,transparent))}
 .login-head{display:flex;align-items:center;gap:14px;margin-bottom:28px}
-.login-badge{display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:14px;background:var(--surface-2);color:var(--fg-2);overflow:hidden;flex-shrink:0;border:1px solid var(--line)}
+.login-badge{display:flex;align-items:center;justify-content:center;width:54px;height:54px;border-radius:15px;background:var(--surface-2);color:var(--fg-2);overflow:hidden;flex-shrink:0;border:1px solid var(--line);box-shadow:0 6px 18px -8px color-mix(in oklab,var(--fg) 25%,transparent)}
 [data-theme="dark"] .login-badge{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10);box-shadow:0 1px 0 rgba(255,255,255,.06) inset}
 .login-badge img{width:30px;height:30px;object-fit:contain;display:block}
 .login-head-text{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
@@ -299,9 +300,13 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 .login-input.code{font-family:var(--font-mono);letter-spacing:.5em;text-align:center;font-size:22px;padding:14px 14px;font-weight:600}
 .login-input.code::placeholder{letter-spacing:.3em;font-weight:400;font-size:14px}
 .login-submit{width:100%;justify-content:center;padding:13px 16px;margin-top:6px;font-size:14px;font-weight:600;letter-spacing:.01em;font-family:var(--font-body)}
+.login-submit:hover{box-shadow:0 10px 24px -10px color-mix(in oklab,var(--fg) 45%,transparent)}
 .login-foot{margin-top:24px;padding-top:18px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
 .login-foot-text{font-family:var(--font-mono);color:var(--fg-4);font-size:10px;letter-spacing:.16em;text-transform:uppercase}
 .login-meta{position:absolute;top:18px;right:18px;display:flex;gap:8px;align-items:center;z-index:2}
+.login-back{position:absolute;top:18px;left:18px;display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3);text-decoration:none;padding:7px 11px;border-radius:var(--radius-sm);border:1px solid transparent;transition:color .15s,background .15s,border-color .15s;z-index:2}
+.login-back:hover{color:var(--fg);background:var(--surface-2);border-color:var(--line)}
+.login-back svg{width:13px;height:13px}
 @media(max-width:520px){.login-card{padding:32px 24px 26px}.login-mark{font-size:26px}.login-badge{width:44px;height:44px;border-radius:12px}.login-badge img{width:24px;height:24px}}
 
 /* ===== Custom confirm/alert modal — replaces window.confirm in admin ===== */
