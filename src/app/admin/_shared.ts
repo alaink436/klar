@@ -123,7 +123,7 @@ export function adminSidebar(
     <div class="navsec">Studio</div>
     ${item("overview", "Übersicht", ICON.overview)}
     ${item("inbox", "Inbox", ICON.inbox)}
-    ${item("bookings", "Bookings", ICON.calendar)}
+    ${item("bookings", "Bookings", ICON.calendar, "/admin/bookings")}
     ${item("cal", "Cal Admin", ICON.calendar, "/admin/cal")}
     ${item("analytics", "Analytics", ICON.analytics, "/admin/analytics")}
     ${item("brain", "AI-Brain", ICON.brain, "/admin/brain")}

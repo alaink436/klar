@@ -181,20 +181,6 @@ function sourcePill(s: string | undefined): string {
   return quietPill(m ? m.label : s, "neutral", "font-size:10px");
 }
 
-interface CalBooking {
-  cal_uid?: string;
-  trigger_event?: string;
-  event_type_slug?: string;
-  title?: string;
-  start_time?: string;
-  end_time?: string;
-  attendee_email?: string;
-  attendee_name?: string;
-  location?: string;
-  status?: string;
-  created_at?: string;
-}
-
 // Klar Studio is CH-based, payouts run through Wise from a CHF balance.
 // DB columns are still named `*_eur_cents` for historical reasons (Wavelength's
 // richer schema established the name first); semantically they hold the
@@ -2518,88 +2504,6 @@ async function inboxView(typeFilter: string, sourceFilter: string, showDeclined:
     ${hasReplyComposer ? `<script>${REPLY_INBOX_JS}</script>` : ""}`;
 }
 
-async function bookingsView(): Promise<string> {
-  if (!KLAR_INBOX_KEY)
-    return `<h1>Bookings</h1><p class="sub muted">Fast fertig, es fehlt nur der Lese-Key. Setze <span class="warn">KLAR_INBOX_SERVICE_KEY</span> im klar-Vercel-Projekt (Wert: anime-vault &rarr; Settings &rarr; API &rarr; <em>service_role</em>). Cal.com-Webhook schreibt schon nach <code>cal_bookings</code>, nur die Anzeige hier braucht den Key.</p>`;
-
-  let rows: CalBooking[] = [];
-  try {
-    const res = await fetch(
-      `${KLAR_INBOX_URL}/rest/v1/cal_bookings?select=cal_uid,trigger_event,event_type_slug,title,start_time,end_time,attendee_email,attendee_name,location,status,created_at&order=start_time.desc&limit=200`,
-      {
-        headers: {
-          apikey: KLAR_INBOX_KEY,
-          Authorization: `Bearer ${KLAR_INBOX_KEY}`,
-          Accept: "application/json",
-        },
-        cache: "no-store",
-      },
-    );
-    if (!res.ok)
-      return `<h1>Bookings</h1><p class="sub muted">Bookings konnten nicht geladen werden (HTTP ${res.status}). Vermutlich stimmt der hinterlegte service_role-Key nicht, oder die Tabelle <code>cal_bookings</code> ist noch nicht migriert.</p>`;
-    const j = await res.json();
-    rows = Array.isArray(j) ? j : [];
-  } catch {
-    return `<h1>Bookings</h1><p class="sub muted">Netzwerkfehler beim Laden der Bookings.</p>`;
-  }
-
-  const now = Date.now();
-  const dayMs = 24 * 60 * 60 * 1000;
-  const upcoming = rows.filter((r) => {
-    const t = r.start_time ? new Date(r.start_time).getTime() : NaN;
-    return !isNaN(t) && t >= now && r.status !== "CANCELLED";
-  });
-  const past7 = rows.filter((r) => {
-    const t = r.created_at ? new Date(r.created_at).getTime() : NaN;
-    return !isNaN(t) && now - t <= 7 * dayMs;
-  });
-  const cancelled = rows.filter((r) => r.status === "CANCELLED").length;
-
-  const cards = `<div class="cards">
-    <div class="card"><div class="k">Anstehend</div><div class="v">${upcoming.length}</div><div class="s">in der Zukunft</div></div>
-    <div class="card"><div class="k">Letzte 7 Tage</div><div class="v">${past7.length}</div><div class="s">neue Buchungen</div></div>
-    <div class="card"><div class="k">Storniert</div><div class="v">${cancelled}</div></div>
-    <div class="card"><div class="k">Gesamt</div><div class="v">${rows.length}</div><div class="s">letzte 200</div></div>
-  </div>`;
-
-  const fmt = (s: unknown) => {
-    const d = new Date(String(s));
-    return isNaN(d.getTime())
-      ? esc(s)
-      : d.toLocaleString("de-CH", { dateStyle: "medium", timeStyle: "short" });
-  };
-
-  const pillFor = (r: CalBooking): string => {
-    if (r.status === "CANCELLED") return `<span class="pill warn">storniert</span>`;
-    const t = r.start_time ? new Date(r.start_time).getTime() : NaN;
-    if (!isNaN(t) && t >= now) return `<span class="pill live">anstehend</span>`;
-    return `<span class="pill">vergangen</span>`;
-  };
-
-  const body = rows.length
-    ? rows
-        .map(
-          (r) => `<tr>
-        <td class="muted" style="white-space:nowrap">${fmt(r.start_time)}</td>
-        <td>${pillFor(r)}</td>
-        <td>${esc(r.attendee_name || "")} ${r.attendee_email ? `<a class="applink" href="mailto:${esc(r.attendee_email)}">${esc(r.attendee_email)}</a>` : ""}</td>
-        <td class="muted" style="font-size:12px;max-width:380px">${esc(r.title || r.event_type_slug || "")}</td>
-        <td class="muted" style="font-size:12px">${esc(r.location || "")}</td>
-      </tr>`,
-        )
-        .join("")
-    : `<tr><td colspan="5" class="muted">noch keine Buchungen. Cal-Webhook konfiguriert (Settings &rarr; Webhooks &rarr; <code>https://getklar.org/api/cal-webhook</code>)?</td></tr>`;
-
-  return `<h1>Bookings</h1><p class="sub">Cal.com-Buchungen, per Webhook live in Supabase. Anstehende oben.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px 0">
-      <a class="btn" href="https://cal.getklar.org/event-types" target="_blank" rel="noopener">Cal Admin öffnen ↗</a>
-      <a class="btn" style="background:transparent;border:1px solid var(--line-strong);color:var(--fg)" href="https://cal.getklar.org/klar/affiliate-intro" target="_blank" rel="noopener">Booking-Seite ansehen ↗</a>
-      <a class="btn" style="background:transparent;border:1px solid var(--line-strong);color:var(--fg)" href="https://cal.getklar.org/bookings/upcoming" target="_blank" rel="noopener">In Cal verwalten ↗</a>
-    </div>
-    ${cards}
-    <table><thead><tr><th>Wann</th><th>Status</th><th>Gast</th><th>Event</th><th>Ort</th></tr></thead><tbody>${body}</tbody></table>`;
-}
-
 // ============================================================
 // Templates View — per-app outreach templates (hashtags + Mail-1/2
 // subject+body). Editable per (app_slug, language) row. Used by the
@@ -2888,7 +2792,6 @@ export async function GET(req: Request): Promise<Response> {
     const showTests = url.searchParams.get("show_tests") === "1";
     main = await inboxView(typeFilter, sourceFilter, showDeclined, showTests);
   }
-  else if (view === "bookings") main = await bookingsView();
   else if (view === "revenue") main = await revenueView(apps);
   else if (view === "payouts") main = await payoutsView(apps);
   else if (view === "templates") main = await templatesView();
