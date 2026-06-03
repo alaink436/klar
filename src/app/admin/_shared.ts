@@ -40,6 +40,22 @@ export function esc(s: unknown): string {
     .replace(/'/g, "&#39;");
 }
 
+// Relative-time label (de): heute / gestern / vor Nd / vor Nmo / vor Ny.
+// Shared by route.ts (outreach/inbox/appView) + the React overview route.
+export function fmtRelative(ts: string | null): string {
+  if (!ts) return "—";
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return "—";
+  const diff = Date.now() - d.getTime();
+  const days = Math.floor(diff / 86_400_000);
+  if (days < 1) return "heute";
+  if (days < 2) return "gestern";
+  if (days < 30) return `vor ${days}d`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `vor ${months}mo`;
+  return `vor ${Math.floor(months / 12)}y`;
+}
+
 // Klar Studio is CH-based, payouts run through Wise from a CHF balance.
 // DB columns are still named `*_eur_cents` for historical reasons;
 // semantically they hold the reporting currency configured here.
@@ -159,12 +175,12 @@ export function adminSidebar(
     `<a class="nav ${active === v ? "on" : ""}" href="${href ?? `/admin?view=${encodeURIComponent(v)}`}"><span class="d">${icon}</span>${esc(label)}</a>`;
   const appNav = apps.map((a) => item(a.slug, a.name, ICON.app)).join("");
   return `
-    <a class="brand" href="/admin?view=overview" aria-label="Klar Control Home">
+    <a class="brand" href="/admin/overview" aria-label="Klar Control Home">
       <span class="brand-mark"><img src="/logo/klar-symbol.png" alt="" width="40" height="40"/></span>
       <span class="brand-text"><span class="brand-name">Klar</span><span class="brand-sub">Control</span></span>
     </a>
     <div class="navsec">Studio</div>
-    ${item("overview", "Übersicht", ICON.overview)}
+    ${item("overview", "Übersicht", ICON.overview, "/admin/overview")}
     ${item("inbox", "Inbox", ICON.inbox)}
     ${item("bookings", "Bookings", ICON.calendar, "/admin/bookings")}
     ${item("cal", "Cal Admin", ICON.calendar, "/admin/cal")}
