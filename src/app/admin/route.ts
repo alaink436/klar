@@ -31,6 +31,8 @@ import {
 } from "../../lib/outreachStore";
 import { getApifyAccountStatus } from "../../lib/apifyAccount";
 import { getBrevoQuota } from "../../lib/brevoQuota";
+import { REPLY_TEMPLATES, replyLang, type ReplyLang } from "../../lib/replyTemplates";
+import { isTranslateConfigured } from "../../lib/translate";
 import {
   STYLE,
   ICON,
@@ -598,6 +600,7 @@ async function appView(app: AdminApp): Promise<string> {
       <div style="min-width:0;flex:1">
         <div style="display:flex;gap:6px;align-items:center">${profileLink}<span class="pill" style="font-size:8px;padding:1px 5px">${platIcon}</span>${fLabel ? `<span class="muted" style="font-size:10px;font-family:var(--font-mono)">${esc(fLabel)}</span>` : ""}</div>
         ${t.contact_email ? `<div class="muted" style="font-size:10px;margin-top:1px;font-family:var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.contact_email)}</div>` : ""}
+        ${t.last_message ? `<div class="muted" style="font-size:10px;margin-top:2px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(t.last_message)}">↩ ${esc(t.last_message.slice(0, 90))}</div>` : ""}
       </div>
       <div class="muted" style="font-size:10px;white-space:nowrap;text-align:right">${esc(sentRel)}</div>
     </div>`;
@@ -1451,6 +1454,7 @@ getklar.org`;
           ${fLabel ? `<span class="muted" style="font-size:10px;font-family:var(--font-mono)">${esc(fLabel)}</span>` : ""}
         </div>
         ${t.contact_email ? `<div class="muted" style="font-size:10px;margin-top:1px;font-family:var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.contact_email)}</div>` : ""}
+        ${t.last_message ? `<div class="muted" style="font-size:10px;margin-top:2px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(t.last_message)}">↩ ${esc(t.last_message.slice(0, 90))}</div>` : ""}
       </div>
       <div class="muted" style="font-size:10px;white-space:nowrap;text-align:right">${esc(sentRel)}</div>
     </div>`;
@@ -1672,12 +1676,223 @@ getklar.org`;
     </div>
   </details>`;
 
+  // ===== Eingegangene Antworten (Reply-Inbox) =====
+  // Prominenter Block ganz oben: voller Reply-Text, Übersetzung nach DE,
+  // Antwort-Composer (Vorlage oder frei) und die EXPLIZITE Annehmen-Aktion.
+  // Kernregel (User): eine Antwort allein nimmt niemanden an — das passiert
+  // erst über den grünen Annehmen-Button (mintet dann den Onboarding-Link).
+  const replyTargets = allTargets
+    .filter((t) => t.status === "replied")
+    .filter((t) => showTests || !isTestTarget(t))
+    .sort((a, b) => {
+      const ax = new Date(a.last_message_at || a.replied_at || a.updated_at).getTime();
+      const bx = new Date(b.last_message_at || b.replied_at || b.updated_at).getTime();
+      return bx - ax;
+    });
+  const canTranslate = isTranslateConfigured();
+
+  // Template-Lookup für den Client (lang -> id -> {subject, body}). `<` wird
+  // escaped, damit der JSON-Blob den <script>-Kontext nicht sprengen kann.
+  const replyTemplateMap: Record<string, Record<string, { subject: string; body: string }>> = {};
+  for (const lng of Object.keys(REPLY_TEMPLATES) as ReplyLang[]) {
+    replyTemplateMap[lng] = {};
+    for (const tpl of REPLY_TEMPLATES[lng]) {
+      replyTemplateMap[lng][tpl.id] = { subject: tpl.subject, body: tpl.body };
+    }
+  }
+  const replyTemplateJson = JSON.stringify(replyTemplateMap).replace(/</g, "\\u003c");
+
+  // Vorlagen-Dropdown: optgroup pro Sprache, value = "lang:id". Default
+  // selektiert = Interesse-Vorlage in der Sprache des Targets.
+  const templateSelectOptions = (defLang: ReplyLang): string =>
+    (Object.keys(REPLY_TEMPLATES) as ReplyLang[])
+      .map(
+        (lng) =>
+          `<optgroup label="${lng.toUpperCase()}">` +
+          REPLY_TEMPLATES[lng]
+            .map(
+              (tpl) =>
+                `<option value="${esc(lng + ":" + tpl.id)}"${lng === defLang && tpl.id === "interesse" ? " selected" : ""}>${esc(tpl.label)}</option>`,
+            )
+            .join("") +
+          `</optgroup>`,
+      )
+      .join("");
+
+  const LANG_OK = /^(de|en|fr|es|it|nl|pt|pl)$/;
+  const replyCard = (t: OutreachTarget): string => {
+    const name = t.display_name || t.handle;
+    const tplLang = replyLang(t.language);
+    const acceptLang = LANG_OK.test((t.language ?? "").toLowerCase())
+      ? (t.language ?? "de").toLowerCase()
+      : "de";
+    const def = REPLY_TEMPLATES[tplLang][0];
+    const subst = (s: string): string =>
+      s.replace(/\{\{name\}\}/g, name).replace(/\{\{handle\}\}/g, t.handle);
+    const cleanSub = (t.reply_subject ?? "").replace(/^re:\s*/i, "").trim();
+    const defSubject = cleanSub ? `Re: ${cleanSub}` : subst(def.subject);
+    const defBody = subst(def.body);
+    const rawForTrans = `${t.reply_subject ? t.reply_subject + "\n\n" : ""}${t.last_message ?? ""}`.trim();
+    const fLabel = t.follower_estimate
+      ? t.follower_estimate >= 1_000_000
+        ? `${(t.follower_estimate / 1_000_000).toFixed(1)}M`
+        : t.follower_estimate >= 1_000
+          ? `${Math.round(t.follower_estimate / 1_000)}k`
+          : String(t.follower_estimate)
+      : "";
+    const profileLink = t.profile_url
+      ? `<a class="applink" href="${esc(t.profile_url)}" target="_blank" rel="noopener" style="font-weight:700">@${esc(t.handle)}</a>`
+      : `<span style="font-weight:700">@${esc(t.handle)}</span>`;
+    const platLabel = t.platform === "tiktok" ? "TikTok" : "Instagram";
+    const hasEmail = Boolean(t.contact_email);
+    const toEmail = t.contact_email ?? "";
+    const whenRel = t.last_message_at
+      ? fmtRelative(t.last_message_at)
+      : t.replied_at
+        ? fmtRelative(t.replied_at)
+        : fmtRelative(t.updated_at);
+
+    // Annehmen: App-Auswahl aus for_apps[] (fallback alle Apps).
+    const acceptApps = t.for_apps && t.for_apps.length > 0 ? t.for_apps : KLAR_APPS.map((a) => a.slug);
+    const appField =
+      acceptApps.length === 1
+        ? `<input type="hidden" name="app" value="${esc(acceptApps[0])}"/><span class="muted" style="font-size:11px;font-family:var(--font-mono)">App: <strong>${esc(acceptApps[0])}</strong></span>`
+        : `<label style="font-size:11px;color:var(--fg-3);display:inline-flex;align-items:center;gap:4px">App
+            <select name="app" style="padding:5px 8px;border:1px solid var(--line-strong);border-radius:5px;background:var(--bg);color:var(--fg);font-size:12px">
+              ${acceptApps.map((a) => `<option value="${esc(a)}">${esc(a)}</option>`).join("")}
+            </select>
+          </label>`;
+
+    // Eingehende Reply.
+    const incoming = `<div style="background:var(--surface-2);border-left:3px solid var(--line-strong);border-radius:6px;padding:10px 12px;margin:10px 0">
+      ${t.reply_subject ? `<div style="font-weight:600;font-size:12px;margin-bottom:4px">${esc(t.reply_subject)}</div>` : ""}
+      ${
+        t.last_message
+          ? `<div class="reply-incoming" data-raw="${esc(rawForTrans)}" style="white-space:pre-wrap;font-size:13px;color:var(--fg);font-family:var(--font-body)">${esc(t.last_message)}</div>`
+          : `<div class="muted" style="font-size:12px;font-style:italic">Kein Reply-Text erfasst (Status wurde manuell auf "Antwort" gesetzt).</div>`
+      }
+      ${
+        t.last_message && canTranslate
+          ? `<div style="margin-top:8px"><button type="button" class="btn ghost" style="padding:3px 9px;font-size:11px" onclick="klarTranslate(this)">DE übersetzen</button><div class="reply-trans muted" style="margin-top:6px;font-size:12px;white-space:pre-wrap"></div></div>`
+          : t.last_message
+            ? `<div class="muted" style="margin-top:6px;font-size:10px;font-style:italic">Übersetzen aktiv sobald <code>DEEPL_API_KEY</code> in Vercel gesetzt ist.</div>`
+            : ""
+      }
+    </div>`;
+
+    // Antwort-Composer.
+    const composer = `<details open style="margin-top:4px">
+      <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--fg-2);user-select:none">Antworten (Mail)</summary>
+      <form method="POST" action="/admin/outreach/reply" style="margin-top:10px;display:flex;flex-direction:column;gap:8px" data-klar-confirm="Mail geht sofort an ${esc(toEmail)}. Status bleibt auf 'Antwort', der Influencer wird dadurch NICHT angenommen." data-klar-confirm-title="Antwort an @${esc(t.handle)} senden?" data-klar-confirm-ok="Senden">
+        <input type="hidden" name="id" value="${esc(t.id)}"/>
+        <input type="hidden" name="to" value="${esc(toEmail)}"/>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <label style="font-size:11px;color:var(--fg-3);display:inline-flex;align-items:center;gap:4px">Vorlage
+            <select onchange="klarReplyFill(this)" style="padding:5px 8px;border:1px solid var(--line-strong);border-radius:5px;background:var(--bg);color:var(--fg);font-size:12px">
+              ${templateSelectOptions(tplLang)}
+            </select>
+          </label>
+          <span class="muted" style="font-size:11px">an ${hasEmail ? esc(toEmail) : "—"}</span>
+        </div>
+        <input type="text" name="subject" class="reply-subj" value="${esc(defSubject)}" maxlength="300" placeholder="Betreff" style="padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
+        <textarea name="body" class="reply-text" rows="9" maxlength="8000" style="padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-body);resize:vertical">${esc(defBody)}</textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button type="submit" class="btn" style="padding:6px 14px;font-size:12px"${hasEmail ? "" : " disabled title=\"keine contact_email hinterlegt\""}>Senden</button>
+          <button type="button" class="btn ghost" style="padding:6px 12px;font-size:12px" onclick="klarCopyDraft(this)">Entwurf kopieren</button>
+          ${hasEmail ? "" : `<span class="muted" style="font-size:11px;font-style:italic">keine Email → nutze "Entwurf kopieren"</span>`}
+        </div>
+      </form>
+    </details>`;
+
+    // Entscheidung: Annehmen / Ablehnen / Dead.
+    const decision = `<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <form method="POST" action="/admin/outreach/accept" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap" data-klar-confirm="Mintet das Setup${hasEmail ? " und schickt (falls angehakt) den Onboarding-Link per Mail" : ""} und setzt @${esc(t.handle)} auf 'Angenommen'. Erst hierdurch wird der Influencer Affiliate." data-klar-confirm-title="@${esc(t.handle)} als Affiliate annehmen?" data-klar-confirm-ok="Annehmen">
+        <input type="hidden" name="id" value="${esc(t.id)}"/>
+        <input type="hidden" name="handle" value="${esc(t.handle)}"/>
+        <input type="hidden" name="email" value="${esc(toEmail)}"/>
+        <input type="hidden" name="display_name" value="${esc(t.display_name ?? "")}"/>
+        <input type="hidden" name="language" value="${esc(acceptLang)}"/>
+        ${appField}
+        ${hasEmail ? `<label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--fg-2);cursor:pointer"><input type="checkbox" name="send_mail" checked/>Onboarding-Mail senden</label>` : ""}
+        <button type="submit" class="btn" style="padding:6px 14px;font-size:12px;background:#16a34a;border-color:#16a34a">✓ Als Affiliate annehmen</button>
+      </form>
+      <form method="POST" action="/admin/outreach/decline" style="display:inline" data-klar-confirm="Status → declined. @${esc(t.handle)} wird in zukünftigen Wellen übersprungen (Suppression)." data-klar-confirm-title="@${esc(t.handle)} ablehnen?" data-klar-confirm-variant="warn" data-klar-confirm-ok="Ablehnen">
+        <input type="hidden" name="id" value="${esc(t.id)}"/>
+        <input type="hidden" name="suppress" value="1"/>
+        <button type="submit" class="btn ghost" style="padding:6px 11px;font-size:12px">✕ Ablehnen</button>
+      </form>
+      <form method="POST" action="/admin/outreach/update" style="display:inline" data-klar-confirm="Status → dead (Antwort nicht verwertbar, kein Interesse)." data-klar-confirm-title="@${esc(t.handle)} auf Dead?" data-klar-confirm-variant="warn" data-klar-confirm-ok="Dead setzen">
+        <input type="hidden" name="id" value="${esc(t.id)}"/>
+        <input type="hidden" name="status" value="dead"/>
+        <button type="submit" class="btn ghost" style="padding:6px 11px;font-size:12px">Dead</button>
+      </form>
+    </div>`;
+
+    return `<div class="reply-card" data-name="${esc(name)}" data-handle="${esc(t.handle)}" style="background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;padding:14px 16px;box-shadow:var(--shadow-sm)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          ${profileLink}
+          <span class="pill" style="font-size:9px;padding:1px 6px">${platLabel}</span>
+          ${fLabel ? `<span class="muted" style="font-size:11px;font-family:var(--font-mono)">${esc(fLabel)}</span>` : ""}
+          ${t.display_name ? `<span class="muted" style="font-size:11px">${esc(t.display_name)}</span>` : ""}
+          ${(t.for_apps ?? []).map((a) => `<span class="pill" style="font-size:8px;padding:1px 5px">${esc(a)}</span>`).join(" ")}
+        </div>
+        <div class="muted" style="font-size:11px;font-family:var(--font-mono);white-space:nowrap">${esc(whenRel)} · ${esc(tplLang.toUpperCase())}${hasEmail ? ` · ${esc(toEmail)}` : " · keine Email"}</div>
+      </div>
+      ${incoming}
+      ${composer}
+      ${decision}
+    </div>`;
+  };
+
+  const repliesInboxJs = `
+window.KLAR_REPLY_TEMPLATES = ${replyTemplateJson};
+function klarReplyFill(sel){
+  var card = sel.closest('.reply-card'); if(!card) return;
+  var parts = (sel.value||'').split(':'); var set = window.KLAR_REPLY_TEMPLATES[parts[0]];
+  var tpl = set ? set[parts[1]] : null; if(!tpl) return;
+  var name = card.getAttribute('data-name')||''; var handle = card.getAttribute('data-handle')||'';
+  function sub(s){return (s||'').replace(/\\{\\{name\\}\\}/g,name).replace(/\\{\\{handle\\}\\}/g,handle);}
+  var s = card.querySelector('.reply-subj'); var b = card.querySelector('.reply-text');
+  if(s && tpl.subject) s.value = sub(tpl.subject);
+  if(b) b.value = sub(tpl.body);
+}
+function klarTranslate(btn){
+  var card = btn.closest('.reply-card'); if(!card) return;
+  var src = card.querySelector('.reply-incoming'); var out = card.querySelector('.reply-trans');
+  if(!src||!out) return;
+  var text = src.getAttribute('data-raw') || src.textContent || '';
+  out.textContent = 'Übersetze…';
+  fetch('/admin/outreach/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text,target:'DE'})})
+    .then(function(r){return r.json();})
+    .then(function(d){ out.textContent = (d&&d.ok) ? ('['+(d.source||'?')+' \\u2192 DE] '+d.text) : ('Übersetzung fehlgeschlagen: '+((d&&d.error)||'?')); })
+    .catch(function(e){ out.textContent = 'Fehler: '+e; });
+}
+function klarCopyDraft(btn){
+  var card = btn.closest('.reply-card'); if(!card) return;
+  var b = card.querySelector('.reply-text'); if(!b) return;
+  navigator.clipboard.writeText(b.value).then(function(){ var o=btn.textContent; btn.textContent='\\u2713 kopiert'; setTimeout(function(){btn.textContent=o;},1500); }).catch(function(){ btn.textContent='Copy fehlgeschlagen'; });
+}
+`;
+
+  const repliesInbox =
+    replyTargets.length === 0
+      ? `<h2 style="margin-top:8px">Eingegangene Antworten</h2>
+        <p class="sub muted" style="margin:0 0 8px">Keine offenen Antworten. Sobald ein Influencer auf eine Welle antwortet, erscheint er hier mit vollem Text, Übersetzung und Antwort-Composer. <strong>Antwort heisst nicht angenommen</strong>: annehmen passiert erst über den grünen Button.</p>`
+      : `<h2 style="margin-top:8px">Eingegangene Antworten <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${replyTargets.length} offen · Antwort ≠ angenommen</span></h2>
+        <p class="sub muted" style="margin:0 0 14px">Voller Reply-Text, Übersetzung nach DE, Antwort per Vorlage oder frei. Der Onboarding-Link geht erst über "Als Affiliate annehmen" raus.</p>
+        <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:8px">
+          ${replyTargets.map(replyCard).join("")}
+        </div>
+        <script>${repliesInboxJs}</script>`;
+
   return `${refreshMeta}<h1>Outreach</h1>
     <p class="sub">Influencer-Outreach-Tracker. <em>Queued → DM gesendet → Antwort → Converted</em>. Auto-Refresh ${autoRefresh ? "alle 15s" : "aus"}, Daten aus Supabase anime-vault.</p>
     ${apifyAccCard}
     ${brevoQuotaCard}
     ${cards}
     ${costCard}
+    ${repliesInbox}
     ${waveForm}
     <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
     ${runsTable}

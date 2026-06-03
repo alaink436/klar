@@ -336,6 +336,51 @@ export async function markMailSent(id: string): Promise<OutreachTarget> {
   return updated[0];
 }
 
+/**
+ * Markiert ein Target als `converted` (= aus dem Reply ist jetzt explizit ein
+ * Affiliate geworden) und stempelt die App + Onboarding-Artefakte mit. Wird
+ * NUR von der expliziten "Als Affiliate annehmen"-Aktion aufgerufen, nie
+ * automatisch bei einer Antwort. Setzt converted_at + approved_app +
+ * influencer_handle_in_app, optional onboarding_token/link.
+ */
+export async function markConverted(
+  id: string,
+  opts: {
+    appSlug: string;
+    handle: string;
+    onboardingToken?: string | null;
+    onboardingLink?: string | null;
+    notes?: string;
+  },
+): Promise<OutreachTarget> {
+  if (!KLAR_INBOX_KEY) throw new Error("KLAR_INBOX_SERVICE_KEY missing");
+  const now = new Date().toISOString();
+  const patch: Record<string, unknown> = {
+    status: "converted",
+    converted_at: now,
+    approved_app: opts.appSlug,
+    influencer_handle_in_app: opts.handle,
+  };
+  if (opts.onboardingToken !== undefined) patch.onboarding_token = opts.onboardingToken;
+  if (opts.onboardingLink !== undefined) patch.onboarding_link = opts.onboardingLink;
+  if (opts.notes !== undefined) patch.notes = opts.notes;
+  const res = await fetch(
+    `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?id=eq.${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { ...hdr(), Prefer: "return=representation" },
+      body: JSON.stringify(patch),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`markConverted ${res.status}: ${text.slice(0, 200)}`);
+  }
+  const rows = (await res.json()) as OutreachTarget[];
+  if (!rows[0]) throw new Error("markConverted returned no row");
+  return rows[0];
+}
+
 export interface MetricsPatch {
   total_views_estimate?: number | null;
   avg_views_per_post?: number | null;
