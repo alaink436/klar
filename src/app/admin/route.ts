@@ -158,11 +158,26 @@ function sourceLabel(s: string | undefined): string {
   if (!s) return "—";
   return SOURCE_META[s]?.label ?? s;
 }
+// Quiet-Pill-System (impeccable /quieter): EIN neutraler Flächenton für alle
+// Pills, Farbe nur als zurückhaltende Text-Tönung über Tokens (dark-mode-fähig,
+// statt harter Pastell-Fills). 60-30-10: Neutral dominiert, Akzent ist selten.
+type PillTone = "neutral" | "success" | "warning" | "danger" | "info" | "accent";
+const TONE_FG: Record<PillTone, string> = {
+  neutral: "var(--fg-3)",
+  success: "var(--success)",
+  warning: "var(--warning)",
+  danger: "var(--danger)",
+  info: "var(--info)",
+  accent: "var(--fg)",
+};
+function quietPill(label: string, tone: PillTone = "neutral", extra = ""): string {
+  return `<span class="pill" style="background:var(--surface-2);border:1px solid var(--line);color:${TONE_FG[tone]};font-weight:600;${extra}">${esc(label)}</span>`;
+}
+
 function sourcePill(s: string | undefined): string {
-  if (!s) return `<span class="pill muted" style="font-size:10px">unbekannt</span>`;
+  if (!s) return quietPill("unbekannt", "neutral", "font-size:10px");
   const m = SOURCE_META[s];
-  if (!m) return `<span class="pill" style="font-size:10px">${esc(s)}</span>`;
-  return `<span class="pill" style="background:${m.bg};color:${m.fg};border:1px solid ${m.fg}22;font-size:10px;font-weight:600">${esc(m.label)}</span>`;
+  return quietPill(m ? m.label : s, "neutral", "font-size:10px");
 }
 
 interface CalBooking {
@@ -617,16 +632,12 @@ async function appView(app: AdminApp): Promise<string> {
   }).join("");
   // Influencer-Liste mit Suspend/Activate/Hard-Delete-Aktionen
   const infStatusPill = (st: string): string => {
-    const map: Record<string, { bg: string; fg: string }> = {
-      active:    { bg: "#dcfce7", fg: "#166534" },
-      pending:   { bg: "#fef3c7", fg: "#92400e" },
-      suspended: { bg: "#fee2e2", fg: "#991b1b" },
-      banned:    { bg: "#fee2e2", fg: "#991b1b" },
-      paused:    { bg: "#e5e5e5", fg: "#525252" },
-      terminated:{ bg: "#e5e5e5", fg: "#525252" },
-    };
-    const c = map[st] ?? { bg: "#e0e7ff", fg: "#3730a3" };
-    return `<span class="pill" style="background:${c.bg};color:${c.fg};border-color:${c.fg}22;font-weight:600">${esc(st)}</span>`;
+    const tone: PillTone =
+      st === "active" ? "success"
+      : st === "pending" ? "warning"
+      : st === "suspended" || st === "banned" ? "danger"
+      : "neutral";
+    return quietPill(st, tone);
   };
   const infActions = (i: InfluencerRow): string => {
     const slug = esc(app.slug);
@@ -680,8 +691,8 @@ async function appView(app: AdminApp): Promise<string> {
           : false;
         const setupBadge = i.status === "pending" && i.setup_token
           ? setupExpired
-            ? `<span class="pill" style="background:#fee2e2;color:#991b1b;font-size:9px">Token expired</span>`
-            : `<span class="pill" style="background:#dbeafe;color:#1e40af;font-size:9px">invited</span>`
+            ? quietPill("Token expired", "danger", "font-size:9px")
+            : quietPill("invited", "info", "font-size:9px")
           : "";
         const onboardingUrl = i.status === "pending" && i.setup_token && !setupExpired
           ? setupLandingUrl(app.slug, i.setup_token)
@@ -788,18 +799,13 @@ const STATUS_LABEL: Record<OutreachStatus, string> = {
   converted: "Converted",
   dead: "Dead",
 };
-const STATUS_COLOR: Record<OutreachStatus, { bg: string; fg: string }> = {
-  queued:    { bg: "#e0e7ff", fg: "#3730a3" },
-  dm_sent:   { bg: "#fef3c7", fg: "#92400e" },
-  replied:   { bg: "#fce7f3", fg: "#9d174d" },
-  declined:  { bg: "#fee2e2", fg: "#991b1b" },
-  converted: { bg: "#dcfce7", fg: "#166534" },
-  dead:      { bg: "#e5e5e5", fg: "#525252" },
-};
 function statusPill(s: OutreachStatus): string {
-  const c = STATUS_COLOR[s];
-  const l = STATUS_LABEL[s];
-  return `<span class="pill" style="background:${c.bg};color:${c.fg};border-color:${c.fg}22;font-weight:600">${esc(l)}</span>`;
+  const tone: PillTone =
+    s === "converted" ? "success"
+    : s === "replied" ? "warning"
+    : s === "dm_sent" ? "info"
+    : "neutral";
+  return quietPill(STATUS_LABEL[s], tone);
 }
 const PLATFORM_LABEL: Record<OutreachPlatform, string> = {
   tiktok: "TikTok",
@@ -1137,7 +1143,7 @@ async function outreachView(
     const showDecline = t.status === "dm_sent" || t.status === "replied";
     const declineForm = showDecline
       ? `<details style="display:inline-block;vertical-align:middle">
-          <summary style="cursor:pointer;padding:4px 9px;font-size:11px;font-family:var(--font-body);color:var(--fg-3);border:1px solid var(--line);border-radius:6px;user-select:none;list-style:none">✕ Ablehnen</summary>
+          <summary style="cursor:pointer;padding:4px 9px;font-size:11px;font-family:var(--font-body);color:var(--fg-3);border:1px solid var(--line);border-radius:6px;user-select:none;list-style:none">Ablehnen</summary>
           <form method="POST" action="/admin/outreach/decline" style="display:flex;gap:6px;align-items:center;margin-top:6px;padding:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;flex-wrap:wrap" data-klar-confirm="Status wird auf 'declined' gesetzt. Bei aktivierter Suppression wird @${esc(t.handle)} in zukünftigen Wellen übersprungen." data-klar-confirm-title="@${esc(t.handle)} ablehnen?" data-klar-confirm-variant="warn" data-klar-confirm-ok="Ablehnen">
             <input type="hidden" name="id" value="${esc(t.id)}"/>
             <input type="text" name="reason" maxlength="280" placeholder="Grund (optional, intern)" style="padding:5px 8px;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:5px;color:var(--fg);min-width:200px"/>
@@ -1145,7 +1151,7 @@ async function outreachView(
               <input type="checkbox" name="suppress" value="1" checked style="cursor:pointer"/>
               Suppress
             </label>
-            <button type="submit" class="btn" style="padding:5px 11px;font-size:11px;background:#475569;border-color:#475569">Ablehnen</button>
+            <button type="submit" class="btn ghost" style="padding:5px 11px;font-size:11px">Ablehnen</button>
           </form>
         </details>`
       : "";
@@ -1505,30 +1511,20 @@ getklar.org`;
   const phasePill = (r: OutreachRun): string => {
     const p = getPhaseLabel(r);
     if (!p) return "";
-    const palette: Record<typeof p.tone, { bg: string; fg: string }> = {
-      wait:   { bg: "#fef9c3", fg: "#854d0e" },
-      active: { bg: "#dbeafe", fg: "#1e40af" },
-      done:   { bg: "#dcfce7", fg: "#166534" },
-      warn:   { bg: "#fed7aa", fg: "#9a3412" },
-    };
-    const c = palette[p.tone];
-    return `<span class="pill" style="background:${c.bg};color:${c.fg};border-color:${c.fg}22;font-weight:500;font-size:9px;margin-top:3px;display:inline-block">${esc(p.label)}</span>`;
+    const toneMap: Record<typeof p.tone, PillTone> = { wait: "warning", active: "info", done: "success", warn: "danger" };
+    return quietPill(p.label, toneMap[p.tone], "font-weight:500;font-size:9px;margin-top:3px;display:inline-block");
   };
 
   const runStatusPill = (r: OutreachRun): string => {
     const s = r.status;
-    if (isStale(r)) {
-      return `<span class="pill" style="background:#fed7aa;color:#9a3412;border-color:#fb923c33;font-weight:600;font-size:9px">⚠ stale running</span>`;
-    }
-    const m: Record<string, { bg: string; fg: string; label: string }> = {
-      queued:    { bg: "#fef9c3", fg: "#854d0e", label: "queued" },
-      running:   { bg: "#dbeafe", fg: "#1e40af", label: "running" },
-      done:      { bg: "#dcfce7", fg: "#166534", label: "✓ done" },
-      failed:    { bg: "#fee2e2", fg: "#991b1b", label: "✕ failed" },
-      cancelled: { bg: "#e5e5e5", fg: "#525252", label: "cancelled" },
-    };
-    const c = m[s] ?? { bg: "#e0e7ff", fg: "#3730a3", label: s };
-    return `<span class="pill" style="background:${c.bg};color:${c.fg};border-color:${c.fg}22;font-weight:600;font-size:9px">${esc(c.label)}</span>`;
+    if (isStale(r)) return quietPill("stale running", "danger", "font-size:9px");
+    const tone: PillTone =
+      s === "done" ? "success"
+      : s === "running" ? "info"
+      : s === "failed" ? "danger"
+      : s === "queued" ? "warning"
+      : "neutral";
+    return quietPill(s, tone, "font-size:9px");
   };
 
   // Wenn mindestens 1 Welle running ist, hint admin auf den Auto-Refresh-Toggle
@@ -1586,9 +1582,9 @@ getklar.org`;
     ? `<tr><td colspan="7" class="muted" style="font-style:italic">noch keine Wellen gestartet</td></tr>`
     : runs.map(runRow).join("");
   const refreshHint = hasRunningWave
-    ? `<div style="font-size:11px;color:var(--fg-2);margin:8px 0 4px;padding:6px 10px;background:#dbeafe;border-radius:6px;border:1px solid #93c5fd33;display:inline-block">
+    ? `<div style="font-size:11px;color:var(--fg-2);margin:8px 0 4px;padding:6px 10px;background:var(--surface-2);border-radius:6px;border:1px solid var(--line);display:inline-block">
         Eine Welle ist running. Auto-Refresh aktivieren um Progress live zu sehen:
-        <a class="applink" href="?view=outreach&amp;ar=1" style="font-weight:600;margin-left:4px">15s ⟲ ein</a>
+        <a class="applink" href="?view=outreach&amp;ar=1" style="font-weight:600;margin-left:4px">15s live</a>
       </div>`
     : "";
   const runsTable = `<h2>Letzte Wellen</h2>
@@ -1702,7 +1698,7 @@ getklar.org`;
   const apifyAccPct = apifyAccCap && apifyAccCap > 0
     ? Math.min(100, Math.round((apifyAccount.monthly_usage_usd / apifyAccCap) * 100))
     : 0;
-  const apifyAccColor = apifyAccPct >= 90 ? "#dc2626" : apifyAccPct >= 70 ? "#d97706" : "#16a34a";
+  const apifyAccColor = apifyAccPct >= 90 ? "var(--danger)" : apifyAccPct >= 70 ? "var(--warning)" : "var(--success)";
   const fmtCycle = (iso: string | null): string => {
     if (!iso) return "?";
     const d = new Date(iso);
@@ -1763,7 +1759,7 @@ getklar.org`;
     const used = brevoQuota.usedToday;
     const cap = brevoQuota.capDaily;
     const pct = Math.min(100, Math.round((used / cap) * 100));
-    const color = pct >= 90 ? "#dc2626" : pct >= 70 ? "#d97706" : "#16a34a";
+    const color = pct >= 90 ? "var(--danger)" : pct >= 70 ? "var(--warning)" : "var(--success)";
     const resetUtc = new Date();
     resetUtc.setUTCHours(24, 0, 0, 0);
     const hoursUntilReset = Math.max(0, Math.round((resetUtc.getTime() - Date.now()) / 3600000 * 10) / 10);
@@ -1794,7 +1790,7 @@ getklar.org`;
     ? Math.round((costSummary.month_apify_actual_usd / costSummary.month_apify_estimate_usd) * 100)
     : null;
   const brevoPct = Math.min(100, Math.round((costSummary.brevo_today_count / costSummary.brevo_free_daily_cap) * 100));
-  const brevoColor = brevoPct >= 90 ? "#dc2626" : brevoPct >= 70 ? "#d97706" : "#16a34a";
+  const brevoColor = brevoPct >= 90 ? "var(--danger)" : brevoPct >= 70 ? "var(--warning)" : "var(--success)";
   const costCard = `<section style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 22px;margin-bottom:24px">
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
       <h2 style="margin:0;font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-0.01em;text-transform:none;color:var(--fg)">Klar-Wellen diesen Monat</h2>
@@ -2011,12 +2007,12 @@ getklar.org`;
         <input type="hidden" name="language" value="${esc(acceptLang)}"/>
         ${appField}
         ${hasEmail ? `<label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--fg-2);cursor:pointer"><input type="checkbox" name="send_mail" checked/>Onboarding-Mail senden</label>` : ""}
-        <button type="submit" class="btn" style="padding:6px 14px;font-size:12px;background:#16a34a;border-color:#16a34a">✓ Als Affiliate annehmen</button>
+        <button type="submit" class="btn" style="padding:6px 14px;font-size:12px">Als Affiliate annehmen</button>
       </form>
       <form method="POST" action="/admin/outreach/decline" style="display:inline" data-klar-confirm="Status → declined. @${esc(t.handle)} wird in zukünftigen Wellen übersprungen (Suppression)." data-klar-confirm-title="@${esc(t.handle)} ablehnen?" data-klar-confirm-variant="warn" data-klar-confirm-ok="Ablehnen">
         <input type="hidden" name="id" value="${esc(t.id)}"/>
         <input type="hidden" name="suppress" value="1"/>
-        <button type="submit" class="btn ghost" style="padding:6px 11px;font-size:12px">✕ Ablehnen</button>
+        <button type="submit" class="btn ghost" style="padding:6px 11px;font-size:12px">Ablehnen</button>
       </form>
       <form method="POST" action="/admin/outreach/update" style="display:inline" data-klar-confirm="Status → dead (Antwort nicht verwertbar, kein Interesse)." data-klar-confirm-title="@${esc(t.handle)} auf Dead?" data-klar-confirm-variant="warn" data-klar-confirm-ok="Dead setzen">
         <input type="hidden" name="id" value="${esc(t.id)}"/>
@@ -2201,8 +2197,7 @@ async function inboxView(typeFilter: string, sourceFilter: string, showDeclined:
   </div>`;
   const sourceBtn = (s: string, label: string, count: number) => {
     const on = effectiveSource === s;
-    const m = s !== "all" ? SOURCE_META[s] : null;
-    const styleOn = m ? `background:${m.bg};color:${m.fg};border:1px solid ${m.fg}88` : `background:var(--fg);color:var(--bg);border:1px solid var(--fg)`;
+    const styleOn = `background:var(--fg);color:var(--accent-fg);border:1px solid var(--fg)`;
     return `<a href="${buildHref(effectiveType, s)}" class="pill" style="${on ? styleOn : ""};font-size:11px;padding:5px 10px;text-decoration:none">${esc(label)} <span style="opacity:0.6;margin-left:4px">${count}</span></a>`;
   };
   const sourceFilters = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 16px 0;align-items:center">
@@ -2289,12 +2284,12 @@ async function inboxView(typeFilter: string, sourceFilter: string, showDeclined:
     }
     if (r.status === "new") {
       return `<details style="display:inline-block">
-        <summary style="cursor:pointer;padding:6px 12px;font-size:11px;font-family:var(--font-mono);font-weight:600;color:var(--fg-3);text-transform:uppercase;letter-spacing:.04em;border:1px solid var(--line);border-radius:6px;user-select:none;list-style:none">✕ Ablehnen</summary>
+        <summary style="cursor:pointer;padding:6px 12px;font-size:11px;font-family:var(--font-mono);font-weight:600;color:var(--fg-3);text-transform:uppercase;letter-spacing:.04em;border:1px solid var(--line);border-radius:6px;user-select:none;list-style:none">Ablehnen</summary>
         <form method="POST" action="/admin/decline" style="display:flex;gap:6px;align-items:center;margin-top:8px;padding:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px" data-klar-confirm="Status wird auf 'abgelehnt' gesetzt. Mit ↺ jederzeit wieder öffnen." data-klar-confirm-title="Anfrage ablehnen?" data-klar-confirm-variant="warn" data-klar-confirm-ok="Ablehnen">
           <input type="hidden" name="inquiry_id" value="${esc(r.id)}"/>
           <input type="hidden" name="action" value="decline"/>
           <input type="text" name="reason" maxlength="280" placeholder="Grund (optional, intern)" style="padding:5px 8px;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:5px;color:var(--fg);min-width:220px"/>
-          <button type="submit" class="btn" style="padding:5px 11px;font-size:11px;background:#475569;border-color:#475569">Ablehnen</button>
+          <button type="submit" class="btn ghost" style="padding:5px 11px;font-size:11px">Ablehnen</button>
         </form>
       </details>`;
     }
@@ -2323,7 +2318,7 @@ async function inboxView(typeFilter: string, sourceFilter: string, showDeclined:
       const isLive = r.status === "active";
       return `<div style="margin-top:14px;padding:12px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span class="pill" style="background:${isLive ? "#dcfce7" : "#dbeafe"};color:${isLive ? "#166534" : "#1e40af"};border:1px solid ${isLive ? "#bbf7d0" : "#bfdbfe"};font-weight:600">${isLive ? "✓ active" : "→ invited"} · ${esc(r.approved_app)}</span>
+          ${quietPill(`${isLive ? "active" : "invited"} · ${r.approved_app}`, isLive ? "success" : "info")}
           <a class="applink" style="font-family:ui-monospace,monospace;font-size:11px;word-break:break-all;flex:1;min-width:200px" href="${link}" target="_blank" rel="noopener">${link} ↗</a>
           <button type="button" class="btn ghost" style="padding:5px 11px;font-size:11px;flex-shrink:0" onclick="navigator.clipboard.writeText('${link}').then(()=>this.textContent='✓ kopiert').catch(()=>this.textContent='copy failed')">Copy link</button>
         </div>
@@ -2381,50 +2376,38 @@ async function inboxView(typeFilter: string, sourceFilter: string, showDeclined:
   // Per-card status pill (top right corner). "new" affiliate gets a vivid
   // amber-yellow so unread requests catch the eye in a long list.
   const statusPillFor = (r: Inquiry): string => {
-    if (r.status === "active") return `<span class="pill" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-weight:600">✓ active</span>`;
-    if (r.status === "invited" || r.status === "approved") return `<span class="pill" style="background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;font-weight:600">→ invited</span>`;
-    if (r.status === "new") return `<span class="pill" style="background:#fef9c3;color:#854d0e;border:1px solid #fde047;font-weight:600">• neu</span>`;
-    if (r.status === "declined") return `<span class="pill" style="background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;font-weight:600">✕ abgelehnt</span>`;
-    return `<span class="pill">${esc(r.status ?? "—")}</span>`;
+    const s = r.status ?? "";
+    const tone: PillTone = s === "active" ? "success" : (s === "invited" || s === "approved") ? "info" : s === "new" ? "warning" : "neutral";
+    const label = s === "active" ? "active" : (s === "invited" || s === "approved") ? "invited" : s === "new" ? "neu" : s === "declined" ? "abgelehnt" : (s || "—");
+    return quietPill(label, tone);
   };
 
-  // Type-Badge with category-specific tint so affiliate vs. consulting is
-  // distinguishable at a glance independent of source/status.
-  const typePillFor = (t: string | undefined): string => {
-    if (t === "affiliate") return `<span class="pill" style="background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:0.6px">Affiliate</span>`;
-    if (t === "consulting") return `<span class="pill" style="background:#fce7f3;color:#9d174d;border:1px solid #f9a8d4;font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:0.6px">Consulting</span>`;
-    return `<span class="pill" style="font-size:10px">${esc(t ?? "—")}</span>`;
-  };
+  const typePillFor = (t: string | undefined): string =>
+    quietPill(t === "affiliate" ? "Affiliate" : t === "consulting" ? "Consulting" : (t ?? "—"), t === "affiliate" ? "accent" : "neutral", "text-transform:uppercase;font-size:10px;letter-spacing:0.6px");
 
-  // Initials-Avatar: stable pastel bg via deterministic hash of the email
-  // local-part. Used as the visual anchor on each inbox card.
+  // Initials-Avatar: ruhiger, token-basierter Neutral-Anker (keine Regenbogen-
+  // Hues mehr). Die Initialen differenzieren die Person, nicht die Farbe.
   const avatarFor = (email: string): string => {
     const local = (email || "?").split("@")[0] || "?";
     const letters = local.replace(/[^a-zA-Z]/g, "").slice(0, 2).toUpperCase() || local.slice(0, 2).toUpperCase();
-    let h = 0;
-    for (const ch of local) h = (h * 31 + ch.charCodeAt(0)) & 0xffffffff;
-    const hue = Math.abs(h) % 360;
-    const bg = `hsl(${hue}, 55%, 88%)`;
-    const fg = `hsl(${hue}, 60%, 28%)`;
-    return `<div aria-hidden="true" style="flex-shrink:0;width:44px;height:44px;border-radius:50%;background:${bg};color:${fg};display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;letter-spacing:0.02em">${esc(letters)}</div>`;
+    return `<div aria-hidden="true" style="flex-shrink:0;width:44px;height:44px;border-radius:50%;background:var(--surface-2);color:var(--fg-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;letter-spacing:0.02em">${esc(letters)}</div>`;
   };
 
-  // Status indicator: subtle dot for "new" (pulsing), checkmark for
-  // active, arrow for invited; pushed into the top-right of each card.
+  // Status-Indikator oben rechts: gedämpfter Token-Ton, pulsierender Punkt nur
+  // für "neu". Keine Emoji.
   const statusBadgeFor = (r: Inquiry): string => {
-    if (r.status === "active") return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#166534;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase">✓ active</span>`;
-    if (r.status === "invited" || r.status === "approved") return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#1e40af;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase">→ invited</span>`;
-    if (r.status === "new") return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#854d0e;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#eab308;box-shadow:0 0 0 0 #eab308a0;animation:klar-pulse 1.6s infinite"></span>neu</span>`;
-    if (r.status === "declined") return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#475569;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase">✕ abgelehnt</span>`;
+    const base = "display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase";
+    if (r.status === "active") return `<span style="${base};color:var(--success)">active</span>`;
+    if (r.status === "invited" || r.status === "approved") return `<span style="${base};color:var(--info)">invited</span>`;
+    if (r.status === "new") return `<span style="${base};color:var(--warning)"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warning);animation:klar-pulse 1.6s infinite"></span>neu</span>`;
+    if (r.status === "declined") return `<span style="${base};color:var(--fg-4)">abgelehnt</span>`;
     return `<span style="font-size:11px;font-family:var(--font-mono);color:var(--fg-3);letter-spacing:.04em;text-transform:uppercase">${esc(r.status ?? "")}</span>`;
   };
 
-  // Subtle inline type-badge: matches Klar's editorial tone (lowercase
-  // mono in tinted pill instead of the previous loud uppercase).
+  // Inline-Type-Badge: ruhiges Mono-Pill, neutral getönt (vorher laut violett/pink).
   const typeBadgeMini = (t: string | undefined): string => {
-    if (t === "affiliate") return `<span style="font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:#5b21b6;background:#ede9fe;padding:3px 9px;border-radius:999px;letter-spacing:.02em">affiliate</span>`;
-    if (t === "consulting") return `<span style="font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:#9d174d;background:#fce7f3;padding:3px 9px;border-radius:999px;letter-spacing:.02em">consulting</span>`;
-    return `<span style="font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);padding:3px 9px;border-radius:999px;background:var(--surface-2)">${esc(t ?? "—")}</span>`;
+    const label = t === "affiliate" ? "affiliate" : t === "consulting" ? "consulting" : (t ?? "—");
+    return `<span style="font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:var(--fg-2);background:var(--surface-2);border:1px solid var(--line);padding:3px 9px;border-radius:999px;letter-spacing:.02em">${esc(label)}</span>`;
   };
 
   // Reply-Block für eine Inbox-Karte mit gematchtem Outreach-Target: voller
@@ -2698,11 +2681,11 @@ async function templatesView(): Promise<string> {
       const m1Done = Boolean(t.mail1_subject && t.mail1_body);
       const m2Done = Boolean(t.mail2_subject && t.mail2_body);
       const m1Badge = m1Done
-        ? `<span class="pill" style="background:#dcfce7;color:#166534;border-color:#bbf7d066;font-size:9px;font-weight:600">✓ M1</span>`
-        : `<span class="pill" style="background:#fef9c3;color:#854d0e;border-color:#fde04766;font-size:9px;font-weight:600">M1 leer</span>`;
+        ? quietPill("M1 ok", "success", "font-size:9px")
+        : quietPill("M1 leer", "warning", "font-size:9px");
       const m2Badge = m2Done
-        ? `<span class="pill" style="background:#dcfce7;color:#166534;border-color:#bbf7d066;font-size:9px;font-weight:600">✓ M2</span>`
-        : `<span class="pill" style="background:#fef9c3;color:#854d0e;border-color:#fde04766;font-size:9px;font-weight:600">M2 leer</span>`;
+        ? quietPill("M2 ok", "success", "font-size:9px")
+        : quietPill("M2 leer", "warning", "font-size:9px");
       const doneBadge = `<span style="display:inline-flex;gap:4px">${m1Badge}${m2Badge}</span>`;
       return `<tr data-row-id="${esc(appMeta.slug)}-${esc(t.language)}">
         <td><button type="button" class="btn ghost" onclick="this.closest('tbody').querySelector('[data-edit-for=&quot;${esc(appMeta.slug)}-${esc(t.language)}&quot;]').style.display=this.closest('tbody').querySelector('[data-edit-for=&quot;${esc(appMeta.slug)}-${esc(t.language)}&quot;]').style.display==='none'?'table-row':'none';" style="padding:2px 7px;font-size:11px;margin-right:6px">▸</button><strong>${esc(appMeta.name)}</strong><div class="muted" style="font-size:11px">${esc(appMeta.slug)}</div></td>
