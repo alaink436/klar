@@ -325,11 +325,19 @@ async function overview(apps: AdminApp[]): Promise<string> {
     return `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick. Klick eine verdrahtete App fürs Affiliate-Detail; die anderen tauchen auf, sobald sie ein Schema in <code>KLAR_ADMIN_APPS</code> bekommen.</p>${tabs}`;
   }
 
+  // Monats-Aggregat (über alle Apps) für Umsatz-Chart + MoM-Delta, plus eine
+  // deduplizierte Target-Liste für den Activity-Feed (ein Target kann via
+  // for_apps[] in mehreren App-Fetches auftauchen).
+  const monthly = new Map<string, { gross: number; payout: number }>();
+  const targetSeen = new Set<string>();
+  const allTargets: OutreachTarget[] = [];
+
   const rows = await Promise.all(apps.map(async (app) => {
-    const [inf, claim, outreach] = await Promise.all([
+    const [inf, claim, outreach, events] = await Promise.all([
       sbGet(app, "influencers?select=status"),
       sbGet(app, "influencer_claimable?select=claimable_eur_cents,unnormalized_events"),
       listOutreachTargets({ platform: "all", status: "all", app: app.slug, limit: 500 }),
+      sbGet(app, "referral_revenue_events?select=event_at,gross_revenue_cents,share_cents_eur&order=event_at&limit=4000"),
     ]);
     const onboarded = inf.length > 0 || claim.length > 0 || outreach.length > 0;
     const active = inf.filter((i: any) => i.status === "active").length;
@@ -342,19 +350,123 @@ async function overview(apps: AdminApp[]): Promise<string> {
       if (t.status === "converted") angenommen++;
       else if (t.status === "replied") reply++;
       else if (t.mail_status === "mail1_sent" || t.mail_status === "mail2_sent" || t.status === "dm_sent") angefragt++;
+      if (t.id && !targetSeen.has(t.id)) { targetSeen.add(t.id); allTargets.push(t); }
     }
-    return { app, onboarded, total: inf.length, active, open, fx, angefragt, reply, angenommen };
+    let gross = 0, payout = 0;
+    for (const e of events) {
+      const g = Number(e.gross_revenue_cents ?? 0);
+      const p = Number(e.share_cents_eur ?? 0);
+      gross += g; payout += p;
+      const mkey = String(e.event_at ?? "").slice(0, 7);
+      if (mkey) {
+        const m = monthly.get(mkey) ?? { gross: 0, payout: 0 };
+        m.gross += g; m.payout += p;
+        monthly.set(mkey, m);
+      }
+    }
+    return { app, onboarded, total: inf.length, active, open, fx, angefragt, reply, angenommen, gross, payout };
   }));
+
+  // Inbox-Anfragen einmal laden: neue-Anzahl (Aktions-Strip) + jüngste fürs
+  // Activity-Feed. Best-effort, ohne Key/Fehler bleibt der Feed schlanker.
+  let inquiriesNew = 0;
+  let recentInquiries: any[] = [];
+  if (KLAR_INBOX_KEY) {
+    try {
+      const res = await fetch(
+        `${KLAR_INBOX_URL}/rest/v1/klar_inquiries?select=email,type,status,created_at,handle&order=created_at.desc&limit=50`,
+        { headers: { apikey: KLAR_INBOX_KEY, Authorization: `Bearer ${KLAR_INBOX_KEY}`, Accept: "application/json" }, cache: "no-store" },
+      );
+      if (res.ok) {
+        const j = await res.json();
+        recentInquiries = Array.isArray(j) ? j : [];
+        inquiriesNew = recentInquiries.filter((r) => r.status === "new").length;
+      }
+    } catch {
+      /* Feed bleibt ohne Inbox-Items */
+    }
+  }
   const totalOpen = rows.reduce((s, r) => s + r.open, 0);
   const totalAff = rows.reduce((s, r) => s + r.total, 0);
+  const totalActive = rows.reduce((s, r) => s + r.active, 0);
   const totalAngefragt = rows.reduce((s, r) => s + r.angefragt, 0);
   const totalReply = rows.reduce((s, r) => s + r.reply, 0);
+  const totalAngenommen = rows.reduce((s, r) => s + r.angenommen, 0);
+
+  // Monats-Serie (letzte 12) + Monat-über-Monat-Vergleich für die Delta-Tags.
+  const series = [...monthly.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-12)
+    .map(([k, v]) => { const [yy, mm] = k.split("-"); return { label: `${mm}/${yy.slice(2)}`, gross: v.gross, payout: v.payout }; });
+  const now = new Date();
+  const thisYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastYm = `${lm.getFullYear()}-${String(lm.getMonth() + 1).padStart(2, "0")}`;
+  const thisM = monthly.get(thisYm) ?? { gross: 0, payout: 0 };
+  const lastM = monthly.get(lastYm) ?? { gross: 0, payout: 0 };
+  const deltaTag = (cur: number, prev: number): string => {
+    if (prev === 0 && cur === 0) return `keine Vormonatsdaten`;
+    if (prev === 0) return `<span style="color:#166534;font-weight:600">▲ neu</span>`;
+    const pct = ((cur - prev) / prev) * 100;
+    const up = pct >= 0;
+    return `<span style="color:${up ? "#166534" : "#b91c1c"};font-weight:600">${up ? "▲" : "▼"} ${Math.abs(pct).toFixed(0)}% vs. Vormonat</span>`;
+  };
+
+  // Aktions-Strip: nur was offen ist, jeweils mit Direkt-Link.
+  const attn = (n: number, label: string, href: string, bg: string, fg: string): string =>
+    n > 0 ? `<a class="pill" href="${href}" style="background:${bg};color:${fg};border-color:${fg}33;font-weight:600;text-decoration:none;padding:7px 12px;font-size:12px">${esc(label)}: ${n} →</a>` : "";
+  const attnItems = [
+    attn(totalReply, "Offene Antworten", "/admin?view=inbox&source=outreach-reply", "#fef9c3", "#854d0e"),
+    attn(inquiriesNew, "Neue Anfragen", "/admin?view=inbox", "#ede9fe", "#5b21b6"),
+    attn(totalAngefragt, "Wartet auf Antwort", "/admin?view=outreach", "#dbeafe", "#1e40af"),
+  ].filter(Boolean).join("");
+  const attnStrip = attnItems
+    ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 18px"><span class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-right:2px">Braucht Aufmerksamkeit</span>${attnItems}</div>`
+    : `<div class="muted" style="margin:0 0 18px;font-size:13px">✓ Nichts Offenes, alle Antworten und Anfragen sind abgearbeitet.</div>`;
+
+  // KPI-Grid: Umsatz/Auszahlung mit MoM-Delta, Offen, Affiliates.
   const cards = `<div class="cards">
-    <div class="card"><div class="k">Apps verdrahtet</div><div class="v">${rows.length}/${KLAR_APPS.length}</div><div class="s">${rows.filter(r=>r.onboarded).length} mit Daten</div></div>
-    <div class="card"><div class="k">Affiliates gesamt</div><div class="v">${totalAff}</div></div>
-    <div class="card"><div class="k">Im Outreach</div><div class="v">${totalAngefragt}</div><div class="s">${totalReply} mit Reply</div></div>
+    <div class="card"><div class="k">Affiliate-Umsatz (Monat)</div><div class="v">${eur(thisM.gross)}</div><div class="s">${deltaTag(thisM.gross, lastM.gross)}</div></div>
+    <div class="card"><div class="k">Auszahlung (Monat)</div><div class="v">${eur(thisM.payout)}</div><div class="s">${deltaTag(thisM.payout, lastM.payout)}</div></div>
     <div class="card"><div class="k">Offen gesamt</div><div class="v">${eur(totalOpen)}</div><div class="s">netto, gereift</div></div>
+    <div class="card"><div class="k">Affiliates</div><div class="v">${totalAff}</div><div class="s">${totalActive} aktiv · ${rows.filter(r=>r.onboarded).length}/${KLAR_APPS.length} Apps verdrahtet</div></div>
   </div>`;
+
+  // Funnel-Card (proportionale Balken, server-rendered).
+  const funnelMax = Math.max(1, totalAngefragt, totalReply, totalAngenommen);
+  const frow = (label: string, n: number, color: string): string =>
+    `<div style="display:flex;align-items:center;gap:10px;margin:7px 0">
+      <span style="min-width:118px;font-size:12px;color:var(--fg-2)">${esc(label)}</span>
+      <div style="flex:1;background:var(--surface-2);border-radius:6px;height:22px;overflow:hidden"><div style="width:${((n / funnelMax) * 100).toFixed(1)}%;height:100%;background:${color};border-radius:6px"></div></div>
+      <span style="min-width:34px;text-align:right;font-family:var(--font-mono);font-size:13px;font-weight:600">${n}</span>
+    </div>`;
+  const funnelCard = `<div class="card" style="padding:18px 20px;display:block">
+    <div class="k" style="margin-bottom:10px">Outreach-Funnel · alle Apps</div>
+    ${frow("✉ Angefragt", totalAngefragt, "var(--chart-1)")}
+    ${frow("↩ Antwort", totalReply, "#eab308")}
+    ${frow("✓ Angenommen", totalAngenommen, "#22c55e")}
+  </div>`;
+
+  // Activity-Feed: jüngste Replies + Conversions + neue Anfragen, gemischt.
+  const acts: Array<{ t: number; icon: string; text: string; href: string }> = [];
+  for (const t of allTargets) {
+    const who = t.display_name || t.handle;
+    if (t.status === "replied" && t.last_message_at) acts.push({ t: Date.parse(t.last_message_at), icon: "↩", text: `${who} hat geantwortet`, href: "/admin?view=outreach" });
+    if (t.status === "converted" && t.converted_at) acts.push({ t: Date.parse(t.converted_at), icon: "✓", text: `${who} als Affiliate angenommen`, href: "/admin?view=outreach" });
+  }
+  for (const r of recentInquiries) {
+    if (r.created_at) acts.push({ t: Date.parse(String(r.created_at)), icon: r.type === "affiliate" ? "◆" : "●", text: `Neue ${r.type === "affiliate" ? "Affiliate" : "Consulting"}-Anfrage: ${r.handle || r.email || "?"}`, href: "/admin?view=inbox" });
+  }
+  const actsSorted = acts.filter((a) => !isNaN(a.t)).sort((a, b) => b.t - a.t).slice(0, 8);
+  const activityCard = actsSorted.length
+    ? `<div class="card" style="padding:18px 20px;display:block">
+        <div class="k" style="margin-bottom:6px">Letzte Aktivität</div>
+        ${actsSorted.map((a) => `<a href="${a.href}" style="display:flex;gap:10px;align-items:baseline;padding:7px 0;text-decoration:none;border-bottom:1px solid var(--line)">
+          <span style="font-family:var(--font-mono);color:var(--fg-3);width:14px;flex-shrink:0">${a.icon}</span>
+          <span style="flex:1;font-size:13px;color:var(--fg)">${esc(a.text)}</span>
+          <span class="muted" style="font-size:11px;font-family:var(--font-mono);white-space:nowrap">${esc(fmtRelative(new Date(a.t).toISOString()))}</span>
+        </a>`).join("")}
+      </div>`
+    : `<div class="card" style="padding:18px 20px;display:block"><div class="k" style="margin-bottom:6px">Letzte Aktivität</div><span class="muted" style="font-size:13px">Noch keine Replies, Conversions oder Anfragen.</span></div>`;
+
   const pill = (n: number, bg: string, fg: string): string => n === 0
     ? `<span class="muted">0</span>`
     : `<span class="pill" style="background:${bg};color:${fg};border-color:${fg}22;font-weight:600">${n}</span>`;
@@ -369,7 +481,13 @@ async function overview(apps: AdminApp[]): Promise<string> {
       <td class="r"><a class="pill" href="/admin?view=${esc(r.app.slug)}">öffnen</a></td>
     </tr>`).join("")}
   </tbody></table>`;
-  return `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick. Wähl eine verdrahtete App fürs Affiliate-Detail.</p>${tabs}<h2>Affiliate-Stand · Outreach-Funnel</h2>${cards}${tbl}`;
+  return `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick: Affiliate-Umsatz, Outreach-Funnel und was gerade Aufmerksamkeit braucht.</p>
+    ${tabs}
+    ${attnStrip}
+    ${cards}
+    <h2>Affiliate-Umsatz pro Monat</h2>${barChart(series)}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:14px 0 8px">${funnelCard}${activityCard}</div>
+    <h2>Affiliate-Stand · Outreach-Funnel pro App</h2>${tbl}`;
 }
 
 async function revenueView(apps: AdminApp[]): Promise<string> {
