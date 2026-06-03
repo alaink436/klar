@@ -18,7 +18,7 @@ const HASHTAG_CHAR_RE = /^[a-z0-9_]+$/i;
 const ALLOWED_LANGS = new Set(["de", "en", "fr", "es", "it"]);
 
 function back(req: NextRequest, msg: string, anchor?: string): Response {
-  const url = new URL(`/admin?view=templates&msg=${encodeURIComponent(msg.slice(0, 400))}`, req.url);
+  const url = new URL(`/admin/templates?msg=${encodeURIComponent(msg.slice(0, 400))}`, req.url);
   if (anchor) url.hash = anchor;
   return NextResponse.redirect(url, 303);
 }

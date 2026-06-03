@@ -17,7 +17,6 @@ import {
   getOutreachPerAppStats,
   listOutreachTargets,
   listOutreachRuns,
-  listAppTemplates,
   listSuppressions,
   getOutreachCostSummary,
   isOutreachConfigured,
@@ -25,7 +24,6 @@ import {
   type OutreachStatus,
   type OutreachTarget,
   type OutreachRun,
-  type AppMailTemplate,
   type PerAppStat,
   type SuppressionRow,
 } from "../../lib/outreachStore";
@@ -912,7 +910,7 @@ getklar.org`;
 
   const waveForm = `<section style="background:var(--surface);border:1px solid var(--line-strong);border-radius:14px;padding:24px 28px;margin-bottom:32px;box-shadow:var(--shadow-sm)">
     <h2 style="margin:0 0 4px;font-family:var(--font-display);font-weight:800;font-size:22px;letter-spacing:-0.02em;text-transform:none;color:var(--fg)">Welle starten</h2>
-    <p class="muted" style="margin:0 0 22px;font-size:13px">Apify scraped die gewählten Plattformen, Apps und Größen-Buckets, schickt Mail-1 via Brevo, trackt alles in der DB. Templates pro App lädst du unten oder unter <a class="applink" href="/admin?view=templates">Templates</a>.</p>
+    <p class="muted" style="margin:0 0 22px;font-size:13px">Apify scraped die gewählten Plattformen, Apps und Größen-Buckets, schickt Mail-1 via Brevo, trackt alles in der DB. Templates pro App lädst du unten oder unter <a class="applink" href="/admin/templates">Templates</a>.</p>
     <form method="POST" action="/admin/outreach/start" id="wave-form" style="display:flex;flex-direction:column;gap:22px">
       <div>
         <div class="k" style="margin-bottom:10px">Apps <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">Multi-Select, nur LIVE</span></div>
@@ -2201,121 +2199,7 @@ async function inboxView(typeFilter: string, sourceFilter: string, showDeclined:
 // when the admin picks a single app + language.
 // ============================================================
 
-async function templatesView(): Promise<string> {
-  if (!isOutreachConfigured()) {
-    return `<h1>Templates</h1><p class="sub muted">Outreach-Tracker braucht <span class="warn">KLAR_INBOX_SERVICE_KEY</span> in Vercel (anime-vault Service-Role).</p>`;
-  }
-
-  const templates = await listAppTemplates();
-
-  // Group: one row per (app_slug, language). Sorted by KLAR_APPS order
-  // first so the visual layout matches the rest of the dashboard.
-  const byApp = new Map<string, AppMailTemplate[]>();
-  for (const t of templates) {
-    if (!byApp.has(t.app_slug)) byApp.set(t.app_slug, []);
-    byApp.get(t.app_slug)!.push(t);
-  }
-
-  const fmtRel = (s: string) => {
-    const d = new Date(s);
-    if (isNaN(d.getTime())) return "—";
-    const ago = Date.now() - d.getTime();
-    const min = Math.floor(ago / 60000);
-    if (min < 1) return "gerade";
-    if (min < 60) return `${min}m`;
-    const hr = Math.floor(min / 60);
-    if (hr < 24) return `${hr}h`;
-    return `${Math.floor(hr / 24)}d`;
-  };
-
-  // Apify-Token Status: only env-presence-check, never expose the value.
-  const apifyTokenPresent = Boolean(process.env.APIFY_API_TOKEN);
-
-  const m1Count = templates.filter((t) => t.mail1_subject && t.mail1_body).length;
-  const m2Count = templates.filter((t) => t.mail2_subject && t.mail2_body).length;
-  const cards = `<div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-    <div class="card"><div class="k">Apify-Token</div><div class="v" style="font-size:18px">${apifyTokenPresent ? "✓ in Vercel" : "in n8n-Cred"}</div><div class="s">${apifyTokenPresent ? "KLAR_APIFY_TOKEN env gesetzt" : "via httpHeaderAuth Cred l8T8zGn0SrQSd4ws"}</div></div>
-    <div class="card"><div class="k">Templates</div><div class="v">${templates.length}</div><div class="s">App × Sprache (6 Apps × DE/EN)</div></div>
-    <div class="card"><div class="k">Mail-1</div><div class="v">${m1Count}</div><div class="s">Soft Open komplett</div></div>
-    <div class="card"><div class="k">Mail-2</div><div class="v">${m2Count}</div><div class="s">Auto-Reply komplett</div></div>
-  </div>`;
-
-  const rows = KLAR_APPS.flatMap((appMeta) => {
-    const tpls = byApp.get(appMeta.slug) ?? [];
-    if (tpls.length === 0) {
-      return [`<tr><td><strong>${esc(appMeta.name)}</strong><div class="muted" style="font-size:11px">${esc(appMeta.slug)}</div></td>
-        <td colspan="5" class="muted" style="font-style:italic">noch keine Templates angelegt — <a class="applink" href="#new-${esc(appMeta.slug)}">unten anlegen</a></td></tr>`];
-    }
-    return tpls.map((t) => {
-      const hashtagsStr = (t.hashtags ?? []).join(", ");
-      const m1Done = Boolean(t.mail1_subject && t.mail1_body);
-      const m2Done = Boolean(t.mail2_subject && t.mail2_body);
-      const m1Badge = m1Done
-        ? quietPill("M1 ok", "success", "font-size:9px")
-        : quietPill("M1 leer", "warning", "font-size:9px");
-      const m2Badge = m2Done
-        ? quietPill("M2 ok", "success", "font-size:9px")
-        : quietPill("M2 leer", "warning", "font-size:9px");
-      const doneBadge = `<span style="display:inline-flex;gap:4px">${m1Badge}${m2Badge}</span>`;
-      return `<tr data-row-id="${esc(appMeta.slug)}-${esc(t.language)}">
-        <td><button type="button" class="btn ghost" onclick="this.closest('tbody').querySelector('[data-edit-for=&quot;${esc(appMeta.slug)}-${esc(t.language)}&quot;]').style.display=this.closest('tbody').querySelector('[data-edit-for=&quot;${esc(appMeta.slug)}-${esc(t.language)}&quot;]').style.display==='none'?'table-row':'none';" style="padding:2px 7px;font-size:11px;margin-right:6px">▸</button><strong>${esc(appMeta.name)}</strong><div class="muted" style="font-size:11px">${esc(appMeta.slug)}</div></td>
-        <td><span class="pill" style="font-size:10px;text-transform:uppercase">${esc(t.language)}</span></td>
-        <td>${doneBadge}</td>
-        <td class="muted" style="font-size:11px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(hashtagsStr)}">${esc(hashtagsStr || "—")}</td>
-        <td class="muted" style="font-size:11px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(t.mail1_subject ?? "")}">${esc(t.mail1_subject || "—")}</td>
-        <td class="muted" style="font-size:11px;white-space:nowrap">${fmtRel(t.updated_at)}</td>
-      </tr>
-      <tr data-edit-for="${esc(appMeta.slug)}-${esc(t.language)}" style="display:none"><td colspan="6" style="padding:14px 18px;background:var(--surface-2)">
-        <form method="POST" action="/admin/templates/save" style="display:flex;flex-direction:column;gap:12px">
-          <input type="hidden" name="app_slug" value="${esc(appMeta.slug)}"/>
-          <input type="hidden" name="language" value="${esc(t.language)}"/>
-          <label style="display:flex;flex-direction:column">
-            <span class="k" style="margin-bottom:5px">Hashtags <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">comma-sep, ohne #, max 8 für Cost-Control</span></span>
-            <input type="text" name="hashtags" value="${esc(hashtagsStr)}" maxlength="500" style="padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:12px;font-family:var(--font-mono)"/>
-          </label>
-          <label style="display:flex;flex-direction:column">
-            <span class="k" style="margin-bottom:5px">Mail-1 Subject</span>
-            <input type="text" name="mail1_subject" value="${esc(t.mail1_subject ?? "")}" maxlength="200" style="padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
-          </label>
-          <label style="display:flex;flex-direction:column">
-            <span class="k" style="margin-bottom:5px">Mail-1 Body <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">{{NAME}}/{{HANDLE}}/{{NICHE_REF}}/{{SPORT}} Platzhalter</span></span>
-            <textarea name="mail1_body" rows="14" style="padding:10px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-body);resize:vertical;line-height:1.5">${esc(t.mail1_body ?? "")}</textarea>
-          </label>
-          <details>
-            <summary style="cursor:pointer;font-size:12px;color:var(--fg-2);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Mail-2 (Reply-Auto, optional)</summary>
-            <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px">
-              <label style="display:flex;flex-direction:column">
-                <span class="k" style="margin-bottom:5px">Mail-2 Subject <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">leer = "Re: ..." vom Reply-Tracker</span></span>
-                <input type="text" name="mail2_subject" value="${esc(t.mail2_subject ?? "")}" maxlength="200" style="padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
-              </label>
-              <label style="display:flex;flex-direction:column">
-                <span class="k" style="margin-bottom:5px">Mail-2 Body</span>
-                <textarea name="mail2_body" rows="14" style="padding:10px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-body);resize:vertical;line-height:1.5">${esc(t.mail2_body ?? "")}</textarea>
-              </label>
-            </div>
-          </details>
-          <label style="display:flex;flex-direction:column">
-            <span class="k" style="margin-bottom:5px">Notes <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">intern</span></span>
-            <input type="text" name="notes" value="${esc(t.notes ?? "")}" maxlength="500" style="padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:12px"/>
-          </label>
-          <div style="display:flex;justify-content:flex-end">
-            <button type="submit" class="btn" style="padding:8px 18px;font-size:13px">Speichern</button>
-          </div>
-        </form>
-      </td></tr>`;
-    });
-  }).join("");
-
-  return `<h1>Templates</h1>
-    <p class="sub">Per-App Outreach-Templates &mdash; Hashtags für Apify-Discovery, Mail-1 + Mail-2 für Brevo-Send. Editierbar pro App × Sprache. Die Wave-Starter-Form lädt diese Defaults automatisch wenn du genau eine App auswählst.</p>
-    ${cards}
-    <h2>Templates pro App</h2>
-    <table>
-      <thead><tr><th>App</th><th>Lang</th><th>Status</th><th>Hashtags</th><th>Mail-1 Subject</th><th>Updated</th></tr></thead>
-      <tbody>${rows || `<tr><td colspan="6" class="muted">keine Templates</td></tr>`}</tbody>
-    </table>
-    <p class="sub muted" style="margin-top:24px;font-size:12px">✓ Der n8n Wave-Consumer liest diese Templates pro App live aus der DB. Editierst du hier ein Subject oder Body, nutzt die nächste Welle automatisch den neuen Text — pro App ihr eigenes. Custom-Override im Welle-Form ist möglich (überschreibt App-Defaults für die ganze Welle).</p>`;
-}
+// templatesView migrated to its own React route at /admin/templates/page.tsx.
 
 // ============================================================
 // payoutsView migrated to its own React route at /admin/payouts/page.tsx.
@@ -2362,7 +2246,12 @@ export async function GET(req: Request): Promise<Response> {
     const showTests = url.searchParams.get("show_tests") === "1";
     main = await inboxView(typeFilter, sourceFilter, showDeclined, showTests);
   }
-  else if (view === "templates") main = await templatesView();
+  else if (view === "templates") {
+    // Templates migrated to its own React route. Keep ?view=templates working
+    // for old bookmarks/links by bouncing there (the save handler now redirects
+    // to /admin/templates directly with its ?msg= flash).
+    return new Response(null, { status: 303, headers: { Location: "/admin/templates" } });
+  }
   else {
     const app = apps.find((a) => a.slug === view);
     // Unknown view (no app match) falls back to the migrated overview route.
