@@ -709,6 +709,71 @@ const isTestTarget = (t: OutreachTarget): boolean => {
   return false;
 };
 
+// ── Geteilte Reply-Assets (Outreach-View + Inbox-View) ───────────────────
+// Template-Lookup für den Client (lang -> id -> {subject, body}), `<` escaped
+// damit der JSON-Blob den <script>-Kontext nicht sprengt. Einmal beim
+// Modul-Load gebaut (REPLY_TEMPLATES ist konstant).
+const REPLY_TEMPLATE_JSON: string = (() => {
+  const map: Record<string, Record<string, { subject: string; body: string }>> = {};
+  for (const lng of Object.keys(REPLY_TEMPLATES) as ReplyLang[]) {
+    map[lng] = {};
+    for (const tpl of REPLY_TEMPLATES[lng]) map[lng][tpl.id] = { subject: tpl.subject, body: tpl.body };
+  }
+  return JSON.stringify(map).replace(/</g, "\\u003c");
+})();
+
+// Vorlagen-Dropdown: optgroup pro Sprache, value = "lang:id". Default
+// selektiert = Interesse-Vorlage in der Sprache des Targets.
+function replyTemplateSelectOptions(defLang: ReplyLang): string {
+  return (Object.keys(REPLY_TEMPLATES) as ReplyLang[])
+    .map(
+      (lng) =>
+        `<optgroup label="${lng.toUpperCase()}">` +
+        REPLY_TEMPLATES[lng]
+          .map(
+            (tpl) =>
+              `<option value="${esc(lng + ":" + tpl.id)}"${lng === defLang && tpl.id === "interesse" ? " selected" : ""}>${esc(tpl.label)}</option>`,
+          )
+          .join("") +
+        `</optgroup>`,
+    )
+    .join("");
+}
+
+// Client-JS für die Reply-Karten: Vorlage einsetzen, Übersetzen (ruft
+// /admin/outreach/translate), Entwurf kopieren. Selektoren scopen auf
+// .reply-card, funktioniert daher in Outreach- wie Inbox-Karten.
+const REPLY_INBOX_JS = `
+window.KLAR_REPLY_TEMPLATES = ${REPLY_TEMPLATE_JSON};
+function klarReplyFill(sel){
+  var card = sel.closest('.reply-card'); if(!card) return;
+  var parts = (sel.value||'').split(':'); var set = window.KLAR_REPLY_TEMPLATES[parts[0]];
+  var tpl = set ? set[parts[1]] : null; if(!tpl) return;
+  var name = card.getAttribute('data-name')||''; var handle = card.getAttribute('data-handle')||'';
+  function sub(s){return (s||'').replace(/\\{\\{name\\}\\}/g,name).replace(/\\{\\{handle\\}\\}/g,handle);}
+  var s = card.querySelector('.reply-subj'); var b = card.querySelector('.reply-text');
+  if(s && tpl.subject) s.value = sub(tpl.subject);
+  if(b) b.value = sub(tpl.body);
+}
+function klarTranslate(btn){
+  var card = btn.closest('.reply-card'); if(!card) return;
+  var src = card.querySelector('.reply-incoming'); var out = card.querySelector('.reply-trans');
+  if(!src||!out) return;
+  var text = src.getAttribute('data-raw') || src.textContent || '';
+  var srcLang = src.getAttribute('data-src-lang') || '';
+  out.textContent = 'Übersetze…';
+  fetch('/admin/outreach/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text,target:'DE',source:srcLang})})
+    .then(function(r){return r.json();})
+    .then(function(d){ out.textContent = (d&&d.ok) ? ('['+(d.source||'?')+' \\u2192 DE'+(d.provider?' · '+d.provider:'')+'] '+d.text) : ('Übersetzung fehlgeschlagen: '+((d&&d.error)||'?')); })
+    .catch(function(e){ out.textContent = 'Fehler: '+e; });
+}
+function klarCopyDraft(btn){
+  var card = btn.closest('.reply-card'); if(!card) return;
+  var b = card.querySelector('.reply-text'); if(!b) return;
+  navigator.clipboard.writeText(b.value).then(function(){ var o=btn.textContent; btn.textContent='\\u2713 kopiert'; setTimeout(function(){btn.textContent=o;},1500); }).catch(function(){ btn.textContent='Copy fehlgeschlagen'; });
+}
+`;
+
 async function outreachView(
   filterPlatform: string,
   filterStatus: string,
@@ -1709,34 +1774,6 @@ getklar.org`;
     })
     .slice(0, 24);
 
-  // Template-Lookup für den Client (lang -> id -> {subject, body}). `<` wird
-  // escaped, damit der JSON-Blob den <script>-Kontext nicht sprengen kann.
-  const replyTemplateMap: Record<string, Record<string, { subject: string; body: string }>> = {};
-  for (const lng of Object.keys(REPLY_TEMPLATES) as ReplyLang[]) {
-    replyTemplateMap[lng] = {};
-    for (const tpl of REPLY_TEMPLATES[lng]) {
-      replyTemplateMap[lng][tpl.id] = { subject: tpl.subject, body: tpl.body };
-    }
-  }
-  const replyTemplateJson = JSON.stringify(replyTemplateMap).replace(/</g, "\\u003c");
-
-  // Vorlagen-Dropdown: optgroup pro Sprache, value = "lang:id". Default
-  // selektiert = Interesse-Vorlage in der Sprache des Targets.
-  const templateSelectOptions = (defLang: ReplyLang): string =>
-    (Object.keys(REPLY_TEMPLATES) as ReplyLang[])
-      .map(
-        (lng) =>
-          `<optgroup label="${lng.toUpperCase()}">` +
-          REPLY_TEMPLATES[lng]
-            .map(
-              (tpl) =>
-                `<option value="${esc(lng + ":" + tpl.id)}"${lng === defLang && tpl.id === "interesse" ? " selected" : ""}>${esc(tpl.label)}</option>`,
-            )
-            .join("") +
-          `</optgroup>`,
-      )
-      .join("");
-
   const LANG_OK = /^(de|en|fr|es|it|nl|pt|pl)$/;
   // mode "reply" = echte Antwort eingegangen; "awaiting" = kontaktiert, noch
   // keine Antwort (gleiche Optik, aber kein Reply-Text/Übersetzung, Composer
@@ -1812,7 +1849,7 @@ getklar.org`;
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <label style="font-size:11px;color:var(--fg-3);display:inline-flex;align-items:center;gap:4px">Vorlage
             <select onchange="klarReplyFill(this)" style="padding:5px 8px;border:1px solid var(--line-strong);border-radius:5px;background:var(--bg);color:var(--fg);font-size:12px">
-              ${templateSelectOptions(tplLang)}
+              ${replyTemplateSelectOptions(tplLang)}
             </select>
           </label>
           <span class="muted" style="font-size:11px">an ${hasEmail ? esc(toEmail) : "—"}</span>
@@ -1869,37 +1906,6 @@ getklar.org`;
     </div>`;
   };
 
-  const repliesInboxJs = `
-window.KLAR_REPLY_TEMPLATES = ${replyTemplateJson};
-function klarReplyFill(sel){
-  var card = sel.closest('.reply-card'); if(!card) return;
-  var parts = (sel.value||'').split(':'); var set = window.KLAR_REPLY_TEMPLATES[parts[0]];
-  var tpl = set ? set[parts[1]] : null; if(!tpl) return;
-  var name = card.getAttribute('data-name')||''; var handle = card.getAttribute('data-handle')||'';
-  function sub(s){return (s||'').replace(/\\{\\{name\\}\\}/g,name).replace(/\\{\\{handle\\}\\}/g,handle);}
-  var s = card.querySelector('.reply-subj'); var b = card.querySelector('.reply-text');
-  if(s && tpl.subject) s.value = sub(tpl.subject);
-  if(b) b.value = sub(tpl.body);
-}
-function klarTranslate(btn){
-  var card = btn.closest('.reply-card'); if(!card) return;
-  var src = card.querySelector('.reply-incoming'); var out = card.querySelector('.reply-trans');
-  if(!src||!out) return;
-  var text = src.getAttribute('data-raw') || src.textContent || '';
-  var srcLang = src.getAttribute('data-src-lang') || '';
-  out.textContent = 'Übersetze…';
-  fetch('/admin/outreach/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text,target:'DE',source:srcLang})})
-    .then(function(r){return r.json();})
-    .then(function(d){ out.textContent = (d&&d.ok) ? ('['+(d.source||'?')+' \\u2192 DE'+(d.provider?' · '+d.provider:'')+'] '+d.text) : ('Übersetzung fehlgeschlagen: '+((d&&d.error)||'?')); })
-    .catch(function(e){ out.textContent = 'Fehler: '+e; });
-}
-function klarCopyDraft(btn){
-  var card = btn.closest('.reply-card'); if(!card) return;
-  var b = card.querySelector('.reply-text'); if(!b) return;
-  navigator.clipboard.writeText(b.value).then(function(){ var o=btn.textContent; btn.textContent='\\u2713 kopiert'; setTimeout(function(){btn.textContent=o;},1500); }).catch(function(){ btn.textContent='Copy fehlgeschlagen'; });
-}
-`;
-
   const repliesInbox =
     replyTargets.length === 0
       ? `<h2 style="margin-top:8px">Eingegangene Antworten</h2>
@@ -1923,7 +1929,7 @@ function klarCopyDraft(btn){
   // Shared Inbox-JS einmal einbinden, sobald irgendeine Sektion Karten zeigt.
   const inboxJs =
     replyTargets.length > 0 || openTargets.length > 0
-      ? `<script>${repliesInboxJs}</script>`
+      ? `<script>${REPLY_INBOX_JS}</script>`
       : "";
 
   return `${refreshMeta}<h1>Outreach</h1>
@@ -1992,6 +1998,28 @@ async function inboxView(typeFilter: string, sourceFilter: string, showDeclined:
   } catch {
     return `<h1>Inbox</h1><p class="sub muted">Netzwerkfehler beim Laden der Inbox. Einmal neu laden hilft meist.</p>`;
   }
+
+  // Reply-Join: der echte Mail-Body einer Outreach-Reply liegt nur am
+  // klar_outreach_targets-Row (last_message), nicht an der Inquiry. Wir laden
+  // die Targets und matchen per contact_email (primär) bzw. handle (fallback),
+  // damit Affiliate-Karten den vollen Reply-Text + Übersetzen + Antwort-Composer
+  // direkt in der Inbox zeigen. Schlägt der Load fehl, bleibt die Karte schlicht.
+  const targetsForReply = await listOutreachTargets({ limit: 500 });
+  const targetByEmail = new Map<string, OutreachTarget>();
+  const targetByHandle = new Map<string, OutreachTarget>();
+  for (const t of targetsForReply) {
+    const e = (t.contact_email ?? "").toLowerCase().trim();
+    if (e && !targetByEmail.has(e)) targetByEmail.set(e, t);
+    const h = (t.handle ?? "").toLowerCase().replace(/^@/, "").trim();
+    if (h && !targetByHandle.has(h)) targetByHandle.set(h, t);
+  }
+  const matchTarget = (r: Inquiry): OutreachTarget | null => {
+    const e = (r.email ?? "").toLowerCase().trim();
+    if (e && targetByEmail.has(e)) return targetByEmail.get(e)!;
+    const h = (r.handle ?? "").toLowerCase().replace(/^@/, "").trim();
+    if (h && targetByHandle.has(h)) return targetByHandle.get(h)!;
+    return null;
+  };
 
   // Filter rows by selected type + source (both default "all"). Declined
   // werden by default ausgeblendet, mit Toggle-Link am Listenende; counts
@@ -2262,6 +2290,53 @@ async function inboxView(typeFilter: string, sourceFilter: string, showDeclined:
     return `<span style="font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);padding:3px 9px;border-radius:999px;background:var(--surface-2)">${esc(t ?? "—")}</span>`;
   };
 
+  // Reply-Block für eine Inbox-Karte mit gematchtem Outreach-Target: voller
+  // Mail-Body + Übersetzen + Antwort-Composer (Vorlage/frei → /admin/outreach/reply,
+  // ändert den Status NICHT). Approve/Onboarding bleibt separat im actionBlock.
+  let hasReplyComposer = false;
+  const inboxReplyBlock = (r: Inquiry, t: OutreachTarget): string => {
+    const tplLang = replyLang(t.language);
+    const handle = ((t.handle || r.handle) ?? "").replace(/^@/, "");
+    const name = t.display_name || r.handle || t.handle || "";
+    const toEmail = ((t.contact_email || r.email) ?? "").toLowerCase().trim();
+    const hasEmail = Boolean(toEmail);
+    const rawForTrans = `${t.reply_subject ? t.reply_subject + "\n\n" : ""}${t.last_message ?? ""}`.trim();
+    const def = REPLY_TEMPLATES[tplLang][0];
+    const subst = (s: string): string => s.replace(/\{\{name\}\}/g, name).replace(/\{\{handle\}\}/g, handle);
+    const cleanSub = (t.reply_subject ?? "").replace(/^re:\s*/i, "").trim();
+    const defSubject = cleanSub ? `Re: ${cleanSub}` : subst(def.subject);
+    const defBody = subst(def.body);
+    const platLabel = t.platform === "tiktok" ? "TikTok" : t.platform === "instagram" ? "Instagram" : "";
+    return `<div class="reply-card" data-name="${esc(name)}" data-handle="${esc(handle)}" style="margin-top:16px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px">
+      <div style="font-family:var(--font-mono);font-size:9.5px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-4);margin-bottom:8px">Antwort des Influencers${platLabel ? ` · ${platLabel}` : ""}</div>
+      ${t.reply_subject ? `<div style="font-weight:600;font-size:12px;margin-bottom:4px">${esc(t.reply_subject)}</div>` : ""}
+      <div class="reply-incoming" data-raw="${esc(rawForTrans)}" data-src-lang="${esc(tplLang)}" style="white-space:pre-wrap;font-size:13px;color:var(--fg);font-family:var(--font-body)">${esc(t.last_message ?? "")}</div>
+      <div style="margin-top:8px"><button type="button" class="btn ghost" style="padding:3px 9px;font-size:11px" onclick="klarTranslate(this)">DE übersetzen</button><div class="reply-trans muted" style="margin-top:6px;font-size:12px;white-space:pre-wrap"></div></div>
+      <details style="margin-top:10px">
+        <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--fg-2);user-select:none">Antworten (Mail)</summary>
+        <form method="POST" action="/admin/outreach/reply" style="margin-top:10px;display:flex;flex-direction:column;gap:8px" data-klar-confirm="Mail geht sofort an ${esc(toEmail)}. Reine Antwort, Approve/Onboarding-Link bleibt separat unten." data-klar-confirm-title="Antwort an @${esc(handle)} senden?" data-klar-confirm-ok="Senden">
+          <input type="hidden" name="id" value="${esc(t.id)}"/>
+          <input type="hidden" name="to" value="${esc(toEmail)}"/>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <label style="font-size:11px;color:var(--fg-3);display:inline-flex;align-items:center;gap:4px">Vorlage
+              <select onchange="klarReplyFill(this)" style="padding:5px 8px;border:1px solid var(--line-strong);border-radius:5px;background:var(--bg);color:var(--fg);font-size:12px">
+                ${replyTemplateSelectOptions(tplLang)}
+              </select>
+            </label>
+            <span class="muted" style="font-size:11px">an ${hasEmail ? esc(toEmail) : "—"}</span>
+          </div>
+          <input type="text" name="subject" class="reply-subj" value="${esc(defSubject)}" maxlength="300" placeholder="Betreff" style="padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
+          <textarea name="body" class="reply-text" rows="8" maxlength="8000" style="padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-body);resize:vertical">${esc(defBody)}</textarea>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button type="submit" class="btn" style="padding:6px 14px;font-size:12px"${hasEmail ? "" : " disabled title=\"keine Email\""}>Senden</button>
+            <button type="button" class="btn ghost" style="padding:6px 12px;font-size:12px" onclick="klarCopyDraft(this)">Entwurf kopieren</button>
+            ${hasEmail ? "" : `<span class="muted" style="font-size:11px;font-style:italic">keine Email, nutze "Entwurf kopieren"</span>`}
+          </div>
+        </form>
+      </details>
+    </div>`;
+  };
+
   const renderCard = (r: Inquiry): string => {
     const details = detailPairs(r)
       .filter(([, v]) => v && String(v).trim())
@@ -2270,6 +2345,13 @@ async function inboxView(typeFilter: string, sourceFilter: string, showDeclined:
         <span style="color:var(--fg);flex:1;${isLong ? "white-space:pre-wrap;word-wrap:break-word" : ""}">${esc(v!)}</span>
       </div>`)
       .join("");
+
+    const matched = matchTarget(r);
+    let replyBlock = "";
+    if (matched && (matched.last_message ?? "").trim()) {
+      hasReplyComposer = true;
+      replyBlock = inboxReplyBlock(r, matched);
+    }
 
     const isNew = r.status === "new";
     const isDeclined = r.status === "declined";
@@ -2291,6 +2373,7 @@ async function inboxView(typeFilter: string, sourceFilter: string, showDeclined:
         </div>
       </header>
       <div style="display:flex;flex-direction:column;gap:0">${details || `<span class="muted" style="font-size:12.5px;font-style:italic">keine weiteren Angaben</span>`}</div>
+      ${replyBlock}
       ${actionBlock(r)}
     </article>`;
   };
@@ -2329,12 +2412,13 @@ async function inboxView(typeFilter: string, sourceFilter: string, showDeclined:
     @keyframes klar-pulse { 0%,100% { box-shadow: 0 0 0 0 #eab308a0; } 50% { box-shadow: 0 0 0 4px transparent; } }
     .inbox-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow); }
     .inbox-card details[open] summary { color: var(--fg); }
-  </style><h1>Inbox</h1><p class="sub">Affiliate- und Consulting-Anfragen, gefiltert nach Typ und Quelle. Affiliate-Karten haben den <em>Approve</em>-Klappbereich für den Onboarding-Link &mdash; bei neuen Anfragen ist er aufgeklappt.</p>
+  </style><h1>Inbox</h1><p class="sub">Affiliate- und Consulting-Anfragen, gefiltert nach Typ und Quelle. Affiliate-Karten haben den <em>Approve</em>-Klappbereich für den Onboarding-Link, bei neuen Anfragen ist er aufgeklappt. Outreach-Replies zeigen den vollen Mail-Text mit Übersetzen + Antwort-Composer direkt auf der Karte.</p>
     ${typeTabs}
     ${sourceFilters}
     ${consultingHint}
     ${cards}
-    ${body}`;
+    ${body}
+    ${hasReplyComposer ? `<script>${REPLY_INBOX_JS}</script>` : ""}`;
 }
 
 async function bookingsView(): Promise<string> {
