@@ -254,7 +254,11 @@ async function overviewMain(apps: AdminApp[]): Promise<string> {
     <h2>Affiliate-Stand · Outreach-Funnel pro App</h2>${tbl}`;
 }
 
-export default async function OverviewPage() {
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ msg?: string }>;
+}) {
   // Auth — identical gate to brain/cal/bookings/revenue (device cookie + admin session).
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
   const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
@@ -266,8 +270,10 @@ export default async function OverviewPage() {
   if (!device) redirect("/admin/login");
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
+  const sp = await searchParams;
   const apps = getApps();
   const main = await overviewMain(apps);
+  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
   const sidebar = adminSidebar("overview", apps);
   const topbar = `
     <span class="crumb"><b>Übersicht</b>${ICON.chevron}<span>Klar Control</span></span>
@@ -290,7 +296,7 @@ export default async function OverviewPage() {
         <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content" dangerouslySetInnerHTML={{ __html: main }} />
+          <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
         </main>
       </div>
       <script dangerouslySetInnerHTML={{ __html: SMOKE_BG_SCRIPT }} />
