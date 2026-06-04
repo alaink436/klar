@@ -130,25 +130,13 @@ function Body({ result }: { result: BookingsResult }) {
     <>
       <p className="sub">Cal.com-Buchungen, per Webhook live in Supabase. Anstehende oben.</p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "0 0 16px 0" }}>
-        <a className="btn" href="https://cal.getklar.org/event-types" target="_blank" rel="noopener">
+        <a className="btn pop" href="https://cal.getklar.org/event-types" target="_blank" rel="noopener">
           Cal Admin öffnen ↗
         </a>
-        <a
-          className="btn"
-          style={{ background: "transparent", border: "1px solid var(--line-strong)", color: "var(--fg)" }}
-          href="https://cal.getklar.org/klar/affiliate-intro"
-          target="_blank"
-          rel="noopener"
-        >
+        <a className="btn ghost" href="https://cal.getklar.org/klar/affiliate-intro" target="_blank" rel="noopener">
           Booking-Seite ansehen ↗
         </a>
-        <a
-          className="btn"
-          style={{ background: "transparent", border: "1px solid var(--line-strong)", color: "var(--fg)" }}
-          href="https://cal.getklar.org/bookings/upcoming"
-          target="_blank"
-          rel="noopener"
-        >
+        <a className="btn ghost" href="https://cal.getklar.org/bookings/upcoming" target="_blank" rel="noopener">
           In Cal verwalten ↗
         </a>
       </div>

@@ -534,11 +534,12 @@ function PublicView({ data, period }: { data: AnalyticsPayload; period: Period }
             <AreaChart data={data.series} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
               <defs>
                 <linearGradient id="fgFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.22} />
+                  <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+                  <stop offset="75%" stopColor="var(--chart-1)" stopOpacity={0.04} />
                   <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" vertical={false} />
+              <CartesianGrid stroke="var(--line)" strokeDasharray="2 4" vertical={false} />
               <XAxis
                 dataKey="label"
                 tick={{ fontSize: 10, fill: "var(--fg-3)", fontFamily: "var(--font-mono)" }}
@@ -553,7 +554,7 @@ function PublicView({ data, period }: { data: AnalyticsPayload; period: Period }
                 allowDecimals={false}
                 width={36}
               />
-              <Tooltip content={<TipBox />} />
+              <Tooltip content={<TipBox />} cursor={{ stroke: "var(--line-strong)", strokeWidth: 1 }} />
               <Area
                 type="monotone"
                 dataKey="visits"
@@ -561,6 +562,8 @@ function PublicView({ data, period }: { data: AnalyticsPayload; period: Period }
                 stroke="var(--chart-1)"
                 strokeWidth={2}
                 fill="url(#fgFill)"
+                dot={false}
+                activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--surface)", fill: "var(--chart-1)" }}
               />
               <Area
                 type="monotone"
@@ -570,6 +573,8 @@ function PublicView({ data, period }: { data: AnalyticsPayload; period: Period }
                 strokeWidth={1.5}
                 strokeDasharray="4 4"
                 fill="none"
+                dot={false}
+                activeDot={{ r: 3, strokeWidth: 2, stroke: "var(--surface)", fill: "var(--chart-2)" }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -619,7 +624,7 @@ function PublicView({ data, period }: { data: AnalyticsPayload; period: Period }
                   allowDecimals={false}
                   width={36}
                 />
-                <Tooltip content={<TipBox />} />
+                <Tooltip content={<TipBox />} cursor={{ fill: "var(--surface-2)", opacity: 0.6 }} />
                 <Bar dataKey="count" name="Visits" radius={[3, 3, 0, 0]}>
                   {data.countries.map((_, i) => (
                     <Cell
@@ -684,7 +689,7 @@ function AffiliateLandingsView({ data }: { data: AnalyticsPayload }) {
                     allowDecimals={false}
                     width={36}
                   />
-                  <Tooltip content={<TipBox />} />
+                  <Tooltip content={<TipBox />} cursor={{ fill: "var(--surface-2)", opacity: 0.6 }} />
                   <Bar dataKey="count" name="Klicks" radius={[3, 3, 0, 0]}>
                     {data.affiliates.perApp.map((_, i) => (
                       <Cell
