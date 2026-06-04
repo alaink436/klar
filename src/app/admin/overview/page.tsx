@@ -26,14 +26,15 @@ import {
   adminSidebar,
   esc,
   eur,
-  barChart,
   fmtRelative,
+  REPORTING_CURRENCY,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps, sbGet, type AdminApp } from "../../../lib/adminApps";
 import { listOutreachTargets, type OutreachTarget } from "../../../lib/outreachStore";
 import { KLAR_APPS, type KlarAppMeta } from "../../../lib/klarApps";
 import OverviewAffiliateTable, { type OverviewRow } from "./OverviewAffiliateTable";
+import MonthlyBarChart from "../MonthlyBarChart";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -62,13 +63,20 @@ function appTabStrip(connectedSlugs: Set<string>): string {
   }).join("")}</div>`;
 }
 
-async function overviewMain(apps: AdminApp[]): Promise<{ html: string; tableRows: OverviewRow[] }> {
+async function overviewMain(apps: AdminApp[]): Promise<{
+  htmlTop: string;
+  series: { label: string; gross: number; payout: number }[];
+  htmlMid: string;
+  tableRows: OverviewRow[];
+}> {
   const connected = new Set(apps.map((a) => a.slug));
   const tabs = appTabStrip(connected);
 
   if (apps.length === 0) {
     return {
-      html: `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick. Klick eine verdrahtete App fürs Affiliate-Detail; die anderen tauchen auf, sobald sie ein Schema in <code>KLAR_ADMIN_APPS</code> bekommen.</p>${tabs}`,
+      htmlTop: `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick. Klick eine verdrahtete App fürs Affiliate-Detail; die anderen tauchen auf, sobald sie ein Schema in <code>KLAR_ADMIN_APPS</code> bekommen.</p>${tabs}`,
+      series: [],
+      htmlMid: "",
       tableRows: [],
     };
   }
@@ -247,14 +255,14 @@ async function overviewMain(apps: AdminApp[]): Promise<{ html: string; tableRows
     openCents: r.open,
     openFmt: eur(r.open),
   }));
-  const html = `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick: Affiliate-Umsatz, Outreach-Funnel und was gerade Aufmerksamkeit braucht.</p>
+  const htmlTop = `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick: Affiliate-Umsatz, Outreach-Funnel und was gerade Aufmerksamkeit braucht.</p>
     ${tabs}
     ${attnStrip}
     ${cards}
-    <h2>Affiliate-Umsatz pro Monat</h2>${barChart(series)}
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:14px 0 8px">${funnelCard}${activityCard}</div>
+    <h2>Affiliate-Umsatz pro Monat</h2>`;
+  const htmlMid = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:14px 0 8px">${funnelCard}${activityCard}</div>
     <h2>Affiliate-Stand · Outreach-Funnel pro App</h2>`;
-  return { html, tableRows };
+  return { htmlTop, series, htmlMid, tableRows };
 }
 
 export default async function OverviewPage() {
@@ -270,7 +278,7 @@ export default async function OverviewPage() {
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
   const apps = getApps();
-  const { html: main, tableRows } = await overviewMain(apps);
+  const { htmlTop, series, htmlMid, tableRows } = await overviewMain(apps);
   const sidebar = adminSidebar("overview", apps);
   const topbar = `
     <span class="crumb"><b>Übersicht</b>${ICON.chevron}<span>Klar Control</span></span>
@@ -294,7 +302,9 @@ export default async function OverviewPage() {
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
           <div className="content">
-            <div dangerouslySetInnerHTML={{ __html: main }} />
+            <div dangerouslySetInnerHTML={{ __html: htmlTop }} />
+            {series.length ? <MonthlyBarChart series={series} currency={REPORTING_CURRENCY} /> : null}
+            <div dangerouslySetInnerHTML={{ __html: htmlMid }} />
             {tableRows.length ? <OverviewAffiliateTable rows={tableRows} /> : null}
           </div>
         </main>
