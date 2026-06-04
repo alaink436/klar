@@ -10,18 +10,8 @@
 // WebGL smoke background on every click.
 
 import Link from "next/link";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
+import { AreaChart } from "../tremor/components/AreaChart/AreaChart";
+import { BarChart } from "../tremor/components/BarChart/BarChart";
 
 export type Period = "week" | "month" | "year";
 export type AnalyticsTab = "public" | "affiliate" | "funnel";
@@ -69,31 +59,6 @@ const PERIODS: { id: Period; label: string }[] = [
   { id: "year", label: "Jahr" },
 ];
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-function TipBox({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div
-      style={{
-        background: "var(--surface)",
-        border: "1px solid var(--line-strong)",
-        borderRadius: 6,
-        padding: "8px 12px",
-        fontSize: 12,
-        fontVariantNumeric: "tabular-nums",
-        boxShadow: "var(--shadow-sm)",
-      }}
-    >
-      <div style={{ color: "var(--fg-3)", marginBottom: 4 }}>{label}</div>
-      {payload.map((e: any, i: number) => (
-        <div key={i} style={{ color: e.color }}>
-          {e.name}: <b style={{ color: "var(--fg)" }}>{e.value}</b>
-        </div>
-      ))}
-    </div>
-  );
-}
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 const TABS: { id: AnalyticsTab; label: string; periodParam: "p_pub" | "p_aff" | "p_fun" }[] = [
   { id: "public", label: "Public", periodParam: "p_pub" },
@@ -529,66 +494,16 @@ function PublicView({ data, period }: { data: AnalyticsPayload; period: Period }
 
       <h2>Verlauf</h2>
       <div className="chart">
-        <div style={{ height: 240 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data.series} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-              <defs>
-                <linearGradient id="fgFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.3} />
-                  <stop offset="75%" stopColor="var(--chart-1)" stopOpacity={0.04} />
-                  <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="var(--line)" strokeDasharray="2 4" vertical={false} />
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 10, fill: "var(--fg-3)", fontFamily: "var(--font-mono)" }}
-                axisLine={{ stroke: "var(--line)" }}
-                tickLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: "var(--fg-3)", fontFamily: "var(--font-mono)" }}
-                axisLine={false}
-                tickLine={false}
-                allowDecimals={false}
-                width={36}
-              />
-              <Tooltip content={<TipBox />} cursor={{ stroke: "var(--line-strong)", strokeWidth: 1 }} />
-              <Area
-                type="monotone"
-                dataKey="visits"
-                name="Visits"
-                stroke="var(--chart-1)"
-                strokeWidth={2}
-                fill="url(#fgFill)"
-                dot={false}
-                activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--surface)", fill: "var(--chart-1)" }}
-              />
-              <Area
-                type="monotone"
-                dataKey="sessions"
-                name="Sessions"
-                stroke="var(--chart-2)"
-                strokeWidth={1.5}
-                strokeDasharray="4 4"
-                fill="none"
-                dot={false}
-                activeDot={{ r: 3, strokeWidth: 2, stroke: "var(--surface)", fill: "var(--chart-2)" }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="legend">
-          <span>
-            <i style={{ background: "var(--chart-1)" }} />
-            Visits
-          </span>
-          <span>
-            <i style={{ background: "var(--chart-2)" }} />
-            Sessions
-          </span>
-        </div>
+        <AreaChart
+          data={data.series.map((d) => ({ label: d.label, Visits: d.visits, Sessions: d.sessions }))}
+          index="label"
+          categories={["Visits", "Sessions"]}
+          colors={["ink", "steel"]}
+          valueFormatter={(v) => v.toLocaleString("de-CH")}
+          startEndOnly
+          showLegend
+          className="h-60"
+        />
       </div>
 
       <h2>Top-Seiten</h2>
@@ -604,38 +519,15 @@ function PublicView({ data, period }: { data: AnalyticsPayload; period: Period }
       <h2>Geo · Browser</h2>
       <div className="chart-grid">
         <ChartCard title="Länder">
-          <div style={{ height: 200 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={data.countries.length ? data.countries : [{ label: "—", count: 0 }]}
-                margin={{ top: 4, right: 8, left: -16, bottom: 0 }}
-              >
-                <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" vertical={false} />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 10, fill: "var(--fg-3)", fontFamily: "var(--font-mono)" }}
-                  axisLine={{ stroke: "var(--line)" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 10, fill: "var(--fg-3)", fontFamily: "var(--font-mono)" }}
-                  axisLine={false}
-                  tickLine={false}
-                  allowDecimals={false}
-                  width={36}
-                />
-                <Tooltip content={<TipBox />} cursor={{ fill: "var(--surface-2)", opacity: 0.6 }} />
-                <Bar dataKey="count" name="Visits" radius={[3, 3, 0, 0]}>
-                  {data.countries.map((_, i) => (
-                    <Cell
-                      key={i}
-                      fill={i === 0 ? "var(--chart-1)" : i < 3 ? "var(--chart-2)" : "var(--chart-3)"}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <BarChart
+            data={(data.countries.length ? data.countries : [{ label: "—", count: 0 }]).map((c) => ({ label: c.label, Visits: c.count }))}
+            index="label"
+            categories={["Visits"]}
+            colors={["ink"]}
+            valueFormatter={(v) => v.toLocaleString("de-CH")}
+            showLegend={false}
+            className="h-52"
+          />
         </ChartCard>
         <ChartCard title="Browser">
           <HBar data={data.browsers} />
@@ -668,39 +560,15 @@ function AffiliateLandingsView({ data }: { data: AnalyticsPayload }) {
       <div className="chart-grid">
         <ChartCard title="Klicks pro App">
           {data.affiliates.perApp.length > 0 ? (
-            <div style={{ height: 220 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={data.affiliates.perApp.map((a) => ({ label: a.name, count: a.hits }))}
-                  margin={{ top: 4, right: 8, left: -16, bottom: 0 }}
-                >
-                  <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fontSize: 10, fill: "var(--fg-3)", fontFamily: "var(--font-mono)" }}
-                    axisLine={{ stroke: "var(--line)" }}
-                    tickLine={false}
-                    interval={0}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10, fill: "var(--fg-3)", fontFamily: "var(--font-mono)" }}
-                    axisLine={false}
-                    tickLine={false}
-                    allowDecimals={false}
-                    width={36}
-                  />
-                  <Tooltip content={<TipBox />} cursor={{ fill: "var(--surface-2)", opacity: 0.6 }} />
-                  <Bar dataKey="count" name="Klicks" radius={[3, 3, 0, 0]}>
-                    {data.affiliates.perApp.map((_, i) => (
-                      <Cell
-                        key={i}
-                        fill={i === 0 ? "var(--chart-1)" : i < 3 ? "var(--chart-2)" : "var(--chart-3)"}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <BarChart
+              data={data.affiliates.perApp.map((a) => ({ label: a.name, Klicks: a.hits }))}
+              index="label"
+              categories={["Klicks"]}
+              colors={["ink"]}
+              valueFormatter={(v) => v.toLocaleString("de-CH")}
+              showLegend={false}
+              className="h-56"
+            />
           ) : (
             <p className="muted" style={{ fontSize: 13, margin: "12px 0 0" }}>
               Noch keine Klicks auf Affiliate-Landings.
