@@ -158,6 +158,10 @@ export const ICON: Record<string, string> = {
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
   brain:
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v13"/><path d="M3 5.5C3 4.7 3.7 4 4.5 4H9a3 3 0 0 1 3 3 3 3 0 0 1 3-3h4.5c.8 0 1.5.7 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5H15a3 3 0 0 0-3 1.5 3 3 0 0 0-3-1.5H4.5A1.5 1.5 0 0 1 3 18z"/></svg>`,
+  reply:
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>`,
+  send:
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>`,
 };
 
 // Shared admin sidebar — single source of truth for the nav, used by route.ts
@@ -192,6 +196,8 @@ export function adminSidebar(
     ${appNav || `<span class="nav muted"><span class="d">${ICON.app}</span>keine Apps</span>`}
     <div class="navsec">Extern</div>
     ${item("outreach", "Outreach", ICON.outreach)}
+    ${item("replies", "Antworten", ICON.reply, "/admin/replies")}
+    ${item("mailer", "Mailer", ICON.send, "/admin/mailer")}
     <a class="nav" href="https://cal.getklar.org" target="_blank" rel="noopener"><span class="d">${ICON.calendar}</span>Cal in neuem Tab <span style="margin-left:auto;font-size:10px;opacity:.6">↗</span></a>
     <div class="spacer"></div>
     ${item("settings", "Einstellungen", ICON.lock, "/admin/settings")}

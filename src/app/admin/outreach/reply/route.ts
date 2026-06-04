@@ -8,7 +8,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { readCookie, ctEqual } from "@/app/admin/_shared";
-import { markMailSent } from "@/lib/outreachStore";
+import { markMailSent, insertMessage } from "@/lib/outreachStore";
 import { sendBrevoEmail, klarEmailShell } from "@/lib/brevo";
 
 export const runtime = "nodejs";
@@ -36,17 +36,28 @@ function back(req: NextRequest, msg: string): Response {
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
+  // The mail-client posts with ?json=1 and wants a JSON result (no redirect),
+  // so it can append the sent message to the thread without a full reload. The
+  // legacy outreach-view forms post without it and still get a 303 redirect.
+  const wantsJson = req.nextUrl.searchParams.get("json") === "1";
+  const done = (ok: boolean, msg: string, status = 400): Response =>
+    wantsJson
+      ? NextResponse.json({ ok, msg }, { status: ok ? 200 : status })
+      : back(req, msg);
+
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  if (!KEY) return back(req, "Server misconfigured");
+  if (!KEY) return done(false, "Server misconfigured", 500);
   if (!ctEqual(readCookie(req, "klar_admin"), KEY)) {
-    return NextResponse.redirect(new URL("/admin/login", req.url), 303);
+    return wantsJson
+      ? NextResponse.json({ ok: false, msg: "unauthorized" }, { status: 401 })
+      : NextResponse.redirect(new URL("/admin/login", req.url), 303);
   }
 
   let form: FormData;
   try {
     form = await req.formData();
   } catch {
-    return back(req, "Bad form");
+    return done(false, "Bad form");
   }
 
   const id = String(form.get("id") ?? "").trim();
@@ -54,25 +65,41 @@ export async function POST(req: NextRequest): Promise<Response> {
   const subject = String(form.get("subject") ?? "").trim();
   const bodyText = String(form.get("body") ?? "").trim();
 
-  if (!UUID_RE.test(id)) return back(req, "id ungültig");
-  if (!EMAIL_RE.test(to)) return back(req, "Empfänger-Email ungültig");
-  if (!subject) return back(req, "Betreff fehlt");
-  if (!bodyText) return back(req, "Nachricht fehlt");
+  if (!UUID_RE.test(id)) return done(false, "id ungültig");
+  if (!EMAIL_RE.test(to)) return done(false, "Empfänger-Email ungültig");
+  if (!subject) return done(false, "Betreff fehlt");
+  if (!bodyText) return done(false, "Nachricht fehlt");
+
+  // replyTo auf die Inbound-Subdomain, damit die Antwort des Influencers zum
+  // /api/inbound/brevo-Webhook zurückkommt (nicht in eine gepollte Gmail-Inbox).
+  // Ohne KLAR_INBOUND_DOMAIN bleibt es beim Brevo-Default (alain@getklar.org).
+  const inboundDomain = (process.env.KLAR_INBOUND_DOMAIN ?? "").trim();
+  const replyTo = inboundDomain ? `reply+${id}@${inboundDomain}` : undefined;
 
   const mail = await sendBrevoEmail({
     to,
     subject: subject.slice(0, 300),
     html: klarEmailShell(bodyText.slice(0, 8000)),
+    replyTo,
     tags: ["outreach-reply"],
   });
-  if (!mail.sent) return back(req, `Mail NICHT gesendet (${mail.error ?? "?"})`);
+  if (!mail.sent) return done(false, `Mail NICHT gesendet (${mail.error ?? "?"})`, 502);
 
-  // mails_sent hochzählen (best-effort, Status bleibt replied).
+  // Gesendete Antwort in den Thread schreiben (best-effort) + mails_sent
+  // hochzählen. Status bleibt 'replied' — annehmen ist ein separater Klick.
+  await insertMessage({
+    target_id: id,
+    direction: "out",
+    subject: subject.slice(0, 300),
+    body: bodyText.slice(0, 8000),
+    to_email: to,
+    provider: "brevo",
+  });
   try {
     await markMailSent(id);
   } catch {
     /* Zähler ist observational, nicht kritisch */
   }
 
-  return back(req, `Antwort an ${to} gesendet. Status bleibt "Antwort" — annehmen separat.`);
+  return done(true, `Antwort an ${to} gesendet. Status bleibt "Antwort" — annehmen separat.`);
 }

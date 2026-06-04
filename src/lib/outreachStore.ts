@@ -788,3 +788,225 @@ export async function listSuppressions(limit = 50): Promise<SuppressionRow[]> {
     return [];
   }
 }
+
+// ---------- klar_outreach_messages (conversation thread) -------------------
+// Append-only message log per target. Powers the /admin/replies mail-client
+// (full thread + inbound reply count). See migration 0004_outreach_messages.sql.
+// Inbound rows are written by the Brevo inbound webhook, outbound rows by the
+// admin reply route.
+
+// Local UUID guard for the messages helpers (kept separate from route-layer
+// validators so this module stays self-contained).
+const UUID_RE_STORE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export type OutreachDirection = "in" | "out";
+
+export interface OutreachMessage {
+  id: string;
+  target_id: string;
+  direction: OutreachDirection;
+  subject: string | null;
+  body: string;
+  from_email: string | null;
+  to_email: string | null;
+  provider: string | null;
+  external_id: string | null;
+  spam_score: number | null;
+  sent_at: string | null;
+  created_at: string;
+}
+
+export interface InsertMessageInput {
+  target_id: string;
+  direction: OutreachDirection;
+  subject?: string | null;
+  body: string;
+  from_email?: string | null;
+  to_email?: string | null;
+  provider?: string | null;
+  external_id?: string | null;
+  spam_score?: number | null;
+  sent_at?: string | null;
+}
+
+/** All thread messages for the given target ids, oldest first. One query,
+ *  grouped by the caller. Returns [] on any failure so the UI never crashes. */
+export async function listMessagesForTargets(
+  ids: string[],
+): Promise<OutreachMessage[]> {
+  if (!KLAR_INBOX_KEY) return [];
+  const clean = ids.filter((x) => UUID_RE_STORE.test(x));
+  if (clean.length === 0) return [];
+  try {
+    const inList = clean.map((x) => encodeURIComponent(x)).join(",");
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_messages?select=*&target_id=in.(${inList})&order=created_at.asc&limit=2000`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as OutreachMessage[];
+  } catch {
+    return [];
+  }
+}
+
+/** Append one message to the thread. Best-effort: a 409 (duplicate
+ *  external_id from a webhook retry) resolves to null instead of throwing. */
+export async function insertMessage(
+  input: InsertMessageInput,
+): Promise<OutreachMessage | null> {
+  if (!KLAR_INBOX_KEY) return null;
+  const body = {
+    target_id: input.target_id,
+    direction: input.direction,
+    subject: input.subject ?? null,
+    body: input.body ?? "",
+    from_email: input.from_email ?? null,
+    to_email: input.to_email ?? null,
+    provider: input.provider ?? null,
+    external_id: input.external_id ?? null,
+    spam_score: input.spam_score ?? null,
+    sent_at: input.sent_at ?? null,
+  };
+  try {
+    const res = await fetch(`${KLAR_INBOX_URL}/rest/v1/klar_outreach_messages`, {
+      method: "POST",
+      headers: { ...hdr(), Prefer: "return=representation" },
+      body: JSON.stringify(body),
+    });
+    if (res.status === 409) return null; // dedupe on external_id, already stored
+    if (!res.ok) return null;
+    const rows = (await res.json()) as OutreachMessage[];
+    return rows[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Find a target by its contact_email (newest first). Used by the inbound
+ *  webhook to match a reply whose sender address we already know. */
+export async function findTargetByEmail(
+  email: string,
+): Promise<OutreachTarget | null> {
+  if (!KLAR_INBOX_KEY) return null;
+  const e = email.trim().toLowerCase();
+  if (!e) return null;
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?contact_email=eq.${encodeURIComponent(e)}&select=*&order=updated_at.desc&limit=1`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as OutreachTarget[];
+    return rows[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Stamp a target after an inbound reply landed. Promotes queued/dm_sent to
+ *  'replied' (never downgrades converted/declined/dead), always refreshes
+ *  last_message + last_message_at, and fills replied_at on the first reply.
+ *  Best-effort: swallows errors (the message row is already stored). */
+export async function recordInboundReply(
+  id: string,
+  opts: { body: string; subject?: string | null; at?: string | null },
+): Promise<void> {
+  if (!KLAR_INBOX_KEY) return;
+  try {
+    const cur = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?id=eq.${encodeURIComponent(id)}&select=status,replied_at`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    const rows = cur.ok ? ((await cur.json()) as Array<{ status: OutreachStatus; replied_at: string | null }>) : [];
+    const row = rows[0];
+    const when = opts.at ?? new Date().toISOString();
+    const patch: Record<string, unknown> = {
+      last_message: opts.body.slice(0, 8000),
+      last_message_at: when,
+    };
+    if (opts.subject) patch.reply_subject = opts.subject.slice(0, 300);
+    if (row && (row.status === "queued" || row.status === "dm_sent")) patch.status = "replied";
+    if (row && !row.replied_at) patch.replied_at = when;
+    await fetch(`${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { ...hdr(), Prefer: "return=minimal" },
+      body: JSON.stringify(patch),
+    });
+  } catch {
+    /* message already persisted; target stamp is best-effort */
+  }
+}
+
+// ---------- in-app outreach mailer (Mail-1 / Mail-2, replaces n8n send) ----
+// Selectors + stage-stamp used by lib/outreachMailer.ts. Scraping stays in n8n;
+// only the SEND step moves in-app here.
+
+/** Targets awaiting first contact: queued, never mailed, with an email. */
+export async function listTargetsForMail1(limit = 50): Promise<OutreachTarget[]> {
+  if (!KLAR_INBOX_KEY) return [];
+  const lim = Math.min(Math.max(limit, 1), 500);
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?status=eq.queued&mail_status=is.null&contact_email=not.is.null&order=priority.asc,queued_at.asc&limit=${lim}&select=*`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as OutreachTarget[];
+  } catch {
+    return [];
+  }
+}
+
+/** Follow-up candidates: Mail-1 sent before cutoff, no reply yet (still
+ *  dm_sent), not yet Mail-2'd. */
+export async function listTargetsForMail2(
+  cutoffIso: string,
+  limit = 50,
+): Promise<OutreachTarget[]> {
+  if (!KLAR_INBOX_KEY) return [];
+  const lim = Math.min(Math.max(limit, 1), 500);
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?status=eq.dm_sent&mail_status=eq.mail1_sent&mail1_sent_at=lt.${encodeURIComponent(cutoffIso)}&contact_email=not.is.null&order=priority.asc,mail1_sent_at.asc&limit=${lim}&select=*`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as OutreachTarget[];
+  } catch {
+    return [];
+  }
+}
+
+/** Stamp a target after a Mail-1/Mail-2 send (status + timestamps + counter). */
+export async function markMailStage(id: string, stage: "mail1" | "mail2"): Promise<void> {
+  if (!KLAR_INBOX_KEY) return;
+  const now = new Date().toISOString();
+  let mails = 0;
+  try {
+    const cur = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?id=eq.${encodeURIComponent(id)}&select=mails_sent`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (cur.ok) {
+      const rows = (await cur.json()) as Array<{ mails_sent: number }>;
+      mails = rows[0]?.mails_sent ?? 0;
+    }
+  } catch {
+    /* counter read best-effort */
+  }
+  const patch: Record<string, unknown> =
+    stage === "mail1"
+      ? { mail_status: "mail1_sent", mail1_sent_at: now, status: "dm_sent", mails_sent: mails + 1, last_mail_at: now }
+      : { mail_status: "mail2_sent", mail2_sent_at: now, mails_sent: mails + 1, last_mail_at: now };
+  try {
+    await fetch(`${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { ...hdr(), Prefer: "return=minimal" },
+      body: JSON.stringify(patch),
+    });
+  } catch {
+    /* stamp best-effort */
+  }
+}

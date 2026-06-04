@@ -173,7 +173,7 @@ async function overviewMain(apps: AdminApp[]): Promise<string> {
   const attn = (n: number, label: string, href: string, glyph: string, accent: string): string =>
     n > 0 ? `<a href="${href}" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius-sm);padding:8px 13px;font-size:12.5px;color:var(--fg)"><span style="display:inline-flex;color:${accent}">${gi(glyph, 15)}</span><span style="font-weight:600">${esc(label)}</span><span style="font-family:var(--font-mono);font-weight:700;color:${accent}">${n}</span></a>` : "";
   const attnItems = [
-    attn(totalReply, "Offene Antworten", "/admin?view=inbox&source=outreach-reply", G.reply, "var(--warning)"),
+    attn(totalReply, "Offene Antworten", "/admin/replies", G.reply, "var(--warning)"),
     attn(inquiriesNew, "Neue Anfragen", "/admin?view=inbox", G.inbox, "var(--info)"),
     attn(totalAngefragt, "Wartet auf Antwort", "/admin?view=outreach", G.send, "var(--fg-3)"),
   ].filter(Boolean).join("");
