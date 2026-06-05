@@ -136,7 +136,9 @@ export default async function InboxPage({
     })
     .slice(0, 100);
 
-  const rows = await listMessagesForTargets(candidates.map((t) => t.id));
+  const rows = await listMessagesForTargets(
+    [...candidates, ...awaitingTargets].map((t) => t.id),
+  );
   const byTarget = new Map<string, OutreachMessage[]>();
   for (const m of rows) {
     const arr = byTarget.get(m.target_id);
@@ -201,26 +203,40 @@ export default async function InboxPage({
     };
   });
 
-  const awaitingConvs: Conversation[] = awaitingTargets.map((t): Conversation => ({
-    id: t.id,
-    handle: t.handle,
-    displayName: t.display_name,
-    platform: t.platform,
-    profileUrl: t.profile_url,
-    contactEmail: t.contact_email,
-    language: t.language || "de",
-    apps: appsOf(t),
-    status: t.status,
-    followerEstimate: t.follower_estimate,
-    mailsSent: t.mails_sent ?? 0,
-    mailStatus: t.mail_status,
-    messages: [],
-    replyCount: 0,
-    lastInboundAt: null,
-    lastActivityAt: (t.last_mail_at || t.mail1_sent_at || t.contacted_at || t.updated_at) ?? null,
-    awaiting: true,
-    kind: "outreach",
-  }));
+  const awaitingConvs: Conversation[] = awaitingTargets.map((t): Conversation => {
+    // The sent Mail-1 (and any follow-up) is now stored — show it in the thread.
+    const msgs: ThreadMessage[] = (byTarget.get(t.id) ?? [])
+      .slice()
+      .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""))
+      .map((r) => ({
+        id: r.id,
+        direction: r.direction,
+        subject: r.subject,
+        body: r.body,
+        at: r.sent_at || r.created_at,
+        provider: r.provider,
+      }));
+    return {
+      id: t.id,
+      handle: t.handle,
+      displayName: t.display_name,
+      platform: t.platform,
+      profileUrl: t.profile_url,
+      contactEmail: t.contact_email,
+      language: t.language || "de",
+      apps: appsOf(t),
+      status: t.status,
+      followerEstimate: t.follower_estimate,
+      mailsSent: t.mails_sent ?? 0,
+      mailStatus: t.mail_status,
+      messages: msgs,
+      replyCount: 0,
+      lastInboundAt: null,
+      lastActivityAt: (t.last_mail_at || t.mail1_sent_at || t.contacted_at || t.updated_at) ?? null,
+      awaiting: true,
+      kind: "outreach",
+    };
+  });
 
   // ── Inquiry side: website contact-form requests ──────────────────────────
   let inquiryConvs: Conversation[] = [];

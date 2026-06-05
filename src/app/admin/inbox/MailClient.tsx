@@ -662,21 +662,27 @@ export default function MailClient({
 
               {/* Thread */}
               <div className="kr-thread">
-                {sel.awaiting ? (
+                {sel.messages.length === 0 ? (
                   <div className="muted" style={{ margin: "auto", textAlign: "center", maxWidth: 380, fontSize: 13, lineHeight: 1.6 }}>
                     Noch keine Antwort. Kontaktiert {rel(sel.lastActivityAt)}
                     {sel.mailsSent ? ` · ${sel.mailsSent} Mail(s) gesendet` : ""}. Sobald {name} antwortet,
                     erscheint der volle Thread hier mit Übersetzen-Funktion. Unten kannst du nachfassen.
                   </div>
                 ) : (
-                  sel.messages.map((m) => {
+                  sel.messages.map((m, i) => {
                   const tr = trans[m.id];
                   const isIn = m.direction === "in";
+                  const inboundNo = isIn ? sel.messages.slice(0, i + 1).filter((x) => x.direction === "in").length : 0;
+                  const label = isIn
+                    ? `${inboundNo}. Antwort`
+                    : m.provider === "brevo-mail1"
+                      ? "Mail 1 · Erstkontakt"
+                      : "Du";
                   return (
                     <div key={m.id} className={`kr-bubble ${isIn ? "in" : "out"}`}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                         <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: isIn ? "var(--warning)" : "var(--fg-3)" }}>
-                          {isIn ? name : "Du"}
+                          {label}
                         </span>
                         <span className="muted" suppressHydrationWarning style={{ fontSize: 10.5, fontFamily: "var(--font-mono)" }} title={abs(m.at)}>
                           {rel(m.at)}
