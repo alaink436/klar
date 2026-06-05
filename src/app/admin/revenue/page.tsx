@@ -51,9 +51,9 @@ async function revenueMain(apps: AdminApp[]): Promise<{
 
   const perApp = await Promise.all(apps.map(async (app) => {
     const [inf, claim, events] = await Promise.all([
-      sbGet(app, "influencers?select=status"),
-      sbGet(app, "influencer_claimable?select=claimable_eur_cents"),
-      sbGet(app, "referral_revenue_events?select=event_at,gross_revenue_cents,share_cents_eur&order=event_at&limit=4000"),
+      sbGet(app, "influencers?select=status", { revalidate: 30 }),
+      sbGet(app, "influencer_claimable?select=claimable_eur_cents", { revalidate: 30 }),
+      sbGet(app, "referral_revenue_events?select=event_at,gross_revenue_cents,share_cents_eur&order=event_at&limit=4000", { revalidate: 30 }),
     ]);
     let gross = 0, payout = 0;
     for (const e of events) {

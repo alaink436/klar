@@ -51,8 +51,8 @@ async function payoutsMain(apps: AdminApp[]): Promise<string> {
 
   const perApp = await Promise.all(apps.map(async (app) => {
     const [batches, claim] = await Promise.all([
-      sbGet(app, "influencer_payout_batches?select=id,period_start,period_end,status,item_count,total_amount_cents,created_at,paid_at,dispatched_at&order=created_at.desc&limit=24"),
-      sbGet(app, "influencer_claimable?select=claimable_eur_cents,unnormalized_events"),
+      sbGet(app, "influencer_payout_batches?select=id,period_start,period_end,status,item_count,total_amount_cents,created_at,paid_at,dispatched_at&order=created_at.desc&limit=24", { revalidate: 15 }),
+      sbGet(app, "influencer_claimable?select=claimable_eur_cents,unnormalized_events", { revalidate: 15 }),
     ]);
     const claimable = claim.reduce((s: number, c: any) => s + Number(c.claimable_eur_cents ?? 0), 0);
     const fxPending = claim.reduce((s: number, c: any) => s + Number(c.unnormalized_events ?? 0), 0);
