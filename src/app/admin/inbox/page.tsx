@@ -335,7 +335,34 @@ export default async function InboxPage({
     }
   }
 
-  const conversations: Conversation[] = [...inquiryConvs, ...repliedConvs, ...awaitingConvs].sort(
+  // Dedupe: a person who BOTH submitted a website inquiry AND was scraped as an
+  // outreach target would otherwise show up twice (the inquiry conv + the
+  // outreach thread). Keep the inquiry conv (it carries the approve flow), graft
+  // the outreach target's real message thread onto it, and drop the standalone
+  // outreach conv.
+  const outreachConvs = [...repliedConvs, ...awaitingConvs];
+  const outreachById = new Map(outreachConvs.map((c) => [c.id, c]));
+  const mergedOutreachIds = new Set<string>();
+  for (const iq of inquiryConvs) {
+    const tid = iq.inquiry?.matchedTargetId;
+    if (!tid) continue;
+    const oc = outreachById.get(tid);
+    if (!oc) continue;
+    mergedOutreachIds.add(tid);
+    const realMsgs = oc.messages.filter((m) => m.provider !== "legacy");
+    if (realMsgs.length > 0) {
+      const requestBubbles = iq.messages.filter((m) => m.provider === "form");
+      iq.messages = [...requestBubbles, ...realMsgs].sort((a, b) => (a.at || "").localeCompare(b.at || ""));
+      iq.replyCount = realMsgs.filter((m) => m.direction === "in").length;
+      iq.lastInboundAt = oc.lastInboundAt ?? iq.lastInboundAt;
+      iq.lastActivityAt = oc.lastActivityAt ?? iq.lastActivityAt;
+      // Carry the outreach reply state so the red dot + status read correctly.
+      if (oc.status === "replied" || oc.status === "converted") iq.status = oc.status;
+    }
+  }
+  const dedupedOutreach = outreachConvs.filter((c) => !mergedOutreachIds.has(c.id));
+
+  const conversations: Conversation[] = [...inquiryConvs, ...dedupedOutreach].sort(
     (a, b) => (b.lastActivityAt || "").localeCompare(a.lastActivityAt || ""),
   );
 

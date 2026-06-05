@@ -621,17 +621,28 @@ export async function getOutreachCostSummary(): Promise<OutreachCostSummary> {
       mails_sent: number;
       finished_at: string | null;
     }>;
-    let estimate = 0, actual = 0, targets = 0, mails = 0, todayMails = 0;
-    const dayMs = new Date(dayStart).getTime();
+    let estimate = 0, actual = 0, targets = 0, mails = 0;
     for (const r of rows) {
       estimate += Number(r.cost_estimate_usd ?? 0);
       actual += Number(r.cost_actual_usd ?? 0);
       targets += Number(r.targets_added ?? 0);
       mails += Number(r.mails_sent ?? 0);
-      if (r.finished_at && new Date(r.finished_at).getTime() >= dayMs) {
-        todayMails += Number(r.mails_sent ?? 0);
-      }
     }
+    // Brevo daily-cap KPI: count actual Brevo sends TODAY from the thread — every
+    // in-app send (Mail-1 + replies) writes one direction='out' row. The old code
+    // summed klar_outreach_runs.mails_sent, which the in-app mailer never writes
+    // (and n8n no longer mails), so the cap card always read ~0.
+    let brevoToday = 0;
+    try {
+      const mres = await fetch(
+        `${KLAR_INBOX_URL}/rest/v1/klar_outreach_messages?select=id&direction=eq.out&created_at=gte.${encodeURIComponent(dayStart)}&limit=1`,
+        { headers: { ...hdr(), Prefer: "count=exact" }, cache: "no-store" },
+      );
+      const cr = mres.headers.get("content-range") ?? "";
+      const slash = cr.lastIndexOf("/");
+      const total = slash >= 0 ? Number(cr.slice(slash + 1)) : NaN;
+      if (Number.isFinite(total)) brevoToday = total;
+    } catch { /* best-effort KPI */ }
     return {
       ...empty,
       month_runs_count: rows.length,
@@ -639,7 +650,7 @@ export async function getOutreachCostSummary(): Promise<OutreachCostSummary> {
       month_mails_sent: mails,
       month_apify_estimate_usd: Math.round(estimate * 1000) / 1000,
       month_apify_actual_usd: Math.round(actual * 1000) / 1000,
-      brevo_today_count: todayMails,
+      brevo_today_count: brevoToday,
     };
   } catch {
     return empty;
