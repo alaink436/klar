@@ -939,9 +939,10 @@ export async function recordInboundReply(
   }
 }
 
-// ---------- in-app outreach mailer (Mail-1 / Mail-2, replaces n8n send) ----
-// Selectors + stage-stamp used by lib/outreachMailer.ts. Scraping stays in n8n;
-// only the SEND step moves in-app here.
+// ---------- in-app outreach mailer (Mail-1 cold contact, replaces n8n send) --
+// Selector + stamp used by lib/outreachMailer.ts. Scraping stays in n8n; only
+// the Mail-1 SEND step moves in-app here. Mail-2 is no longer a blast stage —
+// the interested-reply detail mail is sent on-demand from the reply/accept flow.
 
 /** Targets awaiting first contact: queued, never mailed, with an email. */
 export async function listTargetsForMail1(limit = 50): Promise<OutreachTarget[]> {
@@ -959,28 +960,10 @@ export async function listTargetsForMail1(limit = 50): Promise<OutreachTarget[]>
   }
 }
 
-/** Follow-up candidates: Mail-1 sent before cutoff, no reply yet (still
- *  dm_sent), not yet Mail-2'd. */
-export async function listTargetsForMail2(
-  cutoffIso: string,
-  limit = 50,
-): Promise<OutreachTarget[]> {
-  if (!KLAR_INBOX_KEY) return [];
-  const lim = Math.min(Math.max(limit, 1), 500);
-  try {
-    const res = await fetch(
-      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?status=eq.dm_sent&mail_status=eq.mail1_sent&mail1_sent_at=lt.${encodeURIComponent(cutoffIso)}&contact_email=not.is.null&order=priority.asc,mail1_sent_at.asc&limit=${lim}&select=*`,
-      { headers: hdr(), cache: "no-store" },
-    );
-    if (!res.ok) return [];
-    return (await res.json()) as OutreachTarget[];
-  } catch {
-    return [];
-  }
-}
-
-/** Stamp a target after a Mail-1/Mail-2 send (status + timestamps + counter). */
-export async function markMailStage(id: string, stage: "mail1" | "mail2"): Promise<void> {
+/** Stamp a target after the Mail-1 cold-contact send (status + timestamp +
+ *  counter). Mail-2 is no longer a mailer stage — the interested-reply detail
+ *  mail goes out on-demand from the reply/accept flow. */
+export async function markMail1Sent(id: string): Promise<void> {
   if (!KLAR_INBOX_KEY) return;
   const now = new Date().toISOString();
   let mails = 0;
@@ -996,10 +979,13 @@ export async function markMailStage(id: string, stage: "mail1" | "mail2"): Promi
   } catch {
     /* counter read best-effort */
   }
-  const patch: Record<string, unknown> =
-    stage === "mail1"
-      ? { mail_status: "mail1_sent", mail1_sent_at: now, status: "dm_sent", mails_sent: mails + 1, last_mail_at: now }
-      : { mail_status: "mail2_sent", mail2_sent_at: now, mails_sent: mails + 1, last_mail_at: now };
+  const patch: Record<string, unknown> = {
+    mail_status: "mail1_sent",
+    mail1_sent_at: now,
+    status: "dm_sent",
+    mails_sent: mails + 1,
+    last_mail_at: now,
+  };
   try {
     await fetch(`${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?id=eq.${encodeURIComponent(id)}`, {
       method: "PATCH",

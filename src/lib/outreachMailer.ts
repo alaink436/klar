@@ -1,6 +1,11 @@
-// SERVER ONLY. In-app outreach mailer: sends Mail-1 (first contact) and Mail-2
-// (follow-up) directly via Brevo, replacing the SEND step of the n8n
-// Wave-Consumer / SM2. Influencer discovery (Apify scrape) stays in n8n for now.
+// SERVER ONLY. In-app outreach mailer: sends Mail-1 (cold first contact) only,
+// directly via Brevo, replacing the Mail-1 SEND step of the n8n Wave-Consumer.
+// Influencer discovery (Apify scrape) stays in n8n for now.
+//
+// Mail-2 (the interest/detail mail with Cal-/Redeem-/Onboarding-Links and
+// "glad you're interested" copy) is NOT handled here — it is an interested-reply
+// email and is sent on-demand from the reply/accept flow, never blasted to
+// non-responders.
 //
 // SAFETY MODEL — a real send happens ONLY when BOTH are true:
 //   1. env KLAR_OUTREACH_SENDER === "on"   (hard gate, set in Vercel)
@@ -12,23 +17,18 @@
 
 import {
   listTargetsForMail1,
-  listTargetsForMail2,
-  markMailStage,
+  markMail1Sent,
   checkSuppressions,
   getAppTemplate,
   type OutreachTarget,
 } from "./outreachStore";
 import { sendBrevoEmail } from "./brevo";
 
-export type MailStage = "mail1" | "mail2";
-export type MailerScope = "mail1" | "mail2" | "both";
-
 export interface MailerItem {
   id: string;
   handle: string;
   email: string | null;
   app: string | null;
-  stage: MailStage;
   subject: string;
   status: "sent" | "dry" | "skipped" | "error";
   reason?: string;
@@ -38,8 +38,6 @@ export interface MailerReport {
   live: boolean; // real sends actually happened this run
   dryRun: boolean; // caller asked for a dry run
   senderEnabled: boolean; // env KLAR_OUTREACH_SENDER === "on"
-  scope: MailerScope;
-  delayDays: number;
   cap: number;
   counts: { sent: number; dry: number; skipped: number; error: number };
   items: MailerItem[];
@@ -49,8 +47,14 @@ function pickLang(raw: string | null): string {
   const v = (raw || "").toLowerCase().slice(0, 2);
   return v === "en" || v === "es" || v === "it" || v === "fr" ? v : "de";
 }
-const subst = (s: string, name: string, handle: string): string =>
-  (s || "").replace(/\{\{name\}\}/g, name).replace(/\{\{handle\}\}/g, handle);
+
+// klar_app_mail_templates use UPPERCASE {{NAME}} / {{HANDLE}} tokens (matching
+// the n8n render node). Case-insensitive so a lowercase variant also works.
+function subst(s: string, name: string, handle: string): string {
+  return (s || "")
+    .replace(/\{\{name\}\}/gi, name)
+    .replace(/\{\{handle\}\}/gi, handle);
+}
 
 // Plain "phone-typed" shell: NO Klar branding, box, divider or footer — matches
 // the n8n Render-Mail-1 anti-template look (a real first-contact mail should not
@@ -70,11 +74,7 @@ function replyToFor(id: string): string | undefined {
   return INBOUND_DOMAIN ? `reply+${id}@${INBOUND_DOMAIN}` : undefined;
 }
 
-async function processTarget(
-  t: OutreachTarget,
-  stage: MailStage,
-  live: boolean,
-): Promise<MailerItem> {
+async function processMail1(t: OutreachTarget, live: boolean): Promise<MailerItem> {
   const name = t.display_name || t.handle;
   const app = (t.for_apps && t.for_apps[0]) || null;
   const base: MailerItem = {
@@ -82,7 +82,6 @@ async function processTarget(
     handle: t.handle,
     email: t.contact_email,
     app,
-    stage,
     subject: "",
     status: "skipped",
   };
@@ -92,12 +91,10 @@ async function processTarget(
   const lang = pickLang(t.language);
   const tpl = await getAppTemplate(app, lang);
   if (!tpl) return { ...base, reason: `kein Template ${app}/${lang}` };
-  const rawSubject = stage === "mail1" ? tpl.mail1_subject : tpl.mail2_subject;
-  const rawBody = stage === "mail1" ? tpl.mail1_body : tpl.mail2_body;
-  if (!rawSubject || !rawBody) return { ...base, reason: `Template ${stage} leer (${app}/${lang})` };
+  if (!tpl.mail1_subject || !tpl.mail1_body) return { ...base, reason: `Mail-1-Template leer (${app}/${lang})` };
 
-  const subject = subst(rawSubject, name, t.handle);
-  const body = subst(rawBody, name, t.handle);
+  const subject = subst(tpl.mail1_subject, name, t.handle);
+  const body = subst(tpl.mail1_body, name, t.handle);
 
   // Suppression check, fail-closed (a thrown/empty result does not bypass).
   const platform =
@@ -116,24 +113,17 @@ async function processTarget(
     subject: subject.slice(0, 300),
     html: outreachMailShell(body.slice(0, 8000)),
     replyTo: replyToFor(t.id),
-    tags: [stage === "mail1" ? "outreach-mail1" : "outreach-mail2"],
+    tags: ["outreach-mail1"],
   });
   if (!res.sent) return { ...base, subject, status: "error", reason: res.error ?? "send failed" };
-  await markMailStage(t.id, stage);
+  await markMail1Sent(t.id);
   return { ...base, subject, status: "sent" };
 }
 
 export async function runOutreachMailer(opts: {
-  scope?: MailerScope;
-  delayDays?: number;
   cap?: number;
   dryRun?: boolean;
 }): Promise<MailerReport> {
-  const scope = opts.scope ?? "both";
-  const delayDays = Math.min(
-    Math.max(opts.delayDays ?? Number(process.env.KLAR_MAIL2_DELAY_DAYS ?? 3), 1),
-    60,
-  );
   const cap = Math.min(
     Math.max(opts.cap ?? Number(process.env.KLAR_OUTREACH_DAILY_CAP ?? 40), 1),
     300,
@@ -142,28 +132,13 @@ export async function runOutreachMailer(opts: {
   const senderEnabled = process.env.KLAR_OUTREACH_SENDER === "on";
   const live = senderEnabled && !dryRun;
 
+  // Cold first-contact only (Mail-1). Mail-2 detail mail is sent on-demand from
+  // the reply/accept flow, not blasted to non-responders here.
   const items: MailerItem[] = [];
-  let remaining = cap;
-
-  if (scope === "mail1" || scope === "both") {
-    const t1 = await listTargetsForMail1(remaining);
-    for (const t of t1) {
-      if (remaining <= 0) break;
-      items.push(await processTarget(t, "mail1", live));
-      remaining--;
-    }
-  }
-  if ((scope === "mail2" || scope === "both") && remaining > 0) {
-    const cutoff = new Date(Date.now() - delayDays * 86_400_000).toISOString();
-    const t2 = await listTargetsForMail2(cutoff, remaining);
-    for (const t of t2) {
-      if (remaining <= 0) break;
-      items.push(await processTarget(t, "mail2", live));
-      remaining--;
-    }
-  }
+  const t1 = await listTargetsForMail1(cap);
+  for (const t of t1) items.push(await processMail1(t, live));
 
   const counts = { sent: 0, dry: 0, skipped: 0, error: 0 };
   for (const it of items) counts[it.status]++;
-  return { live, dryRun, senderEnabled, scope, delayDays, cap, counts, items };
+  return { live, dryRun, senderEnabled, cap, counts, items };
 }

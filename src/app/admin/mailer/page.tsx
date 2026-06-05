@@ -21,7 +21,7 @@ import {
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps } from "../../../lib/adminApps";
-import { listTargetsForMail1, listTargetsForMail2 } from "../../../lib/outreachStore";
+import { listTargetsForMail1 } from "../../../lib/outreachStore";
 import MailerClient from "./MailerClient";
 
 export const dynamic = "force-dynamic";
@@ -39,11 +39,7 @@ export default async function MailerPage() {
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
   const apps = getApps();
-  const cutoff = new Date(Date.now() - 3 * 86_400_000).toISOString();
-  const [m1, m2] = await Promise.all([
-    listTargetsForMail1(500),
-    listTargetsForMail2(cutoff, 500),
-  ]);
+  const m1 = await listTargetsForMail1(500);
 
   const senderEnabled = process.env.KLAR_OUTREACH_SENDER === "on";
   const cronSet = Boolean(process.env.CRON_SECRET);
@@ -74,7 +70,6 @@ export default async function MailerPage() {
           <div className="content">
             <MailerClient
               dueMail1={m1.length}
-              dueMail2={m2.length}
               senderEnabled={senderEnabled}
               cronSet={cronSet}
               inboundSet={inboundSet}

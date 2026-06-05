@@ -21,6 +21,6 @@ export async function GET(req: NextRequest): Promise<Response> {
   if (!SECRET || auth !== `Bearer ${SECRET}`) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
-  const report = await runOutreachMailer({ scope: "both", dryRun: false });
+  const report = await runOutreachMailer({ dryRun: false });
   return NextResponse.json({ ok: true, report });
 }

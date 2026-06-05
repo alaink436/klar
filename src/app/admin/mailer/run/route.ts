@@ -7,7 +7,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { readCookie, ctEqual } from "@/app/admin/_shared";
-import { runOutreachMailer, type MailerScope } from "@/lib/outreachMailer";
+import { runOutreachMailer } from "@/lib/outreachMailer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,24 +18,15 @@ export async function POST(req: NextRequest): Promise<Response> {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  let b: { scope?: string; delayDays?: number; cap?: number; dryRun?: boolean } = {};
+  let b: { cap?: number; dryRun?: boolean } = {};
   try {
     b = (await req.json()) as typeof b;
   } catch {
     /* defaults below */
   }
 
-  const scope: MailerScope = (["mail1", "mail2", "both"] as const).includes(
-    b.scope as MailerScope,
-  )
-    ? (b.scope as MailerScope)
-    : "both";
-  const delayDays = Number(b.delayDays);
   const cap = Number(b.cap);
-
   const report = await runOutreachMailer({
-    scope,
-    delayDays: isFinite(delayDays) ? delayDays : undefined,
     cap: isFinite(cap) ? cap : undefined,
     dryRun: b.dryRun !== false, // anything but an explicit false stays a dry run
   });
