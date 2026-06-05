@@ -1,20 +1,74 @@
 "use client";
 
-// Interactive, clickable force-graph for the AI-Brain viewer. Shares the
-// canvas drawing approach with the landing-page BrainGraph (bowed edges,
-// hub labels, hover-trace) but is data-driven via props, has no growth
-// time-lapse, and turns a node click into "open this note". The active
-// (currently-open) note gets a persistent ring.
+// Interactive AI-Brain graph, rebuilt on React Flow (@xyflow/react) instead of
+// the hand-rolled canvas. Same props/contract as before so BrainExplorer is
+// unchanged: data-driven nodes/edges/groups, click a node to open its note,
+// the active note keeps a ring. Adds real pan/zoom, a minimap and controls,
+// and follows the admin light/dark theme.
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ReactFlow,
+  Background,
+  BackgroundVariant,
+  Controls,
+  MiniMap,
+  Handle,
+  Position,
+  type Node,
+  type Edge,
+  type NodeProps,
+  type ColorMode,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 import type { RawNode, Group } from "@/lib/brainVault";
 
-const META: CSSProperties = {
-  fontFamily: "var(--font-body), system-ui, sans-serif",
-  fontSize: "11px",
-  letterSpacing: "0.02em",
-  textTransform: "none",
+// Normalised node coords (~ -1..1) spread out into React Flow's pixel space.
+const SPREAD = 1300;
+
+type DotData = {
+  label: string;
+  color: string;
+  size: number;
+  path: string;
+  hub: boolean;
+  active: boolean;
 };
+
+function DotNode({ data }: NodeProps) {
+  const d = data as DotData;
+  return (
+    <div
+      className={`brain-dot${d.active ? " active" : ""}${d.hub ? " hub" : ""}`}
+      title={d.label}
+      style={{ width: d.size, height: d.size, background: d.color }}
+    >
+      <Handle type="target" position={Position.Top} className="brain-handle" />
+      <Handle type="source" position={Position.Bottom} className="brain-handle" />
+      <span className="brain-dot-label">{d.label}</span>
+    </div>
+  );
+}
+
+const nodeTypes = { dot: DotNode };
+
+const CSS = `
+.brain-rf{width:100%;height:100%;position:relative}
+.brain-rf .react-flow__attribution{display:none}
+.brain-dot{border-radius:50%;position:relative;display:block;border:1px solid rgba(0,0,0,.45);box-shadow:0 0 6px rgba(0,0,0,.35);cursor:pointer;transition:transform .1s ease}
+.brain-dot:hover{transform:scale(1.45);z-index:20}
+.brain-dot.active{box-shadow:0 0 0 3px var(--accent),0 0 10px rgba(0,0,0,.4)}
+.brain-handle{opacity:0;pointer-events:none;width:1px;height:1px;min-width:1px;min-height:1px;border:0;background:transparent}
+.brain-dot-label{position:absolute;left:calc(100% + 7px);top:50%;transform:translateY(-50%);white-space:nowrap;font-family:var(--font-editorial,Georgia,serif);font-style:italic;font-size:12px;line-height:1;color:var(--fg-2);opacity:0;pointer-events:none;text-shadow:0 1px 4px rgba(0,0,0,.85)}
+.brain-dot:hover .brain-dot-label,.brain-dot.hub .brain-dot-label,.brain-dot.active .brain-dot-label{opacity:1}
+.brain-dot.active .brain-dot-label{color:var(--accent)}
+.brain-rf .react-flow__controls{box-shadow:var(--shadow-sm);border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden}
+.brain-rf .react-flow__controls-button{background:var(--surface);border-bottom:1px solid var(--line);color:var(--fg-2)}
+.brain-rf .react-flow__controls-button:hover{background:var(--surface-2)}
+.brain-rf .react-flow__controls-button svg{fill:currentColor}
+.brain-rf .react-flow__minimap{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-sm)}
+.brain-rf-hint{position:absolute;bottom:10px;left:12px;right:12px;pointer-events:none;font-family:var(--font-body),system-ui,sans-serif;font-size:11px;letter-spacing:.02em;color:var(--fg-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:5}
+`;
 
 export default function InteractiveGraph({
   nodes,
@@ -31,284 +85,106 @@ export default function InteractiveGraph({
   onOpen: (path: string) => void;
   height?: string;
 }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const view = useRef({ scale: 1, x: 0, y: 0, base: 0, cx: 0, cy: 0 });
-  const drag = useRef({ on: false, moved: 0, px: 0, py: 0 });
-  const hoverRef = useRef(-1);
-  const labelFontRef = useRef("Georgia, 'Times New Roman', serif");
-  const [hoverLabel, setHoverLabel] = useState<string | null>(null);
-
-  const N = nodes.length;
-
-  // adjacency for hover-tracing + the active-node index (recomputed when the
-  // open note changes)
-  const adjRef = useRef<number[][]>([]);
-  const hubsRef = useRef<number[]>([]);
+  // Follow the admin theme (data-theme on <html>) so React Flow's chrome
+  // (controls, minimap, background) matches light/dark.
+  const [mode, setMode] = useState<ColorMode>("dark");
   useEffect(() => {
-    const adj: number[][] = nodes.map(() => []);
-    for (const [a, b] of edges) {
-      adj[a]?.push(b);
-      adj[b]?.push(a);
-    }
-    adjRef.current = adj;
-    hubsRef.current = [...nodes.keys()].sort((a, b) => nodes[b].r - nodes[a].r).slice(0, 6);
-  }, [nodes, edges]);
-
-  const activeRef = useRef(-1);
-  useEffect(() => {
-    activeRef.current = activePath ? nodes.findIndex((n) => n.p === activePath) : -1;
-  }, [activePath, nodes]);
-
-  useEffect(() => {
-    const ed = getComputedStyle(document.body).getPropertyValue("--font-editorial").trim();
-    if (ed) labelFontRef.current = `${ed}, Georgia, serif`;
+    const read = () =>
+      setMode(document.documentElement.dataset.theme === "light" ? "light" : "dark");
+    read();
+    const obs = new MutationObserver(read);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => obs.disconnect();
   }, []);
 
-  const draw = useCallback(() => {
-    const cv = canvasRef.current;
-    const wrap = wrapRef.current;
-    if (!cv || !wrap) return;
-    const W = wrap.clientWidth;
-    const H = wrap.clientHeight;
-    if (W === 0 || H === 0) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    if (cv.width !== W * dpr || cv.height !== H * dpr) {
-      cv.width = W * dpr;
-      cv.height = H * dpr;
-      cv.style.width = W + "px";
-      cv.style.height = H + "px";
-    }
-    const ctx = cv.getContext("2d");
-    if (!ctx) return;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
+  const [hover, setHover] = useState<string | null>(null);
 
-    const v = view.current;
-    if (v.base === 0) {
-      v.base = Math.min(W, H) * 0.46;
-      v.cx = W / 2;
-      v.cy = H / 2;
-    }
-    const k = v.base * v.scale;
-    const sx = (n: RawNode) => v.cx + n.x * k + v.x;
-    const sy = (n: RawNode) => v.cy + n.y * k + v.y;
+  // Top hubs (by radius) keep their label visible always for orientation.
+  const hubPaths = useMemo(() => {
+    return new Set(
+      [...nodes].sort((a, b) => b.r - a.r).slice(0, 8).map((n) => n.p),
+    );
+  }, [nodes]);
 
-    const hv = hoverRef.current;
-    const act = activeRef.current;
-    const adj = adjRef.current;
-    const near = new Set<number>();
-    if (hv >= 0) {
-      near.add(hv);
-      for (const nb of adj[hv] ?? []) near.add(nb);
-    }
+  const rfNodes: Node[] = useMemo(
+    () =>
+      nodes.map((n, i) => {
+        const size = Math.max(8, Math.min(42, n.r * 1.15));
+        return {
+        id: String(i),
+        type: "dot",
+        position: { x: n.x * SPREAD, y: n.y * SPREAD },
+        draggable: false,
+        width: size,
+        height: size,
+        data: {
+          label: n.l,
+          color: groups[n.g]?.color ?? "#9aa0b0",
+          size,
+          path: n.p,
+          hub: hubPaths.has(n.p),
+          active: activePath != null && n.p === activePath,
+        } satisfies DotData,
+        };
+      }),
+    [nodes, groups, hubPaths, activePath],
+  );
 
-    // bowed edges (wrap around the hollow centre)
-    const gcx = v.cx + v.x;
-    const gcy = v.cy + v.y;
-    const HOLE = 0.34 * k;
-    ctx.lineWidth = 1;
-    for (const [a, b] of edges) {
-      const on = hv >= 0 && (a === hv || b === hv);
-      ctx.strokeStyle = on ? "#bfeae3" : "#4a4f60";
-      ctx.globalAlpha = hv >= 0 ? (on ? 0.9 : 0.025) : 0.04;
-      const ax = sx(nodes[a]);
-      const ay = sy(nodes[a]);
-      const bx = sx(nodes[b]);
-      const by = sy(nodes[b]);
-      const dx = bx - ax;
-      const dy = by - ay;
-      const L = Math.hypot(dx, dy) || 1;
-      const nx = -dy / L;
-      const ny = dx / L;
-      const sd = (gcx - ax) * nx + (gcy - ay) * ny;
-      const clear = Math.max(0, HOLE - Math.abs(sd));
-      const bow = (6 + clear * 2.3) * (sd > 0 ? -1 : 1);
-      ctx.beginPath();
-      ctx.moveTo(ax, ay);
-      ctx.quadraticCurveTo((ax + bx) / 2 + nx * bow, (ay + by) / 2 + ny * bow, bx, by);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
+  const rfEdges: Edge[] = useMemo(
+    () =>
+      edges.map(([a, b]) => ({
+        id: `e${a}-${b}`,
+        source: String(a),
+        target: String(b),
+      })),
+    [edges],
+  );
 
-    // nodes
-    for (let i = 0; i < N; i++) {
-      const n = nodes[i];
-      const X = sx(n);
-      const Y = sy(n);
-      if (X < -30 || X > W + 30 || Y < -30 || Y > H + 30) continue;
-      const col = groups[n.g]?.color || "#9aa0b0";
-      const dim = hv >= 0 && !near.has(i);
-      const rr = Math.max(1.0, n.r * 0.62 * Math.sqrt(v.scale));
-      ctx.globalAlpha = dim ? 0.16 : 1;
-      if (n.r > 6) {
-        ctx.shadowColor = col;
-        ctx.shadowBlur = 8;
-      }
-      ctx.fillStyle = i === hv || i === act ? "#ffffff" : col;
-      ctx.beginPath();
-      ctx.arc(X, Y, rr, 0, 6.2832);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = "rgba(7,7,9,0.85)";
-      ctx.stroke();
-      if (i === act || i === hv) {
-        ctx.strokeStyle = i === act ? "#74D6C4" : "#fff";
-        ctx.globalAlpha = i === act ? 0.95 : 0.5;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(X, Y, rr + 5, 0, 6.2832);
-        ctx.stroke();
-      }
-    }
-    ctx.globalAlpha = 1;
-
-    // hub + hovered + active labels (editorial serif)
-    ctx.font = `italic 13px ${labelFontRef.current}`;
-    ctx.textBaseline = "middle";
-    const labelled = new Set(hubsRef.current);
-    if (hv >= 0) labelled.add(hv);
-    if (act >= 0) labelled.add(act);
-    for (const i of labelled) {
-      const n = nodes[i];
-      if (!n) continue;
-      const X = sx(n);
-      const Y = sy(n);
-      if (X < 0 || X > W || Y < 0 || Y > H) continue;
-      const lx = X + n.r * 0.62 * Math.sqrt(v.scale) + 6;
-      ctx.globalAlpha = i === hv || i === act ? 1 : 0.66;
-      ctx.shadowColor = "rgba(0,0,0,0.9)";
-      ctx.shadowBlur = 4;
-      ctx.fillStyle = i === act ? "#74D6C4" : i === hv ? "#fff" : groups[n.g]?.color || "#cfd2dc";
-      ctx.fillText(n.l, lx, Y + 1);
-      ctx.shadowBlur = 0;
-    }
-    ctx.globalAlpha = 1;
-  }, [nodes, edges, groups, N]);
-
-  const queued = useRef(false);
-  const redraw = useCallback(() => {
-    if (queued.current) return;
-    queued.current = true;
-    requestAnimationFrame(() => {
-      queued.current = false;
-      draw();
-    });
-  }, [draw]);
-
-  useEffect(() => {
-    redraw();
-  }, [activePath, redraw]);
-
-  useEffect(() => {
-    const wrap = wrapRef.current;
-    const cv = canvasRef.current;
-    if (!wrap || !cv) return;
-    const ro = new ResizeObserver(() => draw());
-    ro.observe(wrap);
-    draw();
-
-    const xy = (e: PointerEvent) => {
-      const r = cv.getBoundingClientRect();
-      return [e.clientX - r.left, e.clientY - r.top] as const;
-    };
-    const pick = (mx: number, my: number) => {
-      const v = view.current;
-      const k = v.base * v.scale;
-      let best = -1;
-      let bd = Infinity;
-      for (let i = 0; i < N; i++) {
-        const dx = v.cx + nodes[i].x * k + v.x - mx;
-        const dy = v.cy + nodes[i].y * k + v.y - my;
-        const d = dx * dx + dy * dy;
-        const rr = Math.max(7, nodes[i].r * Math.sqrt(v.scale) + 4);
-        if (d < rr * rr && d < bd) {
-          bd = d;
-          best = i;
-        }
-      }
-      return best;
-    };
-    const onMove = (e: PointerEvent) => {
-      const [mx, my] = xy(e);
-      if (drag.current.on) {
-        const ddx = mx - drag.current.px;
-        const ddy = my - drag.current.py;
-        drag.current.moved += Math.abs(ddx) + Math.abs(ddy);
-        view.current.x += ddx;
-        view.current.y += ddy;
-        drag.current.px = mx;
-        drag.current.py = my;
-        redraw();
-        return;
-      }
-      const h = pick(mx, my);
-      if (h !== hoverRef.current) {
-        hoverRef.current = h;
-        setHoverLabel(h >= 0 ? nodes[h].l : null);
-        cv.style.cursor = h >= 0 ? "pointer" : "grab";
-        redraw();
-      }
-    };
-    const onDown = (e: PointerEvent) => {
-      const [px, py] = xy(e);
-      drag.current = { on: true, moved: 0, px, py };
-      cv.setPointerCapture(e.pointerId);
-      cv.style.cursor = "grabbing";
-    };
-    const onUp = (e: PointerEvent) => {
-      const wasClick = drag.current.on && drag.current.moved < 6;
-      drag.current.on = false;
-      cv.style.cursor = "grab";
-      if (wasClick) {
-        const [mx, my] = xy(e);
-        const i = pick(mx, my);
-        if (i >= 0) onOpen(nodes[i].p);
-      }
-    };
-    const onLeave = () => {
-      drag.current.on = false;
-      if (hoverRef.current !== -1) {
-        hoverRef.current = -1;
-        setHoverLabel(null);
-        redraw();
-      }
-    };
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const r = cv.getBoundingClientRect();
-      const mx = e.clientX - r.left;
-      const my = e.clientY - r.top;
-      const v = view.current;
-      const ns = Math.min(Math.max(v.scale * (e.deltaY < 0 ? 1.12 : 0.893), 0.4), 7);
-      const k0 = v.base * v.scale;
-      const k1 = v.base * ns;
-      v.x = mx - ((mx - v.cx - v.x) / k0) * k1 - v.cx;
-      v.y = my - ((my - v.cy - v.y) / k0) * k1 - v.cy;
-      v.scale = ns;
-      redraw();
-    };
-    cv.addEventListener("pointermove", onMove);
-    cv.addEventListener("pointerdown", onDown);
-    cv.addEventListener("pointerup", onUp);
-    cv.addEventListener("pointerleave", onLeave);
-    cv.addEventListener("wheel", onWheel, { passive: false });
-    return () => {
-      ro.disconnect();
-      cv.removeEventListener("pointermove", onMove);
-      cv.removeEventListener("pointerdown", onDown);
-      cv.removeEventListener("pointerup", onUp);
-      cv.removeEventListener("pointerleave", onLeave);
-      cv.removeEventListener("wheel", onWheel);
-    };
-  }, [draw, redraw, nodes, N, onOpen]);
+  const onNodeClick = useCallback(
+    (_: unknown, node: Node) => {
+      const p = (node.data as DotData)?.path;
+      if (p) onOpen(p);
+    },
+    [onOpen],
+  );
 
   return (
-    <div ref={wrapRef} className="relative w-full h-full" style={{ height }}>
-      <canvas ref={canvasRef} className="block touch-pan-y" />
-      <div className="absolute bottom-3 left-3 right-3 pointer-events-none truncate" style={{ ...META, color: "var(--fg-3)" }}>
-        {hoverLabel ?? "ziehen, scrollen zum zoomen, Node klicken um die Notiz zu öffnen"}
+    <div className="brain-rf" style={{ height }}>
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <ReactFlow
+        nodes={rfNodes}
+        edges={rfEdges}
+        nodeTypes={nodeTypes}
+        colorMode={mode}
+        fitView
+        fitViewOptions={{ padding: 0.15 }}
+        minZoom={0.12}
+        maxZoom={3.5}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable
+        onlyRenderVisibleElements
+        proOptions={{ hideAttribution: true }}
+        defaultEdgeOptions={{
+          type: "straight",
+          style: { stroke: "var(--line-strong)", strokeWidth: 0.6, opacity: 0.16 },
+        }}
+        onNodeClick={onNodeClick}
+        onNodeMouseEnter={(_, n) => setHover((n.data as DotData)?.label ?? null)}
+        onNodeMouseLeave={() => setHover(null)}
+      >
+        <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="var(--line)" />
+        <MiniMap
+          pannable
+          zoomable
+          nodeColor={(n) => (n.data as DotData)?.color ?? "#9aa0b0"}
+          nodeStrokeWidth={0}
+          maskColor="color-mix(in oklab, var(--bg) 70%, transparent)"
+        />
+        <Controls showInteractive={false} />
+      </ReactFlow>
+      <div className="brain-rf-hint">
+        {hover ?? "ziehen, scrollen zum Zoomen, Node klicken um die Notiz zu öffnen"}
       </div>
     </div>
   );
