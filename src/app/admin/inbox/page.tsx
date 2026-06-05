@@ -93,7 +93,12 @@ function inquiryBody(r: Inquiry): string {
   return lines.join("\n").trim() || "(keine Details angegeben)";
 }
 
-export default async function InboxPage() {
+export default async function InboxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ msg?: string }>;
+}) {
+  const flashMsg = ((await searchParams).msg ?? "").slice(0, 300);
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
   const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
   const TOTP = process.env.KLAR_TOTP_SECRET ?? "";
@@ -346,6 +351,7 @@ export default async function InboxPage() {
         <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+          {flashMsg && <div className="flash" style={{ margin: "12px 36px 0" }}>{flashMsg}</div>}
           <MailClient
             conversations={conversations}
             appMeta={appMeta}

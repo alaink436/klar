@@ -519,7 +519,7 @@ export default function MailClient({
                         </span>
                       )}
                       <span className="muted" suppressHydrationWarning style={{ fontSize: 11.5, fontFamily: "var(--font-mono)" }} title={abs(sel.awaiting ? sel.lastActivityAt : sel.lastInboundAt)}>
-                        {sel.awaiting ? `kontaktiert ${rel(sel.lastActivityAt)}` : `antwortete ${rel(sel.lastInboundAt)}`}
+                        {sel.kind === "inquiry" ? `Anfrage ${rel(sel.lastInboundAt)}` : sel.awaiting ? `kontaktiert ${rel(sel.lastActivityAt)}` : `antwortete ${rel(sel.lastInboundAt)}`}
                       </span>
                     </div>
                   </div>
