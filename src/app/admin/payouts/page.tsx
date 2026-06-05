@@ -80,13 +80,13 @@ async function payoutsMain(apps: AdminApp[]): Promise<string> {
   };
 
   const statusPill = (status: string): string => {
-    if (status === "paid") return `<span class="pill live">bezahlt</span>`;
-    if (status === "awaiting_release") return `<span class="pill">bereit</span>`;
-    if (status === "dispatched") return `<span class="pill">unterwegs</span>`;
-    if (status === "failed") return `<span class="warn">fehlgeschlagen</span>`;
-    if (status === "cancelled") return `<span class="pill">storniert</span>`;
-    if (status === "draft") return `<span class="pill">draft</span>`;
-    return `<span class="pill">${esc(status)}</span>`;
+    if (status === "paid") return `<span class="tbadge ok">bezahlt</span>`;
+    if (status === "awaiting_release") return `<span class="tbadge info">bereit</span>`;
+    if (status === "dispatched") return `<span class="tbadge info">unterwegs</span>`;
+    if (status === "failed") return `<span class="tbadge danger">fehlgeschlagen</span>`;
+    if (status === "cancelled") return `<span class="tbadge neutral">storniert</span>`;
+    if (status === "draft") return `<span class="tbadge neutral">draft</span>`;
+    return `<span class="tbadge neutral">${esc(status)}</span>`;
   };
 
   const cards = `<div class="cards">
@@ -98,9 +98,9 @@ async function payoutsMain(apps: AdminApp[]): Promise<string> {
 
   const readyCount = open.filter((b) => b.status === "awaiting_release").length;
   const dispatchAllBtn = readyCount > 0
-    ? `<form method="POST" action="/admin/dispatch-all" style="margin:0 0 18px">
-        <button class="btn" type="submit">Alle ${readyCount} bereiten Batches via Wise vorbereiten</button>
-        <span class="muted" style="margin-left:12px;font-size:12px">ruft pro App wise-dispatch · Wise selber funden bleibt manueller Schritt</span>
+    ? `<form method="POST" action="/admin/dispatch-all" style="margin:0 0 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <button class="btn pop" type="submit">Alle ${readyCount} bereiten Batches via Wise vorbereiten</button>
+        <span class="muted" style="font-size:12px">ruft pro App wise-dispatch · Wise selber funden bleibt manueller Schritt</span>
       </form>`
     : "";
 
@@ -118,7 +118,7 @@ async function payoutsMain(apps: AdminApp[]): Promise<string> {
 
   const openTbl = open.length
     ? `<table><thead><tr><th>App</th><th>Periode</th><th class="r">Items</th><th class="r">Betrag</th><th>Status</th><th></th></tr></thead><tbody>${open.map(openRow).join("")}</tbody></table>`
-    : `<p class="muted" style="font-size:13px">Keine offenen Batches. pg_cron baut am 1. des Monats neue.</p>`;
+    : `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><div class="empty-title">Keine offenen Batches</div><div class="empty-sub">Alles abgearbeitet. pg_cron baut am 1. des Monats die nächsten Batches.</div></div>`;
 
   const dispatchedTbl = dispatched.length
     ? `<table style="margin-top:16px"><thead><tr><th>App</th><th>Periode</th><th class="r">Items</th><th class="r">Betrag</th><th>Status</th><th>Reconcile</th></tr></thead><tbody>${dispatched.map((b) => `<tr>
@@ -142,7 +142,7 @@ async function payoutsMain(apps: AdminApp[]): Promise<string> {
           <td>${statusPill(b.status)}</td>
           <td class="muted">${b.paid_at ? fmtDate(b.paid_at) : "—"}</td>
         </tr>`).join("")}</tbody></table>`
-    : `<p class="muted" style="font-size:13px">Noch keine Historie.</p>`;
+    : `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg><div class="empty-title">Noch keine Historie</div><div class="empty-sub">Bezahlte, stornierte und fehlgeschlagene Batches erscheinen hier.</div></div>`;
 
   return `<h1>Auszahlungen</h1><p class="sub">Alle Affiliate-Auszahlungsbatches über alle verdrahteten Apps hinweg. Bereitstellen läuft pro App über deren Wise-Edge-Function, Funden bleibt manueller Schritt im Wise-Dashboard.</p>
     ${cards}

@@ -278,8 +278,7 @@ function brainAccessCardHtml(members: BrainMember[], folders: Group[]): string {
 // Local style additions on top of STYLE — toggles, fieldsets, table, flash.
 const SETTINGS_STYLE = `
 .flash{background:var(--surface-2);border:1px solid var(--line);color:var(--fg-2);padding:10px 14px;border-radius:var(--radius-sm);font-size:13.5px;margin:0 0 22px}
-.flash[data-tone="err"]{border-color:#fca5a5;color:#991b1b;background:#fef2f2}
-[data-theme="dark"] .flash[data-tone="err"]{border-color:#7f1d1d;background:#450a0a;color:#fecaca}
+.flash[data-tone="err"]{border-color:color-mix(in oklab,var(--danger) 35%,var(--line));background:color-mix(in oklab,var(--danger) 10%,var(--surface));color:var(--danger)}
 
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;margin:0 0 22px;box-shadow:var(--shadow-sm)}
 .card h3{font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-.01em;margin:0 0 4px;color:var(--fg)}
@@ -326,12 +325,10 @@ const SETTINGS_STYLE = `
 .invite-mail{font-size:12px;color:var(--fg-4)}
 .invite-url{display:inline-block;font-family:var(--font-mono);font-size:11.5px;background:var(--surface-2);padding:4px 8px;border-radius:4px;color:var(--fg-2);word-break:break-all;max-width:340px}
 
-.badge{display:inline-block;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
-.badge-open{background:#dcfce7;color:#166534}
-.badge-expired{background:#fee2e2;color:#991b1b}
-.badge-used{background:var(--surface-2);color:var(--fg-3)}
-[data-theme="dark"] .badge-open{background:#052e16;color:#bbf7d0}
-[data-theme="dark"] .badge-expired{background:#450a0a;color:#fecaca}
+.badge{display:inline-block;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid transparent}
+.badge-open{background:color-mix(in oklab,var(--success) 14%,transparent);color:var(--success);border-color:color-mix(in oklab,var(--success) 30%,transparent)}
+.badge-expired{background:color-mix(in oklab,var(--danger) 14%,transparent);color:var(--danger);border-color:color-mix(in oklab,var(--danger) 30%,transparent)}
+.badge-used{background:var(--surface-2);color:var(--fg-3);border-color:var(--line)}
 
 .invite-form{margin-bottom:10px}
 
@@ -340,8 +337,7 @@ const SETTINGS_STYLE = `
 .chk:hover{border-color:var(--line-strong)}
 .chk input{accent-color:var(--accent)}
 .chk .dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
-.badge-full{background:#ccfbf1;color:#0f766e}
-[data-theme="dark"] .badge-full{background:#042f2e;color:#5eead4}
+.badge-full{background:var(--surface-3);color:var(--fg-2);border-color:var(--line-strong)}
 `;
 
 export default async function SettingsPage({

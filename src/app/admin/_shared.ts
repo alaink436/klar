@@ -73,29 +73,38 @@ export const eur = money;
 // Shared by /admin overview + revenue + payouts so the chart stays identical.
 export function barChart(series: { label: string; gross: number; payout: number }[]): string {
   if (series.length === 0)
-    return `<div class="chart muted" style="font-size:13px">Noch keine Einnahmen-Daten.</div>`;
-  const W = 1000, H = 260, padL = 60, padB = 34, padT = 14, padR = 14;
+    return `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="13" y="7" width="3" height="10" rx="1"/></svg><div class="empty-title">Noch keine Einnahmen-Daten</div><div class="empty-sub">Sobald Affiliate-Umsatz verbucht wird, erscheint hier der Monatsverlauf.</div></div>`;
+  // Tremor-style grouped bar chart: horizontal hairline grid only, rounded
+  // bar tops, two monochrome series, native <title> tooltips + CSS hover.
+  const W = 1000, H = 260, padL = 56, padB = 34, padT = 16, padR = 14;
   const cw = (W - padL - padR) / series.length;
   const max = Math.max(1, ...series.map((d) => Math.max(d.gross, d.payout)));
   const niceMax = Math.ceil(max / 100) * 100;
   const y = (v: number) => padT + (H - padT - padB) * (1 - v / niceMax);
+  const base = y(0);
+  const fmt = (cents: number) => (cents / 100).toLocaleString("de-CH");
   const gridLines = [0, 0.25, 0.5, 0.75, 1].map((f) => {
     const val = niceMax * f, yy = y(val);
-    return `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 3"/>
-      <text x="${padL - 8}" y="${yy + 3}" text-anchor="end" font-family="'JetBrains Mono',monospace" font-size="9" fill="var(--fg-3)">${(val / 100).toFixed(0)}</text>`;
+    return `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="var(--line)" stroke-width="1" stroke-dasharray="2 4"/>
+      <text x="${padL - 10}" y="${yy + 3}" text-anchor="end" font-family="'JetBrains Mono',monospace" font-size="9" fill="var(--fg-4)">${(val / 100).toFixed(0)}</text>`;
   }).join("");
+  // Rounded top: rect with rx, but only the visible top should round. With thin
+  // bars an rx that exceeds half the height looks off, so clamp per-bar.
+  const barRect = (x: number, top: number, bw: number, cls: string, fill: string, title: string) => {
+    const h = Math.max(0, base - top);
+    const r = Math.min(4, bw / 2, h);
+    return `<rect class="${cls}" x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="${r.toFixed(1)}" fill="${fill}"><title>${title}</title></rect>`;
+  };
   const bars = series.map((d, i) => {
     const x0 = padL + i * cw;
-    const bw = Math.max(6, cw * 0.30);
+    const bw = Math.max(6, Math.min(26, cw * 0.30));
     const gx = x0 + cw / 2 - bw - 3, px = x0 + cw / 2 + 3;
-    const gy = y(Math.max(0, d.gross)), py = y(Math.max(0, d.payout));
-    const base = y(0);
-    return `<rect x="${gx}" y="${gy}" width="${bw}" height="${Math.max(0, base - gy)}" rx="2" fill="var(--chart-1)"/>
-      <rect x="${px}" y="${py}" width="${bw}" height="${Math.max(0, base - py)}" rx="2" fill="var(--chart-2)"/>
-      <text x="${x0 + cw / 2}" y="${H - padB + 16}" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="var(--fg-3)">${esc(d.label)}</text>`;
+    return `${barRect(gx, y(Math.max(0, d.gross)), bw, "bar", "var(--chart-1)", `${esc(d.label)} · Umsatz ${fmt(d.gross)} ${esc(REPORTING_CURRENCY)}`)}
+      ${barRect(px, y(Math.max(0, d.payout)), bw, "bar", "var(--chart-2)", `${esc(d.label)} · Auszahlung ${fmt(d.payout)} ${esc(REPORTING_CURRENCY)}`)}
+      <text x="${(x0 + cw / 2).toFixed(1)}" y="${H - padB + 16}" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="var(--fg-3)">${esc(d.label)}</text>`;
   }).join("");
   return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Einnahmen pro Monat">
-    ${gridLines}<line x1="${padL}" y1="${y(0)}" x2="${W - padR}" y2="${y(0)}" stroke="var(--line-strong)" stroke-width="1"/>${bars}</svg>
+    ${gridLines}<line x1="${padL}" y1="${base}" x2="${W - padR}" y2="${base}" stroke="var(--line-strong)" stroke-width="1"/>${bars}</svg>
     <div class="legend"><span><i style="background:var(--chart-1)"></i>Affiliate-Umsatz</span><span><i style="background:var(--chart-2)"></i>Auszahlung an Affiliates</span><span>${esc(REPORTING_CURRENCY)} pro Monat</span></div></div>`;
 }
 
@@ -230,6 +239,8 @@ export const STYLE = `
  --fg:#FAFAFA;--fg-2:#D4D4D4;--fg-3:#A3A3A3;--fg-4:#525252;
  --line:#262626;--line-strong:#404040;
  --accent:#FAFAFA;--accent-fg:#0A0A0A;
+ /* Brightened semantics so badges/deltas read on the dark glass stack */
+ --success:#34D399;--warning:#FBBF24;--danger:#F87171;--info:#60A5FA;
  --chart-1:#FAFAFA;--chart-2:#A3A3A3;--chart-3:#525252;--chart-4:#404040;--chart-fill:rgba(250,250,250,.14);
  --shadow-sm:0 1px 2px rgba(0,0,0,.3);
  --shadow:0 1px 3px rgba(0,0,0,.45),0 8px 24px -8px rgba(0,0,0,.55);
@@ -240,6 +251,7 @@ export const STYLE = `
  --bg:#0A0A0A;--surface:#111111;--surface-2:#181818;--surface-3:#1F1F1F;
  --fg:#FAFAFA;--fg-2:#D4D4D4;--fg-3:#A3A3A3;--fg-4:#525252;
  --line:#262626;--line-strong:#404040;--accent:#FAFAFA;--accent-fg:#0A0A0A;
+ --success:#34D399;--warning:#FBBF24;--danger:#F87171;--info:#60A5FA;
  --chart-1:#FAFAFA;--chart-2:#A3A3A3;--chart-3:#525252;--chart-4:#404040;--chart-fill:rgba(250,250,250,.14);
  --shadow-sm:0 1px 2px rgba(0,0,0,.3);
  --shadow:0 1px 3px rgba(0,0,0,.45),0 8px 24px -8px rgba(0,0,0,.55);
@@ -328,12 +340,53 @@ tbody tr:hover td{background:var(--surface-2)}
 .pill{display:inline-block;padding:3px 10px;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line-strong);border-radius:999px;color:var(--fg-2);background:var(--surface)}
 .pill.live{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 
+/* Tremor Badge — tinted pill with a leading status dot and a semantic colour.
+   Colour lives only on the dot + text + a faint wash, never a loud fill, so a
+   table of these stays calm. Tones: ok/info/warn/danger/neutral. */
+.tbadge{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid transparent;line-height:1.5;white-space:nowrap}
+.tbadge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.tbadge.ok{color:var(--success);background:color-mix(in oklab,var(--success) 12%,transparent);border-color:color-mix(in oklab,var(--success) 26%,transparent)}
+.tbadge.info{color:var(--info);background:color-mix(in oklab,var(--info) 12%,transparent);border-color:color-mix(in oklab,var(--info) 26%,transparent)}
+.tbadge.warn{color:var(--warning);background:color-mix(in oklab,var(--warning) 14%,transparent);border-color:color-mix(in oklab,var(--warning) 28%,transparent)}
+.tbadge.danger{color:var(--danger);background:color-mix(in oklab,var(--danger) 12%,transparent);border-color:color-mix(in oklab,var(--danger) 26%,transparent)}
+.tbadge.neutral{color:var(--fg-3);background:var(--surface-2);border-color:var(--line)}
+.tbadge.neutral::before{opacity:.7}
+
+/* coss / Origin UI card-style table — rows read as separate cards: no outer
+   chrome, row-spacing gaps, each row a bordered surface with rounded ends.
+   Apply by adding .card-table to a <table>. */
+.card-table{border:0;border-radius:0;background:transparent;border-collapse:separate;border-spacing:0 8px;overflow:visible}
+.card-table thead th{background:transparent;border:0;padding:0 16px 2px;color:var(--fg-4)}
+.card-table tbody tr{background:var(--surface);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+.card-table tbody td{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--surface);padding:14px 16px}
+.card-table tbody td:first-child{border-left:1px solid var(--line);border-top-left-radius:var(--radius);border-bottom-left-radius:var(--radius)}
+.card-table tbody td:last-child{border-right:1px solid var(--line);border-top-right-radius:var(--radius);border-bottom-right-radius:var(--radius)}
+.card-table tbody tr:hover td{background:var(--surface-2)}
+.card-table tbody tr:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm)}
+[data-theme="dark"] .card-table tbody td{background:rgba(17,17,17,.55);border-color:rgba(255,255,255,.08);backdrop-filter:blur(18px) saturate(120%);-webkit-backdrop-filter:blur(18px) saturate(120%)}
+[data-theme="dark"] .card-table tbody tr:hover td{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)}
+
 .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border:1px solid var(--fg);background:var(--fg);color:var(--accent-fg);font-family:var(--font-body);font-size:13px;font-weight:600;border-radius:var(--radius-sm);cursor:pointer;transition:opacity .15s,transform .12s,background .15s}
 .btn:hover{opacity:.86}
 .btn:active{transform:translateY(1px)}
 .btn.ghost{background:var(--surface);color:var(--fg-2);border-color:var(--line-strong)}
 .btn.ghost:hover{background:var(--surface-2);color:var(--fg);opacity:1}
 .btn svg{width:14px;height:14px;stroke-width:2}
+/* RetroUI tactile accent — reserved for the single primary CTA per view.
+   Hard offset shadow on a solid border, with a real "press" on click.
+   Uses --fg so it reads in both themes (black-on-light, white-on-dark). */
+.btn.pop{border:1.5px solid var(--fg);box-shadow:3px 3px 0 0 var(--fg);transition:transform .09s cubic-bezier(.2,.6,.3,1),box-shadow .09s cubic-bezier(.2,.6,.3,1),opacity .15s}
+.btn.pop:hover{opacity:1;transform:translate(-1px,-1px);box-shadow:4px 4px 0 0 var(--fg)}
+.btn.pop:active{transform:translate(3px,3px);box-shadow:0 0 0 0 var(--fg)}
+
+/* Tremor BadgeDelta — trend chip: tinted semantic background, arrow + value.
+   Single sanctioned use of green/red, only for deltas. Numbers tabular. */
+.delta{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;padding:2px 8px;border-radius:999px;line-height:1.45;white-space:nowrap}
+.delta svg{width:13px;height:13px;stroke-width:2.2}
+.delta.up{color:var(--success);background:color-mix(in oklab,var(--success) 13%,transparent)}
+.delta.down{color:var(--danger);background:color-mix(in oklab,var(--danger) 13%,transparent)}
+.delta.flat{color:var(--fg-3);background:color-mix(in oklab,var(--fg) 8%,transparent)}
+.delta .delta-ref{color:var(--fg-3);font-weight:400;margin-left:2px}
 
 .batch{border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-top:12px;background:var(--surface)}
 .batch table{border:0;border-radius:0;background:transparent}
@@ -344,7 +397,17 @@ tbody tr:hover td{background:var(--surface-2)}
 .applink{font-weight:600;color:var(--fg);border-bottom:1px solid var(--line-strong);padding-bottom:1px;transition:border-color .15s,color .15s}
 .applink:hover{border-color:var(--fg)}
 
+/* Origin UI / Preline empty state — centered icon + title + hint inside a
+   dashed frame. Replaces bare <p class="muted"> for "nothing here yet". */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:40px 24px;border:1px dashed var(--line-strong);border-radius:var(--radius);background:var(--surface);color:var(--fg-3)}
+.empty>svg{width:26px;height:26px;stroke-width:1.5;color:var(--fg-4);margin-bottom:2px}
+.empty .empty-title{font-family:var(--font-body);font-weight:600;font-size:14px;color:var(--fg-2)}
+.empty .empty-sub{font-size:13px;color:var(--fg-3);max-width:42ch;line-height:1.5}
+
 .chart{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow-sm)}
+.chart svg .bar{transition:opacity .14s ease}
+.chart svg:hover .bar{opacity:.45}
+.chart svg .bar:hover{opacity:1}
 .chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:14px;margin-bottom:28px}
 .chart h3{font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3);margin:0 0 14px}
 .legend{font-family:var(--font-mono);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.12em;color:var(--fg-3);margin-top:14px;display:flex;gap:22px;flex-wrap:wrap}
@@ -405,6 +468,24 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 .login-input:focus{border-color:var(--fg);background:var(--surface);box-shadow:0 0 0 3px color-mix(in oklab,var(--fg) 12%,transparent)}
 .login-input.code{font-family:var(--font-mono);letter-spacing:.5em;text-align:center;font-size:22px;padding:14px 14px;font-weight:600}
 .login-input.code::placeholder{letter-spacing:.3em;font-weight:400;font-size:14px}
+/* Origin UI OTP input — six segmented digit boxes, split 3+3 with a hairline
+   separator. The boxes are display-only; a hidden field name=totp carries the
+   value to the POST handler. Filled + focus states mirror .login-input. */
+.otp{display:flex;align-items:center;gap:10px}
+.otp-group{display:flex;gap:8px;flex:1}
+.otp-sep{width:11px;height:2px;border-radius:2px;background:var(--line-strong);flex-shrink:0}
+/* Boxes are divs (input-otp renders a single hidden field + visual slots).
+   Works for both <input> and <div> via the class selector. */
+.otp-box{flex:1;min-width:0;width:100%;height:54px;display:flex;align-items:center;justify-content:center;position:relative;text-align:center;font-family:var(--font-mono);font-size:22px;font-weight:600;color:var(--fg);background:var(--bg);border:1px solid var(--line-strong);border-radius:var(--radius-sm);caret-color:var(--accent);user-select:none;transition:border-color .15s,box-shadow .15s,background .15s,transform .12s}
+.otp-box:hover{border-color:var(--fg-3)}
+.otp-box.filled{border-color:var(--fg-3);background:var(--surface)}
+.otp-box.active,.otp-box:focus{outline:none;border-color:var(--fg);background:var(--surface);box-shadow:0 0 0 3px color-mix(in oklab,var(--fg) 12%,transparent);transform:translateY(-1px)}
+.otp-caret{display:inline-block;width:2px;height:24px;background:var(--accent);border-radius:1px;animation:otp-blink 1s steps(2,start) infinite}
+@keyframes otp-blink{50%{opacity:0}}
+[data-theme="dark"] .otp-box{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.14)}
+[data-theme="dark"] .otp-box.filled{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.28)}
+[data-theme="dark"] .otp-box.active,[data-theme="dark"] .otp-box:focus{border-color:var(--fg);background:rgba(255,255,255,.08)}
+@media(prefers-reduced-motion:reduce){.otp-caret{animation:none}}
 .login-submit{width:100%;justify-content:center;padding:13px 16px;margin-top:6px;font-size:14px;font-weight:600;letter-spacing:.01em;font-family:var(--font-body)}
 .login-submit:hover{box-shadow:0 10px 24px -10px color-mix(in oklab,var(--fg) 45%,transparent)}
 .login-foot{margin-top:24px;padding-top:18px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -474,6 +555,11 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 [data-theme="dark"] .pill.live{background:#FAFAFA;color:#0A0A0A;border-color:#FAFAFA;box-shadow:0 4px 14px -4px rgba(255,255,255,.18)}
 [data-theme="dark"] .btn{background:#FAFAFA;color:#0A0A0A;border:1px solid rgba(255,255,255,.18);box-shadow:0 4px 14px -4px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.5) inset}
 [data-theme="dark"] .btn:hover{box-shadow:0 8px 22px -6px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.6) inset;transform:translateY(-1px);opacity:1}
+/* Tactile pop button in dark: offset shadow wins over the glass shadow.
+   Slightly dimmed white so the hard edge reads without glaring. */
+[data-theme="dark"] .btn.pop{border:1.5px solid rgba(255,255,255,.85);box-shadow:3px 3px 0 0 rgba(255,255,255,.85)}
+[data-theme="dark"] .btn.pop:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 0 rgba(255,255,255,.95)}
+[data-theme="dark"] .btn.pop:active{transform:translate(3px,3px);box-shadow:0 0 0 0 rgba(255,255,255,.85)}
 /* Login card glass in dark, monochrome wash */
 [data-theme="dark"] .login{background:radial-gradient(900px 700px at 50% -20%,rgba(255,255,255,.05),transparent),radial-gradient(800px 600px at 50% 120%,rgba(255,255,255,.03),transparent),#0A0A0A}
 [data-theme="dark"] .login-card{backdrop-filter:blur(28px) saturate(120%);-webkit-backdrop-filter:blur(28px) saturate(120%);background:rgba(17,17,17,.55);border:1px solid rgba(255,255,255,.10);box-shadow:0 1px 0 rgba(255,255,255,.10) inset,0 40px 80px -20px rgba(0,0,0,.7)}

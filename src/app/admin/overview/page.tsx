@@ -26,7 +26,6 @@ import {
   adminSidebar,
   esc,
   eur,
-  barChart,
   fmtRelative,
   REPORTING_CURRENCY,
 } from "../_shared";
@@ -34,6 +33,8 @@ import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps, sbGet, type AdminApp } from "../../../lib/adminApps";
 import { listOutreachTargets, type OutreachTarget } from "../../../lib/outreachStore";
 import { KLAR_APPS, type KlarAppMeta } from "../../../lib/klarApps";
+import OverviewAffiliateTable, { type OverviewRow } from "./OverviewAffiliateTable";
+import MonthlyBarChart from "../MonthlyBarChart";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -62,12 +63,22 @@ function appTabStrip(connectedSlugs: Set<string>): string {
   }).join("")}</div>`;
 }
 
-async function overviewMain(apps: AdminApp[]): Promise<string> {
+async function overviewMain(apps: AdminApp[]): Promise<{
+  htmlTop: string;
+  series: { label: string; gross: number; payout: number }[];
+  htmlMid: string;
+  tableRows: OverviewRow[];
+}> {
   const connected = new Set(apps.map((a) => a.slug));
   const tabs = appTabStrip(connected);
 
   if (apps.length === 0) {
-    return `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick. Klick eine verdrahtete App fürs Affiliate-Detail; die anderen tauchen auf, sobald sie ein Schema in <code>KLAR_ADMIN_APPS</code> bekommen.</p>${tabs}`;
+    return {
+      htmlTop: `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick. Klick eine verdrahtete App fürs Affiliate-Detail; die anderen tauchen auf, sobald sie ein Schema in <code>KLAR_ADMIN_APPS</code> bekommen.</p>${tabs}`,
+      series: [],
+      htmlMid: "",
+      tableRows: [],
+    };
   }
 
   // Monats-Aggregat (über alle Apps) für Umsatz-Chart + MoM-Delta, plus eine
@@ -161,11 +172,11 @@ async function overviewMain(apps: AdminApp[]): Promise<string> {
     doc: `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>`,
   };
   const deltaTag = (cur: number, prev: number): string => {
-    if (prev === 0 && cur === 0) return `<span class="muted">keine Vormonatsdaten</span>`;
-    if (prev === 0) return `<span style="display:inline-flex;align-items:center;gap:4px;color:var(--success);font-weight:600">${gi(G.up, 13)} neu</span>`;
+    if (prev === 0 && cur === 0) return `<span class="delta flat">keine Vormonatsdaten</span>`;
+    if (prev === 0) return `<span class="delta up">${gi(G.up, 13)} neu</span>`;
     const pct = ((cur - prev) / prev) * 100;
     const up = pct >= 0;
-    return `<span style="display:inline-flex;align-items:center;gap:4px;color:${up ? "var(--success)" : "var(--danger)"};font-weight:600;font-variant-numeric:tabular-nums">${gi(up ? G.up : G.down, 13)} ${Math.abs(pct).toFixed(0)}%<span class="muted" style="font-weight:400;margin-left:3px">vs. Vormonat</span></span>`;
+    return `<span class="delta ${up ? "up" : "down"}">${gi(up ? G.up : G.down, 13)} ${Math.abs(pct).toFixed(0)}%<span class="delta-ref">vs. Vormonat</span></span>`;
   };
 
   // Aktions-Strip: neutrale Chips (Surface + Hairline), Akzent nur auf Icon +
@@ -229,29 +240,29 @@ async function overviewMain(apps: AdminApp[]): Promise<string> {
     ${actsSorted.length ? actsSorted.map(actRow).join("") : `<span class="muted" style="font-size:13px;display:block;padding:14px 0">Noch keine Replies, Conversions oder Anfragen.</span>`}
   </div>`;
 
-  // Tabellen-Counts: schlichte Mono-Zahlen mit dezentem Akzent (kein Pastell-
-  // Pill-Regenbogen), 0 gedämpft.
-  const cnt = (n: number, accent: string): string => n === 0
-    ? `<span class="muted" style="font-variant-numeric:tabular-nums">0</span>`
-    : `<span style="font-family:var(--font-mono);font-weight:700;color:${accent};font-variant-numeric:tabular-nums">${n}</span>`;
-  const tbl = `<table><thead><tr><th>App</th><th class="r">Affiliates</th><th class="r">Aktiv</th><th class="c">Angefragt</th><th class="c">Antwort</th><th class="c">Angenommen</th><th class="r">Offen (${esc(REPORTING_CURRENCY)})</th><th></th></tr></thead><tbody>
-    ${rows.map((r) => `<tr>
-      <td><a class="applink" href="/admin?view=${esc(r.app.slug)}">${esc(r.app.name)}</a> ${r.onboarded ? "" : `<span class="pill">nicht ausgerollt</span>`}</td>
-      <td class="r">${r.total}</td><td class="r">${r.active}</td>
-      <td class="c">${cnt(r.angefragt, "var(--fg-2)")}</td>
-      <td class="c">${cnt(r.reply, "var(--warning)")}</td>
-      <td class="c">${cnt(r.angenommen, "var(--success)")}</td>
-      <td class="r">${eur(r.open)}</td>
-      <td class="r"><a class="applink" href="/admin?view=${esc(r.app.slug)}" style="font-size:12px">öffnen →</a></td>
-    </tr>`).join("")}
-  </tbody></table>`;
-  return `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick: Affiliate-Umsatz, Outreach-Funnel und was gerade Aufmerksamkeit braucht.</p>
+  // Per-app rows for the real TanStack table (rendered as a client component
+  // in the page). Serialisable only: raw numbers for sorting + a pre-formatted
+  // money string for display.
+  const tableRows: OverviewRow[] = rows.map((r) => ({
+    slug: r.app.slug,
+    name: r.app.name,
+    onboarded: r.onboarded,
+    total: r.total,
+    active: r.active,
+    angefragt: r.angefragt,
+    reply: r.reply,
+    angenommen: r.angenommen,
+    openCents: r.open,
+    openFmt: eur(r.open),
+  }));
+  const htmlTop = `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick: Affiliate-Umsatz, Outreach-Funnel und was gerade Aufmerksamkeit braucht.</p>
     ${tabs}
     ${attnStrip}
     ${cards}
-    <h2>Affiliate-Umsatz pro Monat</h2>${barChart(series)}
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:14px 0 8px">${funnelCard}${activityCard}</div>
-    <h2>Affiliate-Stand · Outreach-Funnel pro App</h2>${tbl}`;
+    <h2>Affiliate-Umsatz pro Monat</h2>`;
+  const htmlMid = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:14px 0 8px">${funnelCard}${activityCard}</div>
+    <h2>Affiliate-Stand · Outreach-Funnel pro App</h2>`;
+  return { htmlTop, series, htmlMid, tableRows };
 }
 
 export default async function OverviewPage({
@@ -272,7 +283,7 @@ export default async function OverviewPage({
 
   const sp = await searchParams;
   const apps = getApps();
-  const main = await overviewMain(apps);
+  const { htmlTop, series, htmlMid, tableRows } = await overviewMain(apps);
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
   const sidebar = adminSidebar("overview", apps);
   const topbar = `
@@ -296,7 +307,12 @@ export default async function OverviewPage({
         <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
+          <div className="content">
+            <div dangerouslySetInnerHTML={{ __html: flash + htmlTop }} />
+            {series.length ? <MonthlyBarChart series={series} currency={REPORTING_CURRENCY} /> : null}
+            <div dangerouslySetInnerHTML={{ __html: htmlMid }} />
+            {tableRows.length ? <OverviewAffiliateTable rows={tableRows} /> : null}
+          </div>
         </main>
       </div>
       <script dangerouslySetInnerHTML={{ __html: SMOKE_BG_SCRIPT }} />

@@ -22,19 +22,30 @@ import {
   SMOKE_BG_SCRIPT,
   readCookieFromString,
   adminSidebar,
-  esc,
   eur,
-  barChart,
+  REPORTING_CURRENCY,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps, sbGet, type AdminApp } from "../../../lib/adminApps";
+import RevenueAffiliateTable, { type RevenueRow } from "./RevenueAffiliateTable";
+import MonthlyBarChart from "../MonthlyBarChart";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-async function revenueMain(apps: AdminApp[]): Promise<string> {
+async function revenueMain(apps: AdminApp[]): Promise<{
+  htmlTop: string;
+  series: { label: string; gross: number; payout: number }[];
+  htmlMid: string;
+  tableRows: RevenueRow[];
+}> {
   if (apps.length === 0)
-    return `<h1>Einnahmen</h1><p class="sub">Noch keine Apps konfiguriert, darum gibt es hier nichts zu zeigen.</p>`;
+    return {
+      htmlTop: `<h1>Einnahmen</h1><p class="sub">Noch keine Apps konfiguriert, darum gibt es hier nichts zu zeigen.</p>`,
+      series: [],
+      htmlMid: "",
+      tableRows: [],
+    };
   const monthly = new Map<string, { gross: number; payout: number }>();
   let totalGross = 0, totalPayout = 0, totalOpen = 0, totalAff = 0;
 
@@ -75,18 +86,22 @@ async function revenueMain(apps: AdminApp[]): Promise<string> {
     <div class="card"><div class="k">Affiliates gesamt</div><div class="v">${totalAff}</div></div>
   </div>`;
 
-  const tbl = `<table><thead><tr><th>App</th><th class="r">Affiliates</th><th class="r">Affiliate-Umsatz</th><th class="r">Auszahlung verbucht</th><th class="r">Offen</th></tr></thead><tbody>
-    ${perApp.map((r) => `<tr>
-      <td><a class="applink" href="/admin?view=${esc(r.app.slug)}">${esc(r.app.name)}</a></td>
-      <td class="r">${r.affiliates}</td>
-      <td class="r">${eur(r.gross)}</td>
-      <td class="r">${eur(r.payout)}</td>
-      <td class="r">${eur(r.open)}</td>
-    </tr>`).join("")}
-  </tbody></table>`;
+  const tableRows: RevenueRow[] = perApp.map((r) => ({
+    slug: r.app.slug,
+    name: r.app.name,
+    affiliates: r.affiliates,
+    grossCents: r.gross,
+    grossFmt: eur(r.gross),
+    payoutCents: r.payout,
+    payoutFmt: eur(r.payout),
+    openCents: r.open,
+    openFmt: eur(r.open),
+  }));
 
-  return `<h1>Einnahmen</h1><p class="sub">Affiliate-attribuierter Umsatz pro App und Monat. Nicht der gesamte App-Umsatz, der bräuchte RevenueCat- und Store-Daten als separate Integration.</p>
-    ${cards}<h2>Pro Monat</h2>${barChart(series)}<h2>Pro App</h2>${tbl}`;
+  const htmlTop = `<h1>Einnahmen</h1><p class="sub">Affiliate-attribuierter Umsatz pro App und Monat. Nicht der gesamte App-Umsatz, der bräuchte RevenueCat- und Store-Daten als separate Integration.</p>
+    ${cards}<h2>Pro Monat</h2>`;
+  const htmlMid = `<h2>Pro App</h2>`;
+  return { htmlTop, series, htmlMid, tableRows };
 }
 
 export default async function RevenuePage() {
@@ -102,7 +117,7 @@ export default async function RevenuePage() {
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
   const apps = getApps();
-  const main = await revenueMain(apps);
+  const { htmlTop, series, htmlMid, tableRows } = await revenueMain(apps);
   const sidebar = adminSidebar("revenue", apps);
   const topbar = `
     <span class="crumb"><b>Einnahmen</b>${ICON.chevron}<span>Klar Control</span></span>
@@ -125,7 +140,12 @@ export default async function RevenuePage() {
         <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content" dangerouslySetInnerHTML={{ __html: main }} />
+          <div className="content">
+            <div dangerouslySetInnerHTML={{ __html: htmlTop }} />
+            {series.length ? <MonthlyBarChart series={series} currency={REPORTING_CURRENCY} /> : null}
+            <div dangerouslySetInnerHTML={{ __html: htmlMid }} />
+            {tableRows.length ? <RevenueAffiliateTable rows={tableRows} /> : null}
+          </div>
         </main>
       </div>
       <script dangerouslySetInnerHTML={{ __html: SMOKE_BG_SCRIPT }} />

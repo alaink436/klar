@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Tremor charts use Tailwind's `dark:` variant. The admin toggles theme via
+   [data-theme="dark"] (not the .dark class / prefers-color-scheme), and no
+   other code uses `dark:`, so we point the variant at the admin attribute. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
   --bg: oklch(0.04 0.002 270);        /* near-black with hint of brand hue */
   --bg-2: oklch(0.08 0.002 270);
