@@ -14,7 +14,40 @@ import { AreaChart } from "../tremor/components/AreaChart/AreaChart";
 import { BarChart } from "../tremor/components/BarChart/BarChart";
 
 export type Period = "week" | "month" | "year";
-export type AnalyticsTab = "public" | "affiliate" | "funnel";
+export type AnalyticsTab = "apps" | "public" | "affiliate" | "funnel";
+
+// Per-app users + revenue, the centerpiece of the rebuilt Analytics tab.
+// `hasBackend` = app's Supabase is wired in KLAR_ADMIN_APPS (so user counts are
+// available). `hasRevenueCat` = a RevenueCat secret key is configured for it.
+// Money fields are in RevenueCat's display currency (`currency`, usually $).
+export interface AppRow {
+  slug: string;
+  name: string;
+  icon: string;
+  hasBackend: boolean;
+  usersTotal: number | null;
+  usersNew30d: number | null;
+  usersNew7d: number | null;
+  usersActive30d: number | null;
+  hasRevenueCat: boolean;
+  mrr: number | null;
+  revenue28d: number | null;
+  activeSubscriptions: number | null;
+  activeTrials: number | null;
+  currency: string;
+}
+
+export interface AppsPayload {
+  perApp: AppRow[];
+  totalUsers: number;
+  totalNew30d: number;
+  totalActiveSubs: number;
+  totalMrr: number;
+  totalRevenue28d: number;
+  currency: string;
+  connectedCount: number;
+  revenueCatCount: number;
+}
 
 export interface AppFunnelRow {
   slug: string;
@@ -61,6 +94,7 @@ const PERIODS: { id: Period; label: string }[] = [
 
 
 const TABS: { id: AnalyticsTab; label: string; periodParam: "p_pub" | "p_aff" | "p_fun" }[] = [
+  { id: "apps", label: "Apps", periodParam: "p_pub" },
   { id: "public", label: "Public", periodParam: "p_pub" },
   { id: "affiliate", label: "Affiliate-Landings", periodParam: "p_aff" },
   { id: "funnel", label: "Funnel", periodParam: "p_fun" },
@@ -410,6 +444,7 @@ function FunnelView({ funnel }: { funnel: FunnelPayload }) {
 export default function AnalyticsClient({
   data,
   funnel,
+  appsData,
   tab,
   periodPublic,
   periodAffiliate,
@@ -417,6 +452,7 @@ export default function AnalyticsClient({
 }: {
   data: AnalyticsPayload;
   funnel: FunnelPayload;
+  appsData: AppsPayload;
   tab: AnalyticsTab;
   periodPublic: Period;
   periodAffiliate: Period;
@@ -434,40 +470,268 @@ export default function AnalyticsClient({
         affP={periodAffiliate}
         funP={periodFunnel}
       />
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 18,
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
-        <PeriodSelector
-          active={period}
-          tab={tab}
-          pubP={periodPublic}
-          affP={periodAffiliate}
-          funP={periodFunnel}
-        />
-        {isEmpty ? (
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              color: "var(--fg-4)",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-            }}
-          >
-            Wartet auf erste Daten
-          </span>
-        ) : null}
-      </div>
+      {/* The Apps tab uses fixed windows (auth.users new-30/7d + RevenueCat's
+          own 28-day overview), so a period selector there would be misleading.
+          Only the visitor/affiliate/funnel tabs get one. */}
+      {tab !== "apps" ? (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 18,
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <PeriodSelector
+            active={period}
+            tab={tab}
+            pubP={periodPublic}
+            affP={periodAffiliate}
+            funP={periodFunnel}
+          />
+          {isEmpty ? (
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                color: "var(--fg-4)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}
+            >
+              Wartet auf erste Daten
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+      {tab === "apps" ? <AppsView apps={appsData} /> : null}
       {tab === "funnel" ? <FunnelView funnel={funnel} /> : null}
       {tab === "affiliate" ? <AffiliateLandingsView data={data} /> : null}
       {tab === "public" ? <PublicView data={data} period={period} /> : null}
+    </>
+  );
+}
+
+// ===== Apps tab: users + revenue per app =====
+
+function fmtInt(n: number | null): string {
+  if (n === null || !isFinite(n)) return "—";
+  return n.toLocaleString("de-CH");
+}
+
+// RevenueCat money: value is in the project's display currency (usually USD),
+// `currency` is the unit symbol RevenueCat returned. We keep it labeled in that
+// currency rather than pretending it's CHF.
+function fmtMoney(n: number | null, currency: string): string {
+  if (n === null || !isFinite(n)) return "—";
+  const sym = currency || "$";
+  return `${sym}${n.toLocaleString("de-CH", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+function MiniStat({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div>
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 9.5,
+          fontWeight: 600,
+          letterSpacing: ".1em",
+          textTransform: "uppercase",
+          color: "var(--fg-3)",
+          marginBottom: 4,
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 700,
+          fontSize: 20,
+          lineHeight: 1,
+          letterSpacing: "-.02em",
+          fontVariantNumeric: "tabular-nums",
+          color: accent ? "var(--fg)" : "var(--fg-2)",
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function AppCard({ row }: { row: AppRow }) {
+  return (
+    <div className="card" style={{ padding: 22 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          marginBottom: 18,
+        }}
+      >
+        <span
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 11,
+            overflow: "hidden",
+            flexShrink: 0,
+            background: "var(--surface-2)",
+            border: "1px solid var(--line)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={row.icon}
+            alt=""
+            width={44}
+            height={44}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        </span>
+        <h3
+          style={{
+            margin: 0,
+            flex: 1,
+            fontFamily: "var(--font-display)",
+            fontWeight: 700,
+            fontSize: 18,
+            letterSpacing: "-.01em",
+            color: "var(--fg)",
+          }}
+        >
+          {row.name}
+        </h3>
+        <span className={`pill${row.hasBackend ? " live" : ""}`} style={{ fontSize: 9 }}>
+          {row.hasBackend ? "live" : "kein Backend"}
+        </span>
+      </div>
+
+      {/* Users */}
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 6 }}>
+        <span
+          style={{
+            fontFamily: "var(--font-display)",
+            fontWeight: 800,
+            fontSize: 38,
+            lineHeight: 1,
+            letterSpacing: "-.03em",
+            fontVariantNumeric: "tabular-nums",
+            color: "var(--fg)",
+          }}
+        >
+          {fmtInt(row.usersTotal)}
+        </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--fg-3)" }}>
+          User
+        </span>
+        {row.hasBackend && row.usersNew30d !== null && row.usersNew30d > 0 ? (
+          <span className="delta up" style={{ marginLeft: "auto" }}>
+            +{row.usersNew30d} / 30T
+          </span>
+        ) : null}
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr",
+          gap: 12,
+          paddingTop: 14,
+          marginTop: 8,
+          borderTop: "1px solid var(--line)",
+        }}
+      >
+        <MiniStat label="Neu 7T" value={row.hasBackend ? fmtInt(row.usersNew7d) : "—"} />
+        <MiniStat label="Neu 30T" value={row.hasBackend ? fmtInt(row.usersNew30d) : "—"} />
+        <MiniStat label="Aktiv 30T" value={row.hasBackend ? fmtInt(row.usersActive30d) : "—"} />
+      </div>
+
+      {/* Revenue */}
+      <div
+        style={{
+          marginTop: 16,
+          paddingTop: 16,
+          borderTop: "1px solid var(--line)",
+        }}
+      >
+        {row.hasRevenueCat ? (
+          <>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 14 }}>
+              <MiniStat label="MRR" value={fmtMoney(row.mrr, row.currency)} accent />
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--fg-4)" }}>
+                RevenueCat
+              </span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <MiniStat label="Umsatz 28T" value={fmtMoney(row.revenue28d, row.currency)} />
+              <MiniStat label="Abos" value={fmtInt(row.activeSubscriptions)} />
+              <MiniStat label="Trials" value={fmtInt(row.activeTrials)} />
+            </div>
+          </>
+        ) : (
+          <p className="muted" style={{ fontSize: 12, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="pill" style={{ fontSize: 9 }}>Umsatz</span>
+            RevenueCat-Key fehlt — in <code style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>KLAR_REVENUECAT_KEYS</code> ergänzen.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AppsView({ apps }: { apps: AppsPayload }) {
+  return (
+    <>
+      <div className="cards">
+        <StatRow
+          label="User gesamt"
+          value={fmtInt(apps.totalUsers)}
+          sub={`+${fmtInt(apps.totalNew30d)} in 30 Tagen · ${apps.connectedCount}/${apps.perApp.length} Apps verbunden`}
+        />
+        <StatRow
+          label="Aktive Abos"
+          value={fmtInt(apps.totalActiveSubs)}
+          sub={apps.revenueCatCount > 0 ? `${apps.revenueCatCount} Apps mit RevenueCat` : "RevenueCat noch nicht verbunden"}
+        />
+        <StatRow
+          label="MRR gesamt"
+          value={apps.revenueCatCount > 0 ? fmtMoney(apps.totalMrr, apps.currency) : "—"}
+          sub={apps.revenueCatCount > 0 ? "Σ über verbundene Apps" : "Key fehlt"}
+        />
+        <StatRow
+          label="Umsatz 28T"
+          value={apps.revenueCatCount > 0 ? fmtMoney(apps.totalRevenue28d, apps.currency) : "—"}
+          sub={apps.revenueCatCount > 0 ? "letzte 28 Tage (RevenueCat)" : "Key fehlt"}
+        />
+      </div>
+      <h2>Pro App</h2>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gap: 14,
+        }}
+      >
+        {apps.perApp.map((row) => (
+          <AppCard key={row.slug} row={row} />
+        ))}
+      </div>
     </>
   );
 }

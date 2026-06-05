@@ -53,6 +53,10 @@ next-env.d.ts
 /scripts/affiliates-output.json
 /scripts/klar-admin-apps-vercel.json
 
+# revenuecat setup secrets (projectId + sk_ secret keys)
+/scripts/revenuecat-input.json
+/scripts/klar-revenuecat-vercel.json
+
 # supabase CLI local cache
 /supabase/.branches
 /supabase/.temp

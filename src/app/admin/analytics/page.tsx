@@ -22,16 +22,22 @@ import {
   adminSidebar,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
-import { getApps, sbGet, type AdminApp } from "../../../lib/adminApps";
+import {
+  getApps,
+  sbGet,
+  fetchAppUserStats,
+  type AdminApp,
+} from "../../../lib/adminApps";
+import { getRcConfigs, fetchRcOverview } from "../../../lib/revenuecat";
 import { KLAR_APPS, findKlarApp } from "../../../lib/klarApps";
 import AnalyticsClient, {
   type AnalyticsPayload,
   type Period,
   type FunnelPayload,
   type AnalyticsTab,
+  type AppsPayload,
+  type AppRow,
 } from "./AnalyticsClient";
-
-void KLAR_APPS;
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -356,9 +362,81 @@ async function buildFunnel(
   return { perApp, totalClicks, totalInstalls, totalPremiums };
 }
 
+// ===== Apps data: users (auth.users via RPC) + revenue (RevenueCat) =====
+//
+// Walks the full KLAR_APPS roster. User counts come from each connected app's
+// Supabase (klar_app_stats RPC, needs KLAR_ADMIN_APPS entry). Revenue comes
+// from RevenueCat's Overview metrics (needs a KLAR_REVENUECAT_KEYS entry).
+// Either side degrades to "—" independently, so an app can show users without
+// revenue, or neither, without breaking the others.
+async function buildApps(): Promise<AppsPayload> {
+  const backendApps = getApps();
+  const bySlug = new Map(backendApps.map((a) => [a.slug, a]));
+  const rcBySlug = new Map(getRcConfigs().map((c) => [c.slug, c]));
+
+  const perApp: AppRow[] = await Promise.all(
+    KLAR_APPS.map(async (meta) => {
+      const backend = bySlug.get(meta.slug);
+      const rcCfg = rcBySlug.get(meta.slug);
+      const [stats, rc] = await Promise.all([
+        backend ? fetchAppUserStats(backend) : Promise.resolve(null),
+        rcCfg ? fetchRcOverview(rcCfg) : Promise.resolve(null),
+      ]);
+      return {
+        slug: meta.slug,
+        name: meta.name,
+        icon: meta.icon,
+        hasBackend: !!backend,
+        usersTotal: stats?.usersTotal ?? null,
+        usersNew30d: stats?.usersNew30d ?? null,
+        usersNew7d: stats?.usersNew7d ?? null,
+        usersActive30d: stats?.usersActive30d ?? null,
+        hasRevenueCat: !!rc?.ok,
+        mrr: rc?.mrr ?? null,
+        revenue28d: rc?.revenue28d ?? null,
+        activeSubscriptions: rc?.activeSubscriptions ?? null,
+        activeTrials: rc?.activeTrials ?? null,
+        currency: rc?.currency ?? "$",
+      };
+    }),
+  );
+
+  const totalUsers = perApp.reduce((s, a) => s + (a.usersTotal ?? 0), 0);
+  const totalNew30d = perApp.reduce((s, a) => s + (a.usersNew30d ?? 0), 0);
+  const totalActiveSubs = perApp.reduce((s, a) => s + (a.activeSubscriptions ?? 0), 0);
+  const totalMrr = perApp.reduce((s, a) => s + (a.mrr ?? 0), 0);
+  const totalRevenue28d = perApp.reduce((s, a) => s + (a.revenue28d ?? 0), 0);
+  const rcApps = perApp.filter((a) => a.hasRevenueCat);
+  return {
+    perApp,
+    totalUsers,
+    totalNew30d,
+    totalActiveSubs,
+    totalMrr,
+    totalRevenue28d,
+    // Money totals assume a single display currency across RevenueCat projects
+    // (typically USD); we surface the first connected app's unit.
+    currency: rcApps[0]?.currency ?? "$",
+    connectedCount: perApp.filter((a) => a.hasBackend).length,
+    revenueCatCount: rcApps.length,
+  };
+}
+
+const EMPTY_APPS: AppsPayload = {
+  perApp: [],
+  totalUsers: 0,
+  totalNew30d: 0,
+  totalActiveSubs: 0,
+  totalMrr: 0,
+  totalRevenue28d: 0,
+  currency: "$",
+  connectedCount: 0,
+  revenueCatCount: 0,
+};
+
 function parseTab(t: string | undefined): AnalyticsTab {
-  if (t === "affiliate" || t === "funnel") return t;
-  return "public";
+  if (t === "public" || t === "affiliate" || t === "funnel") return t;
+  return "apps";
 }
 
 function parsePeriod(p: string | undefined): Period {
@@ -404,7 +482,9 @@ export default async function AnalyticsPage({
   const activePeriod: Period = tab === "affiliate" ? affP : tab === "funnel" ? funP : pubP;
   const { since } = periodWindow(activePeriod);
 
-  const rows = await fetchPageviews(since);
+  // The Apps tab doesn't read pageviews, so skip the up-to-10k-row fetch there
+  // (it's the default tab, so this matters on every dashboard load).
+  const rows = tab === "apps" ? [] : await fetchPageviews(since);
   const data = aggregate(rows, activePeriod, since);
   // Funnel fans out 2 Supabase calls × ~6 apps. Only the funnel tab actually
   // renders that payload, so we skip the fan-out on public/affiliate tabs
@@ -412,6 +492,9 @@ export default async function AnalyticsPage({
   // there anyway because those tabs don't read it).
   const funnel: FunnelPayload =
     tab === "funnel" ? await buildFunnel(rows, since) : EMPTY_FUNNEL;
+  // Apps tab fans out user-stats + RevenueCat calls per app; only build it when
+  // that tab is active.
+  const appsData: AppsPayload = tab === "apps" ? await buildApps() : EMPTY_APPS;
 
   const sidebar = adminSidebar("analytics", getApps());
 
@@ -446,13 +529,14 @@ export default async function AnalyticsPage({
           <div className="content">
             <h1>Analytics</h1>
             <p className="sub">
-              Besucher, Affiliate-Landings und Conversion-Funnel. Privacy-friendly,
-              keine Cookies, kein Tracking-Pixel. Session = täglich rotierender Hash
-              aus IP plus User-Agent.
+              User und Umsatz pro App, plus Web-Besucher, Affiliate-Landings und
+              Conversion-Funnel. App-User aus auth.users, Umsatz aus RevenueCat.
+              Web-Tracking ist privacy-friendly, keine Cookies, kein Pixel.
             </p>
             <AnalyticsClient
               data={data}
               funnel={funnel}
+              appsData={appsData}
               tab={tab}
               periodPublic={pubP}
               periodAffiliate={affP}

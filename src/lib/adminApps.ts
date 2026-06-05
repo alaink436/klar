@@ -94,6 +94,49 @@ export async function sbRpc<T = unknown>(
   return (await res.json()) as T;
 }
 
+// Aggregate user stats for one connected app, read from auth.users via the
+// `klar_app_stats()` RPC (SECURITY DEFINER, service_role-only) that lives in
+// each app's Supabase. auth.users isn't reachable over plain PostgREST, hence
+// the RPC. Returns null on any failure (RPC missing, network) so the dashboard
+// shows "—" instead of throwing.
+export interface AppUserStats {
+  usersTotal: number;
+  usersNew30d: number;
+  usersNew7d: number;
+  usersActive30d: number;
+}
+
+export async function fetchAppUserStats(
+  app: AdminApp,
+): Promise<AppUserStats | null> {
+  try {
+    const res = await fetch(`${app.supabaseUrl}/rest/v1/rpc/klar_app_stats`, {
+      method: "POST",
+      headers: {
+        apikey: app.serviceKey,
+        Authorization: `Bearer ${app.serviceKey}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: "{}",
+      // 60s revalidate: user counts are a dashboard figure, not realtime.
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return null;
+    // Scalar jsonb-returning function → PostgREST returns the object directly.
+    const j = await res.json();
+    if (!j || typeof j !== "object") return null;
+    return {
+      usersTotal: Number(j.users_total ?? 0),
+      usersNew30d: Number(j.users_new_30d ?? 0),
+      usersNew7d: Number(j.users_new_7d ?? 0),
+      usersActive30d: Number(j.users_active_30d ?? 0),
+    };
+  } catch {
+    return null;
+  }
+}
+
 // Mint a new influencer-code for one of the connected apps. Calls the
 // `admin_create_influencer_code` RPC that lives in each app's Supabase
 // (added by migrations 0001 [wavelength/yarnstash native] and
@@ -147,7 +190,7 @@ export interface InfluencerSetupRow {
 
 // Shape map: which apps use Shape B (influencer_codes table) vs Shape A
 // (referrals.influencer_handle direct). See AFFILIATE-ARCHITECTURE.md.
-const SHAPE_B_APPS = new Set(["yarn-stash", "kelva", "moto"]);
+const SHAPE_B_APPS = new Set(["yarn-stash", "kelva", "moto", "promillio"]);
 
 export interface InfluencerRow {
   id: string;
@@ -322,6 +365,7 @@ const FALLBACK_HOSTS: Record<string, string> = {
   kelva: "https://getklar.org/affiliate/kelva",
   "yarn-stash": "https://getklar.org/affiliate/yarnstash",
   moto: "https://getklar.org/affiliate/throttleup",
+  promillio: "https://getklar.org/affiliate/promillio",
 };
 
 export function setupLandingUrl(appSlug: string, token: string): string {
