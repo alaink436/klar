@@ -13,7 +13,8 @@
 // are the hard offset-shadow on the Senden button and the reply-count chip,
 // dimmed in dark mode so the brutalist tell stays subtle.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import type { ReplyLang, ReplyTemplate } from "@/lib/replyTemplates";
 
 export type Direction = "in" | "out";
@@ -54,15 +55,15 @@ type TemplatesMap = Record<ReplyLang, ReplyTemplate[]>;
 
 const SCOPED_CSS = `
 .kr-root{flex:1;min-height:0;display:flex}
-.kr-list{flex-shrink:0;display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}
+.kr-list{display:flex;flex-direction:column;min-height:0;overflow:hidden;border-right:1px solid var(--line)}
 .kr-listscroll{flex:1;overflow-y:auto;min-height:0}
 .kr-item{display:flex;flex-direction:column;gap:7px;width:100%;text-align:left;padding:13px 16px;border:0;border-bottom:1px solid var(--line);background:transparent;color:inherit;cursor:pointer;font-family:inherit;transition:background .12s ease}
 .kr-item:hover{background:var(--surface-2)}
 .kr-item.sel{background:var(--surface-2);box-shadow:inset 2px 0 0 0 var(--fg)}
 .kr-handle{width:7px;flex-shrink:0;cursor:col-resize;position:relative;background:transparent;touch-action:none}
 .kr-handle::after{content:"";position:absolute;top:0;bottom:0;left:3px;width:1px;background:var(--line);transition:background .15s ease,box-shadow .15s ease}
-.kr-handle:hover::after,.kr-handle.drag::after{background:var(--fg-3);box-shadow:0 0 0 .5px var(--fg-3)}
-.kr-detail{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+.kr-handle:hover::after,.kr-handle[data-resize-handle-state="hover"]::after,.kr-handle[data-resize-handle-state="drag"]::after{background:var(--fg-3);box-shadow:0 0 0 .5px var(--fg-3)}
+.kr-detail{min-width:0;display:flex;flex-direction:column;min-height:0;overflow:hidden}
 .kr-thread{flex:1;overflow-y:auto;min-height:0;padding:22px 26px;display:flex;flex-direction:column;gap:14px}
 .kr-bubble{max-width:78%;border-radius:12px;padding:11px 14px;font-size:13.5px;line-height:1.5}
 .kr-bubble.in{align-self:flex-start;background:var(--surface-2);border:1px solid var(--line)}
@@ -150,7 +151,6 @@ export default function InboxClient({
   const [selectedId, setSelectedId] = useState<string | null>(conversations[0]?.id ?? null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "replied" | "converted" | "open">("all");
-  const [listWidth, setListWidth] = useState(370);
   const [narrow, setNarrow] = useState(false);
 
   // per inbound-message translation: 'loading' | 'error' | {text,provider}
@@ -166,58 +166,19 @@ export default function InboxClient({
   const [sendMail, setSendMail] = useState(true);
   const [declineArmed, setDeclineArmed] = useState(false);
 
-  const rootRef = useRef<HTMLDivElement>(null);
-  const widthRef = useRef(listWidth);
-  const draggingRef = useRef(false);
-
   const sel = useMemo(
     () => convs.find((c) => c.id === selectedId) ?? null,
     [convs, selectedId],
   );
 
-  // Restore persisted list width + watch the narrow breakpoint (mount only).
+  // Watch the narrow breakpoint (mount only). Column widths are persisted by
+  // react-resizable-panels itself via autoSaveId.
   useEffect(() => {
-    try {
-      const v = Number(localStorage.getItem("klar-replies-listw"));
-      if (v >= 300 && v <= 620) {
-        setListWidth(v);
-        widthRef.current = v;
-      }
-    } catch {
-      /* no storage */
-    }
     const mq = window.matchMedia("(max-width:760px)");
     const onMq = () => setNarrow(mq.matches);
     onMq();
     mq.addEventListener("change", onMq);
     return () => mq.removeEventListener("change", onMq);
-  }, []);
-
-  // Drag-to-resize the list column.
-  useEffect(() => {
-    function onMove(e: PointerEvent) {
-      if (!draggingRef.current) return;
-      const left = rootRef.current?.getBoundingClientRect().left ?? 0;
-      const w = Math.min(620, Math.max(300, e.clientX - left));
-      widthRef.current = w;
-      setListWidth(w);
-    }
-    function onUp() {
-      if (!draggingRef.current) return;
-      draggingRef.current = false;
-      document.body.style.userSelect = "";
-      try {
-        localStorage.setItem("klar-replies-listw", String(Math.round(widthRef.current)));
-      } catch {
-        /* no storage */
-      }
-    }
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    };
   }, []);
 
   const lang = sel ? pickLang(sel.language) : "de";
@@ -343,12 +304,13 @@ export default function InboxClient({
   const tpls = sel ? templates[lang] ?? templates.de ?? [] : [];
 
   return (
-    <div className="kr-root" ref={rootRef}>
+    <>
       <style dangerouslySetInnerHTML={{ __html: SCOPED_CSS }} />
+      <PanelGroup direction="horizontal" className="kr-root" autoSaveId="klar-replies-cols">
 
       {/* ── Thread list ─────────────────────────────────────────────── */}
       {showList && (
-        <div className="kr-list" style={{ width: narrow ? "100%" : listWidth }}>
+        <Panel id="list" order={1} defaultSize={32} minSize={22} maxSize={52} className="kr-list">
           <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 10 }}>
             <input
               className="kr-input"
@@ -446,27 +408,15 @@ export default function InboxClient({
               })
             )}
           </div>
-        </div>
+        </Panel>
       )}
 
       {/* ── Resize handle ───────────────────────────────────────────── */}
-      {!narrow && (
-        <div
-          className="kr-handle"
-          onPointerDown={(e) => {
-            draggingRef.current = true;
-            document.body.style.userSelect = "none";
-            (e.currentTarget as HTMLDivElement).classList.add("drag");
-          }}
-          onPointerUp={(e) => (e.currentTarget as HTMLDivElement).classList.remove("drag")}
-          role="separator"
-          aria-orientation="vertical"
-        />
-      )}
+      {!narrow && showList && showDetail && <PanelResizeHandle className="kr-handle" />}
 
       {/* ── Conversation + composer ─────────────────────────────────── */}
       {showDetail && (
-        <div className="kr-detail">
+        <Panel id="detail" order={2} minSize={45} className="kr-detail">
           {!sel ? (
             <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "var(--fg-3)", padding: 24, textAlign: "center" }}>
               <svg viewBox="0 0 24 24" width={34} height={34} fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
@@ -681,8 +631,9 @@ export default function InboxClient({
               </div>
             </>
           )}
-        </div>
+        </Panel>
       )}
-    </div>
+      </PanelGroup>
+    </>
   );
 }
