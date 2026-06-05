@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import MailerClient from "../mailer/MailerClient";
 import type { ReplyLang, ReplyTemplate } from "@/lib/replyTemplates";
 
 export type Direction = "in" | "out";
@@ -48,6 +49,37 @@ export interface Conversation {
   // true = contacted, no reply yet ("Offene Anfrage"). No real thread; the
   // detail pane shows a "waiting" state and the composer reads "Nachfassen".
   awaiting?: boolean;
+  // Source of the conversation. "outreach" = scraped target thread (default,
+  // also covers awaiting), "inquiry" = website contact-form request.
+  kind?: "outreach" | "inquiry";
+  // Present when kind === "inquiry": the website request + approve/decline state.
+  inquiry?: InquiryMeta;
+}
+
+// Website contact-form request folded into the inbox. Affiliate inquiries carry
+// the approve flow (mint onboarding link); consulting inquiries are reply/decline
+// only. The approve/decline business logic stays in /admin/approve + /admin/decline.
+export interface InquiryMeta {
+  inquiryId: string;
+  inquiryType: "affiliate" | "consulting" | string;
+  status: string; // new | invited | approved | active | declined
+  source: string | null;
+  name: string | null;
+  audience: string | null;
+  platforms: string | null;
+  why: string | null;
+  project: string | null;
+  budget: string | null;
+  brief: string | null;
+  targetApp: string | null;
+  approvedApp: string | null;
+  approvedCode: string | null;
+  approvedAt: string | null;
+  declinedAt: string | null;
+  declineReason: string | null;
+  setupLink: string | null; // precomputed server-side when approved
+  // outreach target this inquiry matched (for the reply composer), if any
+  matchedTargetId: string | null;
 }
 
 export type AppMeta = Record<string, { name: string; icon: string }>;
@@ -136,22 +168,25 @@ function followerLabel(n: number | null): string {
   return String(n);
 }
 
-export default function InboxClient({
+export default function MailClient({
   conversations,
   appMeta,
   appSlugs,
   templates,
+  mailer,
 }: {
   conversations: Conversation[];
   appMeta: AppMeta;
   appSlugs: string[];
   templates: TemplatesMap;
+  mailer: { dueMail1: number; senderEnabled: boolean; cronSet: boolean; inboundSet: boolean };
 }) {
   const [convs, setConvs] = useState<Conversation[]>(conversations);
   const [selectedId, setSelectedId] = useState<string | null>(conversations[0]?.id ?? null);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "replied" | "converted" | "open">("all");
+  const [filter, setFilter] = useState<"all" | "inquiry" | "replied" | "converted" | "open">("all");
   const [narrow, setNarrow] = useState(false);
+  const [mailerOpen, setMailerOpen] = useState(false);
 
   // per inbound-message translation: 'loading' | 'error' | {text,provider}
   const [trans, setTrans] = useState<
@@ -205,7 +240,8 @@ export default function InboxClient({
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return convs.filter((c) => {
-      if (filter === "replied" && (c.awaiting || c.status !== "replied")) return false;
+      if (filter === "inquiry" && c.kind !== "inquiry") return false;
+      if (filter === "replied" && (c.kind === "inquiry" || c.awaiting || c.status !== "replied")) return false;
       if (filter === "converted" && c.status !== "converted") return false;
       if (filter === "open" && !c.awaiting) return false;
       if (!q) return true;
@@ -239,6 +275,13 @@ export default function InboxClient({
 
   const send = useCallback(async () => {
     if (!sel) return;
+    // Outreach threads reply via their target id; inquiries only when matched to
+    // a target. Pure website inquiries have no in-app reply channel.
+    const replyTargetId = sel.kind === "inquiry" ? sel.inquiry?.matchedTargetId ?? null : sel.id;
+    if (!replyTargetId) {
+      setSendMsg({ ok: false, text: `Kein In-App-Reply-Kanal — per Mail an ${sel.contactEmail ?? "die Anfrage"} antworten.` });
+      return;
+    }
     if (!sel.contactEmail) {
       setSendMsg({ ok: false, text: "Keine contact_email hinterlegt — Entwurf manuell kopieren." });
       return;
@@ -251,7 +294,7 @@ export default function InboxClient({
     setSendMsg(null);
     try {
       const fd = new URLSearchParams();
-      fd.set("id", sel.id);
+      fd.set("id", replyTargetId);
       fd.set("to", sel.contactEmail);
       fd.set("subject", composer.subject);
       fd.set("body", composer.body);
@@ -312,6 +355,13 @@ export default function InboxClient({
       {showList && (
         <Panel id="list" order={1} defaultSize={32} minSize={22} maxSize={52} className="kr-list">
           <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => setMailerOpen(true)}
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "9px 14px", border: "1px solid var(--line-strong)", borderRadius: "var(--radius-sm)", background: "var(--surface)", color: "var(--fg)", fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            >
+              Welle mailen{mailer.dueMail1 ? ` · ${mailer.dueMail1} fällig` : ""}
+            </button>
             <input
               className="kr-input"
               placeholder="Suche Name, Handle, Text…"
@@ -319,14 +369,14 @@ export default function InboxClient({
               onChange={(e) => setQuery(e.target.value)}
             />
             <div className="seg" style={{ alignSelf: "flex-start" }}>
-              {(["all", "replied", "open", "converted"] as const).map((f) => (
+              {(["all", "inquiry", "replied", "open", "converted"] as const).map((f) => (
                 <a
                   key={f}
                   className={filter === f ? "on" : ""}
                   style={{ cursor: "pointer" }}
                   onClick={() => setFilter(f)}
                 >
-                  {f === "all" ? "Alle" : f === "replied" ? "Antworten" : f === "open" ? "Offen" : "Angenommen"}
+                  {f === "all" ? "Alle" : f === "inquiry" ? "Anfragen" : f === "replied" ? "Antworten" : f === "open" ? "Offen" : "Angenommen"}
                 </a>
               ))}
             </div>
@@ -469,59 +519,144 @@ export default function InboxClient({
                         </span>
                       )}
                       <span className="muted" suppressHydrationWarning style={{ fontSize: 11.5, fontFamily: "var(--font-mono)" }} title={abs(sel.awaiting ? sel.lastActivityAt : sel.lastInboundAt)}>
-                        {sel.awaiting ? `kontaktiert ${rel(sel.lastActivityAt)}` : `antwortete ${rel(sel.lastInboundAt)}`}
+                        {sel.kind === "inquiry" ? `Anfrage ${rel(sel.lastInboundAt)}` : sel.awaiting ? `kontaktiert ${rel(sel.lastActivityAt)}` : `antwortete ${rel(sel.lastInboundAt)}`}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Actions: accept / decline */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <button className="kr-mini" onClick={() => { setAcceptOpen((v) => !v); setDeclineArmed(false); }} style={{ borderColor: "var(--line-strong)" }}>
-                    {sel.status === "converted" ? "Erneut annehmen" : "Als Affiliate annehmen"}
-                  </button>
-                  {!declineArmed ? (
-                    <button className="kr-mini" onClick={() => { setDeclineArmed(true); setAcceptOpen(false); }}>Ablehnen</button>
-                  ) : (
-                    <form method="POST" action="/admin/outreach/decline" style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                      <input type="hidden" name="id" value={sel.id} />
-                      <input type="hidden" name="suppress" value="1" />
-                      <span className="muted" style={{ fontSize: 11.5 }}>Sicher?</span>
-                      <button type="submit" className="kr-mini" style={{ color: "var(--danger)", borderColor: "var(--danger)" }}>Ja, ablehnen</button>
-                      <button type="button" className="kr-mini" onClick={() => setDeclineArmed(false)}>Abbrechen</button>
-                    </form>
-                  )}
-                  <span className="muted" style={{ fontSize: 11, fontStyle: "italic", marginLeft: "auto" }}>
-                    Antwort heisst nicht angenommen.
-                  </span>
-                </div>
-
-                {acceptOpen && (
-                  <form method="POST" action="/admin/outreach/accept" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", padding: "12px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
-                    <input type="hidden" name="id" value={sel.id} />
-                    <input type="hidden" name="handle" value={sel.handle} />
-                    <input type="hidden" name="email" value={sel.contactEmail ?? ""} />
-                    <input type="hidden" name="display_name" value={sel.displayName ?? ""} />
-                    <input type="hidden" name="language" value={pickLang(sel.language)} />
-                    <input type="hidden" name="share_pct" value="50" />
-                    <input type="hidden" name="share_months" value="24" />
-                    <label style={{ fontSize: 11.5, color: "var(--fg-3)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                      App
-                      <select name="app" className="kr-input" style={{ width: "auto", padding: "5px 8px", fontSize: 12 }} value={acceptApp} onChange={(e) => setAcceptApp(e.target.value)}>
-                        {(sel.apps.length > 0 ? sel.apps : appSlugs).map((a) => (
-                          <option key={a} value={a}>{appMeta[a]?.name ?? a}</option>
-                        ))}
-                      </select>
-                    </label>
-                    {sel.contactEmail && (
-                      <label style={{ fontSize: 11.5, color: "var(--fg-2)", display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
-                        <input type="checkbox" name="send_mail" checked={sendMail} onChange={(e) => setSendMail(e.target.checked)} />
-                        Onboarding-Mail senden
-                      </label>
+                {/* Actions — inquiry (approve/decline) vs outreach (accept/decline) */}
+                {sel.kind === "inquiry" && sel.inquiry ? (
+                  (() => {
+                    const iq = sel.inquiry!;
+                    const isAffiliate = iq.inquiryType === "affiliate";
+                    if (iq.status === "declined") {
+                      return (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
+                          <span className="muted" style={{ fontSize: 12 }}>Abgelehnt{iq.declinedAt ? ` ${rel(iq.declinedAt)}` : ""}{iq.declineReason ? ` · ${iq.declineReason}` : ""}.</span>
+                          <form method="POST" action="/admin/decline" style={{ marginLeft: "auto" }}>
+                            <input type="hidden" name="inquiry_id" value={iq.inquiryId} />
+                            <input type="hidden" name="action" value="reopen" />
+                            <button type="submit" className="kr-mini">Wieder öffnen</button>
+                          </form>
+                        </div>
+                      );
+                    }
+                    if (isAffiliate && iq.setupLink) {
+                      return (
+                        <div style={{ padding: "12px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                            <span className="kr-chip">{iq.status === "active" ? "active" : "invited"}{iq.approvedApp ? ` · ${iq.approvedApp}` : ""}</span>
+                            <a className="applink" href={iq.setupLink} target="_blank" rel="noopener" style={{ fontFamily: "var(--font-mono)", fontSize: 11, wordBreak: "break-all", flex: 1, minWidth: 200 }}>{iq.setupLink}</a>
+                            <button type="button" className="kr-mini" onClick={(e) => { navigator.clipboard?.writeText(iq.setupLink!); (e.currentTarget as HTMLButtonElement).textContent = "✓ kopiert"; }}>Copy</button>
+                          </div>
+                          {iq.approvedAt && <div className="muted" style={{ marginTop: 6, fontSize: 11 }}>Approved {rel(iq.approvedAt)}</div>}
+                        </div>
+                      );
+                    }
+                    return (
+                      <>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          {isAffiliate && (
+                            <button className="kr-mini" onClick={() => { setAcceptOpen((v) => !v); setDeclineArmed(false); }} style={{ borderColor: "var(--line-strong)" }}>Approve · Onboarding-Link</button>
+                          )}
+                          {!declineArmed ? (
+                            <button className="kr-mini" onClick={() => { setDeclineArmed(true); setAcceptOpen(false); }}>Ablehnen</button>
+                          ) : (
+                            <form method="POST" action="/admin/decline" style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                              <input type="hidden" name="inquiry_id" value={iq.inquiryId} />
+                              <input type="hidden" name="action" value="decline" />
+                              <span className="muted" style={{ fontSize: 11.5 }}>Sicher?</span>
+                              <button type="submit" className="kr-mini" style={{ color: "var(--danger)", borderColor: "var(--danger)" }}>Ja, ablehnen</button>
+                              <button type="button" className="kr-mini" onClick={() => setDeclineArmed(false)}>Abbrechen</button>
+                            </form>
+                          )}
+                          {!isAffiliate && sel.contactEmail && (
+                            <span className="muted" style={{ fontSize: 11, fontStyle: "italic", marginLeft: "auto" }}>Antwort per Mail an {sel.contactEmail}</span>
+                          )}
+                        </div>
+                        {isAffiliate && acceptOpen && (
+                          <form method="POST" action="/admin/approve" style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap", padding: "12px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
+                            <input type="hidden" name="inquiry_id" value={iq.inquiryId} />
+                            <input type="hidden" name="email" value={sel.contactEmail ?? ""} />
+                            <label style={{ fontSize: 11, color: "var(--fg-3)", display: "flex", flexDirection: "column", gap: 3 }}>App
+                              <select name="app" required className="kr-input" style={{ width: "auto", padding: "5px 8px", fontSize: 12 }} defaultValue={iq.targetApp ?? ""}>
+                                <option value="" disabled>— wählen —</option>
+                                {appSlugs.map((a) => <option key={a} value={a}>{appMeta[a]?.name ?? a}</option>)}
+                              </select>
+                            </label>
+                            <label style={{ fontSize: 11, color: "var(--fg-3)", display: "flex", flexDirection: "column", gap: 3 }}>Handle
+                              <input type="text" name="handle" required defaultValue={sel.handle} className="kr-input" style={{ width: 120, padding: "5px 8px", fontSize: 12 }} />
+                            </label>
+                            <label style={{ fontSize: 11, color: "var(--fg-3)", display: "flex", flexDirection: "column", gap: 3 }}>Display
+                              <input type="text" name="display_name" defaultValue={sel.displayName ?? ""} className="kr-input" style={{ width: 140, padding: "5px 8px", fontSize: 12 }} />
+                            </label>
+                            <label style={{ fontSize: 11, color: "var(--fg-3)", display: "flex", flexDirection: "column", gap: 3 }}>Lang
+                              <select name="language" className="kr-input" style={{ width: 64, padding: "5px 8px", fontSize: 12 }} defaultValue={pickLang(sel.language)}>
+                                <option value="de">DE</option><option value="en">EN</option><option value="fr">FR</option><option value="es">ES</option><option value="it">IT</option>
+                              </select>
+                            </label>
+                            <label style={{ fontSize: 11, color: "var(--fg-3)", display: "flex", flexDirection: "column", gap: 3 }}>Share %
+                              <input type="number" name="share_pct" min={1} max={100} defaultValue={50} className="kr-input" style={{ width: 64, padding: "5px 8px", fontSize: 12 }} />
+                            </label>
+                            <label style={{ fontSize: 11, color: "var(--fg-3)", display: "flex", flexDirection: "column", gap: 3 }}>Monate
+                              <input type="number" name="share_months" min={1} max={60} defaultValue={24} className="kr-input" style={{ width: 64, padding: "5px 8px", fontSize: 12 }} />
+                            </label>
+                            <button type="submit" className="kr-mini" style={{ borderColor: "var(--fg)", color: "var(--fg)", fontWeight: 600 }}>Onboarding-Link →</button>
+                          </form>
+                        )}
+                      </>
+                    );
+                  })()
+                ) : (
+                  <>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <button className="kr-mini" onClick={() => { setAcceptOpen((v) => !v); setDeclineArmed(false); }} style={{ borderColor: "var(--line-strong)" }}>
+                        {sel.status === "converted" ? "Erneut annehmen" : "Als Affiliate annehmen"}
+                      </button>
+                      {!declineArmed ? (
+                        <button className="kr-mini" onClick={() => { setDeclineArmed(true); setAcceptOpen(false); }}>Ablehnen</button>
+                      ) : (
+                        <form method="POST" action="/admin/outreach/decline" style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                          <input type="hidden" name="id" value={sel.id} />
+                          <input type="hidden" name="suppress" value="1" />
+                          <span className="muted" style={{ fontSize: 11.5 }}>Sicher?</span>
+                          <button type="submit" className="kr-mini" style={{ color: "var(--danger)", borderColor: "var(--danger)" }}>Ja, ablehnen</button>
+                          <button type="button" className="kr-mini" onClick={() => setDeclineArmed(false)}>Abbrechen</button>
+                        </form>
+                      )}
+                      <span className="muted" style={{ fontSize: 11, fontStyle: "italic", marginLeft: "auto" }}>
+                        Antwort heisst nicht angenommen.
+                      </span>
+                    </div>
+                    {acceptOpen && (
+                      <form method="POST" action="/admin/outreach/accept" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", padding: "12px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
+                        <input type="hidden" name="id" value={sel.id} />
+                        <input type="hidden" name="handle" value={sel.handle} />
+                        <input type="hidden" name="email" value={sel.contactEmail ?? ""} />
+                        <input type="hidden" name="display_name" value={sel.displayName ?? ""} />
+                        <input type="hidden" name="language" value={pickLang(sel.language)} />
+                        <input type="hidden" name="share_pct" value="50" />
+                        <input type="hidden" name="share_months" value="24" />
+                        <label style={{ fontSize: 11.5, color: "var(--fg-3)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                          App
+                          <select name="app" className="kr-input" style={{ width: "auto", padding: "5px 8px", fontSize: 12 }} value={acceptApp} onChange={(e) => setAcceptApp(e.target.value)}>
+                            {(sel.apps.length > 0 ? sel.apps : appSlugs).map((a) => (
+                              <option key={a} value={a}>{appMeta[a]?.name ?? a}</option>
+                            ))}
+                          </select>
+                        </label>
+                        {sel.contactEmail && (
+                          <label style={{ fontSize: 11.5, color: "var(--fg-2)", display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
+                            <input type="checkbox" name="send_mail" checked={sendMail} onChange={(e) => setSendMail(e.target.checked)} />
+                            Onboarding-Mail senden
+                          </label>
+                        )}
+                        <button type="submit" className="kr-mini" style={{ borderColor: "var(--fg)", color: "var(--fg)", fontWeight: 600 }}>Annehmen bestätigen</button>
+                        <span className="muted" style={{ fontSize: 11 }}>50% · 24 Mte{sel.contactEmail ? "" : " · keine Email hinterlegt"}</span>
+                      </form>
                     )}
-                    <button type="submit" className="kr-mini" style={{ borderColor: "var(--fg)", color: "var(--fg)", fontWeight: 600 }}>Annehmen bestätigen</button>
-                    <span className="muted" style={{ fontSize: 11 }}>50% · 24 Mte{sel.contactEmail ? "" : " · keine Email hinterlegt"}</span>
-                  </form>
+                  </>
                 )}
               </div>
 
@@ -634,6 +769,25 @@ export default function InboxClient({
         </Panel>
       )}
       </PanelGroup>
+      {mailerOpen && (
+        <div
+          onClick={() => setMailerOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 60, display: "flex", justifyContent: "flex-end" }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ position: "relative", width: "min(600px,100%)", height: "100%", background: "var(--bg)", borderLeft: "1px solid var(--line-strong)", overflowY: "auto", padding: "20px 26px" }}
+          >
+            <button type="button" className="kr-mini" onClick={() => setMailerOpen(false)} style={{ position: "absolute", top: 16, right: 22 }}>Schließen</button>
+            <MailerClient
+              dueMail1={mailer.dueMail1}
+              senderEnabled={mailer.senderEnabled}
+              cronSet={mailer.cronSet}
+              inboundSet={mailer.inboundSet}
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 }
