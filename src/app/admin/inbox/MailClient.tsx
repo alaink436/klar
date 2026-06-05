@@ -87,8 +87,14 @@ type TemplatesMap = Record<ReplyLang, ReplyTemplate[]>;
 
 const SCOPED_CSS = `
 .kr-root{flex:1;min-height:0;display:flex}
+/* Inbox = fixed app-shell: bound the page height so each pane scrolls on its own.
+   Without this, no ancestor has a definite height, so the whole PAGE scrolls and
+   the thread on the right moves along while you scroll the contact list. */
+html,body{overflow:hidden}
+.layout{height:100vh;height:100dvh;min-height:0}
+.main{min-height:0;overflow:hidden}
 .kr-list{display:flex;flex-direction:column;min-height:0;overflow:hidden;border-right:1px solid var(--line)}
-.kr-listscroll{flex:1;overflow-y:auto;min-height:0}
+.kr-listscroll{flex:1;overflow-y:auto;min-height:0;overscroll-behavior:contain}
 .kr-item{display:flex;flex-direction:column;gap:7px;width:100%;text-align:left;padding:13px 16px;border:0;border-bottom:1px solid var(--line);background:transparent;color:inherit;cursor:pointer;font-family:inherit;transition:background .12s ease}
 .kr-item:hover{background:var(--surface-2)}
 .kr-item.sel{background:var(--surface-2);box-shadow:inset 2px 0 0 0 var(--fg)}
@@ -96,7 +102,7 @@ const SCOPED_CSS = `
 .kr-handle::after{content:"";position:absolute;top:0;bottom:0;left:3px;width:1px;background:var(--line);transition:background .15s ease,box-shadow .15s ease}
 .kr-handle:hover::after,.kr-handle[data-resize-handle-state="hover"]::after,.kr-handle[data-resize-handle-state="drag"]::after{background:var(--fg-3);box-shadow:0 0 0 .5px var(--fg-3)}
 .kr-detail{min-width:0;display:flex;flex-direction:column;min-height:0;overflow:hidden}
-.kr-thread{flex:1;overflow-y:auto;min-height:0;padding:22px 26px;display:flex;flex-direction:column;gap:14px}
+.kr-thread{flex:1;overflow-y:auto;min-height:0;overscroll-behavior:contain;padding:22px 26px;display:flex;flex-direction:column;gap:14px}
 .kr-bubble{max-width:78%;border-radius:12px;padding:11px 14px;font-size:13.5px;line-height:1.5}
 .kr-bubble.in{align-self:flex-start;background:var(--surface-2);border:1px solid var(--line)}
 .kr-bubble.out{align-self:flex-end;background:color-mix(in oklab,var(--fg) 9%,var(--surface));border:1px solid var(--line-strong)}
@@ -423,8 +429,8 @@ export default function MailClient({
                       </span>
                       <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 13.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {c.displayName || `@${c.handle}`}
-                        {c.status === "replied" && (
-                          <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "var(--warning)", marginLeft: 7, verticalAlign: "middle" }} />
+                        {(c.replyCount > 0 || c.status === "replied") && (
+                          <span title="Neue Antwort" style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--danger)", marginLeft: 7, verticalAlign: "middle", boxShadow: "0 0 0 3px color-mix(in oklab, var(--danger) 22%, transparent)" }} />
                         )}
                         {c.awaiting && (
                           <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", border: "1px solid var(--fg-4)", marginLeft: 7, verticalAlign: "middle" }} />
