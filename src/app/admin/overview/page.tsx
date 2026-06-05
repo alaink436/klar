@@ -184,7 +184,7 @@ async function overviewMain(apps: AdminApp[]): Promise<{
   const attn = (n: number, label: string, href: string, glyph: string, accent: string): string =>
     n > 0 ? `<a href="${href}" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius-sm);padding:8px 13px;font-size:12.5px;color:var(--fg)"><span style="display:inline-flex;color:${accent}">${gi(glyph, 15)}</span><span style="font-weight:600">${esc(label)}</span><span style="font-family:var(--font-mono);font-weight:700;color:${accent}">${n}</span></a>` : "";
   const attnItems = [
-    attn(totalReply, "Offene Antworten", "/admin?view=inbox&source=outreach-reply", G.reply, "var(--warning)"),
+    attn(totalReply, "Offene Antworten", "/admin/replies", G.reply, "var(--warning)"),
     attn(inquiriesNew, "Neue Anfragen", "/admin?view=inbox", G.inbox, "var(--info)"),
     attn(totalAngefragt, "Wartet auf Antwort", "/admin?view=outreach", G.send, "var(--fg-3)"),
   ].filter(Boolean).join("");
@@ -265,7 +265,11 @@ async function overviewMain(apps: AdminApp[]): Promise<{
   return { htmlTop, series, htmlMid, tableRows };
 }
 
-export default async function OverviewPage() {
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ msg?: string }>;
+}) {
   // Auth — identical gate to brain/cal/bookings/revenue (device cookie + admin session).
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
   const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
@@ -277,8 +281,10 @@ export default async function OverviewPage() {
   if (!device) redirect("/admin/login");
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
+  const sp = await searchParams;
   const apps = getApps();
   const { htmlTop, series, htmlMid, tableRows } = await overviewMain(apps);
+  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
   const sidebar = adminSidebar("overview", apps);
   const topbar = `
     <span class="crumb"><b>Übersicht</b>${ICON.chevron}<span>Klar Control</span></span>
@@ -302,7 +308,7 @@ export default async function OverviewPage() {
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
           <div className="content">
-            <div dangerouslySetInnerHTML={{ __html: htmlTop }} />
+            <div dangerouslySetInnerHTML={{ __html: flash + htmlTop }} />
             {series.length ? <MonthlyBarChart series={series} currency={REPORTING_CURRENCY} /> : null}
             <div dangerouslySetInnerHTML={{ __html: htmlMid }} />
             {tableRows.length ? <OverviewAffiliateTable rows={tableRows} /> : null}
