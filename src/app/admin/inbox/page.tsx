@@ -577,7 +577,8 @@ export default async function InboxPage({
         <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content" dangerouslySetInnerHTML={{ __html: mailTabs("inbox") + flash + main }} />
+          <div dangerouslySetInnerHTML={{ __html: mailTabs("inbox") }} />
+          <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
         </main>
       </div>
       <script dangerouslySetInnerHTML={{ __html: SMOKE_BG_SCRIPT }} />

@@ -68,8 +68,8 @@ export default async function MailerPage() {
         <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+          <div dangerouslySetInnerHTML={{ __html: mailTabs("mailer") }} />
           <div className="content">
-            <div dangerouslySetInnerHTML={{ __html: mailTabs("mailer") }} />
             <MailerClient
               dueMail1={m1.length}
               senderEnabled={senderEnabled}
