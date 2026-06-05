@@ -34,6 +34,7 @@ import {
 } from "../../../lib/adminSettings";
 import { listBrainMembers, type BrainMember } from "@/lib/brainMembers";
 import { availableFolders, SHOWCASE_FOLDERS, type Group } from "@/lib/brainVault";
+import { listTokens, type ApiTokenRow } from "@/lib/apiTokens";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -275,6 +276,63 @@ function brainAccessCardHtml(members: BrainMember[], folders: Group[]): string {
   `;
 }
 
+function tokensCardHtml(tokens: ApiTokenRow[]): string {
+  const rows = tokens.length === 0
+    ? `<tr><td colspan="5" class="empty">Noch keine Tokens.</td></tr>`
+    : tokens
+        .map((t) => {
+          const revoked = Boolean(t.revoked_at);
+          const status = revoked
+            ? `<span class="badge badge-expired">entzogen</span>`
+            : `<span class="badge badge-open">aktiv</span>`;
+          const last = t.last_used_at
+            ? new Date(t.last_used_at).toLocaleDateString("de-CH")
+            : "—";
+          const action = revoked
+            ? ""
+            : `<form method="POST" action="/admin/tokens" style="display:inline" data-klar-confirm="Token wird sofort ungültig. Geräte mit diesem Token verlieren den Zugriff." data-klar-confirm-title="Token widerrufen?" data-klar-confirm-variant="danger" data-klar-confirm-ok="Widerrufen">
+                 <input type="hidden" name="action" value="revoke"/>
+                 <input type="hidden" name="id" value="${esc(t.id)}"/>
+                 <button type="submit" class="btn" style="padding:5px 10px;font-size:12px">Widerrufen</button>
+               </form>`;
+          return `<tr>
+            <td><div class="invite-name">${esc(t.label)}</div><div class="invite-mail" style="font-family:var(--font-mono)">${esc(t.prefix)}…</div></td>
+            <td>${t.scopes.map((s) => `<span class="badge badge-used">${esc(s)}</span>`).join(" ")}</td>
+            <td>${esc(last)}</td>
+            <td>${status}</td>
+            <td>${action}</td>
+          </tr>`;
+        })
+        .join("");
+  return `
+  <section class="card">
+    <h3>API-Tokens</h3>
+    <p class="card-sub">Zugänge für Remote-Agents (Brain-API V2) und den künftigen Vault. Der Token wird nur einmal angezeigt und nur gehasht gespeichert — Widerruf jederzeit.</p>
+    <form method="POST" action="/admin/tokens" class="settings-form invite-form">
+      <input type="hidden" name="action" value="create"/>
+      <div class="field-row">
+        <label class="field">
+          <span class="field-label">Label</span>
+          <input type="text" name="label" class="input" maxlength="80" placeholder="z.B. MacBook · Claude Code"/>
+        </label>
+      </div>
+      <div class="field">
+        <span class="field-label">Scopes</span>
+        <div class="chk-grid">
+          <label class="chk"><input type="checkbox" name="scope_brain" checked/> brain:read</label>
+          <label class="chk"><input type="checkbox" name="scope_vault"/> vault:use</label>
+        </div>
+      </div>
+      <div class="form-foot"><button type="submit" class="btn primary">Token erzeugen</button></div>
+    </form>
+    <table class="invite-table">
+      <thead><tr><th>Token</th><th>Scopes</th><th>Zuletzt</th><th>Status</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </section>
+  `;
+}
+
 // Local style additions on top of STYLE — toggles, fieldsets, table, flash.
 const SETTINGS_STYLE = `
 .flash{background:var(--surface-2);border:1px solid var(--line);color:var(--fg-2);padding:10px 14px;border-radius:var(--radius-sm);font-size:13.5px;margin:0 0 22px}
@@ -359,10 +417,11 @@ export default async function SettingsPage({
   if (session !== KEY) redirect("/admin/login");
 
   const sp = await searchParams;
-  const [settings, invites, brainMembers] = await Promise.all([
+  const [settings, invites, brainMembers, tokens] = await Promise.all([
     getAdminSettings(),
     listInvites(),
     listBrainMembers(),
+    listTokens(),
   ]);
   const brainFolders = availableFolders();
   const origin = originFromHeaders(h);
@@ -405,7 +464,7 @@ export default async function SettingsPage({
               für Affiliate-Inquiries, Benachrichtigungs-Trigger und Einladungen
               für neue Admin-Geräte.
             </p>
-            <div dangerouslySetInnerHTML={{ __html: flash + settingsCardHtml(settings, null) + brainAccessCardHtml(brainMembers, brainFolders) + invitesCardHtml(invites, origin) }} />
+            <div dangerouslySetInnerHTML={{ __html: flash + settingsCardHtml(settings, null) + tokensCardHtml(tokens) + brainAccessCardHtml(brainMembers, brainFolders) + invitesCardHtml(invites, origin) }} />
           </div>
         </main>
       </div>

@@ -16,6 +16,7 @@
 
 import { parseTarGzip } from "nanotar";
 import { clientIp, rateLimit } from "../../../../lib/apiGuards";
+import { verifyToken, hasStore } from "../../../../lib/apiTokens";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -55,15 +56,22 @@ function json(obj: unknown, status = 200): Response {
 }
 
 export async function GET(req: Request): Promise<Response> {
-  if (!apiToken()) return json({ error: "BRAIN_API_TOKEN not configured" }, 503);
   if (!ghToken()) return json({ error: "BRAIN_GITHUB_TOKEN not configured" }, 503);
+  const envTok = apiToken();
+  if (!envTok && !hasStore()) {
+    return json({ error: "no auth configured (BRAIN_API_TOKEN or token store)" }, 503);
+  }
 
   // Rate-limit: 30 exports per hour per IP (each pull fetches the whole repo).
   const rl = rateLimit("brain_export", clientIp(req), 30, 60 * 60 * 1000);
   if (!rl.ok) return json({ error: "rate limited", retryAfterSeconds: rl.retryAfterSeconds }, 429);
 
+  // V2 auth: a DB token with scope brain:read, OR the legacy env token.
   const tok = bearer(req);
-  if (!tok || !ctEqual(tok, apiToken())) return json({ error: "unauthorized" }, 401);
+  let authed = false;
+  if (tok && envTok && ctEqual(tok, envTok)) authed = true;
+  else if (tok) authed = Boolean(await verifyToken(tok, "brain:read"));
+  if (!authed) return json({ error: "unauthorized" }, 401);
 
   // One call: the whole repo as a gzipped tarball.
   const res = await fetch(`https://api.github.com/repos/${REPO}/tarball/${BRANCH}`, {
