@@ -63,7 +63,7 @@ async function loadBookings(): Promise<BookingsResult> {
           Authorization: `Bearer ${KLAR_INBOX_KEY}`,
           Accept: "application/json",
         },
-        cache: "no-store",
+        next: { revalidate: 30 },
       },
     );
     if (!res.ok) return { kind: "httperror", status: res.status };

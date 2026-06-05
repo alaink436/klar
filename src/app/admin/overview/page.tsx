@@ -90,10 +90,10 @@ async function overviewMain(apps: AdminApp[]): Promise<{
 
   const rows = await Promise.all(apps.map(async (app) => {
     const [inf, claim, outreach, events] = await Promise.all([
-      sbGet(app, "influencers?select=status"),
-      sbGet(app, "influencer_claimable?select=claimable_eur_cents,unnormalized_events"),
+      sbGet(app, "influencers?select=status", { revalidate: 30 }),
+      sbGet(app, "influencer_claimable?select=claimable_eur_cents,unnormalized_events", { revalidate: 30 }),
       listOutreachTargets({ platform: "all", status: "all", app: app.slug, limit: 500 }),
-      sbGet(app, "referral_revenue_events?select=event_at,gross_revenue_cents,share_cents_eur&order=event_at&limit=4000"),
+      sbGet(app, "referral_revenue_events?select=event_at,gross_revenue_cents,share_cents_eur&order=event_at&limit=4000", { revalidate: 30 }),
     ]);
     const onboarded = inf.length > 0 || claim.length > 0 || outreach.length > 0;
     const active = inf.filter((i: any) => i.status === "active").length;
@@ -131,7 +131,7 @@ async function overviewMain(apps: AdminApp[]): Promise<{
     try {
       const res = await fetch(
         `${KLAR_INBOX_URL}/rest/v1/klar_inquiries?select=email,type,status,created_at,handle&order=created_at.desc&limit=50`,
-        { headers: { apikey: KLAR_INBOX_KEY, Authorization: `Bearer ${KLAR_INBOX_KEY}`, Accept: "application/json" }, cache: "no-store" },
+        { headers: { apikey: KLAR_INBOX_KEY, Authorization: `Bearer ${KLAR_INBOX_KEY}`, Accept: "application/json" }, next: { revalidate: 30 } },
       );
       if (res.ok) {
         const j = await res.json();
