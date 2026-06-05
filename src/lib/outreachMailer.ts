@@ -18,6 +18,7 @@
 import {
   listTargetsForMail1,
   markMail1Sent,
+  insertMessage,
   checkSuppressions,
   getAppTemplate,
   type OutreachTarget,
@@ -117,6 +118,19 @@ async function processMail1(t: OutreachTarget, live: boolean): Promise<MailerIte
   });
   if (!res.sent) return { ...base, subject, status: "error", reason: res.error ?? "send failed" };
   await markMail1Sent(t.id);
+  // Record the sent Mail-1 in the thread so the inbox shows the full outgoing
+  // mail (text + position), not just a "contacted" placeholder. Dedupe via
+  // external_id so a re-run never doubles it. Best-effort (mail already sent).
+  await insertMessage({
+    target_id: t.id,
+    direction: "out",
+    subject,
+    body,
+    to_email: t.contact_email,
+    provider: "brevo-mail1",
+    external_id: `mail1-${t.id}`,
+    sent_at: new Date().toISOString(),
+  });
   return { ...base, subject, status: "sent" };
 }
 
