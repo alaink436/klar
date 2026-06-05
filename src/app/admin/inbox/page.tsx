@@ -26,6 +26,7 @@ import {
   MODAL_SCRIPT,
   readCookieFromString,
   adminSidebar,
+  mailTabs,
   esc,
   fmtRelative,
 } from "../_shared";
@@ -553,7 +554,7 @@ export default async function InboxPage({
   const apps = getApps();
   const { html: main, hasReplyComposer } = await inboxMain(typeFilter, sourceFilter, showDeclined, showTests);
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
-  const sidebar = adminSidebar("inbox", apps);
+  const sidebar = adminSidebar("postfach", apps);
   const topbar = `
     <span class="crumb"><b>Inbox</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
@@ -576,7 +577,7 @@ export default async function InboxPage({
         <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
+          <div className="content" dangerouslySetInnerHTML={{ __html: mailTabs("inbox") + flash + main }} />
         </main>
       </div>
       <script dangerouslySetInnerHTML={{ __html: SMOKE_BG_SCRIPT }} />

@@ -26,6 +26,7 @@ import {
   SMOKE_BG_SCRIPT,
   readCookieFromString,
   adminSidebar,
+  mailTabs,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps } from "../../../lib/adminApps";
@@ -67,6 +68,27 @@ export default async function RepliesPage() {
       t.status === "replied" ||
       t.status === "converted",
   );
+  const candidateIds = new Set(candidates.map((t) => t.id));
+
+  // "Offene Anfragen": contacted, no reply yet. Disjoint from candidates (no
+  // last_message, not replied/converted). Selectable in the client via the
+  // "Offen" filter — shows a waiting state + a follow-up composer.
+  const TERMINAL = new Set(["replied", "converted", "declined", "dead"]);
+  const awaitingTargets = targets
+    .filter(
+      (t) =>
+        !candidateIds.has(t.id) &&
+        !TERMINAL.has(t.status) &&
+        (t.status === "dm_sent" ||
+          t.mail_status === "mail1_sent" ||
+          t.mail_status === "mail2_sent"),
+    )
+    .sort((a, b) => {
+      const ax = new Date(a.last_mail_at || a.mail1_sent_at || a.contacted_at || a.updated_at).getTime();
+      const bx = new Date(b.last_mail_at || b.mail1_sent_at || b.contacted_at || b.updated_at).getTime();
+      return bx - ax;
+    })
+    .slice(0, 100);
 
   // One query for every thread, grouped by target.
   const rows = await listMessagesForTargets(candidates.map((t) => t.id));
@@ -77,7 +99,7 @@ export default async function RepliesPage() {
     else byTarget.set(m.target_id, [m]);
   }
 
-  const conversations: Conversation[] = candidates
+  const repliedConvs: Conversation[] = candidates
     .map((t): Conversation => {
       const sorted = (byTarget.get(t.id) ?? [])
         .slice()
@@ -138,14 +160,49 @@ export default async function RepliesPage() {
         lastInboundAt: lastInboundAt ?? null,
         lastActivityAt: lastActivityAt ?? null,
       };
-    })
-    .sort((a, b) => (b.lastActivityAt || "").localeCompare(a.lastActivityAt || ""));
+    });
+
+  // Awaiting targets: no thread, replyCount 0, flagged so the client shows the
+  // waiting state + follow-up composer.
+  const awaitingConvs: Conversation[] = awaitingTargets.map((t): Conversation => {
+    const appSlugs = Array.from(
+      new Set(
+        [...(t.for_apps ?? []), ...(t.approved_app ? [t.approved_app] : [])].filter(
+          (x): x is string => Boolean(x),
+        ),
+      ),
+    );
+    const lastActivityAt = t.last_mail_at || t.mail1_sent_at || t.contacted_at || t.updated_at;
+    return {
+      id: t.id,
+      handle: t.handle,
+      displayName: t.display_name,
+      platform: t.platform,
+      profileUrl: t.profile_url,
+      contactEmail: t.contact_email,
+      language: t.language || "de",
+      apps: appSlugs,
+      status: t.status,
+      followerEstimate: t.follower_estimate,
+      mailsSent: t.mails_sent ?? 0,
+      mailStatus: t.mail_status,
+      messages: [],
+      replyCount: 0,
+      lastInboundAt: null,
+      lastActivityAt: lastActivityAt ?? null,
+      awaiting: true,
+    };
+  });
+
+  const conversations: Conversation[] = [...repliedConvs, ...awaitingConvs].sort(
+    (a, b) => (b.lastActivityAt || "").localeCompare(a.lastActivityAt || ""),
+  );
 
   const appMeta: AppMeta = {};
   for (const a of KLAR_APPS) appMeta[a.slug] = { name: a.name, icon: a.icon };
   const appSlugs = KLAR_APPS.map((a) => a.slug);
 
-  const sidebar = adminSidebar("replies", apps);
+  const sidebar = adminSidebar("postfach", apps);
   const topbar = `
     <span class="crumb"><b>Antworten</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
@@ -167,6 +224,7 @@ export default async function RepliesPage() {
         <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+          <div style={{ padding: "16px 36px 0" }} dangerouslySetInnerHTML={{ __html: mailTabs("replies") }} />
           <InboxClient
             conversations={conversations}
             appMeta={appMeta}

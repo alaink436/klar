@@ -194,7 +194,7 @@ export function adminSidebar(
     </a>
     <div class="navsec">Studio</div>
     ${item("overview", "Übersicht", ICON.overview, "/admin/overview")}
-    ${item("inbox", "Inbox", ICON.inbox)}
+    ${item("postfach", "Postfach", ICON.inbox, "/admin/inbox")}
     ${item("bookings", "Bookings", ICON.calendar, "/admin/bookings")}
     ${item("cal", "Cal Admin", ICON.calendar, "/admin/cal")}
     ${item("analytics", "Analytics", ICON.analytics, "/admin/analytics")}
@@ -203,15 +203,28 @@ export function adminSidebar(
     ${item("revenue", "Einnahmen", ICON.revenue, "/admin/revenue")}
     ${item("payouts", "Auszahlungen", ICON.payouts, "/admin/payouts")}
     ${appNav || `<span class="nav muted"><span class="d">${ICON.app}</span>keine Apps</span>`}
-    <div class="navsec">Extern</div>
-    ${item("outreach", "Outreach", ICON.outreach)}
-    ${item("replies", "Antworten", ICON.reply, "/admin/replies")}
-    ${item("mailer", "Mailer", ICON.send, "/admin/mailer")}
+    <div class="navsec">Akquise</div>
+    ${item("outreach", "Outreach", ICON.outreach, "/admin/outreach")}
     <a class="nav" href="https://cal.getklar.org" target="_blank" rel="noopener"><span class="d">${ICON.calendar}</span>Cal in neuem Tab <span style="margin-left:auto;font-size:10px;opacity:.6">↗</span></a>
     <div class="spacer"></div>
     ${item("settings", "Einstellungen", ICON.lock, "/admin/settings")}
     <a class="nav logout" href="/admin/logout"><span class="d">${ICON.logout}</span>Logout</a>
   `;
+}
+
+// Sub-tab strip for the Postfach hub (Inbox · Antworten · Mailer). Rendered as
+// an HTML string so it drops into both the HTML-string views (inbox) and the
+// React routes (replies/mailer via dangerouslySetInnerHTML). The three stay
+// separate routes; this strip + the single "Postfach" sidebar item make them
+// read as one menu.
+export function mailTabs(active: "inbox" | "replies" | "mailer"): string {
+  const tab = (key: string, label: string, icon: string, href: string) =>
+    `<a class="mailtab ${active === key ? "on" : ""}" href="${href}"><span class="d">${icon}</span>${esc(label)}</a>`;
+  return `<nav class="mailtabs" aria-label="Postfach">
+    ${tab("inbox", "Inbox", ICON.inbox, "/admin/inbox")}
+    ${tab("replies", "Antworten", ICON.reply, "/admin/replies")}
+    ${tab("mailer", "Mailer", ICON.send, "/admin/mailer")}
+  </nav>`;
 }
 
 // Shared CSS for /admin and /admin/analytics. Light by default, dark via
@@ -288,6 +301,16 @@ a{color:inherit;text-decoration:none}
 .nav.on{color:var(--fg);background:var(--surface-2);font-weight:600}
 .nav.on .d{color:var(--fg)}
 .nav.muted{color:var(--fg-4)}
+
+.mailtabs{display:flex;gap:2px;margin:0 0 22px;border-bottom:1px solid var(--line)}
+.mailtab{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;color:var(--fg-3);font-family:var(--font-body);font-size:13.5px;font-weight:600;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;transition:color 90ms cubic-bezier(.2,.6,.3,1),border-color 90ms cubic-bezier(.2,.6,.3,1)}
+.mailtab .d{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;color:var(--fg-4);transition:color 90ms}
+.mailtab .d svg{width:14px;height:14px;stroke-width:1.8}
+.mailtab:hover{color:var(--fg)}
+.mailtab:hover .d{color:var(--fg-2)}
+.mailtab.on{color:var(--fg);border-bottom-color:var(--fg)}
+.mailtab.on .d{color:var(--fg)}
+@media(max-width:820px){.mailtabs{overflow-x:auto;-webkit-overflow-scrolling:touch}}
 
 .spacer{flex:1;min-height:18px}
 .logout{color:var(--fg-4);border-top:1px solid var(--line);margin-top:8px;padding-top:12px;border-radius:0}
