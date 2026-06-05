@@ -25,6 +25,7 @@ import {
   MODAL_SCRIPT,
   readCookieFromString,
   adminSidebar,
+  mailTabs,
   esc,
   fmtRelative,
 } from "../_shared";
@@ -1093,7 +1094,7 @@ export default async function OutreachPage({
   const apps = getApps();
   const { html: main } = await outreachMain(filterPlatform, filterStatus, filterApp, query, autoRefresh, showTests);
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
-  const sidebar = adminSidebar("outreach", apps);
+  const sidebar = adminSidebar("postfach", apps);
   const topbar = `
     <span class="crumb"><b>Outreach</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
@@ -1117,6 +1118,7 @@ export default async function OutreachPage({
         <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+          <div dangerouslySetInnerHTML={{ __html: mailTabs("outreach") }} />
           <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
         </main>
       </div>

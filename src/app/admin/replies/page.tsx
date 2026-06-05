@@ -224,7 +224,7 @@ export default async function RepliesPage() {
         <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div style={{ padding: "16px 36px 0" }} dangerouslySetInnerHTML={{ __html: mailTabs("replies") }} />
+          <div dangerouslySetInnerHTML={{ __html: mailTabs("replies") }} />
           <InboxClient
             conversations={conversations}
             appMeta={appMeta}
