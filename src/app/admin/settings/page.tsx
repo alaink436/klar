@@ -35,6 +35,7 @@ import {
 import { listBrainMembers, type BrainMember } from "@/lib/brainMembers";
 import { availableFolders, SHOWCASE_FOLDERS, type Group } from "@/lib/brainVault";
 import { listTokens, type ApiTokenRow } from "@/lib/apiTokens";
+import { listSecrets, type VaultSecretMeta } from "@/lib/vault";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -333,6 +334,16 @@ function tokensCardHtml(tokens: ApiTokenRow[]): string {
   `;
 }
 
+function vaultCardHtml(secrets: VaultSecretMeta[]): string {
+  return `
+  <section class="card">
+    <h3>API-Key Vault</h3>
+    <p class="card-sub">${secrets.length} Key(s) gespeichert. Keys liegen AES-256-GCM verschlüsselt (Master-Key nur in Vercel), Nutzung nur über den Proxy mit einem <code>vault:use</code>-Token. Anlegen, rotieren und löschen auf der eigenen Vault-Seite.</p>
+    <a class="btn primary" href="/admin/vault">Vault verwalten →</a>
+  </section>
+  `;
+}
+
 // Local style additions on top of STYLE — toggles, fieldsets, table, flash.
 const SETTINGS_STYLE = `
 .flash{background:var(--surface-2);border:1px solid var(--line);color:var(--fg-2);padding:10px 14px;border-radius:var(--radius-sm);font-size:13.5px;margin:0 0 22px}
@@ -417,11 +428,12 @@ export default async function SettingsPage({
   if (session !== KEY) redirect("/admin/login");
 
   const sp = await searchParams;
-  const [settings, invites, brainMembers, tokens] = await Promise.all([
+  const [settings, invites, brainMembers, tokens, vaultSecrets] = await Promise.all([
     getAdminSettings(),
     listInvites(),
     listBrainMembers(),
     listTokens(),
+    listSecrets(),
   ]);
   const brainFolders = availableFolders();
   const origin = originFromHeaders(h);
@@ -464,7 +476,7 @@ export default async function SettingsPage({
               für Affiliate-Inquiries, Benachrichtigungs-Trigger und Einladungen
               für neue Admin-Geräte.
             </p>
-            <div dangerouslySetInnerHTML={{ __html: flash + settingsCardHtml(settings, null) + tokensCardHtml(tokens) + brainAccessCardHtml(brainMembers, brainFolders) + invitesCardHtml(invites, origin) }} />
+            <div dangerouslySetInnerHTML={{ __html: flash + settingsCardHtml(settings, null) + tokensCardHtml(tokens) + vaultCardHtml(vaultSecrets) + brainAccessCardHtml(brainMembers, brainFolders) + invitesCardHtml(invites, origin) }} />
           </div>
         </main>
       </div>
