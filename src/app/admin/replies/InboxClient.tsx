@@ -44,6 +44,9 @@ export interface Conversation {
   replyCount: number;
   lastInboundAt: string | null;
   lastActivityAt: string | null;
+  // true = contacted, no reply yet ("Offene Anfrage"). No real thread; the
+  // detail pane shows a "waiting" state and the composer reads "Nachfassen".
+  awaiting?: boolean;
 }
 
 export type AppMeta = Record<string, { name: string; icon: string }>;
@@ -146,7 +149,7 @@ export default function InboxClient({
   const [convs, setConvs] = useState<Conversation[]>(conversations);
   const [selectedId, setSelectedId] = useState<string | null>(conversations[0]?.id ?? null);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "replied" | "converted">("all");
+  const [filter, setFilter] = useState<"all" | "replied" | "converted" | "open">("all");
   const [listWidth, setListWidth] = useState(370);
   const [narrow, setNarrow] = useState(false);
 
@@ -241,8 +244,9 @@ export default function InboxClient({
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return convs.filter((c) => {
-      if (filter === "replied" && c.status !== "replied") return false;
+      if (filter === "replied" && (c.awaiting || c.status !== "replied")) return false;
       if (filter === "converted" && c.status !== "converted") return false;
+      if (filter === "open" && !c.awaiting) return false;
       if (!q) return true;
       const hay = `${c.displayName ?? ""} ${c.handle} ${c.messages.map((m) => m.body).join(" ")}`.toLowerCase();
       return hay.includes(q);
@@ -353,14 +357,14 @@ export default function InboxClient({
               onChange={(e) => setQuery(e.target.value)}
             />
             <div className="seg" style={{ alignSelf: "flex-start" }}>
-              {(["all", "replied", "converted"] as const).map((f) => (
+              {(["all", "replied", "open", "converted"] as const).map((f) => (
                 <a
                   key={f}
                   className={filter === f ? "on" : ""}
                   style={{ cursor: "pointer" }}
                   onClick={() => setFilter(f)}
                 >
-                  {f === "all" ? "Alle" : f === "replied" ? "Offen" : "Angenommen"}
+                  {f === "all" ? "Alle" : f === "replied" ? "Antworten" : f === "open" ? "Offen" : "Angenommen"}
                 </a>
               ))}
             </div>
@@ -374,7 +378,9 @@ export default function InboxClient({
             ) : (
               visible.map((c) => {
                 const lastIn = [...c.messages].reverse().find((m) => m.direction === "in");
-                const preview = (lastIn?.body || c.messages[c.messages.length - 1]?.body || "").replace(/\s+/g, " ").trim();
+                const preview = c.awaiting
+                  ? `Kontaktiert${c.mailsSent ? ` · ${c.mailsSent} Mail(s)` : ""} · wartet auf Antwort`
+                  : (lastIn?.body || c.messages[c.messages.length - 1]?.body || "").replace(/\s+/g, " ").trim();
                 const firstApp = c.apps[0];
                 return (
                   <button
@@ -407,6 +413,9 @@ export default function InboxClient({
                         {c.displayName || `@${c.handle}`}
                         {c.status === "replied" && (
                           <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "var(--warning)", marginLeft: 7, verticalAlign: "middle" }} />
+                        )}
+                        {c.awaiting && (
+                          <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", border: "1px solid var(--fg-4)", marginLeft: 7, verticalAlign: "middle" }} />
                         )}
                       </span>
                       <span className="muted" suppressHydrationWarning style={{ fontSize: 10.5, fontFamily: "var(--font-mono)", whiteSpace: "nowrap" }}>
@@ -509,8 +518,8 @@ export default function InboxClient({
                           {sel.replyCount}. Antwort
                         </span>
                       )}
-                      <span className="muted" suppressHydrationWarning style={{ fontSize: 11.5, fontFamily: "var(--font-mono)" }} title={abs(sel.lastInboundAt)}>
-                        antwortete {rel(sel.lastInboundAt)}
+                      <span className="muted" suppressHydrationWarning style={{ fontSize: 11.5, fontFamily: "var(--font-mono)" }} title={abs(sel.awaiting ? sel.lastActivityAt : sel.lastInboundAt)}>
+                        {sel.awaiting ? `kontaktiert ${rel(sel.lastActivityAt)}` : `antwortete ${rel(sel.lastInboundAt)}`}
                       </span>
                     </div>
                   </div>
@@ -568,7 +577,14 @@ export default function InboxClient({
 
               {/* Thread */}
               <div className="kr-thread">
-                {sel.messages.map((m) => {
+                {sel.awaiting ? (
+                  <div className="muted" style={{ margin: "auto", textAlign: "center", maxWidth: 380, fontSize: 13, lineHeight: 1.6 }}>
+                    Noch keine Antwort. Kontaktiert {rel(sel.lastActivityAt)}
+                    {sel.mailsSent ? ` · ${sel.mailsSent} Mail(s) gesendet` : ""}. Sobald {name} antwortet,
+                    erscheint der volle Thread hier mit Übersetzen-Funktion. Unten kannst du nachfassen.
+                  </div>
+                ) : (
+                  sel.messages.map((m) => {
                   const tr = trans[m.id];
                   const isIn = m.direction === "in";
                   return (
@@ -611,7 +627,8 @@ export default function InboxClient({
                       )}
                     </div>
                   );
-                })}
+                  })
+                )}
               </div>
 
               {/* Composer */}
@@ -647,7 +664,7 @@ export default function InboxClient({
                 />
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                   <button className="retro-send" onClick={send} disabled={sending || !sel.contactEmail}>
-                    {sending ? "Sende…" : "Senden"}
+                    {sending ? "Sende…" : sel.awaiting ? "Nachfassen" : "Senden"}
                   </button>
                   <button
                     className="kr-mini"

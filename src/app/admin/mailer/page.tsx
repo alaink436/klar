@@ -1,8 +1,8 @@
 // Klar Control · Mailer — manual control panel for the in-app outreach mailer.
 //
 // Server component: same 2FA/device gate as the rest of /admin. Computes how
-// many targets are due for Mail-1 / Mail-2 and surfaces the relevant env config
-// (sender on/off, cron secret, inbound domain), then mounts <MailerClient/>
+// many targets are due for Mail-1 (cold contact) and surfaces the relevant env
+// config (sender on/off, cron secret, inbound domain), then mounts <MailerClient/>
 // which drives dry-run previews and (env-gated) real sends via
 // /admin/mailer/run. The Vercel cron hits the same engine on a schedule.
 
@@ -18,10 +18,11 @@ import {
   SMOKE_BG_SCRIPT,
   readCookieFromString,
   adminSidebar,
+  mailTabs,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps } from "../../../lib/adminApps";
-import { listTargetsForMail1, listTargetsForMail2 } from "../../../lib/outreachStore";
+import { listTargetsForMail1 } from "../../../lib/outreachStore";
 import MailerClient from "./MailerClient";
 
 export const dynamic = "force-dynamic";
@@ -39,17 +40,13 @@ export default async function MailerPage() {
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
   const apps = getApps();
-  const cutoff = new Date(Date.now() - 3 * 86_400_000).toISOString();
-  const [m1, m2] = await Promise.all([
-    listTargetsForMail1(500),
-    listTargetsForMail2(cutoff, 500),
-  ]);
+  const m1 = await listTargetsForMail1(500);
 
   const senderEnabled = process.env.KLAR_OUTREACH_SENDER === "on";
   const cronSet = Boolean(process.env.CRON_SECRET);
   const inboundSet = Boolean(process.env.KLAR_INBOUND_DOMAIN);
 
-  const sidebar = adminSidebar("mailer", apps);
+  const sidebar = adminSidebar("postfach", apps);
   const topbar = `
     <span class="crumb"><b>Mailer</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
@@ -72,9 +69,9 @@ export default async function MailerPage() {
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
           <div className="content">
+            <div dangerouslySetInnerHTML={{ __html: mailTabs("mailer") }} />
             <MailerClient
               dueMail1={m1.length}
-              dueMail2={m2.length}
               senderEnabled={senderEnabled}
               cronSet={cronSet}
               inboundSet={inboundSet}
