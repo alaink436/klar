@@ -4,12 +4,13 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Support · Klar",
   description:
-    "Get help with a Klar app: Trubel, MyLoo, Wavelength or Yarn-Stash. One person behind it, real replies.",
+    "Get help with a Klar app: Promillo, Trubel, MyLoo, Wavelength or Yarn-Stash. One person behind it, real replies.",
 };
 
 const SUPPORT_EMAIL = "support@getklar.org";
 
 const APPS = [
+  { name: "Promillo", note: "party games" },
   { name: "Trubel", note: "geo photo albums" },
   { name: "MyLoo", note: "bristol-scale tracking" },
   { name: "Wavelength", note: "group planning" },
