@@ -12,6 +12,7 @@
 import Link from "next/link";
 import { AreaChart } from "../tremor/components/AreaChart/AreaChart";
 import { BarChart } from "../tremor/components/BarChart/BarChart";
+import type { AvailableChartColorsKeys } from "../tremor/utils/chartColors";
 
 export type Period = "week" | "month" | "year";
 export type AnalyticsTab = "apps" | "public" | "affiliate" | "funnel";
@@ -47,6 +48,20 @@ export interface AppsPayload {
   currency: string;
   connectedCount: number;
   revenueCatCount: number;
+}
+
+// Time-series chart payload for the Apps tab (metric/app/period switchable).
+export type AppsMetric = "users" | "revenue";
+
+export interface AppsChartPayload {
+  metric: AppsMetric;
+  period: Period;
+  categories: string[]; // selected app display names = chart series
+  colors: string[]; // chart-colour keys aligned to categories
+  data: Record<string, number | string>[]; // [{ label, [appName]: value }]
+  apps: { slug: string; name: string; on: boolean; color: string }[]; // chip state
+  unit: "" | "$";
+  note: string | null;
 }
 
 export interface AppFunnelRow {
@@ -445,6 +460,7 @@ export default function AnalyticsClient({
   data,
   funnel,
   appsData,
+  appsChart,
   tab,
   periodPublic,
   periodAffiliate,
@@ -453,6 +469,7 @@ export default function AnalyticsClient({
   data: AnalyticsPayload;
   funnel: FunnelPayload;
   appsData: AppsPayload;
+  appsChart: AppsChartPayload;
   tab: AnalyticsTab;
   periodPublic: Period;
   periodAffiliate: Period;
@@ -506,7 +523,7 @@ export default function AnalyticsClient({
           ) : null}
         </div>
       ) : null}
-      {tab === "apps" ? <AppsView apps={appsData} /> : null}
+      {tab === "apps" ? <AppsView apps={appsData} chart={appsChart} /> : null}
       {tab === "funnel" ? <FunnelView funnel={funnel} /> : null}
       {tab === "affiliate" ? <AffiliateLandingsView data={data} /> : null}
       {tab === "public" ? <PublicView data={data} period={period} /> : null}
@@ -695,7 +712,142 @@ function AppCard({ row }: { row: AppRow }) {
   );
 }
 
-function AppsView({ apps }: { apps: AppsPayload }) {
+// Hex for the chip dots, matching the Tailwind *-500 the AreaChart fills with.
+const CHART_DOT: Record<string, string> = {
+  blue: "#3b82f6",
+  emerald: "#10b981",
+  violet: "#8b5cf6",
+  amber: "#f59e0b",
+  cyan: "#06b6d4",
+  pink: "#ec4899",
+  lime: "#84cc16",
+};
+function dotColor(c: string): string {
+  return CHART_DOT[c] ?? "var(--fg-3)";
+}
+
+// Build an Apps-tab URL preserving metric/period/app-selection. Omits the `apps`
+// param when every app is on (canonical "all").
+function appsHref(
+  metric: AppsMetric,
+  period: Period,
+  onSlugs: string[],
+  allCount: number,
+): string {
+  const p = new URLSearchParams({ tab: "apps", am: metric, p_app: period });
+  if (onSlugs.length > 0 && onSlugs.length < allCount) p.set("apps", onSlugs.join(","));
+  return `/admin/analytics?${p.toString()}`;
+}
+
+const APPS_METRICS: { id: AppsMetric; label: string }[] = [
+  { id: "users", label: "User" },
+  { id: "revenue", label: "Umsatz" },
+];
+
+function AppsChartSection({ chart }: { chart: AppsChartPayload }) {
+  const allCount = chart.apps.length;
+  const onSlugs = chart.apps.filter((a) => a.on).map((a) => a.slug);
+  return (
+    <>
+      <h2>Verlauf</h2>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+        <div className="seg" role="tablist" aria-label="Metrik">
+          {APPS_METRICS.map((m) => (
+            <Link
+              key={m.id}
+              href={appsHref(m.id, chart.period, onSlugs, allCount)}
+              className={chart.metric === m.id ? "on" : ""}
+              role="tab"
+              aria-selected={chart.metric === m.id}
+              prefetch
+            >
+              {m.label}
+            </Link>
+          ))}
+        </div>
+        <div className="seg" role="tablist" aria-label="Zeitraum">
+          {PERIODS.map((p) => (
+            <Link
+              key={p.id}
+              href={appsHref(chart.metric, p.id, onSlugs, allCount)}
+              className={chart.period === p.id ? "on" : ""}
+              role="tab"
+              aria-selected={chart.period === p.id}
+              prefetch
+            >
+              {p.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        {chart.apps.map((a) => {
+          const toggled = a.on ? onSlugs.filter((s) => s !== a.slug) : [...onSlugs, a.slug];
+          // Never allow an empty selection — turning the last one off shows all.
+          const next = toggled.length === 0 ? chart.apps.map((x) => x.slug) : toggled;
+          return (
+            <Link
+              key={a.slug}
+              href={appsHref(chart.metric, chart.period, next, allCount)}
+              prefetch
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                padding: "5px 11px",
+                borderRadius: 999,
+                fontSize: 12,
+                fontFamily: "var(--font-mono)",
+                border: "1px solid var(--line-strong)",
+                background: a.on ? "var(--surface-2)" : "var(--surface)",
+                color: a.on ? "var(--fg)" : "var(--fg-4)",
+              }}
+            >
+              <span
+                style={{
+                  width: 9,
+                  height: 9,
+                  borderRadius: 3,
+                  background: dotColor(a.color),
+                  display: "inline-block",
+                  opacity: a.on ? 1 : 0.35,
+                }}
+              />
+              {a.name}
+            </Link>
+          );
+        })}
+      </div>
+      <div className="chart">
+        {chart.categories.length > 0 && chart.data.length > 0 ? (
+          <AreaChart
+            data={chart.data}
+            index="label"
+            categories={chart.categories}
+            colors={chart.colors as AvailableChartColorsKeys[]}
+            valueFormatter={(v) =>
+              chart.unit === "$" ? `$${v.toLocaleString("de-CH")}` : v.toLocaleString("de-CH")
+            }
+            showLegend
+            startEndOnly
+            className="h-72"
+          />
+        ) : (
+          <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+            Keine App ausgewählt oder keine Daten im Zeitraum.
+          </p>
+        )}
+        {chart.note ? (
+          <p className="muted" style={{ fontSize: 12, margin: "12px 0 0" }}>
+            {chart.note}
+          </p>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
+function AppsView({ apps, chart }: { apps: AppsPayload; chart: AppsChartPayload }) {
   return (
     <>
       <div className="cards">
@@ -720,6 +872,7 @@ function AppsView({ apps }: { apps: AppsPayload }) {
           sub={apps.revenueCatCount > 0 ? "letzte 28 Tage (RevenueCat)" : "Key fehlt"}
         />
       </div>
+      <AppsChartSection chart={chart} />
       <h2>Pro App</h2>
       <div
         style={{

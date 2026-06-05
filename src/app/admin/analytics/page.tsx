@@ -29,6 +29,12 @@ import {
   type AdminApp,
 } from "../../../lib/adminApps";
 import { getRcConfigs, fetchRcOverview } from "../../../lib/revenuecat";
+import {
+  fetchAppUserSeries,
+  readMetricsHistory,
+  type Bucket,
+  type UserSeries,
+} from "../../../lib/appMetrics";
 import { KLAR_APPS, findKlarApp } from "../../../lib/klarApps";
 import AnalyticsClient, {
   type AnalyticsPayload,
@@ -37,6 +43,8 @@ import AnalyticsClient, {
   type AnalyticsTab,
   type AppsPayload,
   type AppRow,
+  type AppsChartPayload,
+  type AppsMetric,
 } from "./AnalyticsClient";
 
 export const dynamic = "force-dynamic";
@@ -434,6 +442,141 @@ const EMPTY_APPS: AppsPayload = {
   revenueCatCount: 0,
 };
 
+// ===== Apps tab time-series charts (users + revenue) =====
+//
+// Reuses the Tremor AreaChart. Metric (users|revenue), app selection and period
+// are URL-param driven (?am / ?apps / ?p_app), same server-render pattern as the
+// other tabs. Users history is real (klar_app_user_series → cumulative). Revenue
+// history comes from the daily snapshots in klar_app_metrics_daily.
+
+// Stable per-app colours (assigned by KLAR_APPS order) so an app keeps its
+// colour regardless of which others are toggled on.
+const APP_CHART_COLORS = ["blue", "emerald", "violet", "amber", "cyan", "pink", "lime"];
+function colorForSlug(slug: string): string {
+  const i = KLAR_APPS.findIndex((a) => a.slug === slug);
+  return APP_CHART_COLORS[(i < 0 ? 0 : i) % APP_CHART_COLORS.length];
+}
+
+function parseMetric(m: string | undefined): AppsMetric {
+  return m === "revenue" ? "revenue" : "users";
+}
+
+// `apps` param = csv of slugs to show. Absent or empty => all apps on.
+function parseSelectedApps(raw: string | undefined): Set<string> {
+  const all = new Set(KLAR_APPS.map((a) => a.slug));
+  if (!raw) return all;
+  const sel = new Set(raw.split(",").map((s) => s.trim()).filter((s) => all.has(s)));
+  return sel.size > 0 ? sel : all;
+}
+
+// Ordered bucket keys + display labels spanning [since, now].
+function bucketTimeline(since: string, bucket: Bucket): { key: string; label: string }[] {
+  const out: { key: string; label: string }[] = [];
+  const startMs = new Date(since).getTime();
+  const now = Date.now();
+  const stepMs = bucket === "day" ? 86_400_000 : 30 * 86_400_000;
+  for (let t = startMs; t <= now + 1; t += stepMs) {
+    const d = new Date(t);
+    const key = bucket === "day" ? d.toISOString().slice(0, 10) : d.toISOString().slice(0, 7);
+    const label =
+      bucket === "day" ? `${key.slice(8, 10)}.${key.slice(5, 7)}` : `${key.slice(5, 7)}/${key.slice(2, 4)}`;
+    if (out.length === 0 || out[out.length - 1].key !== key) out.push({ key, label });
+  }
+  return out;
+}
+
+async function buildAppsChart(
+  metric: AppsMetric,
+  period: Period,
+  selected: Set<string>,
+): Promise<AppsChartPayload> {
+  const { since, bucket } = periodWindow(period);
+  const timeline = bucketTimeline(since, bucket);
+  const bySlug = new Map(getApps().map((a) => [a.slug, a]));
+  const selApps = KLAR_APPS.filter((m) => selected.has(m.slug));
+
+  const data: Record<string, number | string>[] = timeline.map((t) => ({ label: t.label }));
+  const categories: string[] = [];
+  const colors: string[] = [];
+
+  if (metric === "users") {
+    // Cumulative user growth per app: baseline (before window) + running sum of
+    // new signups per bucket.
+    const seriesBySlug = new Map<string, UserSeries | null>();
+    await Promise.all(
+      selApps.map(async (m) => {
+        const app = bySlug.get(m.slug);
+        seriesBySlug.set(m.slug, app ? await fetchAppUserSeries(app, since, bucket) : null);
+      }),
+    );
+    for (const m of selApps) {
+      const s = seriesBySlug.get(m.slug);
+      if (!s) continue; // no backend / failed → no line
+      categories.push(m.name);
+      colors.push(colorForSlug(m.slug));
+      const newByKey = new Map(s.buckets.map((b) => [b.b, b.n]));
+      let cum = s.baseline;
+      timeline.forEach((t, i) => {
+        cum += newByKey.get(t.key) ?? 0;
+        data[i][m.name] = cum;
+      });
+    }
+  } else {
+    // Revenue = MRR ($) per app, from daily snapshots; carry the last known
+    // value forward across buckets without a snapshot.
+    const hist = await readMetricsHistory(since);
+    const valBySlugKey = new Map<string, number>();
+    for (const r of hist) {
+      if (!selected.has(r.app_slug)) continue;
+      const key = bucket === "day" ? String(r.day).slice(0, 10) : String(r.day).slice(0, 7);
+      // rows are day-ascending, so the last write per bucket wins (latest reading)
+      valBySlugKey.set(`${r.app_slug}|${key}`, r.mrr_cents !== null ? Number(r.mrr_cents) / 100 : 0);
+    }
+    for (const m of selApps) {
+      categories.push(m.name);
+      colors.push(colorForSlug(m.slug));
+      let last = 0;
+      timeline.forEach((t, i) => {
+        const v = valBySlugKey.get(`${m.slug}|${t.key}`);
+        if (v !== undefined) last = v;
+        data[i][m.name] = last;
+      });
+    }
+  }
+
+  const note =
+    metric === "revenue"
+      ? "Umsatz = MRR pro App ($). Die Historie baut sich ab dem ersten täglichen Snapshot auf."
+      : null;
+
+  return {
+    metric,
+    period,
+    categories,
+    colors,
+    data,
+    apps: KLAR_APPS.map((m) => ({
+      slug: m.slug,
+      name: m.name,
+      on: selected.has(m.slug),
+      color: colorForSlug(m.slug),
+    })),
+    unit: metric === "revenue" ? "$" : "",
+    note,
+  };
+}
+
+const EMPTY_CHART: AppsChartPayload = {
+  metric: "users",
+  period: "month",
+  categories: [],
+  colors: [],
+  data: [],
+  apps: [],
+  unit: "",
+  note: null,
+};
+
 function parseTab(t: string | undefined): AnalyticsTab {
   if (t === "public" || t === "affiliate" || t === "funnel") return t;
   return "apps";
@@ -454,7 +597,16 @@ const EMPTY_FUNNEL: FunnelPayload = {
 export default async function AnalyticsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ p?: string; tab?: string; p_pub?: string; p_aff?: string; p_fun?: string }>;
+  searchParams: Promise<{
+    p?: string;
+    tab?: string;
+    p_pub?: string;
+    p_aff?: string;
+    p_fun?: string;
+    am?: string;
+    p_app?: string;
+    apps?: string;
+  }>;
 }) {
   // Auth: matches /admin route — requires klar_device (HMAC-verified) + klar_admin
   // session (KLAR_ADMIN_KEY equality). Both cookies are issued by /admin/login
@@ -495,6 +647,12 @@ export default async function AnalyticsPage({
   // Apps tab fans out user-stats + RevenueCat calls per app; only build it when
   // that tab is active.
   const appsData: AppsPayload = tab === "apps" ? await buildApps() : EMPTY_APPS;
+  // Apps-tab time-series chart (users|revenue), driven by ?am / ?apps / ?p_app.
+  const appsMetric = parseMetric(sp.am);
+  const appsChartPeriod = parsePeriod(sp.p_app);
+  const appsSelected = parseSelectedApps(sp.apps);
+  const appsChart: AppsChartPayload =
+    tab === "apps" ? await buildAppsChart(appsMetric, appsChartPeriod, appsSelected) : EMPTY_CHART;
 
   const sidebar = adminSidebar("analytics", getApps());
 
@@ -537,6 +695,7 @@ export default async function AnalyticsPage({
               data={data}
               funnel={funnel}
               appsData={appsData}
+              appsChart={appsChart}
               tab={tab}
               periodPublic={pubP}
               periodAffiliate={affP}
