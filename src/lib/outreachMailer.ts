@@ -138,10 +138,13 @@ export async function runOutreachMailer(opts: {
   cap?: number;
   dryRun?: boolean;
 }): Promise<MailerReport> {
-  const cap = Math.min(
-    Math.max(opts.cap ?? Number(process.env.KLAR_OUTREACH_DAILY_CAP ?? 40), 1),
-    300,
-  );
+  // KLAR_OUTREACH_DAILY_CAP is a HARD ceiling: a value set in Vercel can never be
+  // exceeded from the UI. When unset it defaults to Brevo's free daily cap (300).
+  // opts.cap is the per-run choice (UI input) and is clamped into [1, hardMax].
+  // This replaces the old `opts.cap ?? env`, where any UI cap silently overrode
+  // the env cap (so a Vercel "cap 5" did nothing while the UI sent its default 40).
+  const hardMax = Math.max(1, Math.min(Number(process.env.KLAR_OUTREACH_DAILY_CAP ?? 300), 300));
+  const cap = Math.max(1, Math.min(opts.cap ?? hardMax, hardMax));
   const dryRun = opts.dryRun !== false; // default true (safe)
   const senderEnabled = process.env.KLAR_OUTREACH_SENDER === "on";
   const live = senderEnabled && !dryRun;
