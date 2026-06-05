@@ -21,6 +21,8 @@ import {
   insertMessage,
   checkSuppressions,
   getAppTemplate,
+  claimTargetForMail1,
+  releaseMail1Claim,
   type OutreachTarget,
 } from "./outreachStore";
 import { sendBrevoEmail } from "./brevo";
@@ -109,6 +111,13 @@ async function processMail1(t: OutreachTarget, live: boolean): Promise<MailerIte
 
   if (!live) return { ...base, subject, status: "dry" };
 
+  // Atomic claim BEFORE sending: flips queued+unmailed → 'mail1_sending'. If a
+  // concurrent or retried run already took this target, the claim returns false
+  // and we skip — so the same person is never double-emailed (the external_id
+  // dedupe only guards the thread row, not the actual Brevo send).
+  const claimed = await claimTargetForMail1(t.id);
+  if (!claimed) return { ...base, subject, status: "skipped", reason: "schon verarbeitet (Parallel-Lauf)" };
+
   const res = await sendBrevoEmail({
     to: t.contact_email,
     subject: subject.slice(0, 300),
@@ -116,7 +125,10 @@ async function processMail1(t: OutreachTarget, live: boolean): Promise<MailerIte
     replyTo: replyToFor(t.id),
     tags: ["outreach-mail1"],
   });
-  if (!res.sent) return { ...base, subject, status: "error", reason: res.error ?? "send failed" };
+  if (!res.sent) {
+    await releaseMail1Claim(t.id); // send failed → free the claim for a retry
+    return { ...base, subject, status: "error", reason: res.error ?? "send failed" };
+  }
   await markMail1Sent(t.id);
   // Record the sent Mail-1 in the thread so the inbox shows the full outgoing
   // mail (text + position), not just a "contacted" placeholder. Dedupe via

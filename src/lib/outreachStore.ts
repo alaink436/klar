@@ -996,3 +996,45 @@ export async function markMail1Sent(id: string): Promise<void> {
     /* stamp best-effort */
   }
 }
+
+/** Atomically claim a target for the Mail-1 send so two concurrent or retried
+ *  mailer runs never double-send the same person. The conditional PATCH only
+ *  flips a still-eligible target (queued + never mailed) to 'mail1_sending';
+ *  PostgREST returns the updated rows, so we win the claim iff exactly one row
+ *  came back. A second run sees 0 rows (already claimed/sent) and skips. */
+export async function claimTargetForMail1(id: string): Promise<boolean> {
+  if (!KLAR_INBOX_KEY) return false;
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?id=eq.${encodeURIComponent(id)}&status=eq.queued&mail_status=is.null`,
+      {
+        method: "PATCH",
+        headers: { ...hdr(), Prefer: "return=representation" },
+        body: JSON.stringify({ mail_status: "mail1_sending" }),
+      },
+    );
+    if (!res.ok) return false;
+    const rows = (await res.json()) as unknown[];
+    return Array.isArray(rows) && rows.length === 1;
+  } catch {
+    return false;
+  }
+}
+
+/** Revert a Mail-1 claim back to eligible when the send failed, so the target is
+ *  picked up again next run instead of being stranded in 'mail1_sending'. */
+export async function releaseMail1Claim(id: string): Promise<void> {
+  if (!KLAR_INBOX_KEY) return;
+  try {
+    await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?id=eq.${encodeURIComponent(id)}&mail_status=eq.mail1_sending`,
+      {
+        method: "PATCH",
+        headers: { ...hdr(), Prefer: "return=minimal" },
+        body: JSON.stringify({ mail_status: null }),
+      },
+    );
+  } catch {
+    /* best-effort: a stranded 'mail1_sending' is rare and visible in the DB */
+  }
+}
