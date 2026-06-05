@@ -116,6 +116,29 @@ export async function listSecrets(): Promise<VaultSecretMeta[]> {
   }
 }
 
+// Rotate: replace the stored key with a new one (re-encrypt in place, same id
+// → the proxy URL stays valid). The old key becomes unrecoverable.
+export async function rotateSecret(
+  id: string,
+  newSecret: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!vaultReady()) return { ok: false, error: "vault not configured" };
+  if (!newSecret) return { ok: false, error: "kein Key angegeben" };
+  const enc = encrypt(newSecret);
+  try {
+    const res = await fetch(`${URL_BASE}/rest/v1/vault_secrets?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: sbHeaders({ Prefer: "return=minimal" }),
+      body: JSON.stringify({ ...enc, last_used_at: null }),
+      cache: "no-store",
+    });
+    if (!res.ok) return { ok: false, error: `update failed (${res.status})` };
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "network error" };
+  }
+}
+
 export async function deleteSecret(id: string): Promise<boolean> {
   if (!SB_KEY()) return false;
   try {

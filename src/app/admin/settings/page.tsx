@@ -334,51 +334,12 @@ function tokensCardHtml(tokens: ApiTokenRow[]): string {
   `;
 }
 
-function vaultCardHtml(secrets: VaultSecretMeta[], origin: string): string {
-  const rows = secrets.length === 0
-    ? `<tr><td colspan="4" class="empty">Noch keine Keys im Vault.</td></tr>`
-    : secrets
-        .map((s) => {
-          const proxy = `${origin}/api/vault/proxy/${s.id}/`;
-          return `<tr>
-            <td><div class="invite-name">${esc(s.label)}</div><div class="invite-mail">${esc(s.provider)} · ${esc(s.base_url)}</div></td>
-            <td><code class="invite-url">${esc(proxy)}…</code></td>
-            <td>${s.last_used_at ? esc(new Date(s.last_used_at).toLocaleDateString("de-CH")) : "—"}</td>
-            <td><form method="POST" action="/admin/vault" style="display:inline" data-klar-confirm="Key wird endgültig gelöscht. Agents verlieren den Zugriff darauf." data-klar-confirm-title="Vault-Key löschen?" data-klar-confirm-variant="danger" data-klar-confirm-ok="Löschen">
-              <input type="hidden" name="action" value="delete"/>
-              <input type="hidden" name="id" value="${esc(s.id)}"/>
-              <button type="submit" class="btn" style="padding:5px 10px;font-size:12px">Löschen</button>
-            </form></td>
-          </tr>`;
-        })
-        .join("");
+function vaultCardHtml(secrets: VaultSecretMeta[]): string {
   return `
   <section class="card">
     <h3>API-Key Vault</h3>
-    <p class="card-sub">Keys werden AES-256-GCM verschlüsselt gespeichert (Master-Key nur in Vercel-Env). Ein Agent mit <code>vault:use</code>-Token nutzt sie über den Proxy, ohne sie je zu sehen. Aufruf: <code>&lt;Proxy-URL&gt;&lt;Provider-Pfad&gt;</code> mit <code>Authorization: Bearer &lt;token&gt;</code>.</p>
-    <form method="POST" action="/admin/vault" class="settings-form invite-form" autocomplete="off">
-      <input type="hidden" name="action" value="add"/>
-      <div class="field-row">
-        <label class="field"><span class="field-label">Label</span><input type="text" name="label" class="input" maxlength="80" placeholder="z.B. OpenAI Prod" required/></label>
-        <label class="field" style="flex:0 0 140px"><span class="field-label">Provider</span><input type="text" name="provider" class="input" maxlength="40" placeholder="openai"/></label>
-      </div>
-      <div class="field-row">
-        <label class="field"><span class="field-label">Base-URL</span><input type="url" name="base_url" class="input" placeholder="https://api.openai.com" required/></label>
-      </div>
-      <div class="field-row">
-        <label class="field" style="flex:0 0 200px"><span class="field-label">Auth-Header</span><input type="text" name="auth_header" class="input" value="authorization"/></label>
-        <label class="field" style="flex:0 0 140px"><span class="field-label">Schema-Prefix</span><input type="text" name="auth_scheme" class="input" value="Bearer "/></label>
-      </div>
-      <div class="field">
-        <span class="field-label">API-Key (wird verschlüsselt, nur einmal hier eingeben)</span>
-        <input type="password" name="secret" class="input" autocomplete="new-password" required placeholder="sk-…"/>
-      </div>
-      <div class="form-foot"><button type="submit" class="btn primary">Key verschlüsselt speichern</button></div>
-    </form>
-    <table class="invite-table">
-      <thead><tr><th>Key</th><th>Proxy-URL</th><th>Zuletzt</th><th></th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <p class="card-sub">${secrets.length} Key(s) gespeichert. Keys liegen AES-256-GCM verschlüsselt (Master-Key nur in Vercel), Nutzung nur über den Proxy mit einem <code>vault:use</code>-Token. Anlegen, rotieren und löschen auf der eigenen Vault-Seite.</p>
+    <a class="btn primary" href="/admin/vault">Vault verwalten →</a>
   </section>
   `;
 }
@@ -515,7 +476,7 @@ export default async function SettingsPage({
               für Affiliate-Inquiries, Benachrichtigungs-Trigger und Einladungen
               für neue Admin-Geräte.
             </p>
-            <div dangerouslySetInnerHTML={{ __html: flash + settingsCardHtml(settings, null) + tokensCardHtml(tokens) + vaultCardHtml(vaultSecrets, origin) + brainAccessCardHtml(brainMembers, brainFolders) + invitesCardHtml(invites, origin) }} />
+            <div dangerouslySetInnerHTML={{ __html: flash + settingsCardHtml(settings, null) + tokensCardHtml(tokens) + vaultCardHtml(vaultSecrets) + brainAccessCardHtml(brainMembers, brainFolders) + invitesCardHtml(invites, origin) }} />
           </div>
         </main>
       </div>
