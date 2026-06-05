@@ -153,6 +153,31 @@ export async function deleteSecret(id: string): Promise<boolean> {
   }
 }
 
+// Server-only: decrypt + return a secret's plaintext for the admin to read
+// back ("reveal"). Only ever called from an admin-session-gated route; the key
+// is sent server -> the admin's browser and never logged. Distinct from the
+// proxy path (does not touch last_used_at — revealing is not "using").
+export async function revealSecret(id: string): Promise<string | null> {
+  if (!vaultReady()) return null;
+  try {
+    const res = await fetch(
+      `${URL_BASE}/rest/v1/vault_secrets?id=eq.${encodeURIComponent(id)}&select=ciphertext,iv,auth_tag&limit=1`,
+      { headers: sbHeaders(), cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as Array<{ ciphertext: string; iv: string; auth_tag: string }>;
+    const r = Array.isArray(rows) ? rows[0] : undefined;
+    if (!r) return null;
+    try {
+      return decrypt(r.ciphertext, r.iv, r.auth_tag);
+    } catch {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+}
+
 // Server-only: fetch + decrypt a secret for the proxy to inject. Returns the
 // plaintext key alongside its routing config, or null. Plaintext must never
 // leave the proxy handler.

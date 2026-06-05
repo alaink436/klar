@@ -7,7 +7,7 @@
 // Radix ships unstyled; the CSS below themes it with the admin tokens. Plaintext
 // keys are never shown (vault guarantee) — only metadata + actions.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
@@ -87,6 +87,43 @@ function CopyItem({ text }: { text: string }) {
 export default function VaultManager({ rows }: { rows: VaultRow[] }) {
   const [rotateRow, setRotateRow] = useState<VaultRow | null>(null);
   const [deleteRow, setDeleteRow] = useState<VaultRow | null>(null);
+  const [revealRow, setRevealRow] = useState<VaultRow | null>(null);
+  const [reveal, setReveal] = useState<{ loading: boolean; key: string | null; error: string | null }>({
+    loading: false,
+    key: null,
+    error: null,
+  });
+  const [revealCopied, setRevealCopied] = useState(false);
+
+  // Fetch the plaintext only while the reveal dialog is open; clear it the
+  // moment it closes so it doesn't linger in memory.
+  useEffect(() => {
+    if (!revealRow) {
+      setReveal({ loading: false, key: null, error: null });
+      setRevealCopied(false);
+      return;
+    }
+    let cancelled = false;
+    setReveal({ loading: true, key: null, error: null });
+    const fd = new FormData();
+    fd.set("id", revealRow.id);
+    fetch("/admin/vault/reveal", { method: "POST", body: fd })
+      .then(async (r) => {
+        const data = (await r.json().catch(() => ({}))) as { key?: string; error?: string };
+        if (cancelled) return;
+        if (!r.ok || typeof data.key !== "string") {
+          setReveal({ loading: false, key: null, error: data.error || `Fehler ${r.status}` });
+        } else {
+          setReveal({ loading: false, key: data.key, error: null });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setReveal({ loading: false, key: null, error: "Netzwerkfehler" });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [revealRow]);
 
   return (
     <>
@@ -146,6 +183,7 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
                     <DropdownMenu.Portal>
                       <DropdownMenu.Content className="vm-menu" align="end" sideOffset={6}>
                         <CopyItem text={r.proxy} />
+                        <DropdownMenu.Item className="vm-mi" onSelect={() => setRevealRow(r)}>Key anzeigen</DropdownMenu.Item>
                         <DropdownMenu.Item className="vm-mi" onSelect={() => setRotateRow(r)}>Key rotieren</DropdownMenu.Item>
                         <DropdownMenu.Separator className="vm-sep" />
                         <DropdownMenu.Item className="vm-mi danger" onSelect={() => setDeleteRow(r)}>Löschen</DropdownMenu.Item>
@@ -177,6 +215,49 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
                 <button type="submit" className="btn">Rotieren</button>
               </div>
             </form>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {/* Reveal (read the plaintext back — admin only) */}
+      <Dialog.Root open={revealRow !== null} onOpenChange={(o) => !o && setRevealRow(null)}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="vm-overlay" />
+          <Dialog.Content className="vm-dialog" aria-describedby={undefined}>
+            <Dialog.Title className="vm-dtitle">Key anzeigen — {revealRow?.label}</Dialog.Title>
+            <Dialog.Description className="vm-ddesc">
+              Klartext, nur für dich (Admin). Kopier ihn und schließe das Fenster wieder.
+            </Dialog.Description>
+            {reveal.loading ? (
+              <p style={{ color: "var(--fg-3)", fontSize: 14 }}>Entschlüssele…</p>
+            ) : reveal.error ? (
+              <p style={{ color: "var(--danger)", fontSize: 14 }}>{reveal.error}</p>
+            ) : (
+              <>
+                <code
+                  style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: 13, background: "var(--surface-2)", border: "1px solid var(--line-strong)", borderRadius: "var(--radius-sm)", padding: "14px 16px", color: "var(--fg)", wordBreak: "break-all", lineHeight: 1.5 }}
+                >
+                  {reveal.key}
+                </code>
+                <div className="vm-actions" style={{ marginTop: 16 }}>
+                  <Dialog.Close asChild><button type="button" className="btn ghost">Schließen</button></Dialog.Close>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      if (reveal.key) {
+                        navigator.clipboard.writeText(reveal.key).then(
+                          () => { setRevealCopied(true); setTimeout(() => setRevealCopied(false), 1400); },
+                          () => {},
+                        );
+                      }
+                    }}
+                  >
+                    {revealCopied ? "✓ Kopiert" : "Key kopieren"}
+                  </button>
+                </div>
+              </>
+            )}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
