@@ -99,14 +99,17 @@ async function processMail1(t: OutreachTarget, live: boolean): Promise<MailerIte
   const subject = subst(tpl.mail1_subject, name, t.handle);
   const body = subst(tpl.mail1_body, name, t.handle);
 
-  // Suppression check, fail-closed (a thrown/empty result does not bypass).
+  // Suppression check, fail-closed: a lookup that errors (missing key, PostgREST
+  // down) skips THIS target instead of letting the run crash or silently bypass
+  // the do-not-contact list. checkSuppressions now throws on failure.
   const platform =
     t.platform === "tiktok" || t.platform === "instagram" ? t.platform : undefined;
-  const sup = await checkSuppressions({
-    handles: [t.handle],
-    platform,
-    emails: [t.contact_email],
-  });
+  let sup: Awaited<ReturnType<typeof checkSuppressions>>;
+  try {
+    sup = await checkSuppressions({ handles: [t.handle], platform, emails: [t.contact_email] });
+  } catch {
+    return { ...base, subject, reason: "Suppression-Check fehlgeschlagen (fail-closed)" };
+  }
   if (sup.length > 0) return { ...base, subject, reason: "suppression" };
 
   if (!live) return { ...base, subject, status: "dry" };

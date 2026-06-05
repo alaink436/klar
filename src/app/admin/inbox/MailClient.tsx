@@ -429,8 +429,8 @@ export default function MailClient({
                       </span>
                       <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 13.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {c.displayName || `@${c.handle}`}
-                        {(c.replyCount > 0 || c.status === "replied") && (
-                          <span title="Neue Antwort" style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--danger)", marginLeft: 7, verticalAlign: "middle", boxShadow: "0 0 0 3px color-mix(in oklab, var(--danger) 22%, transparent)" }} />
+                        {(c.status === "replied" || (c.kind === "inquiry" && c.inquiry?.status === "new")) && (
+                          <span title={c.kind === "inquiry" ? "Neue Anfrage" : "Neue Antwort"} style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--danger)", marginLeft: 7, verticalAlign: "middle", boxShadow: "0 0 0 3px color-mix(in oklab, var(--danger) 22%, transparent)" }} />
                         )}
                         {c.awaiting && (
                           <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", border: "1px solid var(--fg-4)", marginLeft: 7, verticalAlign: "middle" }} />

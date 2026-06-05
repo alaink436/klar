@@ -728,7 +728,11 @@ export async function checkSuppressions(opts: {
   platform?: "tiktok" | "instagram";
   emails?: string[];
 }): Promise<SuppressionRow[]> {
-  if (!KLAR_INBOX_KEY) return [];
+  // Fail-closed: a missing key or a failed lookup THROWS rather than returning
+  // an empty (= "not suppressed") list, so a transient error can never silently
+  // let the mailer contact an opted-out / STOP'd person. Callers decide what a
+  // throw means (the mailer skips the target; the n8n endpoint 500s, fail-open).
+  if (!KLAR_INBOX_KEY) throw new Error("checkSuppressions: KLAR_INBOX_KEY missing");
   const handles = (opts.handles ?? [])
     .map((h) => h.trim().toLowerCase().replace(/^@+/, ""))
     .filter(Boolean);
@@ -746,29 +750,23 @@ export async function checkSuppressions(opts: {
       ? `&platform=in.("${opts.platform}","*")`
       : "";
     const url = `${KLAR_INBOX_URL}/rest/v1/klar_outreach_suppressions?handle=in.(${handleList})${platformFilter}&select=*`;
-    try {
-      const res = await fetch(url, { headers: hdr(), cache: "no-store" });
-      if (res.ok) {
-        const rows = (await res.json()) as SuppressionRow[];
-        for (const r of rows) {
-          if (!seen.has(r.id)) { seen.add(r.id); out.push(r); }
-        }
-      }
-    } catch { /* swallow, partial results ok */ }
+    const res = await fetch(url, { headers: hdr(), cache: "no-store" });
+    if (!res.ok) throw new Error(`checkSuppressions handle lookup failed: ${res.status}`);
+    const rows = (await res.json()) as SuppressionRow[];
+    for (const r of rows) {
+      if (!seen.has(r.id)) { seen.add(r.id); out.push(r); }
+    }
   }
 
   if (emails.length > 0) {
     const emailList = emails.map((e) => `"${e.replace(/"/g, "")}"`).join(",");
     const url = `${KLAR_INBOX_URL}/rest/v1/klar_outreach_suppressions?email=in.(${emailList})&select=*`;
-    try {
-      const res = await fetch(url, { headers: hdr(), cache: "no-store" });
-      if (res.ok) {
-        const rows = (await res.json()) as SuppressionRow[];
-        for (const r of rows) {
-          if (!seen.has(r.id)) { seen.add(r.id); out.push(r); }
-        }
-      }
-    } catch { /* swallow */ }
+    const res = await fetch(url, { headers: hdr(), cache: "no-store" });
+    if (!res.ok) throw new Error(`checkSuppressions email lookup failed: ${res.status}`);
+    const rows = (await res.json()) as SuppressionRow[];
+    for (const r of rows) {
+      if (!seen.has(r.id)) { seen.add(r.id); out.push(r); }
+    }
   }
 
   return out;
