@@ -53,10 +53,13 @@ async function handle(
   // configured auth header. The incoming Authorization (our vault token) is
   // dropped — never forwarded upstream.
   const fwd = new Headers();
-  for (const h of ["content-type", "accept", "anthropic-version", "openai-organization"]) {
+  for (const h of ["content-type", "accept", "user-agent", "anthropic-version", "openai-organization"]) {
     const v = req.headers.get(h);
     if (v) fwd.set(h, v);
   }
+  // GitHub (and a few other APIs) reject requests without a User-Agent. Forward
+  // the caller's if present, otherwise send a stable default so they don't 403.
+  if (!fwd.has("user-agent")) fwd.set("user-agent", "klar-vault-proxy");
   fwd.set(secret.authHeader, `${secret.authScheme}${secret.key}`);
 
   const method = req.method.toUpperCase();
