@@ -97,19 +97,24 @@ const SHAPE = "B";          // A for Trubel/MyLoo, B for Yarn-Stash/Kelva/Moto
 ```
 
 ### 3) Set Supabase secret (per app)
-Per-app secrets were generated 2026-05-20 and stored on the VPS at
-`root@5.75.147.188:/root/affiliate-ingest-secrets.txt` (chmod 600).
-SSH in, read the line for your app, then in the Supabase Dashboard for the
-app's project:
+Generate a fresh per-app secret with `openssl rand -base64 32` and store it
+in the **Klar Vault** (`getklar.org/admin/vault`) as the single source of
+truth. Then in the Supabase Dashboard for the app's project:
 
 ```
 Project Settings → Edge Functions → Secrets → Add new
 Name:  RC_WEBHOOK_SECRET
-Value: <paste the line from /root/affiliate-ingest-secrets.txt>
+Value: <the value you just minted>
 ```
 
 **Important:** never reuse a secret across apps (limits blast radius if one
 leaks). Treat each as a credential.
+
+> **Note (2026-06-06):** the older `/root/affiliate-ingest-secrets.txt` on
+> the VPS (`root@5.75.147.188`) is a legacy notepad from when we set up
+> the first 5 apps. New apps go straight Vault → Supabase → RevenueCat
+> without a third copy. The existing 5 apps should be rotated into the
+> Vault as a separate cleanup.
 
 ### 4) Deploy the function
 
