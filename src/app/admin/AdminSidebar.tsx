@@ -65,6 +65,9 @@ export default function AdminSidebar({
         Cal in neuem Tab <span style={{ marginLeft: "auto", fontSize: 10, opacity: 0.6 }}>↗</span>
       </a>
       {navItem(active, "settings", "Einstellungen", ICON.lock, "/admin/settings")}
+      {/* /admin/logout is a route handler (clears cookies + redirects), not a
+          page — it must do a full navigation, so a plain <a> is intentional. */}
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <a className="nav logout" href="/admin/logout">
         <span className="d" dangerouslySetInnerHTML={{ __html: ICON.logout }} />
         Logout

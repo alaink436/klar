@@ -46,24 +46,11 @@ import OutreachKpis, { type OutreachStatsLite } from "./OutreachKpis";
 import OutreachFilters, { type OutreachFilterState } from "./OutreachFilters";
 import OutreachRuns, { type RunRowData, type RunBadgeTone } from "./OutreachRuns";
 import OutreachClientScripts from "./OutreachClientScripts";
+import OutreachTargets from "./OutreachTargets";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// Quiet-Pill (mirrors route.ts): one neutral surface tone, colour only as
-// restrained text tinting via tokens. Kept local to this route.
-type PillTone = "neutral" | "success" | "warning" | "danger" | "info" | "accent";
-const TONE_FG: Record<PillTone, string> = {
-  neutral: "var(--fg-3)",
-  success: "var(--success)",
-  warning: "var(--warning)",
-  danger: "var(--danger)",
-  info: "var(--info)",
-  accent: "var(--fg)",
-};
-function quietPill(label: string, tone: PillTone = "neutral", extra = ""): string {
-  return `<span class="pill" style="background:var(--surface-2);border:1px solid var(--line);color:${TONE_FG[tone]};font-weight:600;${extra}">${esc(label)}</span>`;
-}
 
 const STATUS_LABEL: Record<OutreachStatus, string> = {
   queued: "Queued",
@@ -73,34 +60,9 @@ const STATUS_LABEL: Record<OutreachStatus, string> = {
   converted: "Converted",
   dead: "Dead",
 };
-function statusPill(s: OutreachStatus): string {
-  const tone: PillTone =
-    s === "converted" ? "success"
-    : s === "replied" ? "warning"
-    : s === "dm_sent" ? "info"
-    : "neutral";
-  return quietPill(STATUS_LABEL[s], tone);
-}
-const PLATFORM_LABEL: Record<OutreachPlatform, string> = {
-  tiktok: "TikTok",
-  instagram: "Instagram",
-};
-function fmtFollowers(n: number | null): string {
-  if (n === null || n === undefined) return "—";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1000) return `${(n / 1000).toFixed(0)}k`;
-  return String(n);
-}
 const TARGET_STATUS_ORDER: OutreachStatus[] = [
   "queued", "dm_sent", "replied", "converted", "declined", "dead",
 ];
-function fmtBigNum(n: number | null | undefined): string {
-  if (n === null || n === undefined) return "—";
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1000) return `${(n / 1000).toFixed(0)}k`;
-  return String(n);
-}
 // Heuristik: Outreach-Target stammt aus internem Self-Test.
 const isTestTarget = (t: OutreachTarget): boolean => {
   const h = (t.handle ?? "").toLowerCase();
@@ -120,7 +82,10 @@ type OutreachMainResult =
       runs: RunRowData[];
       hasRunningWave: boolean;
       midBotHtml: string;
-      bottomHtml: string;
+      bottomHeadHtml: string;
+      bottomTailHtml: string;
+      rows: OutreachTarget[];
+      filterActive: boolean;
       stats: OutreachStatsLite;
       filter: OutreachFilterState;
     };
@@ -230,97 +195,6 @@ async function outreachMain(
       <div style="grid-column:1/-1"><button type="submit" class="btn">Target anlegen</button></div>
     </form>
   </details>`;
-  // Targets-Tabelle (mit Mail-Counter + Views + Engagement + Edit-Metrics)
-  const targetRow = (t: OutreachTarget): string => {
-    const profile = t.profile_url
-      ? `<a href="${esc(t.profile_url)}" target="_blank" rel="noopener" class="applink">@${esc(t.handle)}</a>`
-      : `@${esc(t.handle)}`;
-    const apps = (t.for_apps && t.for_apps.length > 0)
-      ? t.for_apps.map((a) => `<span class="pill" style="font-size:9px;padding:1px 6px">${esc(a)}</span>`).join(" ")
-      : `<span class="muted" style="font-size:11px">—</span>`;
-
-    // Status-Quick-Actions: nur Vorwärts-Pfeile zeigen. Decline wird separat
-    // als Klapp-Form mit reason + suppress-checkbox gerendert (s.u.), damit
-    // beim Ablehnen direkt die Suppression-Liste mitgepflegt wird.
-    const actions: { label: string; status: OutreachStatus }[] = [];
-    if (t.status === "queued")  actions.push({ label: "DM ✓", status: "dm_sent" });
-    if (t.status === "dm_sent") actions.push(
-      { label: "Antwort", status: "replied" },
-      { label: "Dead", status: "dead" },
-    );
-    if (t.status === "replied") actions.push(
-      { label: "Converted", status: "converted" },
-    );
-    const actionForms = actions.map((a) =>
-      `<form method="POST" action="/admin/outreach/update" style="display:inline">
-        <input type="hidden" name="id" value="${esc(t.id)}"/>
-        <input type="hidden" name="status" value="${esc(a.status)}"/>
-        <button type="submit" class="btn ghost" style="padding:4px 9px;font-size:11px">${esc(a.label)}</button>
-      </form>`,
-    ).join(" ");
-
-    // Mail-Sent counter + Button. Counter clickbar = Inkrement.
-    const mailForm = `<form method="POST" action="/admin/outreach/mark-mail" style="display:inline" title="${t.mails_sent} Mail(s) bisher${t.last_mail_at ? `, zuletzt ${fmtRelative(t.last_mail_at)}` : ""}">
-      <input type="hidden" name="id" value="${esc(t.id)}"/>
-      <button type="submit" class="btn ghost" style="padding:4px 9px;font-size:11px">✉ ${t.mails_sent}</button>
-    </form>`;
-
-    // Decline-Klapp-Form: Reason + optional Suppression. Nur für aktive
-    // Konversations-Stadien (dm_sent + replied). Modal-Confirm zusätzlich
-    // gegen versehentliche Klicks.
-    const showDecline = t.status === "dm_sent" || t.status === "replied";
-    const declineForm = showDecline
-      ? `<details style="display:inline-block;vertical-align:middle">
-          <summary style="cursor:pointer;padding:4px 9px;font-size:11px;font-family:var(--font-body);color:var(--fg-3);border:1px solid var(--line);border-radius:6px;user-select:none;list-style:none">Ablehnen</summary>
-          <form method="POST" action="/admin/outreach/decline" style="display:flex;gap:6px;align-items:center;margin-top:6px;padding:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;flex-wrap:wrap" data-klar-confirm="Status wird auf 'declined' gesetzt. Bei aktivierter Suppression wird @${esc(t.handle)} in zukünftigen Wellen übersprungen." data-klar-confirm-title="@${esc(t.handle)} ablehnen?" data-klar-confirm-variant="warn" data-klar-confirm-ok="Ablehnen">
-            <input type="hidden" name="id" value="${esc(t.id)}"/>
-            <input type="text" name="reason" maxlength="280" placeholder="Grund (optional, intern)" style="padding:5px 8px;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:5px;color:var(--fg);min-width:200px"/>
-            <label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--fg-2);cursor:pointer;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em" title="Influencer auf Suppression-Liste setzen">
-              <input type="checkbox" name="suppress" value="1" checked style="cursor:pointer"/>
-              Suppress
-            </label>
-            <button type="submit" class="btn ghost" style="padding:5px 11px;font-size:11px">Ablehnen</button>
-          </form>
-        </details>`
-      : "";
-
-    const deleteForm = `<form method="POST" action="/admin/outreach/delete" style="display:inline" data-klar-confirm="Lead wird komplett aus der Outreach-Tabelle entfernt. Falls bereits eine Mail rausging, bleibt die in der Inbox des Influencers." data-klar-confirm-title="@${esc(t.handle)} löschen?" data-klar-confirm-variant="danger" data-klar-confirm-ok="Lead löschen">
-      <input type="hidden" name="id" value="${esc(t.id)}"/>
-      <button type="submit" class="btn ghost" style="padding:4px 9px;font-size:11px;color:var(--danger)" title="Hard delete">✕</button>
-    </form>`;
-
-    return `<tr data-row-id="${esc(t.id)}">
-      <td><button type="button" class="btn ghost" onclick="this.closest('tbody').querySelector('[data-edit-for=&quot;${esc(t.id)}&quot;]').style.display=this.closest('tbody').querySelector('[data-edit-for=&quot;${esc(t.id)}&quot;]').style.display==='none'?'table-row':'none';" style="padding:2px 7px;font-size:11px;margin-right:6px" title="Metriken bearbeiten">▸</button>${profile}<div class="muted" style="font-size:11px;margin-top:2px">${esc(t.display_name ?? "")} ${t.niche ? `· ${esc(t.niche)}` : ""}</div></td>
-      <td><span class="pill" style="font-size:10px">${esc(PLATFORM_LABEL[t.platform])}</span></td>
-      <td class="r">${fmtFollowers(t.follower_estimate)}</td>
-      <td class="r"><span title="Total Views">${fmtBigNum(t.total_views_estimate)}</span>${t.avg_views_per_post ? `<div class="muted" style="font-size:10px">Ø ${fmtBigNum(t.avg_views_per_post)}/post</div>` : ""}${t.engagement_rate_pct ? `<div class="muted" style="font-size:10px">${t.engagement_rate_pct}% eng.</div>` : ""}</td>
-      <td>${apps}</td>
-      <td>${statusPill(t.status)}<div class="muted" style="font-size:10px;margin-top:2px">${fmtRelative(t.updated_at)}</div></td>
-      <td class="r" style="white-space:nowrap">${actionForms} ${mailForm} ${declineForm} ${deleteForm}</td>
-    </tr>
-    <tr data-edit-for="${esc(t.id)}" style="display:none"><td colspan="7" style="padding:8px 14px;background:var(--surface-2)">
-      <form method="POST" action="/admin/outreach/update-metrics" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">
-        <input type="hidden" name="id" value="${esc(t.id)}"/>
-        <label style="display:flex;flex-direction:column">Follower
-          <input type="number" name="follower_estimate" min="0" max="100000000" value="${t.follower_estimate ?? ""}" style="margin-top:3px;padding:5px 8px;border:1px solid var(--line-strong);border-radius:5px;background:var(--bg);color:var(--fg);font-size:12px;width:110px"/>
-        </label>
-        <label style="display:flex;flex-direction:column">Total-Views
-          <input type="number" name="total_views_estimate" min="0" max="100000000000" value="${t.total_views_estimate ?? ""}" style="margin-top:3px;padding:5px 8px;border:1px solid var(--line-strong);border-radius:5px;background:var(--bg);color:var(--fg);font-size:12px;width:130px"/>
-        </label>
-        <label style="display:flex;flex-direction:column">Ø Views/Post
-          <input type="number" name="avg_views_per_post" min="0" max="100000000" value="${t.avg_views_per_post ?? ""}" style="margin-top:3px;padding:5px 8px;border:1px solid var(--line-strong);border-radius:5px;background:var(--bg);color:var(--fg);font-size:12px;width:110px"/>
-        </label>
-        <label style="display:flex;flex-direction:column">Engagement %
-          <input type="number" name="engagement_rate_pct" min="0" max="100" step="0.01" value="${t.engagement_rate_pct ?? ""}" style="margin-top:3px;padding:5px 8px;border:1px solid var(--line-strong);border-radius:5px;background:var(--bg);color:var(--fg);font-size:12px;width:90px"/>
-        </label>
-        <button type="submit" class="btn" style="padding:5px 11px;font-size:11px">Speichern</button>
-      </form>
-      ${t.notes ? `<div style="margin-top:10px;color:var(--fg-3);font-size:12px;font-family:var(--font-body);font-style:italic">${esc(t.notes)}</div>` : ""}
-    </td></tr>`;
-  };
-  const tableBody = rows.length === 0
-    ? `<tr><td colspan="7" class="muted">Keine Targets in dieser Auswahl. ${(platform !== "all" || status !== "all" || app !== "all" || q) ? `<a class="applink" href="/admin?view=outreach">Filter zurücksetzen</a>` : "Füg einen mit dem Formular oben hinzu."}</td></tr>`
-    : rows.map(targetRow).join("");
 
   // Wave-Starter: kicks off an Apify-driven discovery + Mail-1 send for
   // selected apps.
@@ -824,13 +698,13 @@ getklar.org`;
     <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
     ${addForm}`;
 
-  const bottomHtml = `<h2>Targets <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${rows.length} angezeigt${q ? ` · Suche: <em>${esc(q)}</em>` : ""}</span></h2>
-    ${testsToggle}
-    <table>
-      <thead><tr><th>Lead</th><th>Plattform</th><th class="r">Follower</th><th class="r">Views</th><th>Apps</th><th>Status</th><th class="r">Aktionen</th></tr></thead>
-      <tbody>${tableBody}</tbody>
-    </table>
-    ${suppressionSection}`;
+  // Targets table is now the <OutreachTargets/> shadcn component (rendered in the
+  // page between these two HTML fragments). Heading + tests toggle stay HTML;
+  // the suppression list stays HTML below the component.
+  const bottomHeadHtml = `<h2>Targets <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${rows.length} angezeigt${q ? ` · Suche: <em>${esc(q)}</em>` : ""}</span></h2>
+    ${testsToggle}`;
+  const bottomTailHtml = `${suppressionSection}`;
+  const filterActive = platform !== "all" || status !== "all" || app !== "all" || Boolean(q);
 
   return {
     configured: true,
@@ -839,7 +713,10 @@ getklar.org`;
     runs: runsData,
     hasRunningWave,
     midBotHtml,
-    bottomHtml,
+    bottomHeadHtml,
+    bottomTailHtml,
+    rows,
+    filterActive,
     stats,
     filter: { platform, status, app, q, autoRefresh, showTests, statusOptions, appOptions },
   };
@@ -901,7 +778,9 @@ export default async function OutreachPage({
                 <OutreachRuns runs={result.runs} hasRunningWave={result.hasRunningWave} />
                 <div dangerouslySetInnerHTML={{ __html: result.midBotHtml }} />
                 <OutreachFilters {...result.filter} />
-                <div dangerouslySetInnerHTML={{ __html: result.bottomHtml }} />
+                <div dangerouslySetInnerHTML={{ __html: result.bottomHeadHtml }} />
+                <OutreachTargets targets={result.rows} filterActive={result.filterActive} />
+                <div dangerouslySetInnerHTML={{ __html: result.bottomTailHtml }} />
               </>
             ) : (
               <div dangerouslySetInnerHTML={{ __html: flash + result.html }} />
