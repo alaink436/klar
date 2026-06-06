@@ -18,7 +18,6 @@ import {
   THEME_INIT_SCRIPT,
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
-  SMOKE_BG_SCRIPT,
   readCookieFromString,
   adminSidebar,
 } from "../_shared";
@@ -239,7 +238,6 @@ export default async function BookingsPage() {
       <style dangerouslySetInnerHTML={{ __html: STYLE }} />
       <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       <script dangerouslySetInnerHTML={{ __html: THEME_TOGGLE_SCRIPT }} />
-      <canvas id="klar-smoke-bg" aria-hidden="true" suppressHydrationWarning />
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <div className="layout">
@@ -252,7 +250,6 @@ export default async function BookingsPage() {
           </div>
         </main>
       </div>
-      <script dangerouslySetInnerHTML={{ __html: SMOKE_BG_SCRIPT }} />
     </>
   );
 }

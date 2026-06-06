@@ -17,7 +17,6 @@ import {
   THEME_INIT_SCRIPT,
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
-  SMOKE_BG_SCRIPT,
   readCookieFromString,
   adminSidebar,
 } from "../_shared";
@@ -677,7 +676,6 @@ export default async function AnalyticsPage({
       {/* Smoke + Glass embeds (same as /admin route). suppressHydrationWarning:
           SMOKE_BG_SCRIPT sets width/height on the canvas at runtime, which is
           fine but trips React's SSR→client diff. */}
-      <canvas id="klar-smoke-bg" aria-hidden="true" suppressHydrationWarning />
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <div className="layout">
@@ -704,7 +702,6 @@ export default async function AnalyticsPage({
           </div>
         </main>
       </div>
-      <script dangerouslySetInnerHTML={{ __html: SMOKE_BG_SCRIPT }} />
     </>
   );
 }
