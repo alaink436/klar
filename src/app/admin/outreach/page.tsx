@@ -48,6 +48,7 @@ import { getBrevoQuota } from "../../../lib/brevoQuota";
 import { KLAR_APPS } from "../../../lib/klarApps";
 import OutreachKpis, { type OutreachStatsLite } from "./OutreachKpis";
 import OutreachFilters, { type OutreachFilterState } from "./OutreachFilters";
+import OutreachRuns, { type RunRowData, type RunBadgeTone } from "./OutreachRuns";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -275,7 +276,10 @@ type OutreachMainResult =
   | {
       configured: true;
       topHtml: string;
-      midHtml: string;
+      midTopHtml: string;
+      runs: RunRowData[];
+      hasRunningWave: boolean;
+      midBotHtml: string;
       bottomHtml: string;
       stats: OutreachStatsLite;
       filter: OutreachFilterState;
@@ -634,89 +638,65 @@ getklar.org`;
     return null;
   };
 
-  const phasePill = (r: OutreachRun): string => {
-    const p = getPhaseLabel(r);
-    if (!p) return "";
-    const toneMap: Record<typeof p.tone, PillTone> = { wait: "warning", active: "info", done: "success", warn: "danger" };
-    return quietPill(p.label, toneMap[p.tone], "font-weight:500;font-size:9px;margin-top:3px;display:inline-block");
+  const phaseToneMap: Record<"wait" | "active" | "done" | "warn", RunBadgeTone> = {
+    wait: "warn",
+    active: "info",
+    done: "ok",
+    warn: "danger",
   };
-
-  const runStatusPill = (r: OutreachRun): string => {
-    const s = r.status;
-    if (isStale(r)) return quietPill("stale running", "danger", "font-size:9px");
-    const tone: PillTone =
-      s === "done" ? "success"
-      : s === "running" ? "info"
-      : s === "failed" ? "danger"
-      : s === "queued" ? "warning"
+  const runStatusTone = (r: OutreachRun): RunBadgeTone => {
+    if (isStale(r)) return "danger";
+    return r.status === "done" ? "ok"
+      : r.status === "running" ? "info"
+      : r.status === "failed" ? "danger"
+      : r.status === "queued" ? "warn"
       : "neutral";
-    return quietPill(s, tone, "font-size:9px");
   };
 
   const hasRunningWave = runs.some((r) => r.status === "running" || r.status === "queued");
 
-  const runRow = (r: OutreachRun, idx: number): string => {
+  // Per-run display data for the shadcn <OutreachRuns> component — plain strings
+  // + badge tones, reusing the phase/stale logic above. No HTML, no mail logic.
+  const runsData: RunRowData[] = runs.map((r) => {
     const hasDetail = Boolean(
-      r.errors ||
-      r.status === "failed" ||
-      isStale(r) ||
-      r.niche ||
-      (r.mail_subject && r.mail_subject.length > 0)
+      r.errors || r.status === "failed" || isStale(r) || r.niche || (r.mail_subject && r.mail_subject.length > 0),
     );
-    const rowId = `run-${idx}`;
-    const expanderBtn = hasDetail
-      ? `<button type="button" class="btn ghost" onclick="var d=document.getElementById('${rowId}-detail');d.style.display=d.style.display==='none'?'table-row':'none';" style="padding:2px 7px;font-size:11px;margin-right:6px">▸</button>`
-      : `<span style="display:inline-block;width:28px"></span>`;
-    const durationStr = r.finished_at && r.started_at
+    const running = r.status === "running" && !!r.started_at;
+    const duration = r.finished_at && r.started_at
       ? `${Math.round((new Date(r.finished_at).getTime() - new Date(r.started_at).getTime()) / 1000)}s`
-      : r.status === "running" && r.started_at
-        ? `<span class="muted">läuft ${Math.round((now - new Date(r.started_at).getTime()) / 1000)}s</span>`
+      : running && r.started_at
+        ? `${Math.round((now - new Date(r.started_at).getTime()) / 1000)}s`
         : "—";
-    const errorsHtml = r.errors
-      ? `<pre style="margin:8px 0 0;padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:6px;font-family:var(--font-mono);font-size:11px;color:var(--fg-2);overflow-x:auto;white-space:pre-wrap">${esc(JSON.stringify(r.errors, null, 2))}</pre>`
-      : "";
-    const sizeBuckets = (r.size_buckets && r.size_buckets.length > 0)
-      ? r.size_buckets.join(", ")
-      : "—";
-    const detailRow = hasDetail
-      ? `<tr id="${rowId}-detail" style="display:none"><td colspan="8" style="padding:14px 16px;background:var(--surface-2);border-top:1px solid var(--line)">
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;font-size:12px">
-            <div><span class="k" style="font-size:9.5px">Buckets</span><div style="font-family:var(--font-mono);margin-top:2px">${esc(sizeBuckets)}</div></div>
-            <div><span class="k" style="font-size:9.5px">Niche</span><div style="margin-top:2px">${esc(r.niche ?? "—")}</div></div>
-            <div><span class="k" style="font-size:9.5px">Dauer</span><div style="font-family:var(--font-mono);margin-top:2px">${durationStr}</div></div>
-            <div><span class="k" style="font-size:9.5px">Run-ID</span><div style="font-family:var(--font-mono);font-size:10px;margin-top:2px">${esc(r.id.slice(0, 8))}…</div></div>
-          </div>
-          ${r.mail_subject ? `<div style="margin-top:12px"><span class="k" style="font-size:9.5px">Mail-Subject (Override)</span><div style="margin-top:3px;font-family:var(--font-mono);font-size:12px;color:var(--fg-2)">${esc(r.mail_subject)}</div></div>` : ""}
-          ${r.errors ? `<div style="margin-top:12px"><span class="k" style="font-size:9.5px;color:var(--danger)">Errors / Notes</span>${errorsHtml}</div>` : ""}
-        </td></tr>`
-      : "";
-    return `<tr>
-        <td>${expanderBtn}<span class="muted" style="font-size:11px;white-space:nowrap">${fmtRelative(r.created_at)}</span></td>
-        <td>${(r.apps ?? []).map((a) => `<span class="pill" style="font-size:9px;padding:1px 6px">${esc(a)}</span>`).join(" ")}</td>
-        <td><span class="pill" style="font-size:9px;padding:1px 6px;text-transform:uppercase">${esc(r.language ?? "de")}</span></td>
-        <td>${(r.platforms ?? []).map((p) => `<span class="pill" style="font-size:9px;padding:1px 6px">${esc(p)}</span>`).join(" ")}</td>
-        <td class="r">${r.count_per_app}/App</td>
-        <td class="r">${r.cost_estimate_usd != null ? "$" + Number(r.cost_estimate_usd).toFixed(2) : "—"}${r.cost_actual_usd != null ? `<div class="muted" style="font-size:10px">actual $${Number(r.cost_actual_usd).toFixed(2)}</div>` : ""}</td>
-        <td class="r">${r.targets_added} / ${r.mails_sent} ✉<div class="muted" style="font-size:10px">${durationStr === "—" ? "" : durationStr}</div></td>
-        <td>${runStatusPill(r)}${phasePill(r) ? `<div>${phasePill(r)}</div>` : ""}</td>
-      </tr>${detailRow}`;
-  };
-
-  const runRows = runs.length === 0
-    ? `<tr><td colspan="7" class="muted" style="font-style:italic">noch keine Wellen gestartet</td></tr>`
-    : runs.map(runRow).join("");
-  const refreshHint = hasRunningWave
-    ? `<div style="font-size:11px;color:var(--fg-2);margin:8px 0 4px;padding:6px 10px;background:var(--surface-2);border-radius:6px;border:1px solid var(--line);display:inline-block">
-        Eine Welle ist running. Auto-Refresh aktivieren um Progress live zu sehen:
-        <a class="applink" href="?view=outreach&amp;ar=1" style="font-weight:600;margin-left:4px">15s live</a>
-      </div>`
-    : "";
-  const runsTable = `<h2>Letzte Wellen</h2>
-    ${refreshHint}
-    <table>
-      <thead><tr><th>Wann</th><th>Apps</th><th>Region</th><th>Platforms</th><th class="r">Count</th><th class="r">Cost</th><th class="r">Output / Dauer</th><th>Status / Phase</th></tr></thead>
-      <tbody>${runRows}</tbody>
-    </table>`;
+    const phase = getPhaseLabel(r);
+    return {
+      id: r.id,
+      whenRel: fmtRelative(r.created_at),
+      apps: r.apps ?? [],
+      language: r.language ?? "de",
+      platforms: r.platforms ?? [],
+      count: r.count_per_app,
+      costEstimate: r.cost_estimate_usd != null ? Number(r.cost_estimate_usd) : null,
+      costActual: r.cost_actual_usd != null ? Number(r.cost_actual_usd) : null,
+      targetsAdded: r.targets_added,
+      mailsSent: r.mails_sent,
+      duration,
+      running,
+      statusLabel: isStale(r) ? "stale running" : r.status,
+      statusTone: runStatusTone(r),
+      phaseLabel: phase?.label ?? null,
+      phaseTone: phase ? phaseToneMap[phase.tone] : null,
+      detail: hasDetail
+        ? {
+            buckets: r.size_buckets && r.size_buckets.length > 0 ? r.size_buckets.join(", ") : "—",
+            niche: r.niche ?? "—",
+            duration,
+            runIdShort: r.id.slice(0, 8),
+            mailSubject: r.mail_subject || null,
+            errorsJson: r.errors ? JSON.stringify(r.errors, null, 2) : null,
+          }
+        : null,
+    };
+  });
 
   // ===== Targets nach App + Status (Angefragt / Reply / Angenommen) =====
   type Bucket = "angefragt" | "reply" | "angenommen";
@@ -995,11 +975,11 @@ getklar.org`;
     ${apifyAccCard}
     ${brevoQuotaCard}`;
 
-  const midHtml = `${costCard}
+  const midTopHtml = `${costCard}
     ${waveForm}
-    <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
-    ${runsTable}
-    <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
+    <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>`;
+
+  const midBotHtml = `<div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
     ${targetsByAppSection}
     <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
     ${addForm}`;
@@ -1015,7 +995,10 @@ getklar.org`;
   return {
     configured: true,
     topHtml,
-    midHtml,
+    midTopHtml,
+    runs: runsData,
+    hasRunningWave,
+    midBotHtml,
     bottomHtml,
     stats,
     filter: { platform, status, app, q, autoRefresh, showTests, statusOptions, appOptions },
@@ -1078,7 +1061,9 @@ export default async function OutreachPage({
               <>
                 <div dangerouslySetInnerHTML={{ __html: flash + result.topHtml }} />
                 <OutreachKpis stats={result.stats} />
-                <div dangerouslySetInnerHTML={{ __html: result.midHtml }} />
+                <div dangerouslySetInnerHTML={{ __html: result.midTopHtml }} />
+                <OutreachRuns runs={result.runs} hasRunningWave={result.hasRunningWave} />
+                <div dangerouslySetInnerHTML={{ __html: result.midBotHtml }} />
                 <OutreachFilters {...result.filter} />
                 <div dangerouslySetInnerHTML={{ __html: result.bottomHtml }} />
               </>

@@ -443,8 +443,8 @@ iframe{width:100%;height:88vh;border:0;display:block}
 ::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
 ::-webkit-scrollbar-thumb:hover{background:var(--fg-4)}
 
-@view-transition{navigation:auto}
-::view-transition-old(root),::view-transition-new(root){animation-duration:160ms}
+/* SPA view transitions deaktiviert — der Cross-Fade-Snapshot flackerte beim
+   Admin-Menü-Wechsel (jede Seite injiziert ihren eigenen großen inline-<style>). */
 input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border-color:var(--fg);box-shadow:0 0 0 3px color-mix(in oklab,var(--fg) 12%,transparent)}
 
 .login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(800px 400px at 80% -10%,color-mix(in oklab,var(--fg) 4%,transparent),transparent),radial-gradient(600px 300px at 10% 110%,color-mix(in oklab,var(--fg) 3%,transparent),transparent),var(--bg);position:relative}
