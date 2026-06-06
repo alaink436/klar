@@ -63,31 +63,37 @@ const CATEGORY_SUGGESTIONS = [
   "Sonstiges",
 ];
 
-// Per-category example placeholders. The point is that each kind of key looks
-// genuinely different (a Supabase JWT vs a Stripe sk_live_ vs an Apple .p8),
-// so the add form shows a fitting, distinct example for the chosen category.
+// Per-category examples. The point is that each kind of key looks genuinely
+// different (a Supabase JWT vs a Stripe sk_live_ vs an Apple .p8), so the add
+// form shows a fitting, distinct example for the chosen category.
+//   baseUrl     – hint text shown as the Base-URL placeholder
+//   baseUrlFill – the value actually inserted into the field on category pick;
+//                 "" = leave empty (store-only, or account-specific so there is
+//                 no single correct URL to prefill)
 interface CategoryExample {
   label: string;
   provider: string;
   baseUrl: string;
+  baseUrlFill: string;
   key: string;
 }
 const DEFAULT_EXAMPLE: CategoryExample = {
   label: "Mein Service",
   provider: "custom",
   baseUrl: "https://api.example.com  ·  leer = nur speichern",
+  baseUrlFill: "",
   key: "Key / Token …",
 };
 const CATEGORY_EXAMPLES: Record<string, CategoryExample> = {
-  "KI / LLM": { label: "OpenAI Prod", provider: "openai", baseUrl: "https://api.openai.com", key: "sk-proj-…  /  sk-ant-…" },
-  Datenbank: { label: "Supabase Service Role – Klar", provider: "supabase", baseUrl: "leer lassen = nur speichern", key: "eyJhbGci… (JWT)  /  sb_secret_…" },
-  RevenueCat: { label: "RevenueCat – MyLoo (iOS)", provider: "revenuecat", baseUrl: "https://api.revenuecat.com", key: "sk_… (secret)  /  appl_… (public)" },
-  Payment: { label: "Stripe Live", provider: "stripe", baseUrl: "https://api.stripe.com", key: "sk_live_…" },
-  Email: { label: "Brevo Transaktional", provider: "brevo", baseUrl: "https://api.brevo.com/v3", key: "xkeysib-…" },
-  Automation: { label: "n8n Cloud API", provider: "n8n", baseUrl: "https://<konto>.app.n8n.cloud/api/v1", key: "eyJ… (JWT)" },
-  "Social / Marketing": { label: "Blotato", provider: "blotato", baseUrl: "https://backend.blotato.com", key: "Blotato API-Key" },
-  "Mobile / Stores": { label: "App Store Connect API", provider: "apple", baseUrl: "leer lassen = nur speichern", key: "-----BEGIN PRIVATE KEY----- (.p8)" },
-  Infrastruktur: { label: "Vercel Token", provider: "vercel", baseUrl: "https://api.vercel.com", key: "Bearer-Token …" },
+  "KI / LLM": { label: "OpenAI Prod", provider: "openai", baseUrl: "https://api.openai.com", baseUrlFill: "https://api.openai.com", key: "sk-proj-…  /  sk-ant-…" },
+  Datenbank: { label: "Supabase Service Role – Klar", provider: "supabase", baseUrl: "leer lassen = nur speichern (Service Role)", baseUrlFill: "", key: "eyJhbGci… (JWT)  /  sb_secret_…" },
+  RevenueCat: { label: "RevenueCat – MyLoo (iOS)", provider: "revenuecat", baseUrl: "https://api.revenuecat.com", baseUrlFill: "https://api.revenuecat.com", key: "sk_… (secret)  /  appl_… (public)" },
+  Payment: { label: "Stripe Live", provider: "stripe", baseUrl: "https://api.stripe.com", baseUrlFill: "https://api.stripe.com", key: "sk_live_…" },
+  Email: { label: "Brevo Transaktional", provider: "brevo", baseUrl: "https://api.brevo.com/v3", baseUrlFill: "https://api.brevo.com/v3", key: "xkeysib-…" },
+  Automation: { label: "n8n Cloud API", provider: "n8n", baseUrl: "https://<konto>.app.n8n.cloud/api/v1", baseUrlFill: "", key: "eyJ… (JWT)" },
+  "Social / Marketing": { label: "Blotato", provider: "blotato", baseUrl: "https://backend.blotato.com", baseUrlFill: "https://backend.blotato.com", key: "Blotato API-Key" },
+  "Mobile / Stores": { label: "App Store Connect API", provider: "apple", baseUrl: "leer lassen = nur speichern (.p8 / JSON)", baseUrlFill: "", key: "-----BEGIN PRIVATE KEY----- (.p8)" },
+  Infrastruktur: { label: "Vercel Token", provider: "vercel", baseUrl: "https://api.vercel.com", baseUrlFill: "https://api.vercel.com", key: "Bearer-Token …" },
   Sonstiges: DEFAULT_EXAMPLE,
 };
 
@@ -134,7 +140,18 @@ function Field({
 // that category so the examples stay sensible and distinct from one another.
 function KeyFields({ includeMeta }: { includeMeta: boolean }) {
   const [category, setCategory] = useState("");
+  const [baseUrl, setBaseUrl] = useState("");
   const ex = exampleFor(category);
+
+  // On an exact category match, prefill the canonical Base-URL (empty for
+  // store-only / account-specific categories). Typing a not-yet-matching or
+  // custom category leaves whatever is already in the field untouched.
+  function pickCategory(value: string) {
+    setCategory(value);
+    const known = CATEGORY_EXAMPLES[value.trim()];
+    if (known) setBaseUrl(known.baseUrlFill);
+  }
+
   return (
     <div className="grid grid-cols-2 gap-3.5">
       {includeMeta && (
@@ -147,7 +164,7 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
             autoComplete="off"
             placeholder="z.B. Datenbank"
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(e) => pickCategory(e.target.value)}
           />
           <datalist id="vault-categories">
             {CATEGORY_SUGGESTIONS.map((c) => (
@@ -161,6 +178,8 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
             label="Base-URL — leer lassen = nur speichern (kein Proxy)"
             type="url"
             placeholder={ex.baseUrl}
+            value={baseUrl}
+            onChange={(e) => setBaseUrl(e.target.value)}
             className="col-span-2"
           />
           <Field name="auth_scheme" label="Schema-Prefix" defaultValue="Bearer " className="col-span-2" />
