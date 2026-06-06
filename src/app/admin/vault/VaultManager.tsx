@@ -5,7 +5,7 @@
 // "reveal" dialog (admin-only, fetched on demand and cleared on close).
 
 import { useState, type ComponentProps } from "react";
-import { MoreHorizontal, Copy, Eye, Pencil, RefreshCw, Trash2, Plus, KeyRound } from "lucide-react";
+import { MoreHorizontal, Copy, Eye, Pencil, RefreshCw, Trash2, Plus, KeyRound, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -172,6 +172,7 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   { id: "revenuecat", label: "RevenueCat (Secret)", category: "RevenueCat", provider: "revenuecat", baseUrl: "https://api.revenuecat.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sk_…", labelExample: "RevenueCat" },
   // Payment
   { id: "stripe", label: "Stripe", category: "Payment", provider: "stripe", baseUrl: "https://api.stripe.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sk_live_…", labelExample: "Stripe Live" },
+  { id: "wise", label: "Wise", category: "Payment", provider: "wise", baseUrl: "https://api.wise.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "Personal API Token (UUID)", labelExample: "Wise Payouts" },
   // Email
   { id: "brevo", label: "Brevo", category: "Email", provider: "brevo", baseUrl: "https://api.brevo.com/v3", authHeader: "api-key", authScheme: "", keyExample: "xkeysib-…", labelExample: "Brevo Transaktional" },
   { id: "resend-email", label: "Resend", category: "Email", provider: "resend", baseUrl: "https://api.resend.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "re_…", labelExample: "Resend" },
@@ -181,12 +182,15 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   { id: "resend", label: "Resend", category: "Resend", provider: "resend", baseUrl: "https://api.resend.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "re_…", labelExample: "Resend Transaktional" },
   // Automation
   { id: "n8n", label: "n8n Cloud", category: "Automation", provider: "n8n", baseUrl: "", authHeader: "x-n8n-api-key", authScheme: "", keyExample: "eyJ… (JWT)", labelExample: "n8n Cloud API" },
+  { id: "apify", label: "Apify", category: "Automation", provider: "apify", baseUrl: "https://api.apify.com/v2", authHeader: "authorization", authScheme: "Bearer ", keyExample: "apify_api_…", labelExample: "Apify" },
   // Social / Marketing
-  { id: "blotato", label: "Blotato", category: "Social / Marketing", provider: "blotato", baseUrl: "https://backend.blotato.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "Blotato API-Key", labelExample: "Blotato" },
+  { id: "blotato", label: "Blotato", category: "Social / Marketing", provider: "blotato", baseUrl: "https://backend.blotato.com/v2", authHeader: "blotato-api-key", authScheme: "", keyExample: "…== (Base64, = gehört dazu)", labelExample: "Blotato" },
   // Mobile / Stores
   { id: "appstore", label: "App Store Connect (.p8)", category: "Mobile / Stores", provider: "apple", baseUrl: "", authHeader: "authorization", authScheme: "Bearer ", keyExample: "-----BEGIN PRIVATE KEY----- (.p8)", labelExample: "App Store Connect API" },
+  { id: "expo", label: "Expo / EAS", category: "Mobile / Stores", provider: "expo", baseUrl: "https://api.expo.dev", authHeader: "authorization", authScheme: "Bearer ", keyExample: "Expo Access-Token", labelExample: "Expo EAS" },
   // Infrastruktur
   { id: "vercel", label: "Vercel", category: "Infrastruktur", provider: "vercel", baseUrl: "https://api.vercel.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "Bearer-Token …", labelExample: "Vercel Token" },
+  { id: "github", label: "GitHub", category: "Infrastruktur", provider: "github", baseUrl: "https://api.github.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "ghp_… / github_pat_…", labelExample: "GitHub PAT" },
 ];
 
 const SELECT_CLASS =
@@ -387,6 +391,14 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
   });
   const [revealCopied, setRevealCopied] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+
+  // Client-side filter over the already-loaded rows (label / provider /
+  // category / base URL). Empty query shows everything.
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? rows.filter((r) => [r.label, r.provider, r.category, r.baseUrl].some((v) => v.toLowerCase().includes(q)))
+    : rows;
 
   // Reveal: fetch the plaintext on demand from the click handler (not an effect),
   // and clear it the moment the dialog closes so it never lingers in memory.
@@ -489,8 +501,19 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
 
   return (
     <>
-      {/* Add key */}
-      <div className="flex justify-end mb-3.5">
+      {/* Toolbar: search + add key */}
+      <div className="flex items-center justify-between gap-3 mb-3.5">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-fg-4 pointer-events-none" />
+          <Input
+            type="search"
+            placeholder="Suchen: Label, Provider, Kategorie, URL …"
+            aria-label="Vault durchsuchen"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <Dialog>
           <DialogTrigger asChild>
             <Button variant="pop">
@@ -528,8 +551,16 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
             Über „Key hinzufügen“ einen Key ablegen — mit Kategorie. Mit Base-URL über den Proxy nutzbar, ohne nur zum späteren Anzeigen.
           </div>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 text-center px-6 py-10 border border-dashed border-line-strong rounded-[var(--radius)] bg-surface text-fg-3">
+          <Search className="size-7 text-fg-4 mb-0.5" strokeWidth={1.5} />
+          <div className="[font-family:var(--font-body)] font-semibold text-sm text-fg-2">Keine Treffer für „{query.trim()}“</div>
+          <button type="button" onClick={() => setQuery("")} className="text-[13px] text-fg-3 underline underline-offset-2 hover:text-fg">
+            Suche zurücksetzen
+          </button>
+        </div>
       ) : (
-        groupByCategory(rows).map(({ category, rows: catRows }) => (
+        groupByCategory(filtered).map(({ category, rows: catRows }) => (
           <section key={category} className="mb-7 last:mb-0">
             <div className="flex items-baseline gap-2 mb-2">
               <h2 className="[font-family:var(--font-mono)] text-[11px] font-semibold uppercase tracking-[0.12em] text-fg-2">
