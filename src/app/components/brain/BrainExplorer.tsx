@@ -15,7 +15,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Command } from "cmdk";
-import InteractiveGraph from "./InteractiveGraph";
+import InteractiveGraph, { colorForGroup } from "./InteractiveGraph";
 import type { ScopedGraph, RawNode } from "@/lib/brainVault";
 
 const stemOf = (p: string) =>
@@ -416,7 +416,7 @@ export default function BrainExplorer({
             ) : (
               connected.map((n) => (
                 <button key={n.p} className="bx-link" onClick={() => openNote(n.p)} title={n.p}>
-                  <span className="dot" style={{ background: groups[n.g]?.color ?? "#9aa0b0" }} />
+                  <span className="dot" style={{ background: colorForGroup(groups[n.g]) }} />
                   <span className="l">{n.l}</span>
                 </button>
               ))

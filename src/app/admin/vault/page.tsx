@@ -25,7 +25,6 @@ import { listSecrets, vaultReady } from "../../../lib/vault";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NumberTicker } from "@/components/ui/number-ticker";
-import { BorderBeam } from "@/components/ui/border-beam";
 import VaultManager, { type VaultRow } from "./VaultManager";
 
 export const dynamic = "force-dynamic";
@@ -107,9 +106,8 @@ export default async function VaultPage({
             )}
             {sp.msg && <div className="flash">{sp.msg}</div>}
 
-            {/* Stat hero — animated key count + status, with a travelling border beam. */}
+            {/* Stat hero — key count + status. */}
             <Card className="mb-6 flex flex-wrap items-center justify-between gap-6 px-6 py-5">
-              <BorderBeam duration={9} size={70} />
               <div className="flex items-end gap-8">
                 <div>
                   <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">

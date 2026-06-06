@@ -26,21 +26,23 @@ OUT = Path(__file__).resolve().parent.parent / "src" / "app" / "data" / "brainGr
 # brainGraph.json (the file is read by the public landing graph too).
 SKIP_DIRS = {".git", "node_modules", ".obsidian", ".trash", "Secrets", "Credentials"}
 
-# top-level folder -> (label, colour). Restrained palette, distinct on dark.
+# top-level folder -> (label, colour). Cool, cohesive palette (aqua/blue/cyan/
+# teal/mint, no purple) — kept in sync with GROUP_COLORS in InteractiveGraph.tsx,
+# which overrides these at render time. Distinct on dark.
 GROUPS = {
-    "Projects": ("projects", "#F4F1E8"),
+    "Projects": ("projects", "#7BE0CD"),
     "Learnings": ("learnings", "#74D6C4"),
-    "Skills": ("skills", "#8E8FB8"),
-    "Design-Systems": ("design", "#C9A6E0"),
-    "Agents": ("agents", "#E8A06A"),
+    "Skills": ("skills", "#5E93C9"),
+    "Design-Systems": ("design", "#56C6E0"),
+    "Agents": ("agents", "#6FD8A6"),
     "Infrastructure": ("infra", "#6FA8D6"),
     "Research": ("research", "#6FA8D6"),
-    "Templates": ("templates", "#9AA0B0"),
-    "Daily-Logs": ("logs", "#9AA0B0"),
-    "Studium": ("studium", "#9AA0B0"),
-    "_root": ("core", "#F4F1E8"),
+    "Templates": ("templates", "#8AA6C9"),
+    "Daily-Logs": ("logs", "#8AA6C9"),
+    "Studium": ("studium", "#8AA6C9"),
+    "_root": ("core", "#BFE3FF"),
 }
-DEFAULT_COLOR = "#9AA0B0"
+DEFAULT_COLOR = "#8AA6C9"
 GENERIC = {"PROGRESS", "PRD", "README", "SKILL", "CLAUDE", "INDEX", "STATUS"}
 
 WIKILINK = re.compile(r"\[\[([^\]]+?)\]\]")

@@ -111,7 +111,7 @@ export default async function BrainPage({
         <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content">
+          <div className="content" style={{ maxWidth: "none" }}>
             <h1>AI-Brain</h1>
             <p className="sub">
               Dein Wissensspeicher als Graph plus die Zugänge dazu — API-Tokens für Remote-Agents und Lese-Mitglieder

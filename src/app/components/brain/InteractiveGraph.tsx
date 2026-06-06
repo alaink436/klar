@@ -23,6 +23,28 @@ import {
 import "@xyflow/react/dist/style.css";
 import type { RawNode, Group } from "@/lib/brainVault";
 
+// Cool, cohesive node palette keyed by top-level folder — replaces the baked
+// lavender/cream from brainGraph.json (Skills + Design-Systems dominated, so the
+// whole graph read as purple). Aqua → blue → cyan → teal → mint, no purple.
+const GROUP_COLORS: Record<string, string> = {
+  Projects: "#7BE0CD",        // aqua — pops
+  Skills: "#5E93C9",          // cool blue — the dominant group, kept calm
+  "Design-Systems": "#56C6E0", // cyan
+  Learnings: "#74D6C4",       // teal (brain accent)
+  Agents: "#6FD8A6",          // mint
+  Infrastructure: "#6FA8D6",  // steel blue
+  Research: "#6FA8D6",
+  Templates: "#8AA6C9",       // slate
+  Studium: "#8AA6C9",
+  "Daily-Logs": "#8AA6C9",
+  _root: "#BFE3FF",           // ice blue — core/top-level notes
+};
+const COOL_DEFAULT = "#8AA6C9";
+
+export function colorForGroup(g: Group | undefined): string {
+  return (g && GROUP_COLORS[g.key]) || COOL_DEFAULT;
+}
+
 // Normalised node coords (~ -1..1) spread out into React Flow's pixel space.
 const SPREAD = 1300;
 
@@ -41,7 +63,7 @@ function DotNode({ data }: NodeProps) {
     <div
       className={`brain-dot${d.active ? " active" : ""}${d.hub ? " hub" : ""}`}
       title={d.label}
-      style={{ width: d.size, height: d.size, background: d.color }}
+      style={{ width: d.size, height: d.size, background: d.color, color: d.color }}
     >
       <Handle type="target" position={Position.Top} className="brain-handle" />
       <Handle type="source" position={Position.Bottom} className="brain-handle" />
@@ -55,13 +77,13 @@ const nodeTypes = { dot: DotNode };
 const CSS = `
 .brain-rf{width:100%;height:100%;position:relative}
 .brain-rf .react-flow__attribution{display:none}
-.brain-dot{border-radius:50%;position:relative;display:block;border:1px solid rgba(0,0,0,.45);box-shadow:0 0 6px rgba(0,0,0,.35);cursor:pointer;transition:transform .1s ease}
-.brain-dot:hover{transform:scale(1.45);z-index:20}
-.brain-dot.active{box-shadow:0 0 0 3px var(--accent),0 0 10px rgba(0,0,0,.4)}
+.brain-dot{border-radius:50%;position:relative;display:block;border:1px solid rgba(255,255,255,.10);box-shadow:0 0 0 1px rgba(0,0,0,.22),0 0 8px -2px currentColor;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}
+.brain-dot:hover{transform:scale(1.55);filter:brightness(1.55) saturate(1.15);box-shadow:0 0 18px 3px currentColor,0 0 0 1px rgba(255,255,255,.28);z-index:20}
+.brain-dot.active{filter:brightness(1.3);box-shadow:0 0 0 3px var(--bx-accent,#74D6C4),0 0 16px 2px currentColor}
 .brain-handle{opacity:0;pointer-events:none;width:1px;height:1px;min-width:1px;min-height:1px;border:0;background:transparent}
 .brain-dot-label{position:absolute;left:calc(100% + 7px);top:50%;transform:translateY(-50%);white-space:nowrap;font-family:var(--font-editorial,Georgia,serif);font-style:italic;font-size:12px;line-height:1;color:var(--fg-2);opacity:0;pointer-events:none;text-shadow:0 1px 4px rgba(0,0,0,.85)}
 .brain-dot:hover .brain-dot-label,.brain-dot.hub .brain-dot-label,.brain-dot.active .brain-dot-label{opacity:1}
-.brain-dot.active .brain-dot-label{color:var(--accent)}
+.brain-dot.active .brain-dot-label{color:var(--bx-accent,#74D6C4)}
 .brain-rf .react-flow__controls{box-shadow:var(--shadow-sm);border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden}
 .brain-rf .react-flow__controls-button{background:var(--surface);border-bottom:1px solid var(--line);color:var(--fg-2)}
 .brain-rf .react-flow__controls-button:hover{background:var(--surface-2)}
@@ -119,7 +141,7 @@ export default function InteractiveGraph({
         height: size,
         data: {
           label: n.l,
-          color: groups[n.g]?.color ?? "#9aa0b0",
+          color: colorForGroup(groups[n.g]),
           size,
           path: n.p,
           hub: hubPaths.has(n.p),
@@ -157,7 +179,7 @@ export default function InteractiveGraph({
         nodeTypes={nodeTypes}
         colorMode={mode}
         fitView
-        fitViewOptions={{ padding: 0.15 }}
+        fitViewOptions={{ padding: 0.06 }}
         minZoom={0.12}
         maxZoom={3.5}
         nodesDraggable={false}
@@ -173,7 +195,8 @@ export default function InteractiveGraph({
         onNodeMouseEnter={(_, n) => setHover((n.data as DotData)?.label ?? null)}
         onNodeMouseLeave={() => setHover(null)}
       >
-        <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="var(--line)" />
+        <Background id="bx-grid-lines" variant={BackgroundVariant.Lines} gap={120} lineWidth={0.5} color="rgba(116,214,196,0.06)" />
+        <Background id="bx-grid-dots" variant={BackgroundVariant.Dots} gap={30} size={1.2} color="rgba(116,214,196,0.30)" />
         <MiniMap
           pannable
           zoomable
