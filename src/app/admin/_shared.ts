@@ -159,6 +159,8 @@ export const ICON: Record<string, string> = {
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`,
   lock:
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+  key:
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>`,
   sun:
     `<svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`,
   moon:
@@ -200,6 +202,7 @@ export function adminSidebar(
     ${item("cal", "Cal Admin", ICON.calendar, "/admin/cal")}
     ${item("analytics", "Analytics", ICON.analytics, "/admin/analytics")}
     ${item("brain", "AI-Brain", ICON.brain, "/admin/brain")}
+    ${item("vault", "Vault", ICON.key, "/admin/vault")}
     <div class="navsec">Affiliate</div>
     ${item("revenue", "Einnahmen", ICON.revenue, "/admin/revenue")}
     ${item("payouts", "Auszahlungen", ICON.payouts, "/admin/payouts")}

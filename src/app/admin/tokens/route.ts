@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function backWith(req: NextRequest, params: Record<string, string>): Response {
-  const url = new URL("/admin/settings", req.url);
+  const url = new URL("/admin/brain", req.url);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   return NextResponse.redirect(url, 303);
 }
@@ -39,7 +39,7 @@ function tokenShownOncePage(raw: string, label: string, scopes: string[]): Respo
     </div>
     <div style="display:flex;gap:10px;margin-top:16px">
       <button type="button" class="btn pop" onclick="navigator.clipboard.writeText(document.getElementById('tok').textContent).then(()=>{this.textContent='✓ Kopiert'}).catch(()=>{this.textContent='Copy fehlgeschlagen'})">Token kopieren</button>
-      <a class="btn ghost" href="/admin/settings">Fertig, zurück</a>
+      <a class="btn ghost" href="/admin/brain">Fertig, zurück</a>
     </div>
     <div class="login-foot"><span class="login-foot-text">Nutzung: Authorization: Bearer &lt;token&gt;</span></div>
   </div>
@@ -53,11 +53,11 @@ export async function POST(req: NextRequest): Promise<Response> {
   const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
   if (!KEY || !DEV) return NextResponse.json({ ok: false, error: "admin not configured" }, { status: 503 });
   if (!ctEqual(readCookie(req, "klar_admin"), KEY)) {
-    return NextResponse.redirect(new URL("/admin/login?next=/admin/settings", req.url), 303);
+    return NextResponse.redirect(new URL("/admin/login?next=/admin/brain", req.url), 303);
   }
   const device = await verifyDeviceCookie(readCookie(req, "klar_device"), DEV);
   if (!device) {
-    return NextResponse.redirect(new URL("/admin/login?next=/admin/settings", req.url), 303);
+    return NextResponse.redirect(new URL("/admin/login?next=/admin/brain", req.url), 303);
   }
 
   let form: FormData;

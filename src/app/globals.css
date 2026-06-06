@@ -38,6 +38,24 @@
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
   --color-silver: var(--silver);
+
+  /* Admin-token bridge — exposes the /admin design tokens (defined in the
+     inlined STYLE block of _shared.ts, scoped per admin page) as Tailwind
+     colour utilities, so the shadcn/ui components in src/components/ui/* render
+     in the admin theme (bg-surface / text-fg-3 / border-line / bg-accent …)
+     instead of a generic shadcn look. Inlined (var() passthrough) so each
+     utility resolves per context: light/dark admin theme, or marketing pages.
+     Radius is applied via arbitrary values (rounded-[var(--radius)]) to avoid
+     clobbering Tailwind's own --radius-* scale. */
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
 }
 
 * { border-color: var(--line); }

@@ -32,7 +32,7 @@ export const dynamic = "force-dynamic";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function back(req: NextRequest, params: Record<string, string>): Response {
-  const url = new URL("/admin/settings", req.url);
+  const url = new URL("/admin/brain", req.url);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   return NextResponse.redirect(url, 303);
 }
@@ -44,11 +44,11 @@ export async function POST(req: NextRequest): Promise<Response> {
     return NextResponse.json({ ok: false, error: "admin not configured" }, { status: 503 });
   }
   if (!ctEqual(readCookie(req, "klar_admin"), KEY)) {
-    return NextResponse.redirect(new URL("/admin/login?next=/admin/settings", req.url), 303);
+    return NextResponse.redirect(new URL("/admin/login?next=/admin/brain", req.url), 303);
   }
   const device = await verifyDeviceCookie(readCookie(req, "klar_device"), DEV);
   if (!device) {
-    return NextResponse.redirect(new URL("/admin/login?next=/admin/settings", req.url), 303);
+    return NextResponse.redirect(new URL("/admin/login?next=/admin/brain", req.url), 303);
   }
 
   let form: FormData;
