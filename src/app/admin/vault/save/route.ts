@@ -2,6 +2,8 @@
 //   action=add     -> encrypt + store a secret (raw key entered by the user;
 //                     encrypted server-side, never logged or echoed)
 //   action=rotate  -> replace a secret's key in place (same id / proxy URL)
+//   action=edit    -> update a secret's metadata (label / provider / category /
+//                     base_url / auth) in place; the stored key is untouched
 //   action=delete  -> remove a secret by id
 //
 // Same admin auth as /admin/settings/save (device cookie + admin session).
@@ -9,7 +11,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ctEqual, readCookie } from "@/app/admin/_shared";
 import { verifyDeviceCookie } from "@/lib/deviceCookie";
-import { addSecret, deleteSecret, rotateSecret } from "@/lib/vault";
+import { addSecret, deleteSecret, rotateSecret, updateSecretMeta } from "@/lib/vault";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,6 +57,19 @@ export async function POST(req: NextRequest): Promise<Response> {
     if (!secret) return backWith(req, { err: "Kein neuer Key angegeben." });
     const r = await rotateSecret(id, secret);
     return backWith(req, r.ok ? { msg: "Vault-Key rotiert (neu verschlüsselt)." } : { err: r.error });
+  }
+
+  if (action === "edit") {
+    const id = String(form.get("id") ?? "").trim();
+    if (!id) return backWith(req, { err: "kein Eintrag angegeben" });
+    const label = String(form.get("label") ?? "").trim();
+    const provider = String(form.get("provider") ?? "").trim();
+    const category = String(form.get("category") ?? "").trim();
+    const base_url = String(form.get("base_url") ?? "").trim();
+    const auth_header = String(form.get("auth_header") ?? "authorization").trim();
+    const auth_scheme = String(form.get("auth_scheme") ?? "Bearer ");
+    const r = await updateSecretMeta(id, { label, provider, category, base_url, auth_header, auth_scheme });
+    return backWith(req, r.ok ? { msg: "Vault-Eintrag aktualisiert." } : { err: r.error });
   }
 
   if (action === "add") {

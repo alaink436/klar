@@ -59,6 +59,8 @@ export default async function VaultPage({
     provider: s.provider,
     category: (s.category ?? "").trim() || "Sonstiges",
     baseUrl: s.base_url ?? "",
+    authHeader: s.auth_header,
+    authScheme: s.auth_scheme,
     // store-only secrets (no base_url) have no proxy endpoint
     proxy: s.base_url ? `${origin}/api/vault/proxy/${s.id}/` : "",
     lastUsed: s.last_used_at ? new Date(s.last_used_at).toLocaleDateString("de-CH") : "—",

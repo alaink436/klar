@@ -5,7 +5,7 @@
 // "reveal" dialog (admin-only, fetched on demand and cleared on close).
 
 import { useState, type ComponentProps } from "react";
-import { MoreHorizontal, Copy, Eye, RefreshCw, Trash2, Plus, KeyRound } from "lucide-react";
+import { MoreHorizontal, Copy, Eye, Pencil, RefreshCw, Trash2, Plus, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,6 +44,8 @@ export interface VaultRow {
   provider: string;
   category: string;
   baseUrl: string;
+  authHeader: string;
+  authScheme: string;
   proxy: string; // "" for store-only secrets (no base_url -> not proxyable)
   lastUsed: string;
 }
@@ -209,8 +211,44 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
   );
 }
 
+// Pre-filled metadata fields for the edit dialog (no key field — the stored key
+// is never touched here). Uncontrolled defaults; the form is remounted per row
+// (key={editRow.id}) so the defaults always reflect the row being edited.
+function MetaFields({ row }: { row: VaultRow }) {
+  return (
+    <div className="grid grid-cols-2 gap-3.5">
+      <Field name="label" label="Label" required defaultValue={row.label} />
+      <Field
+        name="category"
+        label="Kategorie"
+        list="vault-categories-edit"
+        autoComplete="off"
+        placeholder="z.B. Datenbank"
+        defaultValue={row.category === "Sonstiges" ? "" : row.category}
+      />
+      <datalist id="vault-categories-edit">
+        {CATEGORY_SUGGESTIONS.map((c) => (
+          <option key={c} value={c} />
+        ))}
+      </datalist>
+      <Field name="provider" label="Provider" defaultValue={row.provider} />
+      <Field name="auth_header" label="Auth-Header" defaultValue={row.authHeader || "authorization"} />
+      <Field
+        name="base_url"
+        label="Base-URL — leer lassen = nur speichern (kein Proxy)"
+        type="url"
+        placeholder="https://api.example.com"
+        defaultValue={row.baseUrl}
+        className="col-span-2"
+      />
+      <Field name="auth_scheme" label="Schema-Prefix" defaultValue={row.authScheme || "Bearer "} className="col-span-2" />
+    </div>
+  );
+}
+
 export default function VaultManager({ rows }: { rows: VaultRow[] }) {
   const [rotateRow, setRotateRow] = useState<VaultRow | null>(null);
+  const [editRow, setEditRow] = useState<VaultRow | null>(null);
   const [deleteRow, setDeleteRow] = useState<VaultRow | null>(null);
   const [revealRow, setRevealRow] = useState<VaultRow | null>(null);
   const [reveal, setReveal] = useState<{ loading: boolean; key: string | null; error: string | null }>({
@@ -280,7 +318,12 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
             <Button variant="outline" size="sm" onClick={() => openReveal(r)}>
               <Eye /> Key anzeigen
             </Button>
-            <DropdownMenu>
+            {/* modal={false}: a modal dropdown locks body pointer-events while
+                open and, when an item opens a Dialog/AlertDialog, leaves
+                `pointer-events: none` stuck on <body> — freezing every control
+                inside that dialog (the rotate/delete buttons would not respond).
+                Non-modal here avoids that; the dialogs are modal themselves. */}
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" aria-label="Weitere Aktionen">
                   <MoreHorizontal />
@@ -297,6 +340,9 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
                     <Copy /> {copiedId === r.id ? "Kopiert ✓" : "Proxy-URL kopieren"}
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem onSelect={() => setEditRow(r)}>
+                  <Pencil /> Bearbeiten
+                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setRotateRow(r)}>
                   <RefreshCw /> Key rotieren
                 </DropdownMenuItem>
@@ -399,6 +445,33 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
               <Button type="submit">Rotieren</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit metadata (label / category / provider / routing) — key untouched */}
+      <Dialog open={editRow !== null} onOpenChange={(o) => !o && setEditRow(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eintrag bearbeiten</DialogTitle>
+            <DialogDescription>
+              Metadaten von „{editRow?.label}“ ändern. Der gespeicherte Key bleibt unverändert (zum Ersetzen „Key rotieren“). Base-URL leeren = nur speichern, kein Proxy; die Proxy-URL/ID bleibt gleich.
+            </DialogDescription>
+          </DialogHeader>
+          {editRow && (
+            <form key={editRow.id} method="POST" action="/admin/vault/save" autoComplete="off">
+              <input type="hidden" name="action" value="edit" />
+              <input type="hidden" name="id" value={editRow.id} />
+              <MetaFields row={editRow} />
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="ghost">
+                    Abbrechen
+                  </Button>
+                </DialogClose>
+                <Button type="submit">Speichern</Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 

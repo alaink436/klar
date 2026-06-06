@@ -125,6 +125,56 @@ export async function listSecrets(): Promise<VaultSecretMeta[]> {
   }
 }
 
+export interface UpdateSecretMetaInput {
+  label: string;
+  provider: string;
+  category?: string;
+  base_url?: string; // empty -> store-only (drops proxyability); set -> proxyable
+  auth_header?: string;
+  auth_scheme?: string;
+}
+
+// Edit a secret's metadata in place (label / provider / category / routing).
+// The encrypted key is NOT touched — same id, so the proxy URL stays stable.
+// Clearing base_url turns the secret store-only; setting it makes it proxyable
+// again (to the new upstream, with the same stored key).
+export async function updateSecretMeta(
+  id: string,
+  input: UpdateSecretMetaInput,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!SB_KEY()) return { ok: false, error: "vault not configured" };
+  let base: string | null = null;
+  const rawBase = (input.base_url ?? "").trim();
+  if (rawBase) {
+    try {
+      base = new URL(rawBase).origin + new URL(rawBase).pathname.replace(/\/$/, "");
+    } catch {
+      return { ok: false, error: "base_url ungültig" };
+    }
+  }
+  const category = (input.category ?? "").trim().slice(0, 60);
+  const patch = {
+    label: input.label.slice(0, 80) || "Unbenannt",
+    provider: input.provider.slice(0, 40) || "custom",
+    category: category || null,
+    base_url: base,
+    auth_header: (input.auth_header || "authorization").toLowerCase().slice(0, 60),
+    auth_scheme: input.auth_scheme ?? "Bearer ",
+  };
+  try {
+    const res = await fetch(`${URL_BASE}/rest/v1/vault_secrets?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: sbHeaders({ Prefer: "return=minimal" }),
+      body: JSON.stringify(patch),
+      cache: "no-store",
+    });
+    if (!res.ok) return { ok: false, error: `update failed (${res.status})` };
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "network error" };
+  }
+}
+
 // Rotate: replace the stored key with a new one (re-encrypt in place, same id
 // → the proxy URL stays valid). The old key becomes unrecoverable.
 export async function rotateSecret(
