@@ -46,6 +46,8 @@ import {
 import { getApifyAccountStatus } from "../../../lib/apifyAccount";
 import { getBrevoQuota } from "../../../lib/brevoQuota";
 import { KLAR_APPS } from "../../../lib/klarApps";
+import OutreachKpis, { type OutreachStatsLite } from "./OutreachKpis";
+import OutreachFilters, { type OutreachFilterState } from "./OutreachFilters";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -268,6 +270,17 @@ const WAVE_FORM_JS = `
 })();
 `;
 
+type OutreachMainResult =
+  | { configured: false; html: string }
+  | {
+      configured: true;
+      topHtml: string;
+      midHtml: string;
+      bottomHtml: string;
+      stats: OutreachStatsLite;
+      filter: OutreachFilterState;
+    };
+
 async function outreachMain(
   filterPlatform: string,
   filterStatus: string,
@@ -275,9 +288,9 @@ async function outreachMain(
   query: string,
   autoRefresh: boolean,
   showTests: boolean,
-): Promise<{ html: string }> {
+): Promise<OutreachMainResult> {
   if (!isOutreachConfigured()) {
-    return { html: `<h1>Outreach</h1><p class="sub muted">Outreach-Tracker braucht <span class="warn">KLAR_INBOX_SERVICE_KEY</span> in Vercel (anime-vault Service-Role). Tabelle <code>klar_outreach_targets</code> ist via Migration <code>klar_outreach_targets_v1</code> + <code>v2_metrics</code> angelegt.</p>` };
+    return { configured: false, html: `<h1>Outreach</h1><p class="sub muted">Outreach-Tracker braucht <span class="warn">KLAR_INBOX_SERVICE_KEY</span> in Vercel (anime-vault Service-Role). Tabelle <code>klar_outreach_targets</code> ist via Migration <code>klar_outreach_targets_v1</code> + <code>v2_metrics</code> angelegt.</p>` };
   }
 
   const platform = (["tiktok", "instagram"].includes(filterPlatform) ? filterPlatform : "all") as
@@ -304,26 +317,9 @@ async function outreachMain(
   const nTests = rowsRaw.filter(isTestTarget).length;
   const rows = showTests ? rowsRaw : rowsRaw.filter((t) => !isTestTarget(t));
 
-  // KPI-Cards (jetzt mit Mail-Counter)
-  const cards = `<div class="cards">
-    <div class="card"><div class="k">Total</div><div class="v">${stats.total}</div><div class="s">Targets im Tracker</div></div>
-    <div class="card"><div class="k">Queued</div><div class="v">${stats.queued}</div><div class="s">noch nicht kontaktiert</div></div>
-    <div class="card"><div class="k">Mails (7d)</div><div class="v">${stats.mails_last_7d}</div><div class="s">${stats.mails_total} gesamt rausgeschickt</div></div>
-    <div class="card"><div class="k">Antworten</div><div class="v">${stats.replied + stats.converted + stats.declined}</div><div class="s">${stats.response_rate_pct ?? "—"}% Response-Rate</div></div>
-    <div class="card"><div class="k">Converted (30d)</div><div class="v">${stats.converted_last_30d}</div><div class="s">${stats.conversion_rate_pct ?? "—"}% Conversion-Rate</div></div>
-  </div>`;
-
-  // Filter-Strip: hält query+autoRefresh+showTests mit
-  const buildFilterHref = (p: string, s: string, a: string): string => {
-    const parts: string[] = ["view=outreach"];
-    if (p !== "all") parts.push(`p=${encodeURIComponent(p)}`);
-    if (s !== "all") parts.push(`s=${encodeURIComponent(s)}`);
-    if (a !== "all") parts.push(`a=${encodeURIComponent(a)}`);
-    if (q) parts.push(`q=${encodeURIComponent(q)}`);
-    if (autoRefresh) parts.push(`ar=1`);
-    if (showTests) parts.push("show_tests=1");
-    return `/admin?${parts.join("&")}`;
-  };
+  // KPI cards + filter strip now render as shadcn React components
+  // (OutreachKpis / OutreachFilters) in the page; only the data is computed here.
+  const statusOptions = TARGET_STATUS_ORDER.map((s) => ({ value: s as string, label: STATUS_LABEL[s] }));
   const testsToggleHref = (() => {
     const parts: string[] = ["view=outreach"];
     if (platform !== "all") parts.push(`p=${encodeURIComponent(platform)}`);
@@ -340,52 +336,7 @@ async function outreachMain(
         <a class="applink" href="${testsToggleHref}" style="font-size:12px">${showTests ? "verstecken" : "zeigen"} →</a>
       </div>`
     : "";
-  const segPlatform = `<div class="seg">
-    <a href="${buildFilterHref("all", status, app)}" class="${platform === "all" ? "on" : ""}">Alle</a>
-    <a href="${buildFilterHref("tiktok", status, app)}" class="${platform === "tiktok" ? "on" : ""}">TikTok</a>
-    <a href="${buildFilterHref("instagram", status, app)}" class="${platform === "instagram" ? "on" : ""}">Instagram</a>
-  </div>`;
-  const segStatus = `<div class="seg">
-    <a href="${buildFilterHref(platform, "all", app)}" class="${status === "all" ? "on" : ""}">Alle</a>
-    ${TARGET_STATUS_ORDER.map((s) => `<a href="${buildFilterHref(platform, s, app)}" class="${status === s ? "on" : ""}">${esc(STATUS_LABEL[s])}</a>`).join("")}
-  </div>`;
   const appOptions = ["all", ...KLAR_APPS.map((a) => a.slug)];
-  const segApp = `<div class="seg" style="flex-wrap:wrap">
-    ${appOptions.map((a) => `<a href="${buildFilterHref(platform, status, a)}" class="${app === a ? "on" : ""}">${esc(a === "all" ? "Alle Apps" : a)}</a>`).join("")}
-  </div>`;
-
-  // Such-Form (GET, sendet alle vorhandenen Filter mit, Reload via meta-refresh
-  // bleibt sticky weil URL state der single-source-of-truth ist)
-  const searchForm = `<form method="GET" action="/admin" style="display:flex;gap:8px;align-items:center;flex:1;max-width:480px">
-    <input type="hidden" name="view" value="outreach"/>
-    ${platform !== "all" ? `<input type="hidden" name="p" value="${esc(platform)}"/>` : ""}
-    ${status !== "all" ? `<input type="hidden" name="s" value="${esc(status)}"/>` : ""}
-    ${app !== "all" ? `<input type="hidden" name="a" value="${esc(app)}"/>` : ""}
-    ${autoRefresh ? `<input type="hidden" name="ar" value="1"/>` : ""}
-    <input type="search" name="q" value="${esc(q)}" placeholder="Suche handle / display name / niche / notes…" maxlength="80" style="flex:1;padding:8px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--fg);font-size:13px"/>
-    <button type="submit" class="btn ghost" style="padding:7px 12px;font-size:12px">Suchen</button>
-    ${q ? `<a href="${buildFilterHref(platform, status, app).replace(/&?q=[^&]*/, "")}" class="btn ghost" style="padding:7px 10px;font-size:12px">×</a>` : ""}
-  </form>`;
-
-  // Auto-Refresh Toggle. Default OFF; opt-in via ?ar=1.
-  const refreshToggle = `<div class="seg" style="margin-left:auto">
-    <a href="${(() => {
-      const parts: string[] = ["view=outreach", "ar=1"];
-      if (platform !== "all") parts.push(`p=${encodeURIComponent(platform)}`);
-      if (status !== "all") parts.push(`s=${encodeURIComponent(status)}`);
-      if (app !== "all") parts.push(`a=${encodeURIComponent(app)}`);
-      if (q) parts.push(`q=${encodeURIComponent(q)}`);
-      return `/admin?${parts.join("&")}`;
-    })()}" class="${autoRefresh ? "on" : ""}" title="Auto-Refresh alle 15 Sekunden (full-page reload reisst aus Scroll)">15s ⟲</a>
-    <a href="${(() => {
-      const parts: string[] = ["view=outreach"];
-      if (platform !== "all") parts.push(`p=${encodeURIComponent(platform)}`);
-      if (status !== "all") parts.push(`s=${encodeURIComponent(status)}`);
-      if (app !== "all") parts.push(`a=${encodeURIComponent(app)}`);
-      if (q) parts.push(`q=${encodeURIComponent(q)}`);
-      return `/admin?${parts.join("&")}`;
-    })()}" class="${!autoRefresh ? "on" : ""}" title="Kein Auto-Refresh (Scroll-stabil)">Pause</a>
-  </div>`;
 
   // Add-Target-Form
   const appCheckboxes = KLAR_APPS
@@ -1035,27 +986,25 @@ getklar.org`;
   // Reply-Inbox lebt jetzt zentral im Postfach (/admin/replies); Outreach ist
   // reiner Scraper/Wave-Tool. "Eingegangene Antworten" + "Offene Anfragen" sind
   // dorthin gewandert.
-  const html = `<h1>Outreach</h1>
+  // Split into fragments so the KPI cards + filter strip can render as shadcn
+  // React components between them. The wave form, run history, targets-by-app,
+  // add form, target table and suppression list stay as HTML strings (their
+  // inline scripts query the document, so splitting the markup is harmless).
+  const topHtml = `<h1>Outreach</h1>
     <p class="sub">Influencer-Outreach-Tracker. <em>Queued → DM gesendet → Antwort → Converted</em>. Auto-Refresh ${autoRefresh ? "alle 15s" : "aus"}, Daten aus Supabase anime-vault.</p>
     ${apifyAccCard}
-    ${brevoQuotaCard}
-    ${cards}
-    ${costCard}
+    ${brevoQuotaCard}`;
+
+  const midHtml = `${costCard}
     ${waveForm}
     <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
     ${runsTable}
     <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
     ${targetsByAppSection}
     <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
-    ${addForm}
-    <h2>Filter</h2>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center">
-      ${searchForm}
-      ${refreshToggle}
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px">${segPlatform}${segStatus}</div>
-    <div style="margin-bottom:18px">${segApp}</div>
-    <h2>Targets <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${rows.length} angezeigt${q ? ` · Suche: <em>${esc(q)}</em>` : ""}</span></h2>
+    ${addForm}`;
+
+  const bottomHtml = `<h2>Targets <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${rows.length} angezeigt${q ? ` · Suche: <em>${esc(q)}</em>` : ""}</span></h2>
     ${testsToggle}
     <table>
       <thead><tr><th>Lead</th><th>Plattform</th><th class="r">Follower</th><th class="r">Views</th><th>Apps</th><th>Status</th><th class="r">Aktionen</th></tr></thead>
@@ -1063,7 +1012,14 @@ getklar.org`;
     </table>
     ${suppressionSection}`;
 
-  return { html };
+  return {
+    configured: true,
+    topHtml,
+    midHtml,
+    bottomHtml,
+    stats,
+    filter: { platform, status, app, q, autoRefresh, showTests, statusOptions, appOptions },
+  };
 }
 
 export default async function OutreachPage({
@@ -1091,7 +1047,7 @@ export default async function OutreachPage({
   const showTests = sp.show_tests === "1";
 
   const apps = getApps();
-  const { html: main } = await outreachMain(filterPlatform, filterStatus, filterApp, query, autoRefresh, showTests);
+  const result = await outreachMain(filterPlatform, filterStatus, filterApp, query, autoRefresh, showTests);
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
   const sidebar = adminSidebar("outreach", apps);
   const topbar = `
@@ -1117,7 +1073,19 @@ export default async function OutreachPage({
         <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
+          <div className="content">
+            {result.configured ? (
+              <>
+                <div dangerouslySetInnerHTML={{ __html: flash + result.topHtml }} />
+                <OutreachKpis stats={result.stats} />
+                <div dangerouslySetInnerHTML={{ __html: result.midHtml }} />
+                <OutreachFilters {...result.filter} />
+                <div dangerouslySetInnerHTML={{ __html: result.bottomHtml }} />
+              </>
+            ) : (
+              <div dangerouslySetInnerHTML={{ __html: flash + result.html }} />
+            )}
+          </div>
         </main>
       </div>
       <script dangerouslySetInnerHTML={{ __html: SMOKE_BG_SCRIPT }} />

@@ -4,28 +4,33 @@
 // (cold first contact) only: dry-run preview + env-gated real send via
 // /admin/mailer/run. Mail-2 / detail mail is sent on-demand from the reply flow.
 //
-// Built from the shared admin design system (_shared.ts): .tbadge status badges,
-// .card stat tiles, .card-table result rows, .btn.pop primary CTA, .empty state,
-// with @remixicon/react glyphs. Renders inside the 600px inbox "Welle mailen"
-// drawer, so the header is compact (no giant page <h1>).
+// Rebuilt on the shadcn/ui kit (Button/Badge/Card/Table, lucide icons). After a
+// real send it calls router.refresh() so the surrounding server data (dueMail1,
+// inbox counts) updates without a manual reload. Renders inside the inbox
+// "Welle mailen" drawer and on /admin/mailer; the prop contract is unchanged.
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  RiMailSendLine,
-  RiEyeLine,
-  RiCheckLine,
-  RiCloseLine,
-  RiSubtractLine,
-  RiAddLine,
-  RiInboxArchiveLine,
-  RiAlertLine,
-  RiSendPlaneLine,
-  RiTimeLine,
-  RiReplyLine,
-} from "@remixicon/react";
+  MailCheck,
+  Eye,
+  Check,
+  X,
+  Minus,
+  Plus,
+  Inbox,
+  TriangleAlert,
+  Clock,
+  Reply,
+  Send,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { MailerReport } from "@/lib/outreachMailer";
 
-const STATUS_TONE: Record<string, string> = {
+const STATUS_TONE: Record<string, "ok" | "info" | "neutral" | "danger"> = {
   sent: "ok",
   dry: "info",
   skipped: "neutral",
@@ -38,44 +43,30 @@ const STATUS_LABEL: Record<string, string> = {
   error: "Fehler",
 };
 
-function StatusBadge({ status }: { status: string }) {
-  return <span className={`tbadge ${STATUS_TONE[status] ?? "neutral"}`}>{STATUS_LABEL[status] ?? status}</span>;
-}
-
-/** A config indicator pill — semantic dot via .tbadge tone + a leading glyph. */
-function ConfigBadge({ on, onLabel, offLabel, Icon }: {
-  on: boolean;
-  onLabel: string;
-  offLabel: string;
-  Icon: typeof RiSendPlaneLine;
-}) {
-  return (
-    <span className={`tbadge ${on ? "ok" : "neutral"}`} style={{ paddingLeft: 8 }}>
-      <Icon size={12} style={{ margin: "0 -1px 0 1px" }} aria-hidden />
-      {on ? onLabel : offLabel}
-    </span>
-  );
-}
-
 function StatCard({ k, v, s, accent }: { k: string; v: React.ReactNode; s: string; accent?: boolean }) {
   return (
-    <div className="card">
-      <div className="k">{k}</div>
-      <div className="v" style={accent ? { color: "var(--accent, var(--fg))" } : undefined}>{v}</div>
-      <div className="s">{s}</div>
-    </div>
+    <Card className="px-5 py-4">
+      <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">{k}</div>
+      <div
+        className="[font-family:var(--font-display)] font-extrabold text-[32px] leading-none tracking-[-0.03em] mt-2 [font-variant-numeric:tabular-nums]"
+        style={{ color: accent ? "var(--accent)" : "var(--fg)" }}
+      >
+        {v}
+      </div>
+      <div className="text-[13px] text-fg-3 mt-2 font-medium">{s}</div>
+    </Card>
   );
 }
 
 function CapStepper({ cap, setCap, disabled }: { cap: number; setCap: (n: number) => void; disabled: boolean }) {
   const clamp = (n: number) => Math.max(1, Math.min(300, n));
   return (
-    <label style={{ display: "block" }}>
-      <div className="k" style={{ marginBottom: 7 }}>Cap (pro Lauf)</div>
-      <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-        <button type="button" className="tbtn" onClick={() => setCap(clamp(cap - 1))} disabled={disabled || cap <= 1} aria-label="Cap −1">
-          <RiSubtractLine />
-        </button>
+    <div>
+      <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3 mb-2">Cap (pro Lauf)</div>
+      <div className="inline-flex items-center gap-2">
+        <Button variant="outline" size="icon" onClick={() => setCap(clamp(cap - 1))} disabled={disabled || cap <= 1} aria-label="Cap −1">
+          <Minus />
+        </Button>
         <input
           type="number"
           min={1}
@@ -83,27 +74,22 @@ function CapStepper({ cap, setCap, disabled }: { cap: number; setCap: (n: number
           value={cap}
           disabled={disabled}
           onChange={(e) => setCap(clamp(Number(e.target.value) || 1))}
-          style={{
-            width: 68, padding: "7px 10px", textAlign: "center",
-            border: "1px solid var(--line-strong)", borderRadius: "var(--radius-sm)",
-            background: "var(--surface)", color: "var(--fg)", fontSize: 14,
-            fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums",
-          }}
+          className="w-[68px] text-center px-2.5 py-2 border border-line-strong rounded-[var(--radius-sm)] bg-surface text-fg text-sm [font-family:var(--font-mono)] [font-variant-numeric:tabular-nums] focus:border-fg focus:outline-none"
         />
-        <button type="button" className="tbtn" onClick={() => setCap(clamp(cap + 1))} disabled={disabled || cap >= 300} aria-label="Cap +1">
-          <RiAddLine />
-        </button>
+        <Button variant="outline" size="icon" onClick={() => setCap(clamp(cap + 1))} disabled={disabled || cap >= 300} aria-label="Cap +1">
+          <Plus />
+        </Button>
       </div>
-    </label>
+    </div>
   );
 }
 
-function CountChip({ n, tone, label }: { n: number; tone: string; label: string }) {
+function CountChip({ n, tone, label }: { n: number; tone: "ok" | "info" | "neutral" | "danger"; label: string }) {
   if (!n) return null;
   return (
-    <span className={`tbadge ${tone}`}>
-      <span style={{ fontVariantNumeric: "tabular-nums" }}>{n}</span> {label}
-    </span>
+    <Badge tone={tone} dot>
+      <span className="[font-variant-numeric:tabular-nums]">{n}</span> {label}
+    </Badge>
   );
 }
 
@@ -118,6 +104,7 @@ export default function MailerClient({
   cronSet: boolean;
   inboundSet: boolean;
 }) {
+  const router = useRouter();
   const [cap, setCap] = useState(25);
   const [running, setRunning] = useState<"dry" | "send" | null>(null);
   const [armed, setArmed] = useState(false);
@@ -137,8 +124,14 @@ export default function MailerClient({
         body: JSON.stringify({ cap, dryRun }),
       });
       const j = (await res.json()) as { ok?: boolean; report?: MailerReport; error?: string };
-      if (res.ok && j.ok && j.report) setReport(j.report);
-      else setError(j.error || "Lauf fehlgeschlagen.");
+      if (res.ok && j.ok && j.report) {
+        setReport(j.report);
+        // Auto-refresh: a real send mutated the targets, so re-fetch the server
+        // data (dueMail1, inbox counts) without forcing the admin to reload.
+        if (!dryRun && j.report.live) router.refresh();
+      } else {
+        setError(j.error || "Lauf fehlgeschlagen.");
+      }
     } catch {
       setError("Netzwerkfehler.");
     } finally {
@@ -147,92 +140,87 @@ export default function MailerClient({
   }
 
   return (
-    <div style={{ paddingTop: 4 }}>
+    <div className="pt-1">
       {/* Compact drawer header — leaves room for the absolute "Schließen" button. */}
-      <header style={{ display: "flex", gap: 13, alignItems: "flex-start", paddingRight: 84, marginBottom: 20 }}>
-        <span style={{
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          width: 40, height: 40, flexShrink: 0, borderRadius: "var(--radius-sm)",
-          border: "1px solid var(--line-strong)", background: "var(--surface)", color: "var(--fg)",
-        }}>
-          <RiMailSendLine size={20} aria-hidden />
+      <header className="flex gap-3.5 items-start mb-5 pr-[84px]">
+        <span className="inline-flex items-center justify-center size-10 shrink-0 rounded-[var(--radius-sm)] border border-line-strong bg-surface text-fg">
+          <MailCheck size={20} aria-hidden />
         </span>
         <div>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 22, letterSpacing: "-.02em", lineHeight: 1.1, color: "var(--fg)" }}>
-            Welle mailen
-          </div>
-          <div className="muted" style={{ fontSize: 13, marginTop: 4, lineHeight: 1.5, maxWidth: "42ch" }}>
+          <div className="[font-family:var(--font-display)] font-extrabold text-[22px] tracking-[-0.02em] leading-tight text-fg">Welle mailen</div>
+          <div className="text-[13px] text-fg-3 mt-1 leading-relaxed max-w-[42ch]">
             Mail-1 (Erstkontakt) direkt über Brevo. Erst Vorschau, dann senden. Mail-2 läuft separat im Antworten-Flow.
           </div>
         </div>
       </header>
 
-      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 20 }}>
-        <ConfigBadge on={senderEnabled} onLabel="Sender scharf" offLabel="Sender Test" Icon={RiSendPlaneLine} />
-        <ConfigBadge on={cronSet} onLabel="Cron aktiv" offLabel="Cron aus" Icon={RiTimeLine} />
-        <ConfigBadge on={inboundSet} onLabel="Reply-Routing" offLabel="Reply fehlt" Icon={RiReplyLine} />
+      <div className="flex gap-2 flex-wrap mb-5">
+        <Badge tone={senderEnabled ? "ok" : "neutral"} dot>
+          <Send className="size-3" /> {senderEnabled ? "Sender scharf" : "Sender Test"}
+        </Badge>
+        <Badge tone={cronSet ? "ok" : "neutral"} dot>
+          <Clock className="size-3" /> {cronSet ? "Cron aktiv" : "Cron aus"}
+        </Badge>
+        <Badge tone={inboundSet ? "ok" : "neutral"} dot>
+          <Reply className="size-3" /> {inboundSet ? "Reply-Routing" : "Reply fehlt"}
+        </Badge>
       </div>
 
       {!senderEnabled && (
-        <div className="flash" style={{ borderColor: "var(--warning)", display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 20 }}>
-          <RiAlertLine size={17} style={{ color: "var(--warning)", flexShrink: 0, marginTop: 1 }} aria-hidden />
+        <div className="flex gap-2.5 items-start mb-5 px-3.5 py-3 rounded-[var(--radius-sm)] border border-[color-mix(in_oklab,var(--warning)_40%,var(--line))] bg-[color-mix(in_oklab,var(--warning)_10%,var(--surface))] text-[13.5px] text-fg-2">
+          <TriangleAlert size={17} className="text-warning shrink-0 mt-px" aria-hidden />
           <span>
-            <strong style={{ color: "var(--warning)" }}>Test-Modus.</strong>{" "}
-            <code>KLAR_OUTREACH_SENDER</code> ist nicht <code>on</code>: der Senden-Button zeigt nur die Vorschau, verschickt aber nichts.
+            <strong className="text-warning">Test-Modus.</strong> <code>KLAR_OUTREACH_SENDER</code> ist nicht <code>on</code>: der Senden-Button
+            zeigt nur die Vorschau, verschickt aber nichts.
           </span>
         </div>
       )}
 
-      <div className="cards" style={{ gridTemplateColumns: "repeat(2,1fr)", marginBottom: 20 }}>
+      <div className="grid grid-cols-2 gap-3 mb-5">
         <StatCard k="Fällig für Mail-1" v={dueMail1} s="queued · nie gemailt · mit Email" />
         <StatCard k="Dieser Lauf" v={willSend} s={willSend < dueMail1 ? `${dueMail1 - willSend} bleiben für später` : "alle fälligen"} accent />
       </div>
 
-      <div className="batch" style={{ display: "flex", flexWrap: "wrap", gap: 18, alignItems: "flex-end", justifyContent: "space-between" }}>
+      <div className="flex flex-wrap gap-4 items-end justify-between p-4 rounded-[var(--radius)] border border-line bg-surface">
         <CapStepper cap={cap} setCap={setCap} disabled={running !== null} />
 
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <button className="btn ghost" onClick={() => run(true)} disabled={running !== null}>
-            <RiEyeLine /> {running === "dry" ? "Vorschau läuft…" : "Vorschau"}
-          </button>
+        <div className="flex gap-2.5 items-center flex-wrap">
+          <Button variant="ghost" onClick={() => run(true)} disabled={running !== null}>
+            <Eye /> {running === "dry" ? "Vorschau läuft…" : "Vorschau"}
+          </Button>
           {!armed ? (
-            <button className="btn pop" onClick={() => setArmed(true)} disabled={running !== null || dueMail1 === 0}>
-              <RiMailSendLine /> {senderEnabled ? "Jetzt senden" : "Senden (Test)"}
-            </button>
+            <Button variant="pop" onClick={() => setArmed(true)} disabled={running !== null || dueMail1 === 0}>
+              <MailCheck /> {senderEnabled ? "Jetzt senden" : "Senden (Test)"}
+            </Button>
           ) : (
-            <span style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <span className="muted" style={{ fontSize: 12.5, fontWeight: 600 }}>
-                {senderEnabled
-                  ? `Wirklich ${willSend} ${willSend === 1 ? "Mail" : "Mails"} senden?`
-                  : "Test senden (nichts geht raus)?"}
+            <span className="inline-flex gap-2 items-center flex-wrap">
+              <span className="text-[12.5px] font-semibold text-fg-3">
+                {senderEnabled ? `Wirklich ${willSend} ${willSend === 1 ? "Mail" : "Mails"} senden?` : "Test senden (nichts geht raus)?"}
               </span>
-              <button
-                className="btn"
-                onClick={() => run(false)}
-                disabled={running !== null}
-                style={senderEnabled ? { background: "var(--danger)", borderColor: "var(--danger)", color: "#fff" } : undefined}
-              >
-                <RiCheckLine /> {running === "send" ? "Läuft…" : "Bestätigen"}
-              </button>
-              <button className="btn ghost" onClick={() => setArmed(false)} disabled={running !== null}>
-                <RiCloseLine /> Abbrechen
-              </button>
+              <Button variant={senderEnabled ? "danger" : "default"} onClick={() => run(false)} disabled={running !== null}>
+                <Check /> {running === "send" ? "Läuft…" : "Bestätigen"}
+              </Button>
+              <Button variant="ghost" onClick={() => setArmed(false)} disabled={running !== null}>
+                <X /> Abbrechen
+              </Button>
             </span>
           )}
         </div>
       </div>
 
       {error && (
-        <div className="flash" style={{ marginTop: 16, borderColor: "var(--danger)", color: "var(--danger)", display: "flex", gap: 9, alignItems: "center" }}>
-          <RiAlertLine size={16} style={{ flexShrink: 0 }} aria-hidden /> {error}
+        <div className="flex gap-2.5 items-center mt-4 px-3.5 py-3 rounded-[var(--radius-sm)] border border-[color-mix(in_oklab,var(--danger)_40%,var(--line))] text-danger text-[13.5px]">
+          <TriangleAlert size={16} className="shrink-0" aria-hidden /> {error}
         </div>
       )}
 
       {report && (
-        <section style={{ marginTop: 26 }}>
-          <h2>Ergebnis</h2>
-          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center", margin: "0 0 14px" }}>
-            <span className={`pill${report.live ? " live" : ""}`}>{report.live ? "LIVE gesendet" : "Dry-Run"}</span>
+        <section className="mt-7">
+          <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.16em] text-fg-3 mb-3">Ergebnis</div>
+          <div className="flex gap-2 flex-wrap items-center mb-3.5">
+            <Badge tone={report.live ? "danger" : "info"} dot>
+              {report.live ? "LIVE gesendet" : "Dry-Run"}
+            </Badge>
             <CountChip n={report.counts.sent} tone="ok" label="gesendet" />
             <CountChip n={report.counts.dry} tone="info" label="Vorschau" />
             <CountChip n={report.counts.skipped} tone="neutral" label="übersprungen" />
@@ -240,28 +228,40 @@ export default function MailerClient({
           </div>
 
           {report.items.length === 0 ? (
-            <div className="empty">
-              <RiInboxArchiveLine aria-hidden />
-              <div className="empty-title">Keine fälligen Mail-1-Targets</div>
-              <div className="empty-sub">Starte erst eine Scrape-Welle in Outreach, dann erscheinen hier die Erstkontakte.</div>
+            <div className="flex flex-col items-center justify-center gap-2 text-center px-6 py-9 border border-dashed border-line-strong rounded-[var(--radius)] bg-surface text-fg-3">
+              <Inbox className="size-6 text-fg-4" strokeWidth={1.5} aria-hidden />
+              <div className="[font-family:var(--font-body)] font-semibold text-sm text-fg-2">Keine fälligen Mail-1-Targets</div>
+              <div className="text-[13px] max-w-[42ch] leading-relaxed">Starte erst eine Scrape-Welle in Outreach, dann erscheinen hier die Erstkontakte.</div>
             </div>
           ) : (
-            <table className="card-table">
-              <thead>
-                <tr><th>Status</th><th>Handle</th><th>App</th><th>Betreff</th><th>Grund</th></tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Handle</TableHead>
+                  <TableHead>App</TableHead>
+                  <TableHead>Betreff</TableHead>
+                  <TableHead>Grund</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {report.items.map((it, i) => (
-                  <tr key={`${it.id}-${i}`}>
-                    <td><StatusBadge status={it.status} /></td>
-                    <td style={{ fontWeight: 600 }}>@{it.handle}</td>
-                    <td className="muted">{it.app ?? "—"}</td>
-                    <td style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={it.subject}>{it.subject || "—"}</td>
-                    <td className="muted">{it.reason ?? ""}</td>
-                  </tr>
+                  <TableRow key={`${it.id}-${i}`}>
+                    <TableCell>
+                      <Badge tone={STATUS_TONE[it.status] ?? "neutral"} dot>
+                        {STATUS_LABEL[it.status] ?? it.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-semibold">@{it.handle}</TableCell>
+                    <TableCell className="text-fg-3">{it.app ?? "—"}</TableCell>
+                    <TableCell className="max-w-[240px] overflow-hidden text-ellipsis whitespace-nowrap" title={it.subject}>
+                      {it.subject || "—"}
+                    </TableCell>
+                    <TableCell className="text-fg-3">{it.reason ?? ""}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           )}
         </section>
       )}
