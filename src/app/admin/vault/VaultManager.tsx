@@ -201,33 +201,35 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
                 </TableCell>
                 <TableCell className="text-right text-fg-3">{r.lastUsed}</TableCell>
                 <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="icon" aria-label="Aktionen">
-                        <MoreHorizontal />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          copyProxy(r);
-                        }}
-                      >
-                        <Copy /> {copiedId === r.id ? "Kopiert ✓" : "Proxy-URL kopieren"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => openReveal(r)}>
-                        <Eye /> Key anzeigen
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setRotateRow(r)}>
-                        <RefreshCw /> Key rotieren
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem danger onSelect={() => setDeleteRow(r)}>
-                        <Trash2 /> Löschen
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex items-center justify-end gap-2">
+                    <Button variant="outline" size="sm" onClick={() => openReveal(r)}>
+                      <Eye /> Key anzeigen
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon" aria-label="Weitere Aktionen">
+                          <MoreHorizontal />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            copyProxy(r);
+                          }}
+                        >
+                          <Copy /> {copiedId === r.id ? "Kopiert ✓" : "Proxy-URL kopieren"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setRotateRow(r)}>
+                          <RefreshCw /> Key rotieren
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem danger onSelect={() => setDeleteRow(r)}>
+                          <Trash2 /> Löschen
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
