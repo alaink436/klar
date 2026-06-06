@@ -57,8 +57,10 @@ export default async function VaultPage({
     id: s.id,
     label: s.label,
     provider: s.provider,
-    baseUrl: s.base_url,
-    proxy: `${origin}/api/vault/proxy/${s.id}/`,
+    category: (s.category ?? "").trim() || "Sonstiges",
+    baseUrl: s.base_url ?? "",
+    // store-only secrets (no base_url) have no proxy endpoint
+    proxy: s.base_url ? `${origin}/api/vault/proxy/${s.id}/` : "",
     lastUsed: s.last_used_at ? new Date(s.last_used_at).toLocaleDateString("de-CH") : "—",
   }));
   const active = rows.filter((r) => r.lastUsed !== "—").length;

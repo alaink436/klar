@@ -50,7 +50,8 @@ export interface VaultSecretMeta {
   id: string;
   label: string;
   provider: string;
-  base_url: string;
+  category: string | null;
+  base_url: string | null; // null = store-only secret (reveal only, not proxyable)
   auth_header: string;
   auth_scheme: string;
   created_at: string;
@@ -61,7 +62,8 @@ export interface VaultSecretMeta {
 export interface AddSecretInput {
   label: string;
   provider: string;
-  base_url: string;
+  category?: string;
+  base_url?: string; // omit/empty for a store-only secret (reveal only, no proxy)
   auth_header?: string;
   auth_scheme?: string;
   secret: string; // the raw API key — encrypted here, never stored in clear
@@ -72,16 +74,23 @@ export async function addSecret(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!vaultReady()) return { ok: false, error: "vault not configured" };
   if (!input.secret) return { ok: false, error: "kein Key angegeben" };
-  let base: string;
-  try {
-    base = new URL(input.base_url).origin + new URL(input.base_url).pathname.replace(/\/$/, "");
-  } catch {
-    return { ok: false, error: "base_url ungültig" };
+  // base_url is optional: with one, the secret is proxyable; without, it is
+  // store-only (kept encrypted, revealable, but not usable through the proxy).
+  let base: string | null = null;
+  const rawBase = (input.base_url ?? "").trim();
+  if (rawBase) {
+    try {
+      base = new URL(rawBase).origin + new URL(rawBase).pathname.replace(/\/$/, "");
+    } catch {
+      return { ok: false, error: "base_url ungültig" };
+    }
   }
   const enc = encrypt(input.secret);
+  const category = (input.category ?? "").trim().slice(0, 60);
   const row = {
     label: input.label.slice(0, 80) || "Unbenannt",
     provider: input.provider.slice(0, 40) || "custom",
+    category: category || null,
     base_url: base,
     auth_header: (input.auth_header || "authorization").toLowerCase().slice(0, 60),
     auth_scheme: input.auth_scheme ?? "Bearer ",
@@ -105,7 +114,7 @@ export async function listSecrets(): Promise<VaultSecretMeta[]> {
   if (!SB_KEY()) return [];
   try {
     const res = await fetch(
-      `${URL_BASE}/rest/v1/vault_secrets?select=id,label,provider,base_url,auth_header,auth_scheme,created_at,last_used_at,revoked_at&order=created_at.desc`,
+      `${URL_BASE}/rest/v1/vault_secrets?select=id,label,provider,category,base_url,auth_header,auth_scheme,created_at,last_used_at,revoked_at&order=created_at.desc`,
       { headers: sbHeaders(), cache: "no-store" },
     );
     if (!res.ok) return [];
@@ -192,7 +201,7 @@ export async function getForProxy(
     );
     if (!res.ok) return null;
     const rows = (await res.json()) as Array<{
-      base_url: string;
+      base_url: string | null;
       auth_header: string;
       auth_scheme: string;
       ciphertext: string;
@@ -201,7 +210,8 @@ export async function getForProxy(
       revoked_at: string | null;
     }>;
     const r = Array.isArray(rows) ? rows[0] : undefined;
-    if (!r || r.revoked_at) return null;
+    // No base_url -> store-only secret; it has no upstream to proxy to.
+    if (!r || r.revoked_at || !r.base_url) return null;
     let key: string;
     try {
       key = decrypt(r.ciphertext, r.iv, r.auth_tag);

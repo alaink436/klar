@@ -42,9 +42,41 @@ export interface VaultRow {
   id: string;
   label: string;
   provider: string;
+  category: string;
   baseUrl: string;
-  proxy: string;
+  proxy: string; // "" for store-only secrets (no base_url -> not proxyable)
   lastUsed: string;
+}
+
+// Suggested categories shown in the add form's datalist. Free text: the admin
+// can also type a category that isn't in this list.
+const CATEGORY_SUGGESTIONS = [
+  "KI / LLM",
+  "Datenbank",
+  "Payment",
+  "Email / Marketing",
+  "Infrastruktur",
+  "Sonstiges",
+];
+
+// Group rows by category, ordered by the suggestion list, then custom
+// categories alphabetically, with "Sonstiges" always last.
+function groupByCategory(rows: VaultRow[]): Array<{ category: string; rows: VaultRow[] }> {
+  const map = new Map<string, VaultRow[]>();
+  for (const r of rows) {
+    const c = r.category || "Sonstiges";
+    const bucket = map.get(c);
+    if (bucket) bucket.push(r);
+    else map.set(c, [r]);
+  }
+  const rank = (c: string) => {
+    if (c === "Sonstiges") return 1000;
+    const i = CATEGORY_SUGGESTIONS.indexOf(c);
+    return i === -1 ? 500 : i;
+  };
+  return [...map.entries()]
+    .sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0], "de"))
+    .map(([category, rs]) => ({ category, rows: rs }));
 }
 
 function Field({
@@ -68,10 +100,28 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
       {includeMeta && (
         <>
           <Field name="label" label="Label" required placeholder="z.B. OpenAI Prod" />
+          <Field
+            name="category"
+            label="Kategorie"
+            list="vault-categories"
+            autoComplete="off"
+            placeholder="z.B. Datenbank"
+          />
+          <datalist id="vault-categories">
+            {CATEGORY_SUGGESTIONS.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
           <Field name="provider" label="Provider" placeholder="openai" />
-          <Field name="base_url" label="Base-URL" type="url" required placeholder="https://api.openai.com" className="col-span-2" />
           <Field name="auth_header" label="Auth-Header" defaultValue="authorization" />
-          <Field name="auth_scheme" label="Schema-Prefix" defaultValue="Bearer " />
+          <Field
+            name="base_url"
+            label="Base-URL — leer lassen = nur speichern (kein Proxy)"
+            type="url"
+            placeholder="https://api.openai.com · leer = Speichern + Anzeigen"
+            className="col-span-2"
+          />
+          <Field name="auth_scheme" label="Schema-Prefix" defaultValue="Bearer " className="col-span-2" />
         </>
       )}
       <Field
@@ -136,6 +186,61 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
     );
   }
 
+  function renderRow(r: VaultRow) {
+    return (
+      <TableRow key={r.id}>
+        <TableCell>
+          <div className="font-semibold text-fg">{r.label}</div>
+          <div className="text-[11px] text-fg-4 [font-family:var(--font-mono)]">
+            {r.provider}
+            {r.baseUrl ? ` · ${r.baseUrl}` : ""}
+          </div>
+        </TableCell>
+        <TableCell>
+          {r.proxy ? (
+            <code className="[font-family:var(--font-mono)] text-[11px] text-fg-3 break-all">{r.proxy}…</code>
+          ) : (
+            <span className="text-[11px] text-fg-4">Store-only · kein Proxy</span>
+          )}
+        </TableCell>
+        <TableCell className="text-right text-fg-3">{r.lastUsed}</TableCell>
+        <TableCell className="text-right">
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => openReveal(r)}>
+              <Eye /> Key anzeigen
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="Weitere Aktionen">
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {r.proxy && (
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      copyProxy(r);
+                    }}
+                  >
+                    <Copy /> {copiedId === r.id ? "Kopiert ✓" : "Proxy-URL kopieren"}
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onSelect={() => setRotateRow(r)}>
+                  <RefreshCw /> Key rotieren
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem danger onSelect={() => setDeleteRow(r)}>
+                  <Trash2 /> Löschen
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  }
+
   return (
     <>
       {/* Add key */}
@@ -150,7 +255,7 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
             <DialogHeader>
               <DialogTitle>API-Key hinzufügen</DialogTitle>
               <DialogDescription>
-                Wird server-seitig AES-256-GCM verschlüsselt. Nur über den Proxy nutzbar, der Klartext ist danach nicht mehr abrufbar.
+                Wird server-seitig AES-256-GCM verschlüsselt. Mit Base-URL über den Proxy nutzbar; ohne Base-URL nur gespeichert und per „Key anzeigen“ abrufbar.
               </DialogDescription>
             </DialogHeader>
             <form method="POST" action="/admin/vault/save" autoComplete="off">
@@ -174,67 +279,31 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
           <KeyRound className="size-7 text-fg-4 mb-0.5" strokeWidth={1.5} />
           <div className="[font-family:var(--font-body)] font-semibold text-sm text-fg-2">Noch keine Keys im Vault</div>
           <div className="text-[13px] text-fg-3 max-w-[42ch] leading-relaxed">
-            Über „Key hinzufügen“ einen API-Key ablegen. Er wird verschlüsselt und ist danach nur über den Proxy nutzbar.
+            Über „Key hinzufügen“ einen Key ablegen — mit Kategorie. Mit Base-URL über den Proxy nutzbar, ohne nur zum späteren Anzeigen.
           </div>
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Key</TableHead>
-              <TableHead>Proxy-URL</TableHead>
-              <TableHead className="text-right">Zuletzt</TableHead>
-              <TableHead className="w-px" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell>
-                  <div className="font-semibold text-fg">{r.label}</div>
-                  <div className="text-[11px] text-fg-4 [font-family:var(--font-mono)]">
-                    {r.provider} · {r.baseUrl}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <code className="[font-family:var(--font-mono)] text-[11px] text-fg-3 break-all">{r.proxy}…</code>
-                </TableCell>
-                <TableCell className="text-right text-fg-3">{r.lastUsed}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="outline" size="sm" onClick={() => openReveal(r)}>
-                      <Eye /> Key anzeigen
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="icon" aria-label="Weitere Aktionen">
-                          <MoreHorizontal />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault();
-                            copyProxy(r);
-                          }}
-                        >
-                          <Copy /> {copiedId === r.id ? "Kopiert ✓" : "Proxy-URL kopieren"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setRotateRow(r)}>
-                          <RefreshCw /> Key rotieren
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem danger onSelect={() => setDeleteRow(r)}>
-                          <Trash2 /> Löschen
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        groupByCategory(rows).map(({ category, rows: catRows }) => (
+          <section key={category} className="mb-7 last:mb-0">
+            <div className="flex items-baseline gap-2 mb-2">
+              <h2 className="[font-family:var(--font-mono)] text-[11px] font-semibold uppercase tracking-[0.12em] text-fg-2">
+                {category}
+              </h2>
+              <span className="text-[11px] text-fg-4">{catRows.length}</span>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Key</TableHead>
+                  <TableHead>Proxy-URL</TableHead>
+                  <TableHead className="text-right">Zuletzt</TableHead>
+                  <TableHead className="w-px" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>{catRows.map(renderRow)}</TableBody>
+            </Table>
+          </section>
+        ))
       )}
 
       {/* Rotate */}
