@@ -6,6 +6,7 @@
 //   - MyLoo       (jkgymggxshtsljjvketi) SHAPE=A  v5
 //   - Kelva       (absnjkjxbxeyekmcmpof) SHAPE=B  v5
 //   - Moto        (mpqapdnixzgolmfyckla) SHAPE=B  v6
+//   - Promillio   (cmhxvhmxansithjjajld) SHAPE=B  v1 (2026-06-06)
 //   - Wavelength  (yxhzwzgnbmpjztkvdudr) macht beides im richer revenuecat-webhook
 //
 // Auth: Authorization-Header wird gegen ENTWEDER RC_WEBHOOK_SECRET ODER

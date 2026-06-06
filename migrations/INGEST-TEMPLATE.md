@@ -19,6 +19,7 @@
 | MyLoo | `jkgymggxshtsljjvketi` | generic | `referrals` (Shape A) | ✅ v3 (entitlement only) | ❌ pending |
 | Kelva | `absnjkjxbxeyekmcmpof` | generic | **❌ none** | ✅ v4 (entitlement only) | blocked on migration `0002` |
 | Moto | `mpqapdnixzgolmfyckla` | generic | **❌ none** | ❌ none | blocked on migration `0002` |
+| Promillio | `cmhxvhmxansithjjajld` | generic | `profiles + influencer_codes` (Shape B) | n/a (no entitlement webhook) | ✅ v1 deployed 2026-06-06 (pending RC_WEBHOOK_SECRET + RC dashboard hookup) |
 
 "Entitlement only" means the existing `revenuecat-webhook` only flips
 `user_entitlements.is_premium` and does NOT touch `referral_revenue_events`.
