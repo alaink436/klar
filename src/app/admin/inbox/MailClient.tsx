@@ -13,7 +13,7 @@
 // are the hard offset-shadow on the Senden button and the reply-count chip,
 // dimmed in dark mode so the brutalist tell stays subtle.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import MailerClient from "../mailer/MailerClient";
 import type { ReplyLang, ReplyTemplate } from "@/lib/replyTemplates";
@@ -188,6 +188,19 @@ export default function MailClient({
   mailer: { dueMail1: number; senderEnabled: boolean; cronSet: boolean; inboundSet: boolean };
 }) {
   const [convs, setConvs] = useState<Conversation[]>(conversations);
+  // Re-seed the list whenever the server hands us fresh data. The conversations
+  // prop only gets a new identity when InboxPage re-renders on the server — i.e.
+  // after the mailer drawer fires router.refresh() on a live wave send. Without
+  // this re-seed the useState above would freeze the list at its mount value, so
+  // a sent wave wouldn't surface its new "awaiting" threads until a manual
+  // reload. Using the "store previous prop" render pattern (not an effect) keeps
+  // it lint-clean and avoids an extra paint. Internal updates (optimistic
+  // replies) don't change the prop identity, so they're never clobbered.
+  const [seededFrom, setSeededFrom] = useState(conversations);
+  if (seededFrom !== conversations) {
+    setSeededFrom(conversations);
+    setConvs(conversations);
+  }
   const [selectedId, setSelectedId] = useState<string | null>(conversations[0]?.id ?? null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "inquiry" | "replied" | "converted" | "open">("all");
@@ -201,6 +214,11 @@ export default function MailClient({
 
   const [composer, setComposer] = useState({ subject: "", body: "" });
   const [sending, setSending] = useState(false);
+  // Composer height is user-resizable (drag the grip) and remembered across
+  // sessions per browser. Owned by the DOM — native textarea resize writes to
+  // el.style.height, so we only restore/persist that inline value (no React
+  // state → no hydration mismatch, no setState-in-effect lint).
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const [sendMsg, setSendMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [acceptOpen, setAcceptOpen] = useState(false);
   const [acceptApp, setAcceptApp] = useState("");
@@ -220,6 +238,28 @@ export default function MailClient({
     onMq();
     mq.addEventListener("change", onMq);
     return () => mq.removeEventListener("change", onMq);
+  }, []);
+
+  // Restore the saved composer height on mount by writing it straight to the
+  // DOM node — first client render still matches the server (rows-based), then
+  // we adjust, so there's no hydration mismatch.
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    const saved = Number(localStorage.getItem("klar-composer-h") || "");
+    if (saved >= 120 && saved <= 900) el.style.height = `${saved}px`;
+  }, []);
+
+  // Persist the height after a drag-resize (native resize already wrote the new
+  // value to el.style.height; we just remember it for next time).
+  const persistComposerH = useCallback(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    try {
+      localStorage.setItem("klar-composer-h", String(el.offsetHeight));
+    } catch {
+      /* private mode / quota — non-critical */
+    }
   }, []);
 
   const lang = sel ? pickLang(sel.language) : "de";
@@ -752,12 +792,15 @@ export default function MailClient({
                   onChange={(e) => setComposer((c) => ({ ...c, subject: e.target.value }))}
                 />
                 <textarea
+                  ref={composerRef}
                   className="kr-input"
-                  rows={5}
+                  rows={10}
                   maxLength={8000}
                   value={composer.body}
                   placeholder="Antwort schreiben…"
+                  style={{ minHeight: 180, maxHeight: "60vh" }}
                   onChange={(e) => setComposer((c) => ({ ...c, body: e.target.value }))}
+                  onMouseUp={persistComposerH}
                 />
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                   <button className="retro-send" onClick={send} disabled={sending || !sel.contactEmail}>
