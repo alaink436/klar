@@ -139,34 +139,108 @@ function Field({
   );
 }
 
+// Known provider presets. Picking one auto-fills the base URL AND the correct
+// auth header/scheme — these genuinely differ per provider: Anthropic uses
+// `x-api-key` with no scheme prefix, Brevo/Postmark use their own header, most
+// others a Bearer token on `authorization`. baseUrl "" = account-specific or
+// store-only (no single correct URL), left for the user to fill in.
+interface ProviderPreset {
+  id: string;
+  label: string;
+  category: string; // matches a CATEGORY_SUGGESTIONS value (drives the filter)
+  provider: string;
+  baseUrl: string;
+  authHeader: string;
+  authScheme: string;
+  keyExample: string;
+  labelExample: string;
+}
+const PROVIDER_PRESETS: ProviderPreset[] = [
+  // KI / LLM
+  { id: "anthropic", label: "Anthropic (Claude)", category: "KI / LLM", provider: "anthropic", baseUrl: "https://api.anthropic.com", authHeader: "x-api-key", authScheme: "", keyExample: "sk-ant-…", labelExample: "Anthropic Prod" },
+  { id: "openai", label: "OpenAI", category: "KI / LLM", provider: "openai", baseUrl: "https://api.openai.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sk-proj-… / sk-…", labelExample: "OpenAI Prod" },
+  { id: "gemini", label: "Google Gemini", category: "KI / LLM", provider: "google", baseUrl: "https://generativelanguage.googleapis.com", authHeader: "x-goog-api-key", authScheme: "", keyExample: "AIza…", labelExample: "Gemini" },
+  { id: "mistral", label: "Mistral", category: "KI / LLM", provider: "mistral", baseUrl: "https://api.mistral.ai", authHeader: "authorization", authScheme: "Bearer ", keyExample: "API-Key …", labelExample: "Mistral" },
+  { id: "groq", label: "Groq", category: "KI / LLM", provider: "groq", baseUrl: "https://api.groq.com/openai/v1", authHeader: "authorization", authScheme: "Bearer ", keyExample: "gsk_…", labelExample: "Groq" },
+  { id: "openrouter", label: "OpenRouter", category: "KI / LLM", provider: "openrouter", baseUrl: "https://openrouter.ai/api/v1", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sk-or-…", labelExample: "OpenRouter" },
+  { id: "perplexity", label: "Perplexity", category: "KI / LLM", provider: "perplexity", baseUrl: "https://api.perplexity.ai", authHeader: "authorization", authScheme: "Bearer ", keyExample: "pplx-…", labelExample: "Perplexity" },
+  { id: "xai", label: "xAI (Grok)", category: "KI / LLM", provider: "xai", baseUrl: "https://api.x.ai", authHeader: "authorization", authScheme: "Bearer ", keyExample: "xai-…", labelExample: "xAI" },
+  { id: "deepseek", label: "DeepSeek", category: "KI / LLM", provider: "deepseek", baseUrl: "https://api.deepseek.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sk-…", labelExample: "DeepSeek" },
+  // Datenbank
+  { id: "supabase", label: "Supabase (Service Role)", category: "Datenbank", provider: "supabase", baseUrl: "", authHeader: "authorization", authScheme: "Bearer ", keyExample: "eyJ… (JWT) / sb_secret_…", labelExample: "Supabase Service Role" },
+  // RevenueCat
+  { id: "revenuecat", label: "RevenueCat (Secret)", category: "RevenueCat", provider: "revenuecat", baseUrl: "https://api.revenuecat.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sk_…", labelExample: "RevenueCat" },
+  // Payment
+  { id: "stripe", label: "Stripe", category: "Payment", provider: "stripe", baseUrl: "https://api.stripe.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sk_live_…", labelExample: "Stripe Live" },
+  // Email
+  { id: "brevo", label: "Brevo", category: "Email", provider: "brevo", baseUrl: "https://api.brevo.com/v3", authHeader: "api-key", authScheme: "", keyExample: "xkeysib-…", labelExample: "Brevo Transaktional" },
+  { id: "resend-email", label: "Resend", category: "Email", provider: "resend", baseUrl: "https://api.resend.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "re_…", labelExample: "Resend" },
+  { id: "sendgrid", label: "SendGrid", category: "Email", provider: "sendgrid", baseUrl: "https://api.sendgrid.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "SG.…", labelExample: "SendGrid" },
+  { id: "postmark", label: "Postmark", category: "Email", provider: "postmark", baseUrl: "https://api.postmarkapp.com", authHeader: "x-postmark-server-token", authScheme: "", keyExample: "Server-Token …", labelExample: "Postmark" },
+  // Resend (eigene Kategorie)
+  { id: "resend", label: "Resend", category: "Resend", provider: "resend", baseUrl: "https://api.resend.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "re_…", labelExample: "Resend Transaktional" },
+  // Automation
+  { id: "n8n", label: "n8n Cloud", category: "Automation", provider: "n8n", baseUrl: "", authHeader: "x-n8n-api-key", authScheme: "", keyExample: "eyJ… (JWT)", labelExample: "n8n Cloud API" },
+  // Social / Marketing
+  { id: "blotato", label: "Blotato", category: "Social / Marketing", provider: "blotato", baseUrl: "https://backend.blotato.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "Blotato API-Key", labelExample: "Blotato" },
+  // Mobile / Stores
+  { id: "appstore", label: "App Store Connect (.p8)", category: "Mobile / Stores", provider: "apple", baseUrl: "", authHeader: "authorization", authScheme: "Bearer ", keyExample: "-----BEGIN PRIVATE KEY----- (.p8)", labelExample: "App Store Connect API" },
+  // Infrastruktur
+  { id: "vercel", label: "Vercel", category: "Infrastruktur", provider: "vercel", baseUrl: "https://api.vercel.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "Bearer-Token …", labelExample: "Vercel Token" },
+];
+
+const SELECT_CLASS =
+  "w-full px-3.5 py-3 text-sm [font-family:var(--font-body)] text-fg bg-bg border border-line-strong rounded-[var(--radius-sm)] transition-[border-color,box-shadow,background] focus:border-fg focus:bg-surface focus:outline-none focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--fg)_12%,transparent)] cursor-pointer";
+
 // The metadata + key fields for the add form; rotate reuses only the key field.
-// When a category is picked, every placeholder switches to a fitting example for
-// that category so the examples stay sensible and distinct from one another.
+// Picking a category narrows the provider-preset dropdown; picking a preset
+// auto-fills provider + base URL + the matching auth header/scheme, and the
+// placeholders switch to a fitting example.
 function KeyFields({ includeMeta }: { includeMeta: boolean }) {
   const [category, setCategory] = useState("");
+  const [provider, setProvider] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
-  const ex = exampleFor(category);
+  const [authHeader, setAuthHeader] = useState("authorization");
+  const [authScheme, setAuthScheme] = useState("Bearer ");
+  const [presetId, setPresetId] = useState("");
 
-  // On an exact category match, prefill the canonical Base-URL (empty for
-  // store-only / account-specific categories). Typing a not-yet-matching or
-  // custom category leaves whatever is already in the field untouched.
+  const catEx = exampleFor(category);
+  const preset = PROVIDER_PRESETS.find((p) => p.id === presetId);
+  const keyHint = preset?.keyExample ?? catEx.key;
+  const labelHint = preset?.labelExample ?? catEx.label;
+
+  // Presets for the typed category (exact, case-insensitive). With a match the
+  // dropdown lists just those; otherwise it lists all, grouped by category.
+  const catKey = category.trim().toLowerCase();
+  const matching = PROVIDER_PRESETS.filter((p) => p.category.toLowerCase() === catKey);
+  const showGrouped = matching.length === 0;
+
   function pickCategory(value: string) {
     setCategory(value);
-    const known = CATEGORY_EXAMPLES[value.trim()];
-    if (known) setBaseUrl(known.baseUrlFill);
+    setPresetId(""); // a new category invalidates the chosen preset
+  }
+  function pickPreset(id: string) {
+    setPresetId(id);
+    const p = PROVIDER_PRESETS.find((x) => x.id === id);
+    if (!p) return;
+    setProvider(p.provider);
+    setBaseUrl(p.baseUrl);
+    setAuthHeader(p.authHeader);
+    setAuthScheme(p.authScheme);
+    if (!category.trim()) setCategory(p.category);
   }
 
   return (
     <div className="grid grid-cols-2 gap-3.5">
       {includeMeta && (
         <>
-          <Field name="label" label="Label" required placeholder={`z.B. ${ex.label}`} />
+          <Field name="label" label="Label" required placeholder={`z.B. ${labelHint}`} />
           <Field
             name="category"
             label="Kategorie"
             list="vault-categories"
             autoComplete="off"
-            placeholder="z.B. Datenbank"
+            placeholder="z.B. KI / LLM"
             value={category}
             onChange={(e) => pickCategory(e.target.value)}
           />
@@ -175,18 +249,73 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
               <option key={c} value={c} />
             ))}
           </datalist>
-          <Field name="provider" label="Provider" placeholder={`z.B. ${ex.provider}`} />
-          <Field name="auth_header" label="Auth-Header" defaultValue="authorization" />
+
+          {/* Provider preset — fills provider + URL + auth header/scheme. */}
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <Label htmlFor="provider-preset">
+              Provider-Vorlage <span className="text-fg-4 font-normal">(füllt URL + Auth automatisch)</span>
+            </Label>
+            <select
+              id="provider-preset"
+              className={SELECT_CLASS}
+              value={presetId}
+              onChange={(e) => pickPreset(e.target.value)}
+            >
+              <option value="">
+                {category.trim() ? `— ${category.trim()}-Provider wählen —` : "— Provider wählen (optional) —"}
+              </option>
+              {showGrouped
+                ? CATEGORY_SUGGESTIONS.map((c) => {
+                    const items = PROVIDER_PRESETS.filter((p) => p.category === c);
+                    if (items.length === 0) return null;
+                    return (
+                      <optgroup key={c} label={c}>
+                        {items.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })
+                : matching.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+            </select>
+          </div>
+
+          <Field
+            name="provider"
+            label="Provider"
+            placeholder={`z.B. ${preset?.provider ?? catEx.provider}`}
+            value={provider}
+            onChange={(e) => setProvider(e.target.value)}
+          />
+          <Field
+            name="auth_header"
+            label="Auth-Header"
+            value={authHeader}
+            onChange={(e) => setAuthHeader(e.target.value)}
+          />
           <Field
             name="base_url"
             label="Base-URL — leer lassen = nur speichern (kein Proxy)"
             type="url"
-            placeholder={ex.baseUrl}
+            placeholder={preset?.baseUrl || catEx.baseUrl}
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
             className="col-span-2"
           />
-          <Field name="auth_scheme" label="Schema-Prefix" defaultValue="Bearer " className="col-span-2" />
+          <Field
+            name="auth_scheme"
+            label="Schema-Prefix (leer bei x-api-key / api-key)"
+            placeholder="Bearer "
+            value={authScheme}
+            onChange={(e) => setAuthScheme(e.target.value)}
+            className="col-span-2"
+          />
         </>
       )}
       <div className="col-span-2 flex flex-col gap-1.5">
@@ -197,13 +326,13 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
           type="password"
           required
           autoComplete="new-password"
-          placeholder={includeMeta ? ex.key : "neuer Key …"}
+          placeholder={includeMeta ? keyHint : "neuer Key …"}
           style={{ fontFamily: "var(--font-mono)" }}
         />
         {includeMeta && (
           <p className="text-[11px] text-fg-4">
-            Beispiel für {category.trim() || "diese Kategorie"}:{" "}
-            <code className="[font-family:var(--font-mono)]">{ex.key}</code>
+            Beispiel für {preset?.label || category.trim() || "diese Kategorie"}:{" "}
+            <code className="[font-family:var(--font-mono)]">{keyHint}</code>
           </p>
         )}
       </div>
