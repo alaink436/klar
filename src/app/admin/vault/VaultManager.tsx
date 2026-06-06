@@ -53,8 +53,12 @@ export interface VaultRow {
 const CATEGORY_SUGGESTIONS = [
   "KI / LLM",
   "Datenbank",
+  "RevenueCat",
   "Payment",
-  "Email / Marketing",
+  "Email",
+  "Automation",
+  "Social / Marketing",
+  "Mobile / Stores",
   "Infrastruktur",
   "Sonstiges",
 ];
