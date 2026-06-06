@@ -10,6 +10,7 @@
 //      KLAR_INBOX_SUPABASE_URL (default anime-vault), KLAR_INBOX_SERVICE_KEY.
 
 import { headers } from "next/headers";
+import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   STYLE,
@@ -18,9 +19,7 @@ import {
   THEME_INIT_SCRIPT,
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
-  readCookieFromString,
-  adminSidebar,
-} from "../_shared";
+  readCookieFromString,} from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps } from "../../../lib/adminApps";
 
@@ -222,9 +221,7 @@ export default async function BookingsPage() {
   if (!device) redirect("/admin/login");
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
-  const result = await loadBookings();
-  const sidebar = adminSidebar("bookings", getApps());
-  const topbar = `
+  const result = await loadBookings();  const topbar = `
     <span class="crumb"><b>Bookings</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;
@@ -241,7 +238,7 @@ export default async function BookingsPage() {
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <div className="layout">
-        <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
+        <AdminSidebar active={"bookings"} apps={getApps()} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
           <div className="content">

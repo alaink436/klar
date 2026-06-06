@@ -9,6 +9,7 @@
 //      (+ optional KLAR_INBOX_SUPABASE_URL).
 
 import { headers } from "next/headers";
+import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   STYLE,
@@ -17,9 +18,7 @@ import {
   THEME_INIT_SCRIPT,
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
-  readCookieFromString,
-  adminSidebar,
-} from "../_shared";
+  readCookieFromString,} from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps, setupLandingUrl } from "../../../lib/adminApps";
 import {
@@ -369,10 +368,7 @@ export default async function InboxPage({
   const dueMail1 = (await listTargetsForMail1(500)).length;
   const senderEnabled = process.env.KLAR_OUTREACH_SENDER === "on";
   const cronSet = Boolean(process.env.CRON_SECRET);
-  const inboundSet = Boolean(process.env.KLAR_INBOUND_DOMAIN);
-
-  const sidebar = adminSidebar("inbox", apps);
-  const topbar = `
+  const inboundSet = Boolean(process.env.KLAR_INBOUND_DOMAIN);  const topbar = `
     <span class="crumb"><b>Inbox</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;
@@ -389,7 +385,7 @@ export default async function InboxPage({
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <div className="layout">
-        <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
+        <AdminSidebar active={"inbox"} apps={apps} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
           {flashMsg && <div className="flash" style={{ margin: "12px 36px 0" }}>{flashMsg}</div>}

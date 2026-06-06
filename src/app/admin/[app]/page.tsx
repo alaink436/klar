@@ -13,6 +13,7 @@
 //      keys via sbGet/listInfluencers).
 
 import { headers } from "next/headers";
+import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   STYLE,
@@ -21,11 +22,7 @@ import {
   THEME_INIT_SCRIPT,
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
-  MODAL_HTML,
-  MODAL_SCRIPT,
-  readCookieFromString,
-  adminSidebar,
-  esc,
+  readCookieFromString,  esc,
   eur,
   fmtRelative,
 } from "../_shared";
@@ -337,9 +334,7 @@ export default async function AppDetailPage({
   const sp = await searchParams;
   const apps = getApps();
   const main = await appMain(appObj);
-  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
-  const sidebar = adminSidebar(slug, apps);
-  const topbar = `
+  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";  const topbar = `
     <span class="crumb"><b>${esc(appObj.name)}</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;
@@ -355,15 +350,13 @@ export default async function AppDetailPage({
       <script dangerouslySetInnerHTML={{ __html: THEME_TOGGLE_SCRIPT }} />
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
-      <div dangerouslySetInnerHTML={{ __html: MODAL_HTML }} />
       <div className="layout">
-        <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
+        <AdminSidebar active={slug} apps={apps} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
           <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
         </main>
       </div>
-      <script dangerouslySetInnerHTML={{ __html: MODAL_SCRIPT }} />
     </>
   );
 }

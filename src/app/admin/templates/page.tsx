@@ -11,6 +11,7 @@
 //      (outreach store) + APIFY_API_TOKEN presence check.
 
 import { headers } from "next/headers";
+import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   STYLE,
@@ -19,9 +20,7 @@ import {
   THEME_INIT_SCRIPT,
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
-  readCookieFromString,
-  adminSidebar,
-  esc,
+  readCookieFromString,  esc,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps } from "../../../lib/adminApps";
@@ -181,9 +180,7 @@ export default async function TemplatesPage({
   const sp = await searchParams;
   const apps = getApps();
   const main = await templatesMain();
-  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
-  const sidebar = adminSidebar("templates", apps);
-  const topbar = `
+  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";  const topbar = `
     <span class="crumb"><b>Templates</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;
@@ -200,7 +197,7 @@ export default async function TemplatesPage({
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <div className="layout">
-        <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
+        <AdminSidebar active={"templates"} apps={apps} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
           <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />

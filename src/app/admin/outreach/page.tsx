@@ -12,6 +12,7 @@
 //      (+ APIFY_API_TOKEN, BREVO_API_KEY for the live quota cards).
 
 import { headers } from "next/headers";
+import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   STYLE,
@@ -20,11 +21,7 @@ import {
   THEME_INIT_SCRIPT,
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
-  MODAL_HTML,
-  MODAL_SCRIPT,
-  readCookieFromString,
-  adminSidebar,
-  esc,
+  readCookieFromString,  esc,
   fmtRelative,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
@@ -48,6 +45,7 @@ import { KLAR_APPS } from "../../../lib/klarApps";
 import OutreachKpis, { type OutreachStatsLite } from "./OutreachKpis";
 import OutreachFilters, { type OutreachFilterState } from "./OutreachFilters";
 import OutreachRuns, { type RunRowData, type RunBadgeTone } from "./OutreachRuns";
+import OutreachClientScripts from "./OutreachClientScripts";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -112,163 +110,6 @@ const isTestTarget = (t: OutreachTarget): boolean => {
   return false;
 };
 
-// Add-Target-Form client JS (was inline in the form). Rendered as a top-level
-// <script> element so it executes (innerHTML-injected scripts don't run).
-const ADD_FORM_JS = `
-(function(){
-  var f = document.getElementById('outreach-add-form');
-  if (!f) return;
-  f.addEventListener('submit', function(){
-    var picks = Array.from(f.querySelectorAll('input[type=checkbox][name^="for_apps_"]:checked')).map(function(c){return c.value;});
-    document.getElementById('for-apps-hidden').value = picks.join(',');
-  });
-})();
-`;
-
-// Wave-starter client JS: cost calculator + per-app/lang template loader +
-// cost-confirm submit guard. Rendered as a top-level <script> element.
-const WAVE_FORM_JS = `
-(function(){
-  var f = document.getElementById('wave-form');
-  if (!f) return;
-  var display = document.getElementById('wave-cost-display');
-  var tplStatus = document.getElementById('wave-template-status');
-  var mailDetails = document.getElementById('wave-mail-details');
-  var mailSummary = document.getElementById('wave-mail-summary');
-  var countDisplay = document.getElementById('wave-count-display');
-  var subjectInput = f.querySelector('input[name="mail_subject"]');
-  var bodyInput = f.querySelector('textarea[name="mail_body"]');
-  var initialSubject = subjectInput ? subjectInput.value : '';
-  var initialBody = bodyInput ? bodyInput.value : '';
-  var lastLoadedKey = '';
-  var mailDirty = false;
-
-  function calc(){
-    var apps = f.querySelectorAll('input.wave-app-chk:checked').length;
-    var igChecked = !!f.querySelector('input.wave-plat-chk[value="instagram"]:checked');
-    var ttChecked = !!f.querySelector('input.wave-plat-chk[value="tiktok"]:checked');
-    var plats = (igChecked?1:0) + (ttChecked?1:0);
-    var n = parseInt((f.querySelector('input[name="count_per_app"]')||{}).value || '0', 10) || 0;
-    var langs = Math.max(1, f.querySelectorAll('input.wave-lang-chk:checked').length);
-    if (countDisplay) countDisplay.textContent = String(n);
-    var total = apps * langs * plats * n;
-    if (total === 0) { display.textContent = '— Apps + Plattformen wählen'; return; }
-    // Apify pricing 2026-05 (live-verified): IG $0.0023/item, TikTok FLAT $45/mo rental + compute.
-    // Post-S41 scrape caps in n8n: IG-Hashtag.resultsLimit = ceil(n*1.2) max 30 (smallBucket 1.8/45),
-    // IG-Profile.resultsLimit = 1 per username, TT.resultsPerPage = min(n+5, 25).
-    var buckets = Array.from(f.querySelectorAll('input.wave-size-chk:checked')).map(function(c){return c.value;});
-    var smallBucket = buckets.length > 0 && buckets.every(function(b){ return b === 'nano' || b === 'micro'; });
-    var scrape = smallBucket ? Math.min(Math.ceil(n*1.8), 45) : Math.min(Math.ceil(n*1.2), 30);
-    var igUsd = igChecked ? (scrape * 0.0023 + Math.ceil(scrape * 0.7) * 0.0023) : 0;
-    var ttUsd = ttChecked ? 0.30 : 0;  // compute only; $45/mo rental shown account-wide
-    var usdPerWave = igUsd + ttUsd;
-    var usd = apps * langs * usdPerWave;
-    var waves = apps * langs;
-    window.__waveCostUsd = usd;  // submit-handler reads this for confirm-dialog
-    var smallNote = smallBucket ? ' <span class="muted" style="font-size:10px">(scrape '+scrape+')</span>' : '';
-    var langNote = langs > 1 ? ' <span class="muted" style="font-size:10px">(' + apps + ' App × ' + langs + ' Region)</span>' : '';
-    display.innerHTML = waves + ' Wellen · ~' + total.toLocaleString() + ' Profile · <strong>≈ $' + usd.toFixed(2) + '</strong> Apify' + smallNote + langNote;
-  }
-
-  function updateMailSummary(){
-    if (!mailSummary || !subjectInput || !bodyInput) return;
-    if (mailDirty) {
-      mailSummary.textContent = '✎ custom override aktiv';
-    } else if (mailDetails && mailDetails.open) {
-      mailSummary.textContent = 'geöffnet — nicht editiert';
-    } else {
-      mailSummary.textContent = 'geschlossen = App-Default';
-    }
-  }
-
-  function loadTemplate(){
-    var pickedApps = Array.from(f.querySelectorAll('input.wave-app-chk:checked')).map(function(c){return c.value;});
-    var pickedLangs = Array.from(f.querySelectorAll('input.wave-lang-chk:checked')).map(function(c){return c.value;});
-    if (!subjectInput || !bodyInput) return;
-    if (pickedApps.length !== 1 || pickedLangs.length !== 1) {
-      if (tplStatus) {
-        if (pickedApps.length === 0) tplStatus.textContent = '';
-        else if (pickedApps.length > 1 && pickedLangs.length > 1) tplStatus.textContent = '⚠️ ' + pickedApps.length + ' App × ' + pickedLangs.length + ' Region = ' + (pickedApps.length * pickedLangs.length) + ' Wellen, jede zieht ihr eigenes DB-Template (ausser du bearbeitest Subject/Body hier)';
-        else if (pickedApps.length > 1) tplStatus.textContent = '⚠️ Multi-App: jede App nutzt ihr eigenes DB-Template (ausser du bearbeitest Subject/Body hier)';
-        else tplStatus.textContent = '⚠️ Multi-Region: jede Region zieht ihr eigenes DB-Template (ausser du bearbeitest Subject/Body hier)';
-      }
-      return;
-    }
-    var app = pickedApps[0];
-    var lang = pickedLangs[0];
-    var key = app + '|' + lang;
-    if (key === lastLoadedKey) return;
-    if (tplStatus) tplStatus.textContent = '⏳ lade Template ' + app + '/' + lang + '…';
-    fetch('/admin/templates/get?app=' + encodeURIComponent(app) + '&language=' + encodeURIComponent(lang), { credentials: 'same-origin' })
-      .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(tpl){
-        if (!tpl) {
-          if (tplStatus) tplStatus.textContent = '⚠️ Kein Template für ' + app + '/' + lang;
-          return;
-        }
-        if (!mailDirty) {
-          if (tpl.mail1_subject) { subjectInput.value = tpl.mail1_subject; initialSubject = tpl.mail1_subject; }
-          if (tpl.mail1_body) { bodyInput.value = tpl.mail1_body; initialBody = tpl.mail1_body; }
-        }
-        lastLoadedKey = key;
-        if (tplStatus) tplStatus.innerHTML = '✓ Template <strong>' + app + '/' + lang + '</strong> geladen' + (tpl.mail1_subject ? '' : ' (Subject leer)');
-      })
-      .catch(function(e){
-        if (tplStatus) tplStatus.textContent = '⚠️ Template-Load fehlgeschlagen: ' + e.message;
-      });
-  }
-
-  // Track mail edits so we know whether to overwrite on app change.
-  function markDirty(){
-    if (!subjectInput || !bodyInput) return;
-    mailDirty = (subjectInput.value !== initialSubject) || (bodyInput.value !== initialBody);
-    updateMailSummary();
-  }
-  if (subjectInput) subjectInput.addEventListener('input', markDirty);
-  if (bodyInput) bodyInput.addEventListener('input', markDirty);
-  if (mailDetails) mailDetails.addEventListener('toggle', updateMailSummary);
-
-  f.addEventListener('change', function(ev){
-    calc();
-    if (ev.target && ev.target.classList && (ev.target.classList.contains('wave-app-chk') || ev.target.classList.contains('wave-lang-chk'))) loadTemplate();
-  });
-  f.addEventListener('input', calc);
-  // Cost-confirm guard. Server-side mirror in start/route.ts rejects
-  // submits >= $2 without cost_confirmed=1, so we always set the hidden
-  // field when the admin clicks through the confirm-dialog.
-  f.addEventListener('submit', function(ev){
-    var usd = window.__waveCostUsd || 0;
-    var hidden = f.querySelector('input[name="cost_confirmed"]');
-    if (!hidden) {
-      hidden = document.createElement('input');
-      hidden.type = 'hidden';
-      hidden.name = 'cost_confirmed';
-      f.appendChild(hidden);
-    }
-    if (usd >= 2.00) {
-      if (f.dataset.klarConfirmed === '1') {
-        f.dataset.klarConfirmed = '';
-        hidden.value = '1';
-        return; // allow native submit
-      }
-      ev.preventDefault();
-      window.klarConfirm({
-        title: 'Welle wirklich starten?',
-        body: 'Geschätzter Apify-Spend: $' + usd.toFixed(2) + '. Wird sofort ausgeführt.',
-        variant: 'warn',
-        confirmText: 'Welle starten',
-      }).then(function(ok){
-        if (ok) { hidden.value = '1'; f.dataset.klarConfirmed = '1'; f.requestSubmit ? f.requestSubmit() : f.submit(); }
-      });
-      return;
-    } else {
-      hidden.value = '';
-    }
-  });
-  calc();
-  updateMailSummary();
-})();
-`;
 
 type OutreachMainResult =
   | { configured: false; html: string }
@@ -1030,9 +871,7 @@ export default async function OutreachPage({
 
   const apps = getApps();
   const result = await outreachMain(filterPlatform, filterStatus, filterApp, query, autoRefresh, showTests);
-  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
-  const sidebar = adminSidebar("outreach", apps);
-  const topbar = `
+  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";  const topbar = `
     <span class="crumb"><b>Outreach</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;
@@ -1049,9 +888,8 @@ export default async function OutreachPage({
       <script dangerouslySetInnerHTML={{ __html: THEME_TOGGLE_SCRIPT }} />
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
-      <div dangerouslySetInnerHTML={{ __html: MODAL_HTML }} />
       <div className="layout">
-        <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
+        <AdminSidebar active={"outreach"} apps={apps} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
           <div className="content">
@@ -1071,9 +909,7 @@ export default async function OutreachPage({
           </div>
         </main>
       </div>
-      <script dangerouslySetInnerHTML={{ __html: MODAL_SCRIPT }} />
-      <script dangerouslySetInnerHTML={{ __html: ADD_FORM_JS }} />
-      <script dangerouslySetInnerHTML={{ __html: WAVE_FORM_JS }} />
+      <OutreachClientScripts />
     </>
   );
 }

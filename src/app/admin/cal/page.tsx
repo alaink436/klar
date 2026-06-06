@@ -9,6 +9,7 @@
 // Env: KLAR_ADMIN_KEY, KLAR_DEVICE_SECRET, KLAR_TOTP_SECRET.
 
 import { headers } from "next/headers";
+import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   STYLE,
@@ -18,7 +19,6 @@ import {
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
   readCookieFromString,
-  adminSidebar,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps } from "../../../lib/adminApps";
@@ -37,8 +37,6 @@ export default async function CalPage() {
   const device = await verifyDeviceCookie(readCookieFromString(cookieHeader, "klar_device"), DEV);
   if (!device) redirect("/admin/login");
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
-
-  const sidebar = adminSidebar("cal", getApps());
   const topbar = `
     <span class="crumb"><b>Cal Admin</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
@@ -56,7 +54,7 @@ export default async function CalPage() {
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <div className="layout">
-        <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
+        <AdminSidebar active={"cal"} apps={getApps()} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
           <div className="content">

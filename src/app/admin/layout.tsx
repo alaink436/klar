@@ -9,14 +9,21 @@
 // (see _shared STYLE) there's no FOUC on navigation.
 
 import type { ReactNode } from "react";
-import { SMOKE_BG_SCRIPT } from "./_shared";
+import { SMOKE_BG_SCRIPT, MODAL_HTML, MODAL_SCRIPT } from "./_shared";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <canvas id="klar-smoke-bg" aria-hidden="true" suppressHydrationWarning />
       {children}
+      {/* Confirm dialog hoisted here so it survives client-side menu switches.
+          MODAL_SCRIPT runs once on first load and keeps a MutationObserver on
+          <body>, so it auto-binds any data-klar-confirm form a SPA-navigated
+          page renders later. Per-page injection was removed from outreach +
+          [app] to avoid a duplicate #klar-modal id. */}
+      <div dangerouslySetInnerHTML={{ __html: MODAL_HTML }} />
       <script dangerouslySetInnerHTML={{ __html: SMOKE_BG_SCRIPT }} />
+      <script dangerouslySetInnerHTML={{ __html: MODAL_SCRIPT }} />
     </>
   );
 }

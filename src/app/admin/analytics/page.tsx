@@ -9,6 +9,7 @@
 //      KLAR_INBOX_SERVICE_KEY.
 
 import { headers } from "next/headers";
+import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   STYLE,
@@ -17,9 +18,7 @@ import {
   THEME_INIT_SCRIPT,
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
-  readCookieFromString,
-  adminSidebar,
-} from "../_shared";
+  readCookieFromString,} from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import {
   getApps,
@@ -651,11 +650,7 @@ export default async function AnalyticsPage({
   const appsChartPeriod = parsePeriod(sp.p_app);
   const appsSelected = parseSelectedApps(sp.apps);
   const appsChart: AppsChartPayload =
-    tab === "apps" ? await buildAppsChart(appsMetric, appsChartPeriod, appsSelected) : EMPTY_CHART;
-
-  const sidebar = adminSidebar("analytics", getApps());
-
-  const topbar = `
+    tab === "apps" ? await buildAppsChart(appsMetric, appsChartPeriod, appsSelected) : EMPTY_CHART;  const topbar = `
     <span class="crumb"><b>Analytics</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;
@@ -679,7 +674,7 @@ export default async function AnalyticsPage({
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <div className="layout">
-        <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
+        <AdminSidebar active={"analytics"} apps={getApps()} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
           <div className="content">

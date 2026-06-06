@@ -7,6 +7,7 @@
 // the key never passes through the client beyond the form submit.
 
 import { headers } from "next/headers";
+import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   STYLE,
@@ -16,7 +17,6 @@ import {
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
   readCookieFromString,
-  adminSidebar,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps } from "../../../lib/adminApps";
@@ -68,7 +68,6 @@ export default async function VaultPage({
   const active = rows.filter((r) => r.lastUsed !== "—").length;
 
   const ready = vaultReady();
-  const sidebar = adminSidebar("vault", getApps());
   const topbar = `
     <span class="crumb"><b>Vault</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
@@ -86,7 +85,7 @@ export default async function VaultPage({
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <div className="layout">
-        <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
+        <AdminSidebar active={"vault"} apps={getApps()} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
           <div className="content">

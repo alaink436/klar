@@ -11,6 +11,7 @@
 // /admin/analytics (klar_device HMAC + klar_admin session cookie).
 
 import { headers } from "next/headers";
+import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   STYLE,
@@ -20,9 +21,7 @@ import {
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
   readCookieFromString,
-  esc,
-  adminSidebar,
-} from "../_shared";
+  esc,} from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps } from "../../../lib/adminApps";
 import {
@@ -280,11 +279,7 @@ export default async function SettingsPage({
 
   // Flash bubble. err= shown with danger styling, msg= neutral.
   const flashRaw = sp.err ?? sp.msg ?? null;
-  const flashTone = sp.err ? "err" : "ok";
-
-  const sidebar = adminSidebar("settings", getApps());
-
-  const topbar = `
+  const flashTone = sp.err ? "err" : "ok";  const topbar = `
     <span class="crumb"><b>Einstellungen</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;
@@ -305,7 +300,7 @@ export default async function SettingsPage({
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <div className="layout">
-        <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
+        <AdminSidebar active={"settings"} apps={getApps()} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
           <div className="content">

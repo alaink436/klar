@@ -262,6 +262,25 @@ export default function MailClient({
     }
   }, []);
 
+  // One-click enlarge/shrink for the composer, on top of the drag-grip. Toggles
+  // between a tall editing height (~60vh) and the compact default, persisting
+  // the result like a manual drag.
+  const [composerBig, setComposerBig] = useState(false);
+  const toggleComposerSize = useCallback(() => {
+    setComposerBig((big) => {
+      const el = composerRef.current;
+      if (el) {
+        el.style.height = big ? "200px" : `${Math.round(window.innerHeight * 0.6)}px`;
+        try {
+          localStorage.setItem("klar-composer-h", String(el.offsetHeight));
+        } catch {
+          /* non-critical */
+        }
+      }
+      return !big;
+    });
+  }, []);
+
   const lang = sel ? pickLang(sel.language) : "de";
   const name = sel ? sel.displayName || sel.handle : "";
 
@@ -811,6 +830,13 @@ export default function MailClient({
                     onClick={() => { navigator.clipboard?.writeText(`${composer.subject}\n\n${composer.body}`); }}
                   >
                     Entwurf kopieren
+                  </button>
+                  <button
+                    className="kr-mini"
+                    onClick={toggleComposerSize}
+                    title="Schreibfeld vergrössern / verkleinern (oder unten rechts ziehen)"
+                  >
+                    {composerBig ? "↙ Kleiner" : "↗ Grösser"}
                   </button>
                   {sendMsg && (
                     <span style={{ fontSize: 12, color: sendMsg.ok ? "var(--success)" : "var(--danger)" }}>

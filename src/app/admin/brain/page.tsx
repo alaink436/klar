@@ -11,6 +11,7 @@
 // Env: KLAR_ADMIN_KEY, KLAR_DEVICE_SECRET, KLAR_TOTP_SECRET, BRAIN_GITHUB_TOKEN.
 
 import { headers } from "next/headers";
+import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   STYLE,
@@ -20,7 +21,6 @@ import {
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
   readCookieFromString,
-  adminSidebar,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps } from "../../../lib/adminApps";
@@ -87,8 +87,6 @@ export default async function BrainPage({
   }));
 
   const defaultTab = sp.tab === "zugang" || sp.msg || sp.err ? "zugang" : "graph";
-
-  const sidebar = adminSidebar("brain", getApps());
   const topbar = `
     <span class="crumb"><b>AI-Brain</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
@@ -106,7 +104,7 @@ export default async function BrainPage({
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <div className="layout">
-        <aside className="side" dangerouslySetInnerHTML={{ __html: sidebar }} />
+        <AdminSidebar active={"brain"} apps={getApps()} />
         <main className="main">
           <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
           <div className="content" style={{ maxWidth: "none" }}>
