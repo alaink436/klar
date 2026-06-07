@@ -79,7 +79,8 @@ export default async function BrainPage({
     checked: SHOWCASE_FOLDERS.includes(g.key),
   }));
 
-  const defaultTab = sp.tab === "zugang" || sp.msg || sp.err ? "zugang" : "graph";
+  // Zugang is the default tab; the graph opens only via the explicit ?tab=graph.
+  const defaultTab = sp.tab === "graph" ? "graph" : "zugang";
   const topbar = `
     <span class="crumb"><b>AI-Brain</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>

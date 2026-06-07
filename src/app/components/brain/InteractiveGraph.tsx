@@ -128,6 +128,49 @@ export default function InteractiveGraph({
     );
   }, [nodes]);
 
+  // Layout densification. The baked coords leave an empty middle and push weakly
+  // connected notes onto a sparse outer rim. Pull every node toward the centroid
+  // (low-degree nodes harder, so loose notes move inward and the centre fills),
+  // then a few collision passes so the tighter packing never overlaps.
+  const layout = useMemo(() => {
+    const N = nodes.length;
+    if (N === 0) return [] as { x: number; y: number }[];
+    const deg = new Array<number>(N).fill(0);
+    for (const [a, b] of edges) {
+      if (a >= 0 && a < N) deg[a]++;
+      if (b >= 0 && b < N) deg[b]++;
+    }
+    const maxDeg = Math.max(1, ...deg);
+    let cx = 0, cy = 0;
+    for (const n of nodes) { cx += n.x; cy += n.y; }
+    cx /= N; cy /= N;
+    // Hubs keep ~0.85 of their radius; leaves are pulled in to ~0.45.
+    const px = nodes.map((n, i) => {
+      const pull = 0.45 + 0.4 * (deg[i] / maxDeg);
+      return { x: (cx + (n.x - cx) * pull) * SPREAD, y: (cy + (n.y - cy) * pull) * SPREAD };
+    });
+    if (N <= 700) {
+      const rad = nodes.map((n) => Math.max(8, Math.min(42, n.r * 1.15)) / 2 + 7);
+      for (let it = 0; it < 7; it++) {
+        for (let i = 0; i < N; i++) {
+          for (let j = i + 1; j < N; j++) {
+            let dx = px[j].x - px[i].x;
+            let dy = px[j].y - px[i].y;
+            const d = Math.hypot(dx, dy) || 0.01;
+            const min = rad[i] + rad[j];
+            if (d < min) {
+              const f = (min - d) / 2 / d;
+              dx *= f; dy *= f;
+              px[i].x -= dx; px[i].y -= dy;
+              px[j].x += dx; px[j].y += dy;
+            }
+          }
+        }
+      }
+    }
+    return px;
+  }, [nodes, edges]);
+
   const rfNodes: Node[] = useMemo(
     () =>
       nodes.map((n, i) => {
@@ -135,7 +178,7 @@ export default function InteractiveGraph({
         return {
         id: String(i),
         type: "dot",
-        position: { x: n.x * SPREAD, y: n.y * SPREAD },
+        position: { x: layout[i]?.x ?? n.x * SPREAD, y: layout[i]?.y ?? n.y * SPREAD },
         draggable: false,
         width: size,
         height: size,
@@ -149,7 +192,7 @@ export default function InteractiveGraph({
         } satisfies DotData,
         };
       }),
-    [nodes, groups, hubPaths, activePath],
+    [nodes, groups, hubPaths, activePath, layout],
   );
 
   const rfEdges: Edge[] = useMemo(

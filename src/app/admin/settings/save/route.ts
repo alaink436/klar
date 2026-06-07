@@ -10,6 +10,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ctEqual, readCookie } from "@/app/admin/_shared";
 import { updateAdminSettings } from "@/lib/adminSettings";
 import { verifyDeviceCookie } from "@/lib/deviceCookie";
+import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,6 +61,9 @@ export async function POST(req: NextRequest): Promise<Response> {
       const msg = e instanceof Error ? e.message : String(e);
       return redirectWith(req, { err: msg });
     }
+    // Bust the marketing-page cache so the shader toggle takes effect on the
+    // next homepage load instead of after the 60s revalidate window.
+    revalidatePath("/");
     return redirectWith(req, { msg: "Globale Einstellungen gespeichert." });
   }
 
