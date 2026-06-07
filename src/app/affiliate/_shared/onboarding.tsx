@@ -53,6 +53,11 @@ const ExternalIcon = (p: React.SVGProps<SVGSVGElement>) => (
     <path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M20 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5"/>
   </svg>
 );
+const DownloadIcon = (p: React.SVGProps<SVGSVGElement>) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/>
+  </svg>
+);
 
 // ── Payout form state shape (lifted to shell so steps can navigate back) ────
 // Only Wise is supported as a payout rail. PayPal + SEPA are out of scope
@@ -65,6 +70,9 @@ export interface PayoutState {
   taxStatus: string;
   canInvoice: boolean;
   agreementAccepted: boolean;
+  /** Full legal name typed by the affiliate on the sign step as their
+   *  electronic signature. Empty until they reach + complete signing. */
+  signature: string;
 }
 
 // ── Top frame (icon header + progress bars + step label) ───────────────────
@@ -73,6 +81,7 @@ function stepLabel(t: Messages, key: StepKey): string {
     case "welcome": return t.stepWelcome;
     case "tracking": return t.stepTracking;
     case "payout": return t.stepPayout;
+    case "sign": return t.stepSign ?? "Sign";
     case "live": return t.stepLive;
   }
 }
@@ -689,7 +698,7 @@ function StepTracking({ brand, go, prev, t = getMessages("de"), lang }: { brand:
 // ── Step 3 · Payout ─────────────────────────────────────────────────────────
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-function StepPayout({ brand, go, prev, state, setState, onSubmit, t = getMessages("de"), lang = "de" }: { brand: Brand; go: () => void; prev: () => void; state: PayoutState; setState: (s: PayoutState) => void; onSubmit?: (s: PayoutState) => Promise<void>; t?: Messages; lang?: Lang }) {
+function StepPayout({ brand, go, prev, state, setState, t = getMessages("de"), lang = "de" }: { brand: Brand; go: () => void; prev: () => void; state: PayoutState; setState: (s: PayoutState) => void; t?: Messages; lang?: Lang }) {
   const agreementUrl =
     lang === "es" ? "/legal/affiliate-agreement-es"
     : lang === "en" ? "/legal/affiliate-agreement-en"
@@ -697,8 +706,6 @@ function StepPayout({ brand, go, prev, state, setState, onSubmit, t = getMessage
     : lang === "fr" ? "/legal/affiliate-agreement-fr"
     : "/legal/affiliate-agreement";
   const f = state;
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [emailTouched, setEmailTouched] = useState(false);
   const set = <K extends keyof PayoutState>(k: K, v: PayoutState[K]) => setState({ ...f, [k]: v });
   const emailOk = EMAIL_RE.test(f.handle.trim());
@@ -708,19 +715,12 @@ function StepPayout({ brand, go, prev, state, setState, onSubmit, t = getMessage
     && f.taxStatus
     && f.agreementAccepted;
 
-  async function handleNext() {
+  // The payout step no longer completes the setup. It collects the payout
+  // details + terms acknowledgement, then advances to the sign step where the
+  // affiliate signs and the setup is actually activated.
+  function handleNext() {
     if (!valid) return;
-    if (!onSubmit) { go(); return; }
-    setBusy(true);
-    setError(null);
-    try {
-      await onSubmit(f);
-      go();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t.payoutErrorFallback);
-    } finally {
-      setBusy(false);
-    }
+    go();
   }
 
   return (
@@ -815,18 +815,12 @@ function StepPayout({ brand, go, prev, state, setState, onSubmit, t = getMessage
         </label>
       </div>
 
-      {error && (
-        <div style={{ padding: "10px 14px", background: "color-mix(in oklab, var(--aff-fg), transparent 88%)", border: "1px solid color-mix(in oklab, var(--aff-fg), transparent 60%)", borderRadius: 10, color: "var(--aff-bg)", fontSize: 13.5 }}>
-          {error}
-        </div>
-      )}
-
       <div className="aff-btn-row">
-        <button className="aff-btn aff-btn-secondary" onClick={prev} aria-label={t.backAria} disabled={busy}>
+        <button className="aff-btn aff-btn-secondary" onClick={prev} aria-label={t.backAria}>
           <ArrowLeft />
         </button>
-        <button className="aff-btn aff-btn-primary" disabled={!valid || busy} onClick={handleNext} style={!valid || busy ? { opacity: 0.6, cursor: busy ? "wait" : "not-allowed", transform: "none", boxShadow: "none" } : undefined}>
-          {busy ? t.payoutSavingBtn : <>{t.payoutSubmitBtn} <ArrowRight /></>}
+        <button className="aff-btn aff-btn-primary" disabled={!valid} onClick={handleNext} style={!valid ? { opacity: 0.6, cursor: "not-allowed", transform: "none", boxShadow: "none" } : undefined}>
+          {t.next} <ArrowRight />
         </button>
       </div>
 
@@ -837,7 +831,159 @@ function StepPayout({ brand, go, prev, state, setState, onSubmit, t = getMessage
   );
 }
 
-// ── Step 4 · Live ───────────────────────────────────────────────────────────
+// ── Step 4 · Sign ─────────────────────────────────────────────────────────
+// Online signing. The affiliate types their full legal name as an electronic
+// signature, can download the stamped agreement PDF, and only on a successful
+// sign + save (server stores the PDF + writes the audit row) does the flow
+// advance to the live step. This feature ships English-only copy for now,
+// regardless of the onboarding language (i18n covers the other steps).
+function StepSign({ brand, go, prev, state, setState, onSubmit, handle }: { brand: Brand; go: () => void; prev: () => void; state: PayoutState; setState: (s: PayoutState) => void; onSubmit?: (s: PayoutState) => Promise<void>; handle: string }) {
+  const f = state;
+  const set = <K extends keyof PayoutState>(k: K, v: PayoutState[K]) => setState({ ...f, [k]: v });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [downloadBusy, setDownloadBusy] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
+
+  const signature = f.signature;
+  const sigValid = signature.trim().length > 1;
+  const cleanHandle = handle.replace(/^@/, "");
+
+  async function handleDownload() {
+    if (!sigValid || downloadBusy) return;
+    setDownloadBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/affiliate/agreement-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brand: brand.key,
+          handle: cleanHandle,
+          display_name: f.displayName.trim(),
+          contact_email: f.handle.trim(),
+          signer_name: signature.trim(),
+        }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(j?.error || `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `klar-affiliate-agreement-${cleanHandle}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      setDownloaded(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not generate the PDF, please try again.");
+    } finally {
+      setDownloadBusy(false);
+    }
+  }
+
+  async function handleSign() {
+    if (!sigValid || busy) return;
+    // Preview mode (dev-preview has no onSubmit): just advance.
+    if (!onSubmit) { go(); return; }
+    setBusy(true);
+    setError(null);
+    try {
+      await onSubmit({ ...f, signature: signature.trim() });
+      go();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Signing failed, please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="aff-pad aff-stack-lg">
+      <div className="aff-stack-md">
+        <h1 className="aff-h1 small">Sign your <span className="italic">agreement.</span></h1>
+        <p className="aff-lede">
+          One last step before you go live. Read the {brand.name} affiliate agreement, type your full legal name to sign it, and you are set. You can download a copy for your records.
+        </p>
+      </div>
+
+      <div className="aff-sign-doc">
+        <div className="aff-sign-doc-head">
+          <span className="aff-resource-eyebrow">Klar Affiliate Agreement</span>
+          <span className="aff-sign-doc-title">{brand.name} program, version v1.0</span>
+        </div>
+        <p className="aff-sign-doc-body">
+          {commissionLine(brand)} Payouts run monthly via Wise from 50 EUR, with a 30 day refund holdback. You can cancel any time and keep already earned commissions. Read the full terms before you sign:
+        </p>
+        <a href="/legal/affiliate-agreement-en" target="_blank" rel="noopener noreferrer" className="aff-sign-doc-link">
+          Read the full agreement <ExternalIcon />
+        </a>
+      </div>
+
+      <div className="aff-field">
+        <label className="aff-field-label">Type your full legal name to sign</label>
+        <input
+          className="aff-field-input aff-sign-input"
+          value={signature}
+          placeholder="Molly Hartmann"
+          autoComplete="name"
+          onChange={(e) => set("signature", e.target.value)}
+        />
+        <p className="aff-sign-hint">
+          By typing my name I, the affiliate, agree to and electronically sign the {brand.name} affiliate agreement (version v1.0). My name, IP address, user agent and the timestamp are stored for the audit trail.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        className="aff-btn aff-btn-secondary"
+        style={{ width: "100%", justifyContent: "center", ...(!sigValid || downloadBusy ? { opacity: 0.6, cursor: !sigValid ? "not-allowed" : "wait" } : {}) }}
+        disabled={!sigValid || downloadBusy}
+        onClick={handleDownload}
+      >
+        <DownloadIcon /> {downloadBusy ? "Preparing PDF..." : downloaded ? "Download again (PDF)" : "Download agreement (PDF)"}
+      </button>
+
+      {error && (
+        <div style={{ padding: "10px 14px", background: "color-mix(in oklab, var(--aff-fg), transparent 88%)", border: "1px solid color-mix(in oklab, var(--aff-fg), transparent 60%)", borderRadius: 10, color: "var(--aff-bg)", fontSize: 13.5 }}>
+          {error}
+        </div>
+      )}
+
+      <div className="aff-btn-row">
+        <button className="aff-btn aff-btn-secondary" onClick={prev} aria-label="Back" disabled={busy}>
+          <ArrowLeft />
+        </button>
+        <button
+          className="aff-btn aff-btn-primary"
+          disabled={!sigValid || busy}
+          onClick={handleSign}
+          style={!sigValid || busy ? { opacity: 0.6, cursor: busy ? "wait" : "not-allowed", transform: "none", boxShadow: "none" } : undefined}
+        >
+          {busy ? "Signing..." : <>Sign and go live <ArrowRight /></>}
+        </button>
+      </div>
+
+      <p className="aff-consent">
+        Your tracking link and dashboard unlock right after signing. The signed PDF is stored privately on our side and a copy is emailed to {f.handle.trim() || "your email"}.
+      </p>
+    </div>
+  );
+}
+
+// Short English recap of the per-brand headline terms, shown above the signature
+// field. Mirrors the agreement's compensation section without restating every
+// app-specific figure (those live in the PDF + dashboard).
+function commissionLine(brand: Brand): string {
+  const years = Math.round((brand.attributionMonths || 12) / 12);
+  return `You earn ${brand.commissionPct}% of every Premium purchase made through your tracking link, for at least ${years} ${years === 1 ? "year" : "years"} from first purchase.`;
+}
+
+// ── Step 5 · Live ───────────────────────────────────────────────────────────
 function StepLive({ brand, state, handle, t = getMessages("de"), lang = "de" }: { brand: Brand; state: PayoutState; handle: string; t?: Messages; lang?: Lang }) {
   const tagline = brandText(brand, "handTagline", lang);
   const pdfTitle = brandText(brand, "pdfTitle", lang);
@@ -980,6 +1126,7 @@ export function OnboardingShell({ brand: brandKey, handle, onSubmit, initialStep
     taxStatus: "",
     canInvoice: false,
     agreementAccepted: false,
+    signature: "",
   });
 
   useEffect(() => {
@@ -1015,7 +1162,8 @@ export function OnboardingShell({ brand: brandKey, handle, onSubmit, initialStep
     switch (key) {
       case "welcome":  return <StepWelcome brand={brand} go={next} handle={handle} t={t} lang={lang} />;
       case "tracking": return <StepTracking brand={brand} go={next} prev={prev} t={t} lang={lang} />;
-      case "payout":   return <StepPayout brand={brand} go={next} prev={prev} state={payout} setState={setPayout} onSubmit={onSubmit} t={t} lang={lang} />;
+      case "payout":   return <StepPayout brand={brand} go={next} prev={prev} state={payout} setState={setPayout} t={t} lang={lang} />;
+      case "sign":     return <StepSign brand={brand} go={next} prev={prev} state={payout} setState={setPayout} onSubmit={onSubmit} handle={handle} />;
       case "live":     return <StepLive brand={brand} state={payout} handle={handle} t={t} lang={lang} />;
       default:         return null;
     }

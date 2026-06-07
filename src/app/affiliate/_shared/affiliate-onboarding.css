@@ -413,6 +413,19 @@ details[open] .aff-acc-toggle::after { content: "−"; }
   .aff-bigcheck svg { width: 40px; height: 40px; }
 }
 
+/* ── Sign step (online signing) ───────────────────────────────────────────── */
+.aff-sign-doc { display: flex; flex-direction: column; gap: 10px; padding: 20px 22px; background: var(--aff-bg-elev); border: 1px solid var(--aff-line); border-radius: var(--aff-radius); }
+.aff-sign-doc-head { display: flex; flex-direction: column; gap: 4px; }
+.aff-sign-doc-title { font-family: var(--font-display), sans-serif; font-weight: 600; font-size: clamp(17px, 2.2vw, 20px); line-height: 1.2; letter-spacing: -0.01em; color: var(--aff-fg); }
+.aff-sign-doc-body { margin: 0; font-size: 14px; line-height: 1.6; color: var(--aff-fg-2); }
+.aff-sign-doc-link { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--aff-fg); text-decoration: none; border-bottom: 1px solid var(--aff-line-strong); padding-bottom: 2px; transition: color 160ms ease, border-color 160ms ease; }
+.aff-sign-doc-link:hover { color: var(--aff-fg); border-color: var(--aff-fg); }
+.aff-sign-doc-link svg { opacity: 0.7; }
+/* The typed signature reads as a signature: editorial italic, a touch larger. */
+.aff-sign-input { font-family: var(--font-editorial), serif; font-style: italic; font-size: 22px; letter-spacing: 0.01em; }
+.aff-sign-input::placeholder { font-style: italic; }
+.aff-sign-hint { margin: 0; font-size: 12px; line-height: 1.5; color: var(--aff-fg-3); }
+
 /* ── Tablet+ widening (>= 720px): use the extra width for breathing room ──── */
 @media (min-width: 720px) {
   .aff-pad { padding: 44px 48px 48px; }

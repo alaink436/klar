@@ -19,7 +19,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getApp, sbRpc } from "@/lib/adminApps";
 import { ALLOWED_ORIGINS, isAllowedOrigin, clientIp, rateLimit, exceedsContentLength } from "@/lib/apiGuards";
-import { getTrackingUrl, type BrandKey } from "@/app/affiliate/_shared/brands";
+import { getTrackingUrl } from "@/app/affiliate/_shared/brands";
+import { AGREEMENT_VERSION, APP_TO_BRAND, APP_META } from "@/lib/affiliateApps";
+import { renderAgreementPdf } from "@/lib/affiliateAgreementPdf";
 import { getAdminSettings, logNotifEvent } from "@/lib/adminSettings";
 import { flushNotifsIfBatchReady } from "@/lib/notifFlusher";
 
@@ -55,33 +57,74 @@ const COUNTRY_RE = /^[A-Z]{2,8}$/;
 // crafted request and gets rejected.
 const PAYOUT_METHODS = new Set(["wise"]);
 
-const AGREEMENT_VERSION = "v1.0-2026-05-21";
-// App-slug (= DB slug, what KLAR_ADMIN_APPS uses) to brand-key (= the
-// onboarding-shell brand identifier in _shared/brands.ts). Two apps have a
-// historical mismatch: the "yarn-stash" DB-slug maps to brand "yarnstash"
-// (no dash), and the "moto" DB-slug maps to brand "throttleup" (the public
-// product name). All other apps share the same string for both.
-const APP_TO_BRAND: Record<string, BrandKey> = {
-  "yarn-stash": "yarnstash",
-  moto: "throttleup",
-  wavelength: "wavelength",
-  kelva: "kelva",
-  trubel: "trubel",
-  myloo: "myloo",
-};
+// AGREEMENT_VERSION, APP_TO_BRAND and APP_META now live in @/lib/affiliateApps
+// so the agreement-pdf download route shares the exact same per-app figures.
 
-// Per-app metadata that the confirmation email composer needs. Tracking URL
-// is built via the shared getTrackingUrl() helper in brands.ts so the URL
-// the affiliate sees in the onboarding Step 4 panel always matches the URL
-// that arrives in their inbox.
-const APP_META: Record<string, { appName: string; commissionPct: number; attributionMonths: number }> = {
-  "yarn-stash": { appName: "Yarn-Stash", commissionPct: 50, attributionMonths: 24 },
-  moto:         { appName: "ThrottleUp", commissionPct: 25, attributionMonths: 12 },
-  wavelength:   { appName: "Wavelength", commissionPct: 30, attributionMonths: 12 },
-  kelva:        { appName: "Kelva",      commissionPct: 28, attributionMonths: 12 },
-  trubel:       { appName: "Trubel",     commissionPct: 50, attributionMonths: 24 },
-  myloo:        { appName: "MyLoo",      commissionPct: 26, attributionMonths: 12 },
-};
+// Private storage bucket (anime-vault) holding the signed agreement PDFs.
+// service-role only, no public access. Created via migration
+// create_affiliate_agreements_bucket.
+const AGREEMENTS_BUCKET = "affiliate-agreements";
+
+// anime-vault host fallback, mirrors logAgreement / fireConfirmationEmail: only
+// the service key needs to be set explicitly in prod, the URL defaults here.
+const INBOX_URL = process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
+
+function slugifyHandle(raw: string): string {
+  return raw.replace(/^@/, "").toLowerCase().replace(/[^a-z0-9_.-]/g, "") || "creator";
+}
+
+// Render the stamped agreement PDF and upload it to the private bucket under
+// <handle>/<app_slug>-<YYYY-MM-DD>.pdf. Throws on any failure so the caller can
+// keep the onboarding on the sign step (with the setup-token still unspent)
+// instead of advancing to a "live" state without a stored signed contract.
+// x-upsert lets a retry overwrite the same deterministic path idempotently.
+async function renderAndStoreAgreement(args: {
+  appSlug: string;
+  handleSlug: string;
+  appName: string;
+  displayName: string;
+  contactEmail: string;
+  trackingUrl: string;
+  commissionPct: number;
+  attributionMonths: number;
+  signerName: string;
+  signedAtIso: string;
+}): Promise<string> {
+  const key = process.env.KLAR_INBOX_SERVICE_KEY;
+  if (!key) throw new Error("agreement storage not configured (KLAR_INBOX_SERVICE_KEY missing)");
+
+  const bytes = await renderAgreementPdf({
+    app_name: args.appName,
+    handle: args.handleSlug,
+    display_name: args.displayName,
+    contact_email: args.contactEmail || "-",
+    tracking_url: args.trackingUrl,
+    commission_pct: args.commissionPct,
+    attribution_months: args.attributionMonths,
+    agreement_version: AGREEMENT_VERSION,
+    signed_at: args.signedAtIso,
+    language: "en",
+    signer_name: args.signerName,
+  });
+
+  const dateSlug = args.signedAtIso.slice(0, 10);
+  const path = `${args.handleSlug}/${args.appSlug}-${dateSlug}.pdf`;
+  const res = await fetch(`${INBOX_URL}/storage/v1/object/${AGREEMENTS_BUCKET}/${encodeURI(path)}`, {
+    method: "POST",
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/pdf",
+      "x-upsert": "true",
+    },
+    body: Buffer.from(bytes),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`agreement upload ${res.status}: ${text.slice(0, 200)}`);
+  }
+  return path;
+}
 
 function bad(req: NextRequest, message: string, status = 400): Response {
   return NextResponse.json({ ok: false, error: message }, { status, headers: corsHeaders(req.headers.get("origin")) });
@@ -92,6 +135,8 @@ async function logAgreement(args: {
   influencerId: string;
   displayName: string;
   contactEmail: string | null;
+  signerName: string | null;
+  storagePath: string | null;
   ip: string | null;
   userAgent: string | null;
 }): Promise<{ signed_at: string } | null> {
@@ -99,7 +144,7 @@ async function logAgreement(args: {
   // Production prod-env only sets KLAR_INBOX_SERVICE_KEY explicitly; the URL is hardcoded
   // to anime-vault as a fallback so the agreement-log never silently skips when only the
   // URL var is absent.
-  const url = process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
+  const url = INBOX_URL;
   const key = process.env.KLAR_INBOX_SERVICE_KEY;
   if (!key) {
     console.warn("[affiliate/complete] KLAR_INBOX_SERVICE_KEY env missing, agreement not logged");
@@ -119,6 +164,8 @@ async function logAgreement(args: {
         influencer_id: args.influencerId,
         display_name: args.displayName,
         contact_email: args.contactEmail,
+        signer_name: args.signerName,
+        storage_path: args.storagePath,
         agreement_version: AGREEMENT_VERSION,
         ip_address: args.ip,
         user_agent: args.userAgent,
@@ -213,6 +260,10 @@ export async function POST(req: NextRequest): Promise<Response> {
   const agreementAccepted = Boolean(payload.agreement_accepted);
   const contactEmail = String(payload.contact_email ?? payload.payout_email ?? "").trim().toLowerCase() || null;
   const assetsDriveUrl = typeof payload.assets_drive_url === "string" ? payload.assets_drive_url : null;
+  // Online-signing fields (sign step). signature_name is the typed full legal
+  // name; handle is sent so the stored PDF lands under a stable folder.
+  const signatureName = String(payload.signature_name ?? "").trim();
+  const bodyHandle = String(payload.handle ?? "").trim();
 
   if (!appSlug) return bad(req, "missing app");
   if (token.length < 16) return bad(req, "invalid token");
@@ -222,9 +273,42 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (promoCode && !HANDLE_RE.test(promoCode)) return bad(req, "invalid promo_code");
   if (!payoutEmail) return bad(req, "missing payout_email");
   if (!agreementAccepted) return bad(req, "agreement_not_accepted");
+  // Gate: no signature -> no completion -> no live step. The onboarding only
+  // calls this from the sign step, which requires a typed name.
+  if (signatureName.length < 2 || signatureName.length > 120) return bad(req, "signature_required");
 
   const app = getApp(appSlug);
   if (!app) return bad(req, `unknown app: ${appSlug}`);
+
+  // Sign + save BEFORE consuming the one-shot setup token: render the stamped
+  // agreement PDF and store it privately. On failure we return early with the
+  // token still unspent so the affiliate can retry signing. No stored contract
+  // means the flow never reaches the live step.
+  const meta = APP_META[appSlug];
+  const brandKey = APP_TO_BRAND[appSlug];
+  const handleSlug = slugifyHandle(bodyHandle || displayName.split(/\s+/)[0] || "creator");
+  const signedAtIso = new Date().toISOString();
+  let storagePath: string | null = null;
+  if (meta && brandKey) {
+    try {
+      storagePath = await renderAndStoreAgreement({
+        appSlug,
+        handleSlug,
+        appName: meta.appName,
+        displayName,
+        contactEmail: (contactEmail ?? payoutEmail) || "-",
+        trackingUrl: getTrackingUrl(brandKey, handleSlug),
+        commissionPct: meta.commissionPct,
+        attributionMonths: meta.attributionMonths,
+        signerName: signatureName,
+        signedAtIso,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[affiliate/complete] agreement render/store failed", msg);
+      return bad(req, "agreement_save_failed", 502);
+    }
+  }
 
   let row: { promo_code?: string; handle?: string; id?: string; contact_email?: string; language?: string };
   try {
@@ -250,8 +334,6 @@ export async function POST(req: NextRequest): Promise<Response> {
   const ua = req.headers.get("user-agent");
   const handle = row.handle ?? displayName.split(/\s+/)[0]?.toLowerCase() ?? "creator";
   let finalPromo = row.promo_code ?? promoCode ?? "";
-  const meta = APP_META[appSlug];
-  const brandKey = APP_TO_BRAND[appSlug];
   // Prefer the contact_email that was set at create_influencer_setup time
   // (token mint), fall back to the payout email the user just entered.
   const sendEmail = row.contact_email ?? contactEmail;
@@ -320,6 +402,8 @@ export async function POST(req: NextRequest): Promise<Response> {
     influencerId: row.id ?? "00000000-0000-0000-0000-000000000000",
     displayName,
     contactEmail: sendEmail,
+    signerName: signatureName,
+    storagePath,
     ip,
     userAgent: ua,
   });
@@ -346,7 +430,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       attribution_months: meta.attributionMonths,
       assets_drive_url: assetsDriveUrl,
       agreement_version: AGREEMENT_VERSION,
-      signed_at: agreement?.signed_at ?? new Date().toISOString(),
+      signed_at: agreement?.signed_at ?? signedAtIso,
       language,
     }).catch(() => { /* already logged */ });
   }

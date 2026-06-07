@@ -29,6 +29,8 @@ export function SetupClient({ token, handle, displayName, language }: { token: s
         tax_status: form.taxStatus,
         invoice_capable: form.canInvoice,
         agreement_accepted: form.agreementAccepted,
+        signature_name: form.signature.trim(),
+        handle,
         assets_drive_url: BRAND.assetsDriveUrl ?? null,
       }),
     });

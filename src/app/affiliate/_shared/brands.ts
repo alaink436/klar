@@ -215,7 +215,7 @@ export const BRANDS: Record<BrandKey, Brand> = {
     vibe: "Calm productivity, modern dark SaaS",
     productLine: "Focus + deep-work tracker",
     audience: "Indie hackers, makers, focused professionals",
-    painpoint: "zeigt dir endlich, wohin deine Fokuszeit wirklich geht",
+    painpoint: "findet per Heatmap-Voting den Termin, der wirklich allen passt, plus eigene Module für 8 Sportarten",
     productPrice: "8 €/mo",
     productPriceShort: "8 €",
     commissionPct: 50,
@@ -424,6 +424,7 @@ export const STEPS = [
   { key: "welcome",  label: "Willkommen" },
   { key: "tracking", label: "Tracking" },
   { key: "payout",   label: "Auszahlung" },
+  { key: "sign",     label: "Signieren" },
   { key: "live",     label: "Live" },
 ] as const;
 

@@ -29,6 +29,9 @@ export interface Messages {
   stepTracking: string;
   stepPayout: string;
   stepLive: string;
+  /** Sign step label. Optional: the online-signing step currently ships
+   *  EN-only copy, so non-EN onboardings fall back to "Sign" in stepLabel(). */
+  stepSign?: string;
 
   // Common buttons / a11y
   next: string;
@@ -523,6 +526,7 @@ const en: Messages = {
   stepTracking: "Tracking",
   stepPayout: "Payout",
   stepLive: "Live",
+  stepSign: "Sign",
 
   next: "Next",
   back: "Back",
