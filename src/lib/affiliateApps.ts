@@ -37,11 +37,16 @@ export const BRAND_TO_APP: Record<BrandKey, string> = {
 };
 
 // Per-app metadata the confirmation email composer + the agreement PDF need.
+// All apps run the standard 50% / 24-month deal, matching the onboarding UI
+// (BRANDS.commissionPct in brands.ts) and the agreement body ("Standard is 50
+// percent for 24 months"). commissionPct also drives the auto-minted
+// influencer_codes commission in /api/affiliate/complete, so this is the live
+// payout rate, not just display copy.
 export const APP_META: Record<string, { appName: string; commissionPct: number; attributionMonths: number }> = {
   "yarn-stash": { appName: "Yarn-Stash", commissionPct: 50, attributionMonths: 24 },
-  moto:         { appName: "ThrottleUp", commissionPct: 25, attributionMonths: 12 },
-  wavelength:   { appName: "Wavelength", commissionPct: 30, attributionMonths: 12 },
-  kelva:        { appName: "Kelva",      commissionPct: 28, attributionMonths: 12 },
+  moto:         { appName: "ThrottleUp", commissionPct: 50, attributionMonths: 24 },
+  wavelength:   { appName: "Wavelength", commissionPct: 50, attributionMonths: 24 },
+  kelva:        { appName: "Kelva",      commissionPct: 50, attributionMonths: 24 },
   trubel:       { appName: "Trubel",     commissionPct: 50, attributionMonths: 24 },
-  myloo:        { appName: "MyLoo",      commissionPct: 26, attributionMonths: 12 },
+  myloo:        { appName: "MyLoo",      commissionPct: 50, attributionMonths: 24 },
 };
