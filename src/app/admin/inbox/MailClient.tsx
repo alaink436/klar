@@ -19,6 +19,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import MailerClient from "../mailer/MailerClient";
 import TemplateManager from "./TemplateManager";
 import type { ReplyLang, ReplyTemplate } from "@/lib/replyTemplates";
+import type { AppMailTemplate } from "@/lib/outreachStore";
 
 export type Direction = "in" | "out";
 
@@ -176,17 +177,30 @@ function followerLabel(n: number | null): string {
   return String(n);
 }
 
+// Per-app creator-drive folders, used to fill {DRIVE_LINK} when inserting an
+// app's Mail-1/Mail-2 pitch into the composer. Mirror of brands.ts assetsDriveUrl.
+const DRIVE_BY_APP: Record<string, string> = {
+  "yarn-stash": "https://drive.google.com/drive/folders/1fTAhUKHpiPj_xkdBFhN89Fv5ekxVf5oC?usp=sharing",
+  moto: "https://drive.google.com/drive/folders/1bfDThWKo42aV19VxxaTwtp7ekkoT4OwC?usp=sharing",
+  wavelength: "https://drive.google.com/drive/folders/1TZREwEopAZkJE_XkbCpTAKfScUpevWg1?usp=sharing",
+  kelva: "https://drive.google.com/drive/folders/1zM38-mAqxciYRcxdVa3Mnerp4QEGI7ff?usp=sharing",
+  trubel: "https://drive.google.com/drive/folders/1ZV-ExYXZIK7vCedYKCMLvHkMZxtcsgPp?usp=sharing",
+  myloo: "https://drive.google.com/drive/folders/1g7wdnwhl3vXFlXEA4PxhX__IbNFHV2bX?usp=sharing",
+};
+
 export default function MailClient({
   conversations,
   appMeta,
   appSlugs,
   templates,
+  appMail,
   mailer,
 }: {
   conversations: Conversation[];
   appMeta: AppMeta;
   appSlugs: string[];
   templates: TemplatesMap;
+  appMail: AppMailTemplate[];
   mailer: { dueMail1: number; senderEnabled: boolean; cronSet: boolean; inboundSet: boolean };
 }) {
   const [convs, setConvs] = useState<Conversation[]>(conversations);
@@ -454,16 +468,42 @@ export default function MailClient({
 
   function applyTemplate(id: string) {
     if (!sel) return;
-    const tpls = tplMap[pickLang(sel.language)] ?? tplMap.de ?? [];
-    const t = tpls.find((x) => x.id === id);
-    if (!t) return;
     const who = sel.displayName || sel.handle;
+    // Per-app outreach pitch (Mail-1 / Mail-2 with painpoint) for this app.
+    if (id === "appmail::mail1" || id === "appmail::mail2") {
+      if (!appMailRow) return;
+      const subj = id.endsWith("mail2") ? appMailRow.mail2_subject : appMailRow.mail1_subject;
+      const bodyRaw = id.endsWith("mail2") ? appMailRow.mail2_body : appMailRow.mail1_body;
+      const drive = DRIVE_BY_APP[convApp] ?? "";
+      const prep = (txt: string | null) =>
+        (txt ?? "")
+          .replace(/\{\{NAME\}\}/gi, who)
+          .replace(/\{\{HANDLE\}\}/gi, sel.handle)
+          .replace(/\{DRIVE_LINK\}/g, drive);
+      setComposer({ subject: prep(subj) || `Re: Klar x ${who}`, body: prep(bodyRaw) });
+      return;
+    }
+    const list = tplMap[pickLang(sel.language)] ?? tplMap.de ?? [];
+    const t = list.find((x) => x.id === id);
+    if (!t) return;
     setComposer({ subject: subst(t.subject, who, sel.handle), body: subst(t.body, who, sel.handle) });
   }
 
   const showList = !narrow || !sel;
   const showDetail = !narrow || !!sel;
-  const tpls = sel ? tplMap[lang] ?? tplMap.de ?? [] : [];
+  const convApp = sel?.apps?.[0] ?? "";
+  const appMailRow = useMemo(
+    () => (sel && convApp ? appMail.find((m) => m.app_slug === convApp && m.language === pickLang(sel.language)) ?? null : null),
+    [appMail, sel, convApp],
+  );
+  const baseTpls = sel ? tplMap[lang] ?? tplMap.de ?? [] : [];
+  // If this conversation's app has a full Mail-2 pitch (with painpoint), show it
+  // instead of the generic "interesse" conditions reply.
+  const tpls = appMailRow?.mail2_body ? baseTpls.filter((t) => t.id !== "interesse") : baseTpls;
+  const convAppName = sel ? appMeta[convApp]?.name ?? convApp : "";
+  const appOpts: { id: string; label: string }[] = [];
+  if (appMailRow?.mail2_body) appOpts.push({ id: "appmail::mail2", label: `Pitch mit Painpoint · ${convAppName}` });
+  if (appMailRow?.mail1_body) appOpts.push({ id: "appmail::mail1", label: `Erstkontakt Mail 1 · ${convAppName}` });
 
   return (
     <>
@@ -880,6 +920,9 @@ export default function MailClient({
                       >
                         <option value="" disabled>einsetzen…</option>
                         <option value="__none">— keine (Feld leeren) —</option>
+                        {appOpts.map((o) => (
+                          <option key={o.id} value={o.id}>{o.label}</option>
+                        ))}
                         {tpls.map((t) => (
                           <option key={t.id} value={t.id}>{t.label}</option>
                         ))}

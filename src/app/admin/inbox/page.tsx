@@ -19,6 +19,7 @@ import {
   listOutreachTargets,
   listMessagesForTargets,
   listTargetsForMail1,
+  listAppTemplates,
   type OutreachMessage,
   type OutreachTarget,
 } from "../../../lib/outreachStore";
@@ -396,6 +397,9 @@ export default async function InboxPage({
   // Reply templates for the composer: DB-editable (klar_reply_templates) with a
   // fallback to the hardcoded set so the dropdown is never empty.
   const replyTemplates = await getReplyTemplates();
+  // Per-app outreach Mail-1/Mail-2 (with painpoint) so the composer can offer
+  // the full pitch for the conversation's app.
+  const appMail = await listAppTemplates();
   const senderEnabled = process.env.KLAR_OUTREACH_SENDER === "on";
   const cronSet = Boolean(process.env.CRON_SECRET);
   const inboundSet = Boolean(process.env.KLAR_INBOUND_DOMAIN);  const topbar = `
@@ -413,6 +417,7 @@ export default async function InboxPage({
         appMeta={appMeta}
         appSlugs={appSlugs}
         templates={replyTemplates}
+        appMail={appMail}
         mailer={{ dueMail1, senderEnabled, cronSet, inboundSet }}
       />
     </>
