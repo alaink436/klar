@@ -22,6 +22,7 @@ import { listTokens } from "@/lib/apiTokens";
 import { listBrainMembers } from "@/lib/brainMembers";
 import BrainExplorer from "@/app/components/brain/BrainExplorer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/ui/page-header";
 import BrainAccessManager, {
   type TokenRow,
   type MemberRow,
@@ -91,11 +92,9 @@ export default async function BrainPage({
       <title>AI-Brain · Klar Control</title>
       <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
       <div className="content" style={{ maxWidth: "none" }}>
-        <h1>AI-Brain</h1>
-        <p className="sub">
-          Dein Wissensspeicher als Graph plus die Zugänge dazu — API-Tokens für Remote-Agents und Lese-Mitglieder
-          für /brain.
-        </p>
+        <PageHeader eyebrow="Klar Control" title="AI-Brain">
+          Dein Wissensspeicher als Graph plus die Zugänge dazu, API-Tokens für Remote-Agents und Lese-Mitglieder für /brain.
+        </PageHeader>
 
         {sp.err && (
           <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--danger) 35%,var(--line))", color: "var(--danger)" }}>

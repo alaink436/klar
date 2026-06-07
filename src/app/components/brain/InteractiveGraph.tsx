@@ -146,11 +146,11 @@ export default function InteractiveGraph({
     cx /= N; cy /= N;
     // Hubs keep ~0.85 of their radius; leaves are pulled in to ~0.45.
     const px = nodes.map((n, i) => {
-      const pull = 0.45 + 0.4 * (deg[i] / maxDeg);
+      const pull = 0.32 + 0.34 * (deg[i] / maxDeg);
       return { x: (cx + (n.x - cx) * pull) * SPREAD, y: (cy + (n.y - cy) * pull) * SPREAD };
     });
     if (N <= 700) {
-      const rad = nodes.map((n) => Math.max(8, Math.min(42, n.r * 1.15)) / 2 + 7);
+      const rad = nodes.map((n) => Math.max(8, Math.min(42, n.r * 1.15)) / 2 + 6);
       for (let it = 0; it < 7; it++) {
         for (let i = 0; i < N; i++) {
           for (let j = i + 1; j < N; j++) {
