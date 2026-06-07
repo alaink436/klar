@@ -9,14 +9,12 @@
 // Env: KLAR_ADMIN_KEY, KLAR_DEVICE_SECRET, KLAR_TOTP_SECRET.
 
 import { headers } from "next/headers";
-import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   ICON,
   readCookieFromString,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
-import { getApps } from "../../../lib/adminApps";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -40,23 +38,18 @@ export default async function CalPage() {
   return (
     <>
       <title>Cal Admin · Klar Control</title>
-      <div className="layout">
-        <AdminSidebar active={"cal"} apps={getApps()} />
-        <main className="main">
-          <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content">
-            <div style={{ margin: "-24px -28px -28px -28px", height: "calc(100vh - 56px)", position: "relative" }}>
-              <iframe
-                src="https://cal.getklar.org"
-                title="Cal Admin"
-                style={{ width: "100%", height: "100%", border: 0, display: "block", background: "var(--surface)" }}
-                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads allow-storage-access-by-user-activation"
-                allow="clipboard-read; clipboard-write; camera; microphone"
-                referrerPolicy="origin"
-              />
-            </div>
-          </div>
-        </main>
+      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <div className="content">
+        <div style={{ margin: "-24px -28px -28px -28px", height: "calc(100vh - 56px)", position: "relative" }}>
+          <iframe
+            src="https://cal.getklar.org"
+            title="Cal Admin"
+            style={{ width: "100%", height: "100%", border: 0, display: "block", background: "var(--surface)" }}
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads allow-storage-access-by-user-activation"
+            allow="clipboard-read; clipboard-write; camera; microphone"
+            referrerPolicy="origin"
+          />
+        </div>
       </div>
     </>
   );

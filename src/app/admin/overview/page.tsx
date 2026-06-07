@@ -13,7 +13,6 @@
 //      keys via sbGet, and KLAR_INBOX_* for the activity feed).
 
 import { headers } from "next/headers";
-import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   ICON,
@@ -285,17 +284,12 @@ export default async function OverviewPage({
   return (
     <>
       <title>Übersicht · Klar Control</title>
-      <div className="layout">
-        <AdminSidebar active={"overview"} apps={apps} />
-        <main className="main">
-          <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content">
-            <div dangerouslySetInnerHTML={{ __html: flash + htmlTop }} />
-            {series.length ? <MonthlyBarChart series={series} currency={REPORTING_CURRENCY} /> : null}
-            <div dangerouslySetInnerHTML={{ __html: htmlMid }} />
-            {tableRows.length ? <OverviewAffiliateTable rows={tableRows} /> : null}
-          </div>
-        </main>
+      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <div className="content">
+        <div dangerouslySetInnerHTML={{ __html: flash + htmlTop }} />
+        {series.length ? <MonthlyBarChart series={series} currency={REPORTING_CURRENCY} /> : null}
+        <div dangerouslySetInnerHTML={{ __html: htmlMid }} />
+        {tableRows.length ? <OverviewAffiliateTable rows={tableRows} /> : null}
       </div>
     </>
   );

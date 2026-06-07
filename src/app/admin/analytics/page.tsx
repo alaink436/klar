@@ -9,7 +9,6 @@
 //      KLAR_INBOX_SERVICE_KEY.
 
 import { headers } from "next/headers";
-import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   ICON,
@@ -660,29 +659,24 @@ export default async function AnalyticsPage({
       {/* Smoke + Glass embeds (same as /admin route). suppressHydrationWarning:
           SMOKE_BG_SCRIPT sets width/height on the canvas at runtime, which is
           fine but trips React's SSR→client diff. */}
-      <div className="layout">
-        <AdminSidebar active={"analytics"} apps={getApps()} />
-        <main className="main">
-          <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content">
-            <h1>Analytics</h1>
-            <p className="sub">
-              User und Umsatz pro App, plus Web-Besucher, Affiliate-Landings und
-              Conversion-Funnel. App-User aus auth.users, Umsatz aus RevenueCat.
-              Web-Tracking ist privacy-friendly, keine Cookies, kein Pixel.
-            </p>
-            <AnalyticsClient
-              data={data}
-              funnel={funnel}
-              appsData={appsData}
-              appsChart={appsChart}
-              tab={tab}
-              periodPublic={pubP}
-              periodAffiliate={affP}
-              periodFunnel={funP}
-            />
-          </div>
-        </main>
+      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <div className="content">
+        <h1>Analytics</h1>
+        <p className="sub">
+          User und Umsatz pro App, plus Web-Besucher, Affiliate-Landings und
+          Conversion-Funnel. App-User aus auth.users, Umsatz aus RevenueCat.
+          Web-Tracking ist privacy-friendly, keine Cookies, kein Pixel.
+        </p>
+        <AnalyticsClient
+          data={data}
+          funnel={funnel}
+          appsData={appsData}
+          appsChart={appsChart}
+          tab={tab}
+          periodPublic={pubP}
+          periodAffiliate={affP}
+          periodFunnel={funP}
+        />
       </div>
     </>
   );

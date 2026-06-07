@@ -13,7 +13,6 @@
 //      keys via sbGet/listInfluencers).
 
 import { headers } from "next/headers";
-import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   ICON,
@@ -22,7 +21,7 @@ import {
   fmtRelative,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
-import { getApps, getApp, sbGet, setupLandingUrl, listInfluencers, type AdminApp, type InfluencerRow } from "../../../lib/adminApps";
+import { getApp, sbGet, setupLandingUrl, listInfluencers, type AdminApp, type InfluencerRow } from "../../../lib/adminApps";
 import { listOutreachTargets, type OutreachTarget } from "../../../lib/outreachStore";
 import { getTrackingUrl, type BrandKey } from "../../affiliate/_shared/brands";
 
@@ -327,7 +326,6 @@ export default async function AppDetailPage({
   if (!appObj) redirect("/admin/overview");
 
   const sp = await searchParams;
-  const apps = getApps();
   const main = await appMain(appObj);
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";  const topbar = `
     <span class="crumb"><b>${esc(appObj.name)}</b>${ICON.chevron}<span>Klar Control</span></span>
@@ -337,13 +335,8 @@ export default async function AppDetailPage({
   return (
     <>
       <title>{`${appObj.name} · Klar Control`}</title>
-      <div className="layout">
-        <AdminSidebar active={slug} apps={apps} />
-        <main className="main">
-          <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
-        </main>
-      </div>
+      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
     </>
   );
 }

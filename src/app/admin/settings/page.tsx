@@ -8,15 +8,14 @@
 //   3) Zugriff — invite generator + list of existing invite tokens.
 //
 // All form posts still go to plain server routes (/admin/settings/save and
-// /admin/invite), no client-side state. Auth gate matches /admin (klar_device
-// HMAC + klar_admin session cookie).
+// /admin/invite), no client-side state. Auth gate matches /admin. The sidebar +
+// .layout/.main frame come from the persistent admin/layout.tsx (AdminShell), so
+// this page renders only its content.
 
 import { headers } from "next/headers";
-import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import { ICON, readCookieFromString } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
-import { getApps } from "../../../lib/adminApps";
 import { getAdminSettings, listInvites } from "../../../lib/adminSettings";
 import SettingsManager, { type InviteRow } from "./SettingsManager";
 
@@ -70,41 +69,36 @@ export default async function SettingsPage({
   return (
     <>
       <title>Einstellungen · Klar Control</title>
-      <div className="layout">
-        <AdminSidebar active={"settings"} apps={getApps()} />
-        <main className="main">
-          <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content">
-            <h1>Einstellungen</h1>
-            <p className="sub">
-              Globale Schalter für das Klar-Studio — Marketing-Shader, Auto-Accept
-              für Affiliate-Inquiries, Benachrichtigungs-Trigger und Einladungen
-              für neue Admin-Geräte.
-            </p>
-            {flashRaw ? (
-              <div
-                className={
-                  isErr
-                    ? "mb-6 rounded-[var(--radius-sm)] border border-[color-mix(in_oklab,var(--danger)_35%,var(--line))] bg-[color-mix(in_oklab,var(--danger)_10%,var(--surface))] px-4 py-3 text-[13.5px] text-danger"
-                    : "mb-6 rounded-[var(--radius-sm)] border border-line bg-surface-2 px-4 py-3 text-[13.5px] text-fg-2"
-                }
-              >
-                {flashRaw}
-              </div>
-            ) : null}
-            <SettingsManager
-              settings={{
-                shader_enabled: settings.shader_enabled,
-                auto_accept_affiliates: settings.auto_accept_affiliates,
-                notification_trigger_inquiry: settings.notification_trigger_inquiry,
-                notification_trigger_complete: settings.notification_trigger_complete,
-                notification_batch_size: settings.notification_batch_size,
-                notification_recipient_email: settings.notification_recipient_email,
-              }}
-              invites={inviteRows}
-            />
+      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <div className="content">
+        <h1>Einstellungen</h1>
+        <p className="sub">
+          Globale Schalter für das Klar-Studio — Marketing-Shader, Auto-Accept
+          für Affiliate-Inquiries, Benachrichtigungs-Trigger und Einladungen
+          für neue Admin-Geräte.
+        </p>
+        {flashRaw ? (
+          <div
+            className={
+              isErr
+                ? "mb-6 rounded-[var(--radius-sm)] border border-[color-mix(in_oklab,var(--danger)_35%,var(--line))] bg-[color-mix(in_oklab,var(--danger)_10%,var(--surface))] px-4 py-3 text-[13.5px] text-danger"
+                : "mb-6 rounded-[var(--radius-sm)] border border-line bg-surface-2 px-4 py-3 text-[13.5px] text-fg-2"
+            }
+          >
+            {flashRaw}
           </div>
-        </main>
+        ) : null}
+        <SettingsManager
+          settings={{
+            shader_enabled: settings.shader_enabled,
+            auto_accept_affiliates: settings.auto_accept_affiliates,
+            notification_trigger_inquiry: settings.notification_trigger_inquiry,
+            notification_trigger_complete: settings.notification_trigger_complete,
+            notification_batch_size: settings.notification_batch_size,
+            notification_recipient_email: settings.notification_recipient_email,
+          }}
+          invites={inviteRows}
+        />
       </div>
     </>
   );

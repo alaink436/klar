@@ -7,14 +7,12 @@
 // the key never passes through the client beyond the form submit.
 
 import { headers } from "next/headers";
-import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   ICON,
   readCookieFromString,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
-import { getApps } from "../../../lib/adminApps";
 import { listSecrets, vaultReady } from "../../../lib/vault";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -71,57 +69,52 @@ export default async function VaultPage({
   return (
     <>
       <title>Vault · Klar Control</title>
-      <div className="layout">
-        <AdminSidebar active={"vault"} apps={getApps()} />
-        <main className="main">
-          <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content">
-            <h1>Vault</h1>
-            <p className="sub">
-              Keys werden AES-256-GCM verschlüsselt gespeichert (Master-Key nur in Vercel). Ein Agent mit{" "}
-              <code>vault:use</code>-Token nutzt sie über den Proxy, ohne sie je zu sehen. Klartext ist bewusst nicht abrufbar.
-            </p>
+      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <div className="content">
+        <h1>Vault</h1>
+        <p className="sub">
+          Keys werden AES-256-GCM verschlüsselt gespeichert (Master-Key nur in Vercel). Ein Agent mit{" "}
+          <code>vault:use</code>-Token nutzt sie über den Proxy, ohne sie je zu sehen. Klartext ist bewusst nicht abrufbar.
+        </p>
 
-            {!ready && (
-              <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--warning) 35%,var(--line))", color: "var(--warning)" }}>
-                Vault inaktiv: setze <code>VAULT_MASTER_KEY</code> in Vercel, dann werden Keys ver- und entschlüsselt.
-              </div>
-            )}
-            {sp.err && (
-              <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--danger) 35%,var(--line))", color: "var(--danger)" }}>
-                {sp.err}
-              </div>
-            )}
-            {sp.msg && <div className="flash">{sp.msg}</div>}
-
-            {/* Stat hero — key count + status. */}
-            <Card className="mb-6 flex flex-wrap items-center justify-between gap-6 px-6 py-5">
-              <div className="flex items-end gap-8">
-                <div>
-                  <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">
-                    Gespeicherte Keys
-                  </div>
-                  <div className="[font-family:var(--font-display)] font-extrabold text-[42px] leading-none tracking-[-0.03em] text-fg mt-2 [font-variant-numeric:tabular-nums]">
-                    <NumberTicker value={rows.length} />
-                  </div>
-                </div>
-                <div>
-                  <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">
-                    Aktiv genutzt
-                  </div>
-                  <div className="[font-family:var(--font-display)] font-extrabold text-[42px] leading-none tracking-[-0.03em] text-fg mt-2 [font-variant-numeric:tabular-nums]">
-                    <NumberTicker value={active} />
-                  </div>
-                </div>
-              </div>
-              <Badge tone={ready ? "ok" : "warn"} dot>
-                {ready ? "Vault aktiv" : "Vault inaktiv"}
-              </Badge>
-            </Card>
-
-            <VaultManager rows={rows} />
+        {!ready && (
+          <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--warning) 35%,var(--line))", color: "var(--warning)" }}>
+            Vault inaktiv: setze <code>VAULT_MASTER_KEY</code> in Vercel, dann werden Keys ver- und entschlüsselt.
           </div>
-        </main>
+        )}
+        {sp.err && (
+          <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--danger) 35%,var(--line))", color: "var(--danger)" }}>
+            {sp.err}
+          </div>
+        )}
+        {sp.msg && <div className="flash">{sp.msg}</div>}
+
+        {/* Stat hero — key count + status. */}
+        <Card className="mb-6 flex flex-wrap items-center justify-between gap-6 px-6 py-5">
+          <div className="flex items-end gap-8">
+            <div>
+              <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">
+                Gespeicherte Keys
+              </div>
+              <div className="[font-family:var(--font-display)] font-extrabold text-[42px] leading-none tracking-[-0.03em] text-fg mt-2 [font-variant-numeric:tabular-nums]">
+                <NumberTicker value={rows.length} />
+              </div>
+            </div>
+            <div>
+              <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">
+                Aktiv genutzt
+              </div>
+              <div className="[font-family:var(--font-display)] font-extrabold text-[42px] leading-none tracking-[-0.03em] text-fg mt-2 [font-variant-numeric:tabular-nums]">
+                <NumberTicker value={active} />
+              </div>
+            </div>
+          </div>
+          <Badge tone={ready ? "ok" : "warn"} dot>
+            {ready ? "Vault aktiv" : "Vault inaktiv"}
+          </Badge>
+        </Card>
+
+        <VaultManager rows={rows} />
       </div>
     </>
   );

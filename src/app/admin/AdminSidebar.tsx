@@ -5,8 +5,10 @@
 // stay plain <a> (auth action / new tab). Server component — <Link> needs no
 // 'use client'. Replaces the per-page `<aside dangerouslySetInnerHTML={sidebar}>`.
 
+"use client";
+
 import Link from "next/link";
-import { ICON } from "./_shared";
+import { ICON } from "./icons";
 
 function navItem(active: string, v: string, label: string, icon: string, href: string) {
   return (

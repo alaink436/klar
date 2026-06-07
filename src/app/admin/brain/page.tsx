@@ -11,14 +11,12 @@
 // Env: KLAR_ADMIN_KEY, KLAR_DEVICE_SECRET, KLAR_TOTP_SECRET, BRAIN_GITHUB_TOKEN.
 
 import { headers } from "next/headers";
-import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   ICON,
   readCookieFromString,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
-import { getApps } from "../../../lib/adminApps";
 import { scopeGraph, hasToken, availableFolders, SHOWCASE_FOLDERS } from "@/lib/brainVault";
 import { listTokens } from "@/lib/apiTokens";
 import { listBrainMembers } from "@/lib/brainMembers";
@@ -90,51 +88,46 @@ export default async function BrainPage({
   return (
     <>
       <title>AI-Brain · Klar Control</title>
-      <div className="layout">
-        <AdminSidebar active={"brain"} apps={getApps()} />
-        <main className="main">
-          <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content" style={{ maxWidth: "none" }}>
-            <h1>AI-Brain</h1>
-            <p className="sub">
-              Dein Wissensspeicher als Graph plus die Zugänge dazu — API-Tokens für Remote-Agents und Lese-Mitglieder
-              für /brain.
-            </p>
+      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <div className="content" style={{ maxWidth: "none" }}>
+        <h1>AI-Brain</h1>
+        <p className="sub">
+          Dein Wissensspeicher als Graph plus die Zugänge dazu — API-Tokens für Remote-Agents und Lese-Mitglieder
+          für /brain.
+        </p>
 
-            {sp.err && (
-              <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--danger) 35%,var(--line))", color: "var(--danger)" }}>
-                {sp.err}
+        {sp.err && (
+          <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--danger) 35%,var(--line))", color: "var(--danger)" }}>
+            {sp.err}
+          </div>
+        )}
+        {sp.msg && <div className="flash">{sp.msg}</div>}
+
+        <Tabs defaultValue={defaultTab}>
+          <TabsList>
+            <TabsTrigger value="graph">Graph</TabsTrigger>
+            <TabsTrigger value="zugang">Zugang</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="graph">
+            {!tokenReady && (
+              <div className="card" style={{ marginBottom: 16 }}>
+                <div className="k">Notiz-Inhalte deaktiviert</div>
+                <p className="s">
+                  Der Graph wird angezeigt, aber zum Öffnen von Notizen fehlt <code>BRAIN_GITHUB_TOKEN</code>{" "}
+                  (Fine-grained PAT, Contents: Read) in den Vercel-Env-Vars. Nach dem Setzen neu deployen.
+                </p>
               </div>
             )}
-            {sp.msg && <div className="flash">{sp.msg}</div>}
+            <div style={{ height: "calc(100dvh - 280px)", minHeight: 480 }}>
+              <BrainExplorer graph={graph} noteApi="/admin/brain/note" />
+            </div>
+          </TabsContent>
 
-            <Tabs defaultValue={defaultTab}>
-              <TabsList>
-                <TabsTrigger value="graph">Graph</TabsTrigger>
-                <TabsTrigger value="zugang">Zugang</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="graph">
-                {!tokenReady && (
-                  <div className="card" style={{ marginBottom: 16 }}>
-                    <div className="k">Notiz-Inhalte deaktiviert</div>
-                    <p className="s">
-                      Der Graph wird angezeigt, aber zum Öffnen von Notizen fehlt <code>BRAIN_GITHUB_TOKEN</code>{" "}
-                      (Fine-grained PAT, Contents: Read) in den Vercel-Env-Vars. Nach dem Setzen neu deployen.
-                    </p>
-                  </div>
-                )}
-                <div style={{ height: "calc(100dvh - 280px)", minHeight: 480 }}>
-                  <BrainExplorer graph={graph} noteApi="/admin/brain/note" />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="zugang">
-                <BrainAccessManager tokens={tokens} members={members} folders={folders} />
-              </TabsContent>
-            </Tabs>
-          </div>
-        </main>
+          <TabsContent value="zugang">
+            <BrainAccessManager tokens={tokens} members={members} folders={folders} />
+          </TabsContent>
+        </Tabs>
       </div>
     </>
   );

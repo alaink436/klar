@@ -10,13 +10,11 @@
 //      KLAR_INBOX_SUPABASE_URL (default anime-vault), KLAR_INBOX_SERVICE_KEY.
 
 import { headers } from "next/headers";
-import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   ICON,
   readCookieFromString,} from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
-import { getApps } from "../../../lib/adminApps";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -224,15 +222,10 @@ export default async function BookingsPage() {
   return (
     <>
       <title>Bookings · Klar Control</title>
-      <div className="layout">
-        <AdminSidebar active={"bookings"} apps={getApps()} />
-        <main className="main">
-          <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content">
-            <h1>Bookings</h1>
-            <Body result={result} />
-          </div>
-        </main>
+      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <div className="content">
+        <h1>Bookings</h1>
+        <Body result={result} />
       </div>
     </>
   );

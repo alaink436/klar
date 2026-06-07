@@ -7,7 +7,6 @@
 // these live via getReplyTemplates() (DB with hardcoded fallback).
 
 import { headers } from "next/headers";
-import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   ICON,
@@ -15,7 +14,6 @@ import {
   esc,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
-import { getApps } from "../../../lib/adminApps";
 import {
   listReplyTemplateRows,
   isReplyTemplateStoreConfigured,
@@ -179,7 +177,6 @@ export default async function ReplyTemplatesPage({
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
   const sp = await searchParams;
-  const apps = getApps();
   const main = await replyTemplatesMain();
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
   const topbar = `
@@ -190,13 +187,8 @@ export default async function ReplyTemplatesPage({
   return (
     <>
       <title>Antwort-Vorlagen · Klar Control</title>
-      <div className="layout">
-        <AdminSidebar active={"reply-templates"} apps={apps} />
-        <main className="main">
-          <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
-        </main>
-      </div>
+      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
     </>
   );
 }

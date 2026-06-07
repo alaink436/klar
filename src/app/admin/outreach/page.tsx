@@ -12,7 +12,6 @@
 //      (+ APIFY_API_TOKEN, BREVO_API_KEY for the live quota cards).
 
 import { headers } from "next/headers";
-import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   ICON,
@@ -20,7 +19,6 @@ import {
   fmtRelative,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
-import { getApps } from "../../../lib/adminApps";
 import {
   getOutreachStats,
   listOutreachTargets,
@@ -741,7 +739,6 @@ export default async function OutreachPage({
   const autoRefresh = sp.ar === "1";
   const showTests = sp.show_tests === "1";
 
-  const apps = getApps();
   const result = await outreachMain(filterPlatform, filterStatus, filterApp, query, autoRefresh, showTests);
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";  const topbar = `
     <span class="crumb"><b>Outreach</b>${ICON.chevron}<span>Klar Control</span></span>
@@ -752,28 +749,23 @@ export default async function OutreachPage({
     <>
       <title>Outreach · Klar Control</title>
       {autoRefresh ? <meta httpEquiv="refresh" content="15" /> : null}
-      <div className="layout">
-        <AdminSidebar active={"outreach"} apps={apps} />
-        <main className="main">
-          <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content">
-            {result.configured ? (
-              <>
-                <div dangerouslySetInnerHTML={{ __html: flash + result.topHtml }} />
-                <OutreachKpis stats={result.stats} />
-                <div dangerouslySetInnerHTML={{ __html: result.midTopHtml }} />
-                <OutreachRuns runs={result.runs} hasRunningWave={result.hasRunningWave} />
-                <div dangerouslySetInnerHTML={{ __html: result.midBotHtml }} />
-                <OutreachFilters {...result.filter} />
-                <div dangerouslySetInnerHTML={{ __html: result.bottomHeadHtml }} />
-                <OutreachTargets targets={result.rows} filterActive={result.filterActive} />
-                <div dangerouslySetInnerHTML={{ __html: result.bottomTailHtml }} />
-              </>
-            ) : (
-              <div dangerouslySetInnerHTML={{ __html: flash + result.html }} />
-            )}
-          </div>
-        </main>
+      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <div className="content">
+        {result.configured ? (
+          <>
+            <div dangerouslySetInnerHTML={{ __html: flash + result.topHtml }} />
+            <OutreachKpis stats={result.stats} />
+            <div dangerouslySetInnerHTML={{ __html: result.midTopHtml }} />
+            <OutreachRuns runs={result.runs} hasRunningWave={result.hasRunningWave} />
+            <div dangerouslySetInnerHTML={{ __html: result.midBotHtml }} />
+            <OutreachFilters {...result.filter} />
+            <div dangerouslySetInnerHTML={{ __html: result.bottomHeadHtml }} />
+            <OutreachTargets targets={result.rows} filterActive={result.filterActive} />
+            <div dangerouslySetInnerHTML={{ __html: result.bottomTailHtml }} />
+          </>
+        ) : (
+          <div dangerouslySetInnerHTML={{ __html: flash + result.html }} />
+        )}
       </div>
       <OutreachClientScripts />
     </>

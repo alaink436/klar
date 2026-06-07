@@ -20,8 +20,11 @@ import {
   MODAL_HTML,
   MODAL_SCRIPT,
 } from "./_shared";
+import { getApps } from "@/lib/adminApps";
+import AdminShell from "./AdminShell";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
+  const apps = getApps();
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -33,7 +36,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <canvas id="klar-smoke-bg" aria-hidden="true" suppressHydrationWarning />
-      {children}
+      <AdminShell apps={apps}>{children}</AdminShell>
       {/* Confirm dialog hoisted here so it survives client-side menu switches.
           MODAL_SCRIPT runs once on first load and keeps a MutationObserver on
           <body>, so it auto-binds any data-klar-confirm form a SPA-navigated

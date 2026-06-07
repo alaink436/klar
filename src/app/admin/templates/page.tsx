@@ -11,14 +11,12 @@
 //      (outreach store) + APIFY_API_TOKEN presence check.
 
 import { headers } from "next/headers";
-import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   ICON,
   readCookieFromString,  esc,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
-import { getApps } from "../../../lib/adminApps";
 import { listAppTemplates, isOutreachConfigured, type AppMailTemplate } from "../../../lib/outreachStore";
 import { KLAR_APPS } from "../../../lib/klarApps";
 
@@ -173,7 +171,6 @@ export default async function TemplatesPage({
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
   const sp = await searchParams;
-  const apps = getApps();
   const main = await templatesMain();
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";  const topbar = `
     <span class="crumb"><b>Templates</b>${ICON.chevron}<span>Klar Control</span></span>
@@ -183,13 +180,8 @@ export default async function TemplatesPage({
   return (
     <>
       <title>Templates · Klar Control</title>
-      <div className="layout">
-        <AdminSidebar active={"templates"} apps={apps} />
-        <main className="main">
-          <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
-        </main>
-      </div>
+      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
     </>
   );
 }

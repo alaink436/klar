@@ -12,7 +12,6 @@
 //      keys consumed by sbGet via the app registry).
 
 import { headers } from "next/headers";
-import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   ICON,
@@ -174,13 +173,8 @@ export default async function PayoutsPage({
   return (
     <>
       <title>Auszahlungen · Klar Control</title>
-      <div className="layout">
-        <AdminSidebar active={"payouts"} apps={apps} />
-        <main className="main">
-          <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
-        </main>
-      </div>
+      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
     </>
   );
 }

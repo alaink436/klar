@@ -9,13 +9,12 @@
 //      (+ optional KLAR_INBOX_SUPABASE_URL).
 
 import { headers } from "next/headers";
-import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
   ICON,
   readCookieFromString,} from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
-import { getApps, setupLandingUrl } from "../../../lib/adminApps";
+import { setupLandingUrl } from "../../../lib/adminApps";
 import {
   listOutreachTargets,
   listMessagesForTargets,
@@ -102,7 +101,6 @@ export default async function InboxPage({
   if (!device) redirect("/admin/login");
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
-  const apps = getApps();
   const appMeta: AppMeta = {};
   for (const a of KLAR_APPS) appMeta[a.slug] = { name: a.name, icon: a.icon };
   const appSlugs = KLAR_APPS.map((a) => a.slug);
@@ -374,20 +372,15 @@ export default async function InboxPage({
   return (
     <>
       <title>Inbox · Klar Control</title>
-      <div className="layout">
-        <AdminSidebar active={"inbox"} apps={apps} />
-        <main className="main">
-          <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-          {flashMsg && <div className="flash" style={{ margin: "12px 36px 0" }}>{flashMsg}</div>}
-          <MailClient
-            conversations={conversations}
-            appMeta={appMeta}
-            appSlugs={appSlugs}
-            templates={replyTemplates}
-            mailer={{ dueMail1, senderEnabled, cronSet, inboundSet }}
-          />
-        </main>
-      </div>
+      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      {flashMsg && <div className="flash" style={{ margin: "12px 36px 0" }}>{flashMsg}</div>}
+      <MailClient
+        conversations={conversations}
+        appMeta={appMeta}
+        appSlugs={appSlugs}
+        templates={replyTemplates}
+        mailer={{ dueMail1, senderEnabled, cronSet, inboundSet }}
+      />
     </>
   );
 }
