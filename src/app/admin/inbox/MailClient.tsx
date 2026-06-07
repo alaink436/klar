@@ -13,7 +13,8 @@
 // are the hard offset-shadow on the Senden button and the reply-count chip,
 // dimmed in dark mode so the brutalist tell stays subtle.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import MailerClient from "../mailer/MailerClient";
 import type { ReplyLang, ReplyTemplate } from "@/lib/replyTemplates";
@@ -206,6 +207,14 @@ export default function MailClient({
   const [filter, setFilter] = useState<"all" | "inquiry" | "replied" | "converted" | "open">("all");
   const [narrow, setNarrow] = useState(false);
   const [mailerOpen, setMailerOpen] = useState(false);
+
+  // Soft-refresh: re-runs the server component, pulls fresh conversations and
+  // re-seeds the list (via the seededFrom guard above) WITHOUT a full reload —
+  // selection + scroll stay put. Covers new inbound replies/inquiries that the
+  // inbox doesn't poll for, so no more manual F5 after actions.
+  const router = useRouter();
+  const [refreshing, startRefresh] = useTransition();
+  const refresh = useCallback(() => startRefresh(() => router.refresh()), [router]);
 
   // per inbound-message translation: 'loading' | 'error' | {text,provider}
   const [trans, setTrans] = useState<
@@ -420,13 +429,25 @@ export default function MailClient({
       {showList && (
         <Panel id="list" order={1} defaultSize={32} minSize={22} maxSize={52} className="kr-list">
           <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 10 }}>
-            <button
-              type="button"
-              onClick={() => setMailerOpen(true)}
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "9px 14px", border: "1px solid var(--line-strong)", borderRadius: "var(--radius-sm)", background: "var(--surface)", color: "var(--fg)", fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-            >
-              Welle mailen{mailer.dueMail1 ? ` · ${mailer.dueMail1} fällig` : ""}
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setMailerOpen(true)}
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "9px 14px", border: "1px solid var(--line-strong)", borderRadius: "var(--radius-sm)", background: "var(--surface)", color: "var(--fg)", fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+              >
+                Welle mailen{mailer.dueMail1 ? ` · ${mailer.dueMail1} fällig` : ""}
+              </button>
+              <button
+                type="button"
+                onClick={refresh}
+                disabled={refreshing}
+                title="Liste neu laden (statt F5)"
+                aria-label="Aktualisieren"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "9px 12px", border: "1px solid var(--line-strong)", borderRadius: "var(--radius-sm)", background: "var(--surface)", color: "var(--fg-2)", fontSize: 15, cursor: refreshing ? "wait" : "pointer", flexShrink: 0 }}
+              >
+                <span style={{ display: "inline-block", transition: "transform .5s ease", transform: refreshing ? "rotate(360deg)" : "none" }}>↻</span>
+              </button>
+            </div>
             <input
               className="kr-input"
               placeholder="Suche Name, Handle, Text…"
