@@ -8,7 +8,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ctEqual, readCookie, STYLE, FONTS_LINK, THEME_INIT_SCRIPT, esc } from "@/app/admin/_shared";
 import { verifyDeviceCookie } from "@/lib/deviceCookie";
-import { createToken, revokeToken, type Scope } from "@/lib/apiTokens";
+import { createToken, revokeToken, deleteToken, type Scope } from "@/lib/apiTokens";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -74,6 +74,13 @@ export async function POST(req: NextRequest): Promise<Response> {
     if (!id) return backWith(req, { err: "kein Token angegeben" });
     const ok = await revokeToken(id);
     return backWith(req, ok ? { msg: "Token widerrufen." } : { err: "Widerruf fehlgeschlagen." });
+  }
+
+  if (action === "delete") {
+    const id = String(form.get("id") ?? "").trim();
+    if (!id) return backWith(req, { err: "kein Token angegeben" });
+    const ok = await deleteToken(id);
+    return backWith(req, ok ? { msg: "Token gelöscht." } : { err: "Löschen fehlgeschlagen." });
   }
 
   if (action === "create") {

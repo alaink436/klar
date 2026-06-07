@@ -109,6 +109,25 @@ export async function revokeToken(id: string): Promise<boolean> {
   }
 }
 
+// Permanently remove a token row (only ever offered for already-revoked tokens,
+// so an active credential can't be deleted out from under a live agent).
+export async function deleteToken(id: string): Promise<boolean> {
+  if (!KEY()) return false;
+  try {
+    const res = await fetch(
+      `${URL_BASE}/rest/v1/api_tokens?id=eq.${encodeURIComponent(id)}`,
+      {
+        method: "DELETE",
+        headers: headers({ Prefer: "return=minimal" }),
+        cache: "no-store",
+      },
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 // Verify a presented bearer token for a required scope. Returns the token id on
 // success (and best-effort touches last_used_at), null otherwise. A token with
 // the "*" scope passes any check.

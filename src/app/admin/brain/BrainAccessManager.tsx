@@ -9,7 +9,7 @@
 // Both POST routes redirect back to /admin/brain with ?msg/?err.
 
 import { useState, type ReactNode } from "react";
-import { KeyRound, UserPlus, Trash2, Users, Plus, ShieldCheck, Mail } from "lucide-react";
+import { KeyRound, UserPlus, Trash2, Users, Plus, ShieldCheck, Mail, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -61,8 +61,9 @@ export interface FolderOpt {
   checked: boolean;
 }
 
-type Revoke =
-  | { kind: "token"; id: string; label: string }
+type Confirm =
+  | { kind: "token-revoke"; id: string; label: string }
+  | { kind: "token-delete"; id: string; label: string }
   | { kind: "member"; email: string }
   | null;
 
@@ -127,7 +128,7 @@ export default function BrainAccessManager({
   members: MemberRow[];
   folders: FolderOpt[];
 }) {
-  const [revoke, setRevoke] = useState<Revoke>(null);
+  const [confirm, setConfirm] = useState<Confirm>(null);
   const activeTokens = tokens.filter((t) => !t.revoked).length;
   const activeMembers = members.filter((m) => !m.revoked).length;
 
@@ -229,9 +230,13 @@ export default function BrainAccessManager({
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    {!t.revoked && (
-                      <Button variant="outline" size="sm" onClick={() => setRevoke({ kind: "token", id: t.id, label: t.label })}>
-                        <Trash2 /> Widerrufen
+                    {t.revoked ? (
+                      <Button variant="ghost" size="sm" onClick={() => setConfirm({ kind: "token-delete", id: t.id, label: t.label })}>
+                        <Trash2 /> Löschen
+                      </Button>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => setConfirm({ kind: "token-revoke", id: t.id, label: t.label })}>
+                        <Ban /> Widerrufen
                       </Button>
                     )}
                   </TableCell>
@@ -349,8 +354,8 @@ export default function BrainAccessManager({
                   </TableCell>
                   <TableCell className="text-right">
                     {!m.revoked && (
-                      <Button variant="outline" size="sm" onClick={() => setRevoke({ kind: "member", email: m.email })}>
-                        <Trash2 /> Entziehen
+                      <Button variant="outline" size="sm" onClick={() => setConfirm({ kind: "member", email: m.email })}>
+                        <Ban /> Entziehen
                       </Button>
                     )}
                   </TableCell>
@@ -361,25 +366,33 @@ export default function BrainAccessManager({
         )}
       </Section>
 
-      {/* Revoke confirm (tokens + members share one dialog) */}
-      <AlertDialog open={revoke !== null} onOpenChange={(o) => !o && setRevoke(null)}>
+      {/* Confirm dialog — token revoke/delete + member revoke share one shell */}
+      <AlertDialog open={confirm !== null} onOpenChange={(o) => !o && setConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{revoke?.kind === "token" ? "Token widerrufen?" : "Brain-Zugang entziehen?"}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {confirm?.kind === "token-revoke"
+                ? "Token widerrufen?"
+                : confirm?.kind === "token-delete"
+                  ? "Token löschen?"
+                  : "Brain-Zugang entziehen?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {revoke?.kind === "token"
-                ? `„${revoke.label}“ wird sofort ungültig. Geräte/Agents mit diesem Token verlieren den Zugriff.`
-                : revoke?.kind === "member"
-                  ? `${revoke.email} verliert den Zugriff auf /brain. Re-Einladen stellt ihn wieder her.`
-                  : ""}
+              {confirm?.kind === "token-revoke"
+                ? `„${confirm.label}“ wird sofort ungültig. Geräte/Agents mit diesem Token verlieren den Zugriff.`
+                : confirm?.kind === "token-delete"
+                  ? `„${confirm.label}“ wird endgültig aus der Liste entfernt. Das lässt sich nicht rückgängig machen.`
+                  : confirm?.kind === "member"
+                    ? `${confirm.email} verliert den Zugriff auf /brain. Re-Einladen stellt ihn wieder her.`
+                    : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <form method="POST" action={revoke?.kind === "token" ? "/admin/tokens" : "/admin/brain-invite"}>
-            <input type="hidden" name="action" value="revoke" />
-            {revoke?.kind === "token" ? (
-              <input type="hidden" name="id" value={revoke.id} />
+          <form method="POST" action={confirm?.kind === "member" ? "/admin/brain-invite" : "/admin/tokens"}>
+            <input type="hidden" name="action" value={confirm?.kind === "token-delete" ? "delete" : "revoke"} />
+            {confirm?.kind === "member" ? (
+              <input type="hidden" name="email" value={confirm.email} />
             ) : (
-              <input type="hidden" name="email" value={revoke?.kind === "member" ? revoke.email : ""} />
+              <input type="hidden" name="id" value={confirm?.kind === "token-revoke" || confirm?.kind === "token-delete" ? confirm.id : ""} />
             )}
             <AlertDialogFooter>
               <AlertDialogCancel asChild>
@@ -389,7 +402,11 @@ export default function BrainAccessManager({
               </AlertDialogCancel>
               <AlertDialogAction asChild>
                 <Button type="submit" variant="danger">
-                  {revoke?.kind === "token" ? "Widerrufen" : "Entziehen"}
+                  {confirm?.kind === "token-revoke"
+                    ? "Widerrufen"
+                    : confirm?.kind === "token-delete"
+                      ? "Löschen"
+                      : "Entziehen"}
                 </Button>
               </AlertDialogAction>
             </AlertDialogFooter>
