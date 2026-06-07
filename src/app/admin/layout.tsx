@@ -1,19 +1,37 @@
-// Shared admin chrome. The smoke background is hoisted here (out of every page)
-// so its WebGL loop mounts ONCE and survives client-side menu switches. Per-page
-// inline scripts do NOT re-run on SPA navigation, so the per-page canvas used to
-// go blank after the first switch (and leak a zombie rAF loop). A layout persists
-// across /admin/* navigations, so the canvas + loop stay alive.
-//
-// STYLE / fonts / theme-init stay per-page on purpose: they're harmless to repeat
-// and moving them would touch every page's imports. With SPA view transitions off
-// (see _shared STYLE) there's no FOUC on navigation.
+// Shared admin chrome. Everything that is identical on every /admin page lives
+// here ONCE and persists across client-side menu switches:
+//   - fonts + the big STYLE constant + theme init/toggle scripts + glass defs
+//   - the smoke-bg canvas (its WebGL loop mounts once, survives SPA nav)
+//   - the confirm modal HTML + script
+// Previously each page re-injected the multi-KB inline <style> on every menu
+// switch, which is what made navigation flicker/feel slow (and forced SPA view
+// transitions to be disabled). Hoisting it here means a menu switch only swaps
+// the page content, not the whole stylesheet. Pages now render only <title> +
+// their own content (and any page-specific extra <style>, e.g. settings).
 
 import type { ReactNode } from "react";
-import { SMOKE_BG_SCRIPT, MODAL_HTML, MODAL_SCRIPT } from "./_shared";
+import {
+  STYLE,
+  FONTS_LINK,
+  THEME_INIT_SCRIPT,
+  THEME_TOGGLE_SCRIPT,
+  GLASS_SVG_DEFS,
+  SMOKE_BG_SCRIPT,
+  MODAL_HTML,
+  MODAL_SCRIPT,
+} from "./_shared";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      <link href={FONTS_LINK} rel="stylesheet" />
+      <style dangerouslySetInnerHTML={{ __html: STYLE }} />
+      <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      <script dangerouslySetInnerHTML={{ __html: THEME_TOGGLE_SCRIPT }} />
+      <div className="klar-aurora" aria-hidden="true" />
+      <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <canvas id="klar-smoke-bg" aria-hidden="true" suppressHydrationWarning />
       {children}
       {/* Confirm dialog hoisted here so it survives client-side menu switches.

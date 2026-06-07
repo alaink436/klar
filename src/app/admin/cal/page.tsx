@@ -12,12 +12,7 @@ import { headers } from "next/headers";
 import AdminSidebar from "../AdminSidebar";
 import { redirect } from "next/navigation";
 import {
-  STYLE,
   ICON,
-  FONTS_LINK,
-  THEME_INIT_SCRIPT,
-  THEME_TOGGLE_SCRIPT,
-  GLASS_SVG_DEFS,
   readCookieFromString,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
@@ -45,14 +40,6 @@ export default async function CalPage() {
   return (
     <>
       <title>Cal Admin · Klar Control</title>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link href={FONTS_LINK} rel="stylesheet" />
-      <style dangerouslySetInnerHTML={{ __html: STYLE }} />
-      <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-      <script dangerouslySetInnerHTML={{ __html: THEME_TOGGLE_SCRIPT }} />
-      <div className="klar-aurora" aria-hidden="true" />
-      <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <div className="layout">
         <AdminSidebar active={"cal"} apps={getApps()} />
         <main className="main">
