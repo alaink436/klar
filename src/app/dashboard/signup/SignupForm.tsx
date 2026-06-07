@@ -13,6 +13,7 @@ import { getBrowserSupabase } from "../_shared/supabase-browser";
 export function SignupForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [company, setCompany] = useState(""); // honeypot: must stay empty
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -20,6 +21,15 @@ export function SignupForm() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (busy) return;
+    // Honeypot: real users never fill the off-screen "company" field. Bots
+    // that auto-fill every input get a fake success and never reach
+    // auth.signUp. Mirrors the trap on the public inquiry forms. NOTE: this
+    // only stops form-driven bots; direct auth.signUp abuse needs project-wide
+    // Supabase captcha, deferred because it would also gate the mobile app.
+    if (company) {
+      setDone(true);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -57,6 +67,17 @@ export function SignupForm() {
         </div>
       ) : (
         <form onSubmit={onSubmit} style={{ display: "grid", gap: 14 }}>
+          {/* Off-screen honeypot. Real users never see or fill this. */}
+          <input
+            type="text"
+            name="company"
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+            style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
+          />
           <div>
             <label htmlFor="signup-email" style={labelStyle}>Email</label>
             <input

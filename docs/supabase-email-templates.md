@@ -13,9 +13,16 @@ Variables (Supabase rendert automatisch):
 
 ## 1. Confirm Signup
 
+> NEUTRAL halten — kein "Affiliate"-Wording. Dieses Template feuert bei JEDEM
+> Auth-Signup auf dem Projekt anime-vault, also auch für die Anime-App-User
+> (handle_new_user legt für jeden Signup ein Profil an), nicht nur für
+> Affiliate-Dashboard-Anmeldungen. Affiliate-Branding kommt erst in der
+> Welcome-Mail nach abgeschlossenem Onboarding (Edge Function
+> affiliate-confirmation-email).
+
 **Subject:**
 ```
-Bestätige dein Affiliate-Konto bei Klar
+Bestätige deine Anmeldung bei Klar
 ```
 
 **Message (HTML):**
@@ -30,13 +37,13 @@ Bestätige dein Affiliate-Konto bei Klar
           <tr>
             <td>
               <div style="font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:#888;margin-bottom:10px;font-family:ui-monospace,Menlo,monospace;">
-                Klar &middot; Affiliate
+                Klar
               </div>
               <h1 style="font-size:32px;line-height:1.1;letter-spacing:-0.6px;margin:0 0 14px;color:#f5f5f7;font-weight:600;">
                 Bestätige dein <i style="font-family:Georgia,serif;color:#fff;">Konto</i>.
               </h1>
               <p style="font-size:15px;line-height:1.55;color:#b5b5bd;margin:0 0 24px;">
-                Klick den Button unten, dann ist dein Affiliate-Account live. Der Link ist 24 Stunden gültig.
+                Klick den Button unten, dann ist deine Anmeldung bestätigt. Der Link ist 24 Stunden gültig.
               </p>
               <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                 <tr>
