@@ -29,7 +29,7 @@ import {
   type OutreachTarget,
 } from "../../../lib/outreachStore";
 import { KLAR_APPS } from "../../../lib/klarApps";
-import { REPLY_TEMPLATES } from "../../../lib/replyTemplates";
+import { getReplyTemplates } from "../../../lib/replyTemplateStore";
 import MailClient, {
   type Conversation,
   type ThreadMessage,
@@ -366,6 +366,9 @@ export default async function InboxPage({
 
   // ── Mailer drawer data ───────────────────────────────────────────────────
   const dueMail1 = (await listTargetsForMail1(500)).length;
+  // Reply templates for the composer: DB-editable (klar_reply_templates) with a
+  // fallback to the hardcoded set so the dropdown is never empty.
+  const replyTemplates = await getReplyTemplates();
   const senderEnabled = process.env.KLAR_OUTREACH_SENDER === "on";
   const cronSet = Boolean(process.env.CRON_SECRET);
   const inboundSet = Boolean(process.env.KLAR_INBOUND_DOMAIN);  const topbar = `
@@ -393,7 +396,7 @@ export default async function InboxPage({
             conversations={conversations}
             appMeta={appMeta}
             appSlugs={appSlugs}
-            templates={REPLY_TEMPLATES}
+            templates={replyTemplates}
             mailer={{ dueMail1, senderEnabled, cronSet, inboundSet }}
           />
         </main>
