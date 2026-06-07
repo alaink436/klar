@@ -8,10 +8,12 @@ import { ensureAffiliate } from "@/lib/ensureAffiliate";
 import {
   loadAffiliate,
   loadStatsForApp,
+  aggregateMonthlyEarnings,
   eur,
   type AppStats,
 } from "./_shared/dashboard-data";
 import { PageHeader, Card, Row, AppBadges } from "./_shared/ui";
+import { EarningsChart } from "./earnings/EarningsChart";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +65,10 @@ export default async function OverviewPage() {
   const totalClicks = stats.reduce((s, x) => s + x.clicks, 0);
   const totalInstalls = stats.reduce((s, x) => s + x.installs, 0);
   const totalConversions = stats.reduce((s, x) => s + x.conversions, 0);
+  const chartData = aggregateMonthlyEarnings(stats, 6).map((m) => ({
+    label: m.label,
+    earnings: Math.round(m.earnings_cents / 100),
+  }));
 
   return (
     <>
@@ -129,6 +135,12 @@ export default async function OverviewPage() {
             Book a call, send an email, or cancel your contract — all in Account.
           </p>
           <div style={{ fontSize: 12.5, color: "var(--fg-3)", marginTop: 8 }}>Open account →</div>
+        </Card>
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <Card eyebrow="Last 6 months" title="Monthly earnings">
+          <EarningsChart data={chartData} height={220} />
         </Card>
       </div>
 

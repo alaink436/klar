@@ -19,11 +19,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <main
       style={{
+        // Light scheme scoped to the whole affiliate dashboard. Pages use
+        // var(--fg)/--bg + color-mix surfaces, so flipping these five tokens
+        // turns the entire dashboard (and the recharts area via currentColor)
+        // light without touching the global palette.
+        ["--bg" as string]: "oklch(0.99 0.004 270)",
+        ["--fg" as string]: "oklch(0.20 0.01 270)",
+        ["--fg-2" as string]: "oklch(0.42 0.01 270)",
+        ["--fg-3" as string]: "oklch(0.56 0.008 270)",
+        ["--fg-4" as string]: "oklch(0.70 0.006 270)",
         minHeight: "100dvh",
         background: "var(--bg)",
         color: "var(--fg)",
         fontFamily: "var(--font-body, var(--font-body, system-ui))",
-      }}
+      } as React.CSSProperties}
     >
       {children}
     </main>

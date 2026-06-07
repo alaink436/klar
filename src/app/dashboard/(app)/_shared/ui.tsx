@@ -3,6 +3,7 @@
 // re-declaring 50 lines of inline style objects.
 
 import Link from "next/link";
+import { RotatingIcon } from "./RotatingIcon";
 
 export function PageHeader({
   eyebrow,
@@ -236,10 +237,7 @@ export function AppBadges({
               color: "var(--fg)",
             }}
           >
-            {icon && (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={icon} alt="" width={22} height={22} style={{ borderRadius: 6 }} />
-            )}
+            {icon && <RotatingIcon src={icon} size={22} radius={6} />}
             <b style={{ fontWeight: 600 }}>{name}</b>
             {handle && (
               <span
