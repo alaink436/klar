@@ -45,6 +45,21 @@ export interface Messages {
   welcomeTitleCalc: { plain: string; italic: string };
   welcomeCalcSubline: string;
 
+  // Welcome V2 (sales variant). Optional until rolled out to every language;
+  // when a key is absent the Welcome step falls back to the V1 lede.
+  welcomeFreshNote?: string;
+  dealEyebrow?: string;
+  dealTitle?: { plain: string; italic: string };
+  dealBaseYears?: (years: number) => string;
+  dealLadder?: (tier1Eur: number, tier1Months: number, tier2Eur: number) => string;
+  dealCommission?: (pct: number) => string;
+  dealGoodie?: string;
+  setupEyebrow?: string;
+  setupTitle?: { plain: string; italic: string };
+  setupLink?: string;
+  setupDashboard?: string;
+  setupDrive?: string;
+
   // Stream cards
   streamEyebrowSub: string;
   streamEyebrowOneShot: string;
@@ -205,6 +220,20 @@ const de: Messages = {
   welcomeEyebrowCalc: "Rechne selbst",
   welcomeTitleCalc: { plain: "Was springt für dich ", italic: "raus?" },
   welcomeCalcSubline: "Schieb die Regler auf realistische Werte für deine Audience. Die Rechnung passt sich live an.",
+
+  welcomeFreshNote: "Die App ist noch jung, und genau deshalb fahren wir für die ersten Creator richtig starke Konditionen, statt mit Reichweite zu protzen.",
+  dealEyebrow: "Dein Deal",
+  dealTitle: { plain: "Warum sich das ", italic: "lohnt." },
+  dealBaseYears: (years) => `Mindestens ${years} Jahre Provision auf jeden Premium-Kauf über deinen Link.`,
+  dealLadder: (t1, m1, t2) =>
+    `Bei ${t1.toLocaleString("de-DE")} € Umsatz werden ${Math.round(m1 / 12)} Jahre draus, bei ${t2.toLocaleString("de-DE")} € wird es Lifetime. Klingt viel, summiert sich aber schneller als gedacht, weil jedes Abo monatlich nachläuft. Du setzt den Link nur einmal.`,
+  dealCommission: (pct) => `${pct} % von jedem Premium-Kauf, monatlich per Wise ausgezahlt.`,
+  dealGoodie: "Kleines Goodie: gratis Lifetime-Premium für dich.",
+  setupEyebrow: "Dein Setup",
+  setupTitle: { plain: "So einfach ", italic: "läufts." },
+  setupLink: "Eigener Smart-Link: schickt deine Leute per Smart-Label direkt in die App. Kein Code zum Eingeben, die Zuordnung läuft automatisch im Hintergrund.",
+  setupDashboard: "Eigenes Dashboard: dein kompletter Funnel von Klick über Install bis Auszahlung, live.",
+  setupDrive: "Tiefer einlesen? Im Creator-Drive findest du Strategie-Vorschläge plus eine Erklärung von Tech-Stack und Geschäftsmodell, damit du genau weißt, was du bewirbst.",
 
   streamEyebrowSub: "Premium-Abos",
   streamEyebrowOneShot: "Premium-Verkäufe",

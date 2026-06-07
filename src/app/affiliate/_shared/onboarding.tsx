@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Brand, BrandKey, BRANDS, STEPS, StepKey, getTrackingUrl, brandText } from "./brands";
 import { getMessages, type Lang, type Messages } from "./i18n";
+import { PROGRAM_LADDER } from "./affiliateProgram";
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 const ArrowRight = (p: React.SVGProps<SVGSVGElement>) => (
@@ -583,11 +584,38 @@ function StepWelcome({ brand, go, handle, t = getMessages("de"), lang = "de" }: 
           {t.welcomeGreet("").replace(/[,\s]+$/, "")} <span className="italic">{handle},</span>
         </h1>
         <p className="aff-lede">
-          {t.welcomeLede(brand.name)}
+          {t.welcomeFreshNote
+            ? <>{brand.name} {brandText(brand, "painpoint", lang)}. {t.welcomeFreshNote}</>
+            : t.welcomeLede(brand.name)}
         </p>
       </div>
 
       <IconPanel brand={brand} tagline={tagline} />
+
+      {t.dealEyebrow ? (
+        <div className="aff-section">
+          <span className="aff-eyebrow">{t.dealEyebrow}</span>
+          <h3>{t.dealTitle?.plain}<span className="italic">{t.dealTitle?.italic}</span></h3>
+          <ul>
+            <li><span className="mark">✓</span><span>{t.dealBaseYears?.(Math.round(brand.attributionMonths / 12))}</span></li>
+            <li><span className="mark">✓</span><span>{t.dealLadder?.(PROGRAM_LADDER.tier1.revenueEur, PROGRAM_LADDER.tier1.months, PROGRAM_LADDER.tier2.revenueEur)}</span></li>
+            <li><span className="mark">✓</span><span>{t.dealCommission?.(brand.commissionPct)}</span></li>
+            <li><span className="mark">✓</span><span>{t.dealGoodie}</span></li>
+          </ul>
+        </div>
+      ) : null}
+
+      {t.setupEyebrow ? (
+        <div className="aff-section">
+          <span className="aff-eyebrow">{t.setupEyebrow}</span>
+          <h3>{t.setupTitle?.plain}<span className="italic">{t.setupTitle?.italic}</span></h3>
+          <ul>
+            <li><span className="mark">✓</span><span>{t.setupLink}</span></li>
+            <li><span className="mark">✓</span><span>{t.setupDashboard}</span></li>
+            <li><span className="mark">✓</span><span>{t.setupDrive}</span></li>
+          </ul>
+        </div>
+      ) : null}
 
       <div className="aff-section">
         <span className="aff-eyebrow">{t.welcomeEyebrowStreams}</span>

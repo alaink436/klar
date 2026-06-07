@@ -31,6 +31,8 @@ export interface BrandI18n {
   pdfTitle?: string;
   pdfHint?: string;
   vibe?: string;
+  /** Pain-point clause that reads after the brand name: "{Name} {painpoint}." */
+  painpoint?: string;
 }
 
 export interface Brand {
@@ -41,6 +43,9 @@ export interface Brand {
   vibe: string;
   productLine: string;
   audience: string;
+  /** Pain-point clause that reads after the brand name: "{Name} {painpoint}."
+   *  Localized via the i18n override map (DE root is the fallback). */
+  painpoint: string;
   productPrice: string;
   productPriceShort: string;
   commissionPct: number;
@@ -108,6 +113,7 @@ export const BRANDS: Record<BrandKey, Brand> = {
     vibe: "Warm atelier, paper-flooded, editorial italic",
     productLine: "Knit + crochet stash tracker",
     audience: "Knitters, crocheters, fibre artists",
+    painpoint: "behält deinen Garn-Vorrat und alle Projekte im Blick, damit du nie doppelt kaufst oder etwas vergisst",
     productPrice: "4,99 €/mo",
     productPriceShort: "4,99 €",
     commissionPct: 50,
@@ -160,6 +166,7 @@ export const BRANDS: Record<BrandKey, Brand> = {
     vibe: "Garage workshop, mechanical brutalist",
     productLine: "Car-build log + parts ledger",
     audience: "Wrenchers, project-car owners, tuners",
+    painpoint: "dokumentiert jedes Teil und jeden Umbau an deinem Auto, statt Zettel- und Foto-Chaos",
     productPrice: "39 €",
     productPriceShort: "39 €",
     commissionPct: 50,
@@ -208,6 +215,7 @@ export const BRANDS: Record<BrandKey, Brand> = {
     vibe: "Calm productivity, modern dark SaaS",
     productLine: "Focus + deep-work tracker",
     audience: "Indie hackers, makers, focused professionals",
+    painpoint: "zeigt dir endlich, wohin deine Fokuszeit wirklich geht",
     productPrice: "8 €/mo",
     productPriceShort: "8 €",
     commissionPct: 50,
@@ -256,6 +264,7 @@ export const BRANDS: Record<BrandKey, Brand> = {
     vibe: "Editorial calm, Apple-Health-clean, premium glass",
     productLine: "Cycle + hormone literacy",
     audience: "Wellness creators, women-health educators",
+    painpoint: "hilft dir, deinen Zyklus zu verstehen, ruhig, fundiert und ohne deine Daten zu verkaufen",
     productPrice: "6 €/mo",
     productPriceShort: "6 €",
     commissionPct: 50,
@@ -304,6 +313,7 @@ export const BRANDS: Record<BrandKey, Brand> = {
     vibe: "Y2K zine cutout, party, sticker-collage",
     productLine: "Group-chat plans + chaos coordinator",
     audience: "Group-trip planners, party people, Gen-Z friend leaders",
+    painpoint: "plant Gruppen-Trips und Pläne, ohne dass jemand in 200 Chat-Nachrichten untergeht",
     productPrice: "4,99 €/mo",
     productPriceShort: "4,99 €",
     commissionPct: 50,
@@ -367,6 +377,7 @@ export const BRANDS: Record<BrandKey, Brand> = {
     vibe: "Editorial light, privacy-first, Apple-Health-clean",
     productLine: "Bathroom habit + gut log",
     audience: "Health-curious, gut-issue creators, parents",
+    painpoint: "lässt dich Bauch und Verdauung tracken, diskret und ohne Tabu",
     productPrice: "5 €/mo",
     productPriceShort: "5 €",
     commissionPct: 50,

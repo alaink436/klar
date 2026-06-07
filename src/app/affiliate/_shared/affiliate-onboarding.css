@@ -7,21 +7,23 @@
 
 .aff-stage {
   /* Local token scope so we don't fight with the public landing styles. */
-  --aff-bg:          oklch(0.04 0.002 270);
-  --aff-bg-elev:     oklch(0.08 0.002 270);
-  --aff-bg-card:     oklch(0.07 0.002 270);
-  --aff-fg:          oklch(0.97 0.002 270);
-  --aff-fg-2:        oklch(0.74 0.002 270);
-  --aff-fg-3:        oklch(0.48 0.002 270);
-  --aff-fg-4:        oklch(0.32 0.002 270);
-  --aff-line:        oklch(0.18 0.002 270);
-  --aff-line-strong: oklch(0.85 0.002 270);
-  --aff-silver:      oklch(0.78 0.002 270);
-  --aff-primary:     oklch(0.97 0.002 270);   /* CTAs invert (white on black) */
-  --aff-primary-ink: oklch(0.10 0.002 270);   /* dark text on the white CTA */
-  --aff-accent:      oklch(0.74 0.05 60);     /* warm amber-silver accent */
-  --aff-soft:        oklch(0.16 0.002 270);   /* card section bg */
-  --aff-success:     oklch(0.72 0.15 145);    /* green check */
+  /* Light / white scheme. Tokens carry the whole palette, so the SVG diagram,
+     calculator, sliders and buttons invert with these. */
+  --aff-bg:          oklch(0.99 0.004 270);
+  --aff-bg-elev:     oklch(0.965 0.004 270);
+  --aff-bg-card:     oklch(1 0 0);
+  --aff-fg:          oklch(0.18 0.01 270);
+  --aff-fg-2:        oklch(0.40 0.01 270);
+  --aff-fg-3:        oklch(0.55 0.008 270);
+  --aff-fg-4:        oklch(0.70 0.006 270);
+  --aff-line:        oklch(0.90 0.004 270);
+  --aff-line-strong: oklch(0.66 0.006 270);
+  --aff-silver:      oklch(0.55 0.006 270);
+  --aff-primary:     oklch(0.18 0.01 270);    /* dark CTA on light */
+  --aff-primary-ink: oklch(0.99 0.002 270);   /* white text on the dark CTA */
+  --aff-accent:      oklch(0.62 0.09 60);     /* warm amber accent, darkened for light bg */
+  --aff-soft:        oklch(0.965 0.004 270);  /* card section bg */
+  --aff-success:     oklch(0.55 0.16 145);    /* green check */
   --aff-radius:      14px;
   --aff-radius-sm:   8px;
   --aff-radius-lg:   24px;
@@ -50,7 +52,7 @@
   background-size: cover; background-position: center; background-repeat: no-repeat;
   will-change: opacity;
   transform: translateZ(0);
-  filter: saturate(0) contrast(1.15) brightness(0.7);
+  filter: saturate(0) contrast(1) brightness(1.55);
   opacity: 0;
 }
 .aff-bg-stage .aff-bg-layer-1 { animation: aff-bg-fade-1 96s linear infinite; }
@@ -59,7 +61,7 @@
 .aff-bg-stage .aff-bg-layer-4 { animation: aff-bg-fade-4 96s linear infinite; }
 .aff-bg-vignette {
   position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(ellipse at 50% 35%, transparent 0%, oklch(0.04 0.002 270 / 0.55) 70%, oklch(0.04 0.002 270 / 0.85) 100%);
+  background: radial-gradient(ellipse at 50% 30%, oklch(0.99 0.004 270 / 0.82) 0%, oklch(0.985 0.004 270 / 0.95) 75%, oklch(0.985 0.004 270 / 0.98) 100%);
 }
 @keyframes aff-bg-fade-1 { 0%, 18% { opacity: 0.55; } 23%, 73% { opacity: 0; } 78%, 100% { opacity: 0.55; } }
 @keyframes aff-bg-fade-2 { 0%, 18% { opacity: 0; } 23%, 43% { opacity: 0.4; } 48%, 100% { opacity: 0; } }
@@ -135,7 +137,7 @@
    sofort spürbar ist und Release einrastet. */
 .aff-btn:active:not(:disabled) { transform: scale(0.97); transition-duration: 80ms; }
 .aff-btn-primary { background: var(--aff-primary); color: var(--aff-primary-ink); font-weight: 600; }
-.aff-btn-primary:hover:not(:disabled) { background: oklch(0.99 0.002 270); }
+.aff-btn-primary:hover:not(:disabled) { background: oklch(0.30 0.01 270); }
 .aff-btn-secondary { background: transparent; color: var(--aff-fg-2); border: 1px solid var(--aff-line); }
 .aff-btn-secondary:hover:not(:disabled) { border-color: var(--aff-fg-3); color: var(--aff-fg); }
 .aff-btn-row { display: grid; grid-template-columns: auto 1fr; gap: 10px; }
@@ -178,7 +180,7 @@
 .aff-field-input::placeholder { color: var(--aff-fg-4); }
 .aff-field-input:hover, .aff-field-select:hover { border-color: var(--aff-fg-3); }
 /* Jakub-Pattern: Box-Shadow-Ring statt nur Border, smoother + adaptiert besser an Dark-BG. */
-.aff-field-input:focus, .aff-field-select:focus { outline: none; border-color: var(--aff-fg); background: oklch(0.10 0.002 270); box-shadow: 0 0 0 3px color-mix(in oklab, var(--aff-fg), transparent 88%); }
+.aff-field-input:focus, .aff-field-select:focus { outline: none; border-color: var(--aff-fg); background: oklch(0.985 0.004 270); box-shadow: 0 0 0 3px color-mix(in oklab, var(--aff-fg), transparent 88%); }
 .aff-field-input[aria-invalid="true"] { border-color: var(--aff-accent); }
 .aff-field-input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px color-mix(in oklab, var(--aff-accent), transparent 78%); }
 .aff-field-select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--aff-fg-2) 50%), linear-gradient(135deg, var(--aff-fg-2) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 36px; }
@@ -315,7 +317,7 @@
 .aff-calc .total-pop .tp-value .small { font-family: var(--font-editorial), serif; font-style: italic; font-weight: 400; font-size: 14px; margin-left: 6px; letter-spacing: 0; opacity: 0.75; }
 .aff-calc .formula-hint { font-size: 11.5px; line-height: 1.5; color: var(--aff-fg-3); padding: 0 4px; }
 .aff-calc .formula-hint b { color: var(--aff-fg); font-weight: 600; }
-.aff-calc .mini-rows { display: grid; grid-template-columns: 1fr auto; row-gap: 7px; column-gap: 12px; font-family: var(--font-mono), monospace; font-size: 12.5px; color: var(--aff-fg-3); padding: 14px 16px 12px; background: oklch(0.06 0.002 270); border: 1px solid var(--aff-line); border-radius: var(--aff-radius-sm); }
+.aff-calc .mini-rows { display: grid; grid-template-columns: 1fr auto; row-gap: 7px; column-gap: 12px; font-family: var(--font-mono), monospace; font-size: 12.5px; color: var(--aff-fg-3); padding: 14px 16px 12px; background: oklch(0.965 0.004 270); border: 1px solid var(--aff-line); border-radius: var(--aff-radius-sm); }
 .aff-calc .mini-rows .v { color: var(--aff-fg); text-align: right; font-variant-numeric: tabular-nums; }
 .aff-calc .mini-rows .arrow { color: var(--aff-fg-3); margin-right: 4px; }
 /* "(Annahme X)"-Inline-Pill: dezenter italic-Hint statt rohem Kursiv. */
