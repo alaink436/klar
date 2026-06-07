@@ -1,12 +1,9 @@
-"use client";
-
 // Dashboard page header: an eyebrow label, the big display title (Bebas Neue via
-// --font-display) and an optional editorial subtitle, inside a surface card with
-// an animated BorderBeam edge. A nicer, more "control-panel" title than a bare
-// <h1>. Drop in at the top of an admin page's .content.
+// --font-display) and an optional editorial subtitle, inside a surface card. A
+// nicer, more "control-panel" title than a bare <h1>. Drop in at the top of an
+// admin page's .content.
 
 import type { ReactNode } from "react";
-import { BorderBeam } from "@/components/ui/border-beam";
 
 export function PageHeader({
   eyebrow,
@@ -18,7 +15,7 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <div className="relative overflow-hidden mb-7 rounded-[var(--radius-lg)] border border-line bg-surface px-7 py-7 shadow-[var(--shadow-sm)]">
+    <div className="mb-7 rounded-[var(--radius-lg)] border border-line bg-surface px-7 py-7 shadow-[var(--shadow-sm)]">
       {eyebrow ? (
         <div className="mb-2 [font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.24em] text-fg-4">
           {eyebrow}
@@ -32,7 +29,6 @@ export function PageHeader({
           {children}
         </p>
       ) : null}
-      <BorderBeam size={80} duration={10} />
     </div>
   );
 }
