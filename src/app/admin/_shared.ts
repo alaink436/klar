@@ -230,7 +230,7 @@ export const STYLE = `
  --shadow:0 1px 3px rgba(0,0,0,.06),0 8px 24px -8px rgba(0,0,0,.08);
  --shadow-lg:0 4px 14px rgba(0,0,0,.08),0 18px 48px -16px rgba(0,0,0,.12);
  --radius:10px;--radius-sm:6px;--radius-lg:14px;
- --font-display:'Space Grotesk',system-ui,sans-serif;--font-editorial:'Fraunces',Georgia,serif;
+ --font-display:var(--font-bebas),'Space Grotesk',system-ui,sans-serif;--font-editorial:'Fraunces',Georgia,serif;
  --font-body:'Manrope',system-ui,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;
 }
 [data-theme="dark"]{
