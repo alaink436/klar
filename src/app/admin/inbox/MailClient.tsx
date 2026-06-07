@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { useRouter } from "next/navigation";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import MailerClient from "../mailer/MailerClient";
+import TemplateManager from "./TemplateManager";
 import type { ReplyLang, ReplyTemplate } from "@/lib/replyTemplates";
 
 export type Direction = "in" | "out";
@@ -202,6 +203,17 @@ export default function MailClient({
     setSeededFrom(conversations);
     setConvs(conversations);
   }
+  // Reply templates kept in state so the in-inbox manager can mutate them live
+  // (its edits push a rebuilt map here). Re-seed when the server hands us a new
+  // prop identity (e.g. after router.refresh()), same pattern as conversations.
+  const [tplMap, setTplMap] = useState(templates);
+  const [tplSeededFrom, setTplSeededFrom] = useState(templates);
+  if (tplSeededFrom !== templates) {
+    setTplSeededFrom(templates);
+    setTplMap(templates);
+  }
+  const [tplOpen, setTplOpen] = useState(false);
+
   const [selectedId, setSelectedId] = useState<string | null>(conversations[0]?.id ?? null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "inquiry" | "replied" | "converted" | "open">("all");
@@ -296,13 +308,11 @@ export default function MailClient({
   // Reset composer + panels when the selection changes.
   useEffect(() => {
     if (!sel) return;
-    const tpls = templates[pickLang(sel.language)] ?? templates.de ?? [];
-    const def = tpls[0];
     const who = sel.displayName || sel.handle;
-    setComposer({
-      subject: def ? subst(def.subject, who, sel.handle) : `Re: Klar x ${who}`,
-      body: def ? subst(def.body, who, sel.handle) : "",
-    });
+    // Default to an empty draft — no template auto-applied. Picking one from the
+    // dropdown is opt-in; the subject still gets a neutral reply default so the
+    // message stays sendable without typing one.
+    setComposer({ subject: `Re: Klar x ${who}`, body: "" });
     setSendMsg(null);
     setAcceptOpen(false);
     setDeclineArmed(false);
@@ -409,7 +419,7 @@ export default function MailClient({
 
   function applyTemplate(id: string) {
     if (!sel) return;
-    const tpls = templates[pickLang(sel.language)] ?? templates.de ?? [];
+    const tpls = tplMap[pickLang(sel.language)] ?? tplMap.de ?? [];
     const t = tpls.find((x) => x.id === id);
     if (!t) return;
     const who = sel.displayName || sel.handle;
@@ -418,7 +428,7 @@ export default function MailClient({
 
   const showList = !narrow || !sel;
   const showDetail = !narrow || !!sel;
-  const tpls = sel ? templates[lang] ?? templates.de ?? [] : [];
+  const tpls = sel ? tplMap[lang] ?? tplMap.de ?? [] : [];
 
   return (
     <>
@@ -814,15 +824,31 @@ export default function MailClient({
                   <span className="muted" style={{ fontSize: 11.5, fontFamily: "var(--font-mono)" }}>
                     An: {sel.contactEmail || "— keine Email"}
                   </span>
-                  <label style={{ fontSize: 11.5, color: "var(--fg-3)", display: "inline-flex", alignItems: "center", gap: 5, marginLeft: "auto" }}>
-                    Vorlage
-                    <select className="kr-input" style={{ width: "auto", padding: "5px 8px", fontSize: 12 }} defaultValue="" onChange={(e) => { applyTemplate(e.target.value); e.target.value = ""; }}>
-                      <option value="" disabled>wählen…</option>
-                      {tpls.map((t) => (
-                        <option key={t.id} value={t.id}>{t.label}</option>
-                      ))}
-                    </select>
-                  </label>
+                  <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <label style={{ fontSize: 11.5, color: "var(--fg-3)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                      Vorlage
+                      <select
+                        className="kr-input"
+                        style={{ width: "auto", padding: "5px 8px", fontSize: 12 }}
+                        defaultValue=""
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === "__none") setComposer((c) => ({ ...c, body: "" }));
+                          else if (v) applyTemplate(v);
+                          e.target.value = "";
+                        }}
+                      >
+                        <option value="" disabled>einsetzen…</option>
+                        <option value="__none">— keine (Feld leeren) —</option>
+                        {tpls.map((t) => (
+                          <option key={t.id} value={t.id}>{t.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <button type="button" className="kr-mini" onClick={() => setTplOpen(true)} title="Vorlagen verwalten">
+                      Vorlagen ✎
+                    </button>
+                  </div>
                 </div>
                 <input
                   className="kr-input"
@@ -886,6 +912,24 @@ export default function MailClient({
               senderEnabled={mailer.senderEnabled}
               cronSet={mailer.cronSet}
               inboundSet={mailer.inboundSet}
+            />
+          </div>
+        </div>
+      )}
+      {tplOpen && (
+        <div
+          onClick={() => setTplOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 60, display: "flex", justifyContent: "flex-end" }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ position: "relative", width: "min(640px,100%)", height: "100%", background: "var(--bg)", borderLeft: "1px solid var(--line-strong)", overflowY: "auto" }}
+          >
+            <TemplateManager
+              lang={lang}
+              baseMap={tplMap}
+              onClose={() => setTplOpen(false)}
+              onMapChange={(m) => setTplMap(m)}
             />
           </div>
         </div>
