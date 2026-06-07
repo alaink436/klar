@@ -24,6 +24,7 @@ import {
 } from "../../../lib/outreachStore";
 import { KLAR_APPS } from "../../../lib/klarApps";
 import { getReplyTemplates } from "../../../lib/replyTemplateStore";
+import { loadAffiliateChatInbox } from "../../../lib/affiliateChatStore";
 import MailClient, {
   type Conversation,
   type ThreadMessage,
@@ -353,7 +354,40 @@ export default async function InboxPage({
   }
   const dedupedOutreach = outreachConvs.filter((c) => !mergedOutreachIds.has(c.id));
 
-  const conversations: Conversation[] = [...inquiryConvs, ...dedupedOutreach].sort(
+  // ── Affiliate chat: in-app messages from affiliates, one conversation each ──
+  const chatThreads = await loadAffiliateChatInbox();
+  const chatConvs: Conversation[] = chatThreads.map((t): Conversation => {
+    const messages: ThreadMessage[] = t.messages.map((m) => ({
+      id: m.id,
+      direction: m.direction,
+      subject: null,
+      body: m.body,
+      at: m.created_at,
+      provider: "chat",
+    }));
+    const lastInbound = [...messages].reverse().find((m) => m.direction === "in");
+    return {
+      id: t.affiliate_user_id,
+      handle: (t.email ?? "").split("@")[0] || t.display_name || "affiliate",
+      displayName: t.display_name,
+      platform: "",
+      profileUrl: null,
+      contactEmail: t.email,
+      language: "de",
+      apps: t.apps,
+      status: t.unread_in > 0 ? "replied" : "active",
+      followerEstimate: null,
+      mailsSent: 0,
+      mailStatus: null,
+      messages,
+      replyCount: messages.filter((m) => m.direction === "in").length,
+      lastInboundAt: lastInbound?.at ?? null,
+      lastActivityAt: messages.length ? messages[messages.length - 1].at : null,
+      kind: "affiliate-chat",
+    };
+  });
+
+  const conversations: Conversation[] = [...inquiryConvs, ...dedupedOutreach, ...chatConvs].sort(
     (a, b) => (b.lastActivityAt || "").localeCompare(a.lastActivityAt || ""),
   );
 

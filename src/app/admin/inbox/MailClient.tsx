@@ -53,7 +53,7 @@ export interface Conversation {
   awaiting?: boolean;
   // Source of the conversation. "outreach" = scraped target thread (default,
   // also covers awaiting), "inquiry" = website contact-form request.
-  kind?: "outreach" | "inquiry";
+  kind?: "outreach" | "inquiry" | "affiliate-chat";
   // Present when kind === "inquiry": the website request + approve/decline state.
   inquiry?: InquiryMeta;
 }
@@ -359,6 +359,41 @@ export default function MailClient({
 
   const send = useCallback(async () => {
     if (!sel) return;
+    // Affiliate chat: reply goes straight into the affiliate's dashboard (no
+    // email, no subject), via the dedicated endpoint keyed by their user id.
+    if (sel.kind === "affiliate-chat") {
+      if (!composer.body.trim()) {
+        setSendMsg({ ok: false, text: "Nachricht darf nicht leer sein." });
+        return;
+      }
+      setSending(true);
+      setSendMsg(null);
+      try {
+        const fd = new URLSearchParams();
+        fd.set("affiliate_user_id", sel.id);
+        fd.set("body", composer.body);
+        const res = await fetch("/admin/affiliate-chat/reply?json=1", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: fd.toString(),
+        });
+        const j = (await res.json().catch(() => ({ ok: false, msg: "Antwort unlesbar" }))) as { ok?: boolean; msg?: string };
+        if (res.ok && j.ok) {
+          const now = new Date().toISOString();
+          const newMsg: ThreadMessage = { id: `local-${Date.now()}`, direction: "out", subject: null, body: composer.body, at: now, provider: "chat" };
+          setConvs((prev) => prev.map((c) => (c.id === sel.id ? { ...c, messages: [...c.messages, newMsg], lastActivityAt: now } : c)));
+          setComposer((c) => ({ ...c, body: "" }));
+          setSendMsg({ ok: true, text: "Gesendet. Der Affiliate sieht es im Dashboard-Chat." });
+        } else {
+          setSendMsg({ ok: false, text: j.msg || "Senden fehlgeschlagen." });
+        }
+      } catch {
+        setSendMsg({ ok: false, text: "Netzwerkfehler beim Senden." });
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
     // Outreach threads reply via their target id; inquiries only when matched to
     // a target. Pure website inquiries have no in-app reply channel.
     const replyTargetId = sel.kind === "inquiry" ? sel.inquiry?.matchedTargetId ?? null : sel.id;
@@ -621,8 +656,13 @@ export default function MailClient({
                   </div>
                 </div>
 
-                {/* Actions — inquiry (approve/decline) vs outreach (accept/decline) */}
-                {sel.kind === "inquiry" && sel.inquiry ? (
+                {/* Actions — affiliate-chat (none), inquiry (approve/decline), outreach (accept/decline) */}
+                {sel.kind === "affiliate-chat" ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
+                    <span className="kr-chip">Affiliate-Chat</span>
+                    <span className="muted" style={{ fontSize: 12 }}>Antwort geht direkt ins Dashboard des Affiliates.</span>
+                  </div>
+                ) : sel.kind === "inquiry" && sel.inquiry ? (
                   (() => {
                     const iq = sel.inquiry!;
                     const isAffiliate = iq.inquiryType === "affiliate";
@@ -822,7 +862,7 @@ export default function MailClient({
               <div style={{ borderTop: "1px solid var(--line)", padding: "14px 24px", display: "flex", flexDirection: "column", gap: 9, background: "var(--surface)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <span className="muted" style={{ fontSize: 11.5, fontFamily: "var(--font-mono)" }}>
-                    An: {sel.contactEmail || "— keine Email"}
+                    An: {sel.kind === "affiliate-chat" ? "Dashboard-Chat" : sel.contactEmail || "— keine Email"}
                   </span>
                   <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 8 }}>
                     <label style={{ fontSize: 11.5, color: "var(--fg-3)", display: "inline-flex", alignItems: "center", gap: 5 }}>
@@ -869,7 +909,7 @@ export default function MailClient({
                   onMouseUp={persistComposerH}
                 />
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <button className="retro-send" onClick={send} disabled={sending || !sel.contactEmail}>
+                  <button className="retro-send" onClick={send} disabled={sending || (sel.kind !== "affiliate-chat" && !sel.contactEmail)}>
                     {sending ? "Sende…" : sel.awaiting ? "Nachfassen" : "Senden"}
                   </button>
                   <button

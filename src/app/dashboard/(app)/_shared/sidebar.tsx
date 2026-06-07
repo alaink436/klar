@@ -40,11 +40,17 @@ const ICON_USER = (
     <path d="M4 21c0-4 4-7 8-7s8 3 8 7" />
   </svg>
 );
+const ICON_CHAT = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.9-.9L3 21l1.9-5.6A8.5 8.5 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z" />
+  </svg>
+);
 
 const NAV: NavItem[] = [
   { href: "/dashboard",          label: "Overview", icon: ICON_GRID },
   { href: "/dashboard/earnings", label: "Earnings", icon: ICON_COIN },
   { href: "/dashboard/funnel",   label: "Funnel",   icon: ICON_FUNNEL },
+  { href: "/dashboard/chat",     label: "Chat",     icon: ICON_CHAT },
   { href: "/dashboard/account",  label: "Account",  icon: ICON_USER },
 ];
 
