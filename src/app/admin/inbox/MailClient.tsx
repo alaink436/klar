@@ -133,6 +133,14 @@ function pickLang(raw: string): ReplyLang {
   const v = (raw || "").toLowerCase().slice(0, 2);
   return v === "en" || v === "es" || v === "it" || v === "fr" ? (v as ReplyLang) : "de";
 }
+// Languages a creator can be (re)assigned to from the inbox header.
+const LANG_OPTS: { v: ReplyLang; label: string }[] = [
+  { v: "de", label: "DE" },
+  { v: "en", label: "EN" },
+  { v: "fr", label: "FR" },
+  { v: "es", label: "ES" },
+  { v: "it", label: "IT" },
+];
 const subst = (s: string, name: string, handle: string): string =>
   s.replace(/\{\{name\}\}/g, name).replace(/\{\{handle\}\}/g, handle);
 
@@ -397,7 +405,7 @@ export default function MailClient({
           const newMsg: ThreadMessage = { id: `local-${Date.now()}`, direction: "out", subject: null, body: composer.body, at: now, provider: "chat" };
           setConvs((prev) => prev.map((c) => (c.id === sel.id ? { ...c, messages: [...c.messages, newMsg], lastActivityAt: now } : c)));
           setComposer((c) => ({ ...c, body: "" }));
-          setSendMsg({ ok: true, text: "Gesendet. Der Affiliate sieht es im Dashboard-Chat." });
+          setSendMsg({ ok: true, text: "Gesendet. Der Creator sieht es im Dashboard-Chat." });
         } else {
           setSendMsg({ ok: false, text: j.msg || "Senden fehlgeschlagen." });
         }
@@ -465,6 +473,39 @@ export default function MailClient({
       setSending(false);
     }
   }, [sel, composer]);
+
+  // Re-assign this creator's language. Optimistic (the template dropdown keys
+  // off sel.language so the switch is felt at once); reverts if the server
+  // rejects, then soft-refreshes to pull any server-derived data.
+  const changeLanguage = useCallback(
+    async (newLang: string) => {
+      if (!sel || sel.kind !== "outreach") return;
+      const prev = sel.language;
+      if (newLang === prev) return;
+      setConvs((cs) => cs.map((c) => (c.id === sel.id ? { ...c, language: newLang } : c)));
+      try {
+        const fd = new URLSearchParams();
+        fd.set("id", sel.id);
+        fd.set("language", newLang);
+        const res = await fetch("/admin/outreach/language?json=1", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: fd.toString(),
+        });
+        const j = (await res.json().catch(() => ({ ok: false }))) as { ok?: boolean; msg?: string };
+        if (!res.ok || !j.ok) {
+          setConvs((cs) => cs.map((c) => (c.id === sel.id ? { ...c, language: prev } : c)));
+          setSendMsg({ ok: false, text: j.msg || "Sprache speichern fehlgeschlagen." });
+        } else {
+          refresh();
+        }
+      } catch {
+        setConvs((cs) => cs.map((c) => (c.id === sel.id ? { ...c, language: prev } : c)));
+        setSendMsg({ ok: false, text: "Netzwerkfehler beim Sprachwechsel." });
+      }
+    },
+    [sel, refresh],
+  );
 
   function applyTemplate(id: string) {
     if (!sel) return;
@@ -692,6 +733,24 @@ export default function MailClient({
                       <span className="muted" suppressHydrationWarning style={{ fontSize: 11.5, fontFamily: "var(--font-mono)" }} title={abs(sel.awaiting ? sel.lastActivityAt : sel.lastInboundAt)}>
                         {sel.kind === "inquiry" ? `Anfrage ${rel(sel.lastInboundAt)}` : sel.awaiting ? `kontaktiert ${rel(sel.lastActivityAt)}` : `antwortete ${rel(sel.lastInboundAt)}`}
                       </span>
+                      {sel.kind === "outreach" && (
+                        <label
+                          style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--fg-3)" }}
+                          title="Sprache dieses Creators — steuert Vorlagen und die Sprache künftiger Mails"
+                        >
+                          Sprache
+                          <select
+                            className="kr-input"
+                            style={{ width: "auto", padding: "3px 6px", fontSize: 11.5 }}
+                            value={pickLang(sel.language)}
+                            onChange={(e) => changeLanguage(e.target.value)}
+                          >
+                            {LANG_OPTS.map((o) => (
+                              <option key={o.v} value={o.v}>{o.label}</option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -699,8 +758,8 @@ export default function MailClient({
                 {/* Actions — affiliate-chat (none), inquiry (approve/decline), outreach (accept/decline) */}
                 {sel.kind === "affiliate-chat" ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
-                    <span className="kr-chip">Affiliate-Chat</span>
-                    <span className="muted" style={{ fontSize: 12 }}>Antwort geht direkt ins Dashboard des Affiliates.</span>
+                    <span className="kr-chip">Creator-Chat</span>
+                    <span className="muted" style={{ fontSize: 12 }}>Antwort geht direkt ins Dashboard des Creators.</span>
                   </div>
                 ) : sel.kind === "inquiry" && sel.inquiry ? (
                   (() => {
@@ -788,7 +847,7 @@ export default function MailClient({
                   <>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       <button className="kr-mini" onClick={() => { setAcceptOpen((v) => !v); setDeclineArmed(false); }} style={{ borderColor: "var(--line-strong)" }}>
-                        {sel.status === "converted" ? "Erneut annehmen" : "Als Affiliate annehmen"}
+                        {sel.status === "converted" ? "Erneut annehmen" : "Als Creator annehmen"}
                       </button>
                       {!declineArmed ? (
                         <button className="kr-mini" onClick={() => { setDeclineArmed(true); setAcceptOpen(false); }}>Ablehnen</button>

@@ -1,4 +1,4 @@
-// Affiliate-Onboarding i18n. Single source of truth for all UI strings.
+// Creator-Onboarding i18n. Single source of truth for all UI strings.
 // Used by OnboardingShell + Step components via getMessages(lang).
 //
 // Each message can be a string or a function that returns a string for
@@ -203,7 +203,7 @@ export interface Messages {
 }
 
 const de: Messages = {
-  brandSubline: "Klar Affiliate",
+  brandSubline: "Klar Creator",
   stepShort: "Step",
 
   stepWelcome: "Willkommen",
@@ -216,7 +216,7 @@ const de: Messages = {
   backAria: "Zurück",
 
   welcomeGreet: (handle) => `Hi ${handle},`,
-  welcomeLede: (brandName) => `Willkommen im ${brandName} Affiliate-Programm. Vier kurze Schritte, dann ist dein Tracking-Link live.`,
+  welcomeLede: (brandName) => `Willkommen im ${brandName} Creator-Programm. Vier kurze Schritte, dann ist dein Tracking-Link live.`,
   welcomeEyebrowStreams: "So verdienst du",
   welcomeTitleTwoStreams: { plain: "Zwei Einkommens-", italic: "Ströme." },
   welcomeTitleOneStream: { plain: "Dein ", italic: "Einkommens-Strom." },
@@ -282,7 +282,7 @@ const de: Messages = {
   trackingProtection3: "IP- und Device-Fingerprint gegen Fraud-Bursts",
   trackingProtection4: "Cookie-loses Fallback per Install-Receipt für iOS 14+",
   trackingAdEyebrow: "Werbekennzeichnung",
-  trackingAdBody: "Markiere Affiliate-Content immer als Werbung oder Anzeige. Bei Stories reicht der Sticker, bei Reels und Posts gehört es in die ersten Zeilen der Caption. Das schützt dich und uns.",
+  trackingAdBody: "Markiere Creator-Content immer als Werbung oder Anzeige. Bei Stories reicht der Sticker, bei Reels und Posts gehört es in die ersten Zeilen der Caption. Das schützt dich und uns.",
   trackingDiagramCaption: "Vier Stationen, ein Link. 30 Tage Refund-Holdback nach jedem Kauf, danach landet dein Anteil per Wise auf deinem Konto.",
   diagramStep1Caption: "Du teilst den Link.",
   diagramStep2Caption: "Sie installieren.",
@@ -310,13 +310,13 @@ const de: Messages = {
   invoiceCheckMain: "Ich kann eine Rechnung mit ausgewiesener MwSt ausstellen.",
   invoiceCheckHint: "Falls nicht, übernehmen wir die Gutschrift automatisch für dich.",
   agreementCheckBefore: "Ich akzeptiere die ",
-  agreementCheckLink: "Affiliate-Bedingungen",
+  agreementCheckLink: "Creator-Bedingungen",
   agreementCheckAfter: (version) => ` der Version ${version}.`,
   agreementCheckHint: (pct, months, streamWord) => `${pct} % ${streamWord}, ${months} Monate Attribution, 30 Tage Refund-Holdback, monatliche Auszahlung ab 50 €. IP und Zeitstempel werden für den Audit-Trail gespeichert.`,
   payoutSavingBtn: "Speichere…",
-  payoutSubmitBtn: "Affiliate-Setup abschließen",
+  payoutSubmitBtn: "Creator-Setup abschließen",
   payoutErrorFallback: "Setup fehlgeschlagen, bitte erneut versuchen.",
-  payoutConsent: "Mit Klick auf abschließen bestätigst du, dass die Angaben korrekt sind und du die Affiliate-Bedingungen inklusive der Datenschutz-Hinweise in §05 gelesen hast. Du kannst jederzeit kündigen, ausstehende Provisionen verfallen nicht.",
+  payoutConsent: "Mit Klick auf abschließen bestätigst du, dass die Angaben korrekt sind und du die Creator-Bedingungen inklusive der Datenschutz-Hinweise in §05 gelesen hast. Du kannst jederzeit kündigen, ausstehende Provisionen verfallen nicht.",
 
   liveTitle: { plain: "Du bist ", italic: "live ✓" },
   liveLede: "Dein persönlicher Tracking-Link ist scharf. Erste Klicks tauchen innerhalb von 5 Minuten im Dashboard auf. Du brauchst keinen Code, der Link macht alles.",
@@ -335,10 +335,10 @@ const de: Messages = {
   liveShareBio: "Bio-Link: Setze den Link direkt in deine Instagram- oder TikTok-Bio. Beide Plattformen akzeptieren den Link ohne Redirect.",
   liveShareStory: "Stories & Reels: Link-Sticker drauf, Sprachnotiz dazu, fertig. Werbekennzeichnung nicht vergessen.",
   liveShareCaption: "Captions: Pack den Link auch in die Caption, falls jemand nicht auf die Bio scrollt. Tracking läuft pro Klick, nicht pro Code.",
-  liveCtaDashboard: "Zu deinem Affiliate-Dashboard",
+  liveCtaDashboard: "Zu deinem Creator-Dashboard",
   liveFooterMail: (email) => `Bestätigung an ${email || "deine E-Mail"} ist unterwegs. Fragen?`,
 
-  statusAlreadyActive: "Du bist bereits als Affiliate eingerichtet. Bei Fragen: alain@getklar.org",
+  statusAlreadyActive: "Du bist bereits als Creator eingerichtet. Bei Fragen: alain@getklar.org",
   statusExpiredTitle: { plain: "Link ", italic: "abgelaufen" },
   statusExpiredLede: "Dein Onboarding-Link ist abgelaufen oder ungültig. Schreib uns kurz an alain@getklar.org, wir erneuern ihn.",
   statusLoading: { italic: "Lade …" },
@@ -363,12 +363,12 @@ const de: Messages = {
 
   calcS2NoteYarn: (shoppers, basket, ratePct) => `${shoppers} aktive Garn-Käufer × ${basket} € Korb × ${ratePct} %`,
   calcS2NoteAlbum: (buyers, basket, ratePct) => `${buyers} Album-Käufer × ${basket} € × ${ratePct} %`,
-  calcS2HintYarn: "7,5 % Shop-Provision × 50 % Affiliate-Anteil = 3,75 % vom Korb",
+  calcS2HintYarn: "7,5 % Shop-Provision × 50 % Creator-Anteil = 3,75 % vom Korb",
   calcS2HintAlbum: "Einmalverkauf, 50 % Anteil pro Album",
 };
 
 const es: Messages = {
-  brandSubline: "Klar Affiliate",
+  brandSubline: "Klar Creator",
   stepShort: "Paso",
 
   stepWelcome: "Bienvenida",
@@ -381,7 +381,7 @@ const es: Messages = {
   backAria: "Atrás",
 
   welcomeGreet: (handle) => `Hola ${handle},`,
-  welcomeLede: (brandName) => `Bienvenida al programa de afiliados de ${brandName}. Cuatro pasos cortos y tu enlace de tracking estará activo.`,
+  welcomeLede: (brandName) => `Bienvenida al programa Creator de ${brandName}. Cuatro pasos cortos y tu enlace de tracking estará activo.`,
   welcomeEyebrowStreams: "Así ganas",
   welcomeTitleTwoStreams: { plain: "Dos fuentes de ", italic: "ingresos." },
   welcomeTitleOneStream: { plain: "Tu fuente de ", italic: "ingresos." },
@@ -433,7 +433,7 @@ const es: Messages = {
   trackingProtection3: "Huella de IP y dispositivo contra ráfagas de fraude",
   trackingProtection4: "Fallback sin cookies vía install-receipt para iOS 14+",
   trackingAdEyebrow: "Identificación como publicidad",
-  trackingAdBody: "Marca siempre el contenido de afiliado como Publicidad o Anuncio. En stories basta con el sticker, en Reels y posts debe estar en las primeras líneas de la caption. Te protege a ti y a nosotros.",
+  trackingAdBody: "Marca siempre el contenido Creator como Publicidad o Anuncio. En stories basta con el sticker, en Reels y posts debe estar en las primeras líneas de la caption. Te protege a ti y a nosotros.",
   trackingDiagramCaption: "Cuatro estaciones, un enlace. 30 días de retención por reembolso tras cada compra, después tu parte llega a tu cuenta vía Wise.",
   diagramStep1Caption: "Compartes el enlace.",
   diagramStep2Caption: "Ellas instalan.",
@@ -461,13 +461,13 @@ const es: Messages = {
   invoiceCheckMain: "Puedo emitir una factura con IVA declarado.",
   invoiceCheckHint: "Si no, generamos automáticamente la nota de abono.",
   agreementCheckBefore: "Acepto las ",
-  agreementCheckLink: "Condiciones de Afiliado",
+  agreementCheckLink: "Condiciones Creator",
   agreementCheckAfter: (version) => ` de la versión ${version}.`,
   agreementCheckHint: (pct, months, streamWord) => `${pct} % ${streamWord}, ${months} meses de atribución, 30 días de retención por reembolso, pago mensual a partir de 50 €. IP y timestamp se guardan para el audit-trail.`,
   payoutSavingBtn: "Guardando…",
-  payoutSubmitBtn: "Completar setup de afiliada",
+  payoutSubmitBtn: "Completar setup de Creator",
   payoutErrorFallback: "Setup fallido, por favor inténtalo de nuevo.",
-  payoutConsent: "Al hacer clic en completar confirmas que los datos son correctos y que has leído las Condiciones de Afiliado incluida la información sobre protección de datos en §05. Puedes cancelar en cualquier momento, las comisiones pendientes no caducan.",
+  payoutConsent: "Al hacer clic en completar confirmas que los datos son correctos y que has leído las Condiciones Creator incluida la información sobre protección de datos en §05. Puedes cancelar en cualquier momento, las comisiones pendientes no caducan.",
 
   liveTitle: { plain: "Ya estás ", italic: "en vivo ✓" },
   liveLede: "Tu enlace de tracking personal está activo. Los primeros clicks aparecen en el dashboard en menos de 5 minutos. No necesitas código, el enlace hace todo.",
@@ -475,7 +475,7 @@ const es: Messages = {
   copy: "Copiar",
   copied: "Copiado",
   shareLinkBtn: "Compartir enlace",
-  liveCaptionEyebrow: "Caption de afiliado · para copiar",
+  liveCaptionEyebrow: "Caption Creator · para copiar",
   liveCaptionTagShort: "Story / Bio",
   liveCaptionTagLong: "Reel / Post",
   liveCaptionShort: (brandName, url) => `Publi · App ${brandName}, enlace en la bio. ${url}`,
@@ -486,10 +486,10 @@ const es: Messages = {
   liveShareBio: "Enlace en bio: Pon el enlace directamente en tu bio de Instagram o TikTok. Ambas plataformas lo aceptan sin redirect.",
   liveShareStory: "Stories y Reels: Sticker de enlace, audio explicando, listo. Sin olvidar marcarlo como publi.",
   liveShareCaption: "Captions: Mete también el enlace en la caption, por si alguien no scrollea a la bio. El tracking va por click, no por código.",
-  liveCtaDashboard: "A tu dashboard de afiliada",
+  liveCtaDashboard: "A tu dashboard de Creator",
   liveFooterMail: (email) => `Confirmación a ${email || "tu email"} en camino. ¿Dudas?`,
 
-  statusAlreadyActive: "Ya estás registrada como afiliada. Si tienes dudas: alain@getklar.org",
+  statusAlreadyActive: "Ya estás registrada como Creator. Si tienes dudas: alain@getklar.org",
   statusExpiredTitle: { plain: "Enlace ", italic: "caducado" },
   statusExpiredLede: "Tu enlace de onboarding ha caducado o no es válido. Escríbenos a alain@getklar.org y te lo renovamos.",
   statusLoading: { italic: "Cargando …" },
@@ -514,12 +514,12 @@ const es: Messages = {
 
   calcS2NoteYarn: (shoppers, basket, ratePct) => `${shoppers} compradoras activas de lana × ${basket} € cesta × ${ratePct} %`,
   calcS2NoteAlbum: (buyers, basket, ratePct) => `${buyers} compradores de álbum × ${basket} € × ${ratePct} %`,
-  calcS2HintYarn: "7,5 % de comisión de tienda × 50 % parte afiliada = 3,75 % de la cesta",
+  calcS2HintYarn: "7,5 % de comisión de tienda × 50 % parte Creator = 3,75 % de la cesta",
   calcS2HintAlbum: "Venta única, 50 % de comisión por álbum",
 };
 
 const en: Messages = {
-  brandSubline: "Klar Affiliate",
+  brandSubline: "Klar Creator",
   stepShort: "Step",
 
   stepWelcome: "Welcome",
@@ -533,7 +533,7 @@ const en: Messages = {
   backAria: "Back",
 
   welcomeGreet: (handle) => `Hi ${handle},`,
-  welcomeLede: (brandName) => `Welcome to the ${brandName} Affiliate Program. Four short steps and your tracking link is live.`,
+  welcomeLede: (brandName) => `Welcome to the ${brandName} Creator Program. Four short steps and your tracking link is live.`,
   welcomeEyebrowStreams: "How you earn",
   welcomeTitleTwoStreams: { plain: "Two ", italic: "revenue streams." },
   welcomeTitleOneStream: { plain: "Your ", italic: "revenue stream." },
@@ -585,7 +585,7 @@ const en: Messages = {
   trackingProtection3: "IP and device fingerprint against fraud bursts",
   trackingProtection4: "Cookie-less fallback via install receipt for iOS 14+",
   trackingAdEyebrow: "Ad disclosure",
-  trackingAdBody: "Always mark affiliate content as Ad or Sponsored. For stories the sticker is enough, for Reels and posts it goes in the first lines of the caption. Protects you and us.",
+  trackingAdBody: "Always mark creator content as Ad or Sponsored. For stories the sticker is enough, for Reels and posts it goes in the first lines of the caption. Protects you and us.",
   trackingDiagramCaption: "Four stations, one link. 30-day refund holdback after each purchase, then your share lands in your account via Wise.",
   diagramStep1Caption: "You share the link.",
   diagramStep2Caption: "They install.",
@@ -613,13 +613,13 @@ const en: Messages = {
   invoiceCheckMain: "I can issue an invoice with VAT shown.",
   invoiceCheckHint: "If not, we'll handle the credit note automatically for you.",
   agreementCheckBefore: "I accept the ",
-  agreementCheckLink: "Affiliate Terms",
+  agreementCheckLink: "Creator Terms",
   agreementCheckAfter: (version) => ` of version ${version}.`,
   agreementCheckHint: (pct, months, streamWord) => `${pct} % ${streamWord}, ${months} months attribution, 30-day refund holdback, monthly payout from 50 €. IP and timestamp are stored for the audit trail.`,
   payoutSavingBtn: "Saving…",
-  payoutSubmitBtn: "Complete affiliate setup",
+  payoutSubmitBtn: "Complete creator setup",
   payoutErrorFallback: "Setup failed, please try again.",
-  payoutConsent: "By clicking complete you confirm that the details are correct and that you've read the Affiliate Terms including the data-protection notes in §05. You can cancel any time, outstanding commissions don't expire.",
+  payoutConsent: "By clicking complete you confirm that the details are correct and that you've read the Creator Terms including the data-protection notes in §05. You can cancel any time, outstanding commissions don't expire.",
 
   liveTitle: { plain: "You're ", italic: "live ✓" },
   liveLede: "Your personal tracking link is armed. First clicks show up in the dashboard within 5 minutes. You don't need a code, the link does everything.",
@@ -638,10 +638,10 @@ const en: Messages = {
   liveShareBio: "Bio link: drop the link directly into your Instagram or TikTok bio. Both platforms accept it without redirect.",
   liveShareStory: "Stories & Reels: link sticker on, voice note with it, done. Don't forget the ad disclosure.",
   liveShareCaption: "Captions: also put the link in the caption in case someone doesn't scroll to bio. Tracking runs per click, not per code.",
-  liveCtaDashboard: "Go to your affiliate dashboard",
+  liveCtaDashboard: "Go to your creator dashboard",
   liveFooterMail: (email) => `Confirmation to ${email || "your email"} is on the way. Questions?`,
 
-  statusAlreadyActive: "You're already set up as an affiliate. Questions: alain@getklar.org",
+  statusAlreadyActive: "You're already set up as a creator. Questions: alain@getklar.org",
   statusExpiredTitle: { plain: "Link ", italic: "expired" },
   statusExpiredLede: "Your onboarding link has expired or is invalid. Drop us a line at alain@getklar.org, we'll renew it.",
   statusLoading: { italic: "Loading …" },
@@ -666,12 +666,12 @@ const en: Messages = {
 
   calcS2NoteYarn: (shoppers, basket, ratePct) => `${shoppers} active yarn buyers × ${basket} € basket × ${ratePct} %`,
   calcS2NoteAlbum: (buyers, basket, ratePct) => `${buyers} album buyers × ${basket} € × ${ratePct} %`,
-  calcS2HintYarn: "7.5 % shop commission × 50 % affiliate share = 3.75 % of the basket",
+  calcS2HintYarn: "7.5 % shop commission × 50 % creator share = 3.75 % of the basket",
   calcS2HintAlbum: "One-off sale, 50 % share per album",
 };
 
 const it: Messages = {
-  brandSubline: "Klar Affiliate",
+  brandSubline: "Klar Creator",
   stepShort: "Passo",
 
   stepWelcome: "Benvenuta",
@@ -684,7 +684,7 @@ const it: Messages = {
   backAria: "Indietro",
 
   welcomeGreet: (handle) => `Ciao ${handle},`,
-  welcomeLede: (brandName) => `Benvenuta nel programma di affiliazione ${brandName}. Quattro passi brevi e il tuo link di tracking è live.`,
+  welcomeLede: (brandName) => `Benvenuta nel programma Creator ${brandName}. Quattro passi brevi e il tuo link di tracking è live.`,
   welcomeEyebrowStreams: "Come guadagni",
   welcomeTitleTwoStreams: { plain: "Due fonti di ", italic: "guadagno." },
   welcomeTitleOneStream: { plain: "La tua fonte di ", italic: "guadagno." },
@@ -736,7 +736,7 @@ const it: Messages = {
   trackingProtection3: "Impronta IP e device contro le ondate di frode",
   trackingProtection4: "Fallback senza cookie via install-receipt per iOS 14+",
   trackingAdEyebrow: "Identificazione come pubblicità",
-  trackingAdBody: "Marca sempre il contenuto di affiliazione come Pubblicità o Sponsorizzato. Nelle stories basta lo sticker, in Reels e post va nelle prime righe della caption. Protegge te e noi.",
+  trackingAdBody: "Marca sempre il contenuto Creator come Pubblicità o Sponsorizzato. Nelle stories basta lo sticker, in Reels e post va nelle prime righe della caption. Protegge te e noi.",
   trackingDiagramCaption: "Quattro stazioni, un link. 30 giorni di trattenuta per rimborso dopo ogni acquisto, poi la tua quota arriva sul tuo conto via Wise.",
   diagramStep1Caption: "Tu condividi il link.",
   diagramStep2Caption: "Loro installano.",
@@ -764,13 +764,13 @@ const it: Messages = {
   invoiceCheckMain: "Posso emettere una fattura con IVA esposta.",
   invoiceCheckHint: "Se no, generiamo automaticamente la nota di accredito.",
   agreementCheckBefore: "Accetto le ",
-  agreementCheckLink: "Condizioni di Affiliazione",
+  agreementCheckLink: "Condizioni Creator",
   agreementCheckAfter: (version) => ` della versione ${version}.`,
   agreementCheckHint: (pct, months, streamWord) => `${pct} % ${streamWord}, ${months} mesi di attribuzione, 30 giorni di trattenuta per rimborso, pagamento mensile a partire da 50 €. IP e timestamp vengono salvati per l'audit-trail.`,
   payoutSavingBtn: "Salvataggio…",
-  payoutSubmitBtn: "Completa setup di affiliata",
+  payoutSubmitBtn: "Completa setup di Creator",
   payoutErrorFallback: "Setup fallito, riprova.",
-  payoutConsent: "Cliccando su completa confermi che i dati sono corretti e di aver letto le Condizioni di Affiliazione incluse le informazioni sulla protezione dei dati al §05. Puoi disdire in qualsiasi momento, le commissioni in sospeso non scadono.",
+  payoutConsent: "Cliccando su completa confermi che i dati sono corretti e di aver letto le Condizioni Creator incluse le informazioni sulla protezione dei dati al §05. Puoi disdire in qualsiasi momento, le commissioni in sospeso non scadono.",
 
   liveTitle: { plain: "Sei ", italic: "live ✓" },
   liveLede: "Il tuo link di tracking personale è attivo. I primi click compaiono nella dashboard entro 5 minuti. Non ti serve un codice, fa tutto il link.",
@@ -778,7 +778,7 @@ const it: Messages = {
   copy: "Copia",
   copied: "Copiato",
   shareLinkBtn: "Condividi link",
-  liveCaptionEyebrow: "Caption di affiliazione · da copiare",
+  liveCaptionEyebrow: "Caption Creator · da copiare",
   liveCaptionTagShort: "Story / Bio",
   liveCaptionTagLong: "Reel / Post",
   liveCaptionShort: (brandName, url) => `Pubblicità · App ${brandName}, link in bio. ${url}`,
@@ -789,10 +789,10 @@ const it: Messages = {
   liveShareBio: "Link in bio: metti il link direttamente nella tua bio di Instagram o TikTok. Entrambe le piattaforme lo accettano senza redirect.",
   liveShareStory: "Stories e Reels: sticker del link su, audio che spiega, fatto. Non dimenticare di marcarlo come pubblicità.",
   liveShareCaption: "Captions: metti il link anche nella caption, nel caso qualcuno non scorra alla bio. Il tracking va a click, non a codice.",
-  liveCtaDashboard: "Alla tua dashboard di affiliata",
+  liveCtaDashboard: "Alla tua dashboard di Creator",
   liveFooterMail: (email) => `Conferma a ${email || "la tua email"} in arrivo. Domande?`,
 
-  statusAlreadyActive: "Sei già registrata come affiliata. Per domande: alain@getklar.org",
+  statusAlreadyActive: "Sei già registrata come Creator. Per domande: alain@getklar.org",
   statusExpiredTitle: { plain: "Link ", italic: "scaduto" },
   statusExpiredLede: "Il tuo link di onboarding è scaduto o non valido. Scrivici a alain@getklar.org, lo rinnoviamo.",
   statusLoading: { italic: "Caricamento …" },
@@ -817,12 +817,12 @@ const it: Messages = {
 
   calcS2NoteYarn: (shoppers, basket, ratePct) => `${shoppers} acquirenti attive di filato × ${basket} € carrello × ${ratePct} %`,
   calcS2NoteAlbum: (buyers, basket, ratePct) => `${buyers} acquirenti di album × ${basket} € × ${ratePct} %`,
-  calcS2HintYarn: "7,5 % commissione shop × 50 % quota affiliata = 3,75 % del carrello",
+  calcS2HintYarn: "7,5 % commissione shop × 50 % quota Creator = 3,75 % del carrello",
   calcS2HintAlbum: "Vendita una tantum, 50 % di quota per album",
 };
 
 const fr: Messages = {
-  brandSubline: "Klar Affiliate",
+  brandSubline: "Klar Creator",
   stepShort: "Étape",
 
   stepWelcome: "Bienvenue",
@@ -835,7 +835,7 @@ const fr: Messages = {
   backAria: "Retour",
 
   welcomeGreet: (handle) => `Salut ${handle},`,
-  welcomeLede: (brandName) => `Bienvenue dans le programme d'affiliation ${brandName}. Quatre étapes courtes et ton lien de tracking est en ligne.`,
+  welcomeLede: (brandName) => `Bienvenue dans le programme Creator ${brandName}. Quatre étapes courtes et ton lien de tracking est en ligne.`,
   welcomeEyebrowStreams: "Comment tu gagnes",
   welcomeTitleTwoStreams: { plain: "Deux sources de ", italic: "revenus." },
   welcomeTitleOneStream: { plain: "Ta source de ", italic: "revenus." },
@@ -887,7 +887,7 @@ const fr: Messages = {
   trackingProtection3: "Empreinte IP et device contre les vagues de fraude",
   trackingProtection4: "Fallback sans cookie via install-receipt pour iOS 14+",
   trackingAdEyebrow: "Identification publicitaire",
-  trackingAdBody: "Marque toujours le contenu d'affiliation comme Publicité ou Partenariat rémunéré. En stories, le sticker suffit, en Reels et posts ça va dans les premières lignes de la caption. Ça te protège et nous protège.",
+  trackingAdBody: "Marque toujours le contenu Creator comme Publicité ou Partenariat rémunéré. En stories, le sticker suffit, en Reels et posts ça va dans les premières lignes de la caption. Ça te protège et nous protège.",
   trackingDiagramCaption: "Quatre stations, un lien. 30 jours de retenue pour remboursement après chaque achat, puis ta part arrive sur ton compte via Wise.",
   diagramStep1Caption: "Tu partages le lien.",
   diagramStep2Caption: "Ils installent.",
@@ -915,13 +915,13 @@ const fr: Messages = {
   invoiceCheckMain: "Je peux émettre une facture avec TVA mentionnée.",
   invoiceCheckHint: "Sinon, on gère la note de crédit automatiquement pour toi.",
   agreementCheckBefore: "J'accepte les ",
-  agreementCheckLink: "Conditions d'Affiliation",
+  agreementCheckLink: "Conditions Creator",
   agreementCheckAfter: (version) => ` en version ${version}.`,
   agreementCheckHint: (pct, months, streamWord) => `${pct} % ${streamWord}, ${months} mois d'attribution, 30 jours de retenue pour remboursement, paiement mensuel à partir de 50 €. IP et timestamp sont conservés pour l'audit-trail.`,
   payoutSavingBtn: "Enregistrement…",
-  payoutSubmitBtn: "Terminer le setup affilié",
+  payoutSubmitBtn: "Terminer le setup Creator",
   payoutErrorFallback: "Setup échoué, merci de réessayer.",
-  payoutConsent: "En cliquant sur terminer tu confirmes que les données sont correctes et que tu as lu les Conditions d'Affiliation, y compris les mentions de protection des données au §05. Tu peux résilier à tout moment, les commissions en attente n'expirent pas.",
+  payoutConsent: "En cliquant sur terminer tu confirmes que les données sont correctes et que tu as lu les Conditions Creator, y compris les mentions de protection des données au §05. Tu peux résilier à tout moment, les commissions en attente n'expirent pas.",
 
   liveTitle: { plain: "Tu es ", italic: "en ligne ✓" },
   liveLede: "Ton lien de tracking perso est armé. Les premiers clics apparaissent dans le dashboard en moins de 5 minutes. Pas besoin de code, le lien fait tout.",
@@ -929,7 +929,7 @@ const fr: Messages = {
   copy: "Copier",
   copied: "Copié",
   shareLinkBtn: "Partager le lien",
-  liveCaptionEyebrow: "Caption d'affiliation · à copier",
+  liveCaptionEyebrow: "Caption Creator · à copier",
   liveCaptionTagShort: "Story / Bio",
   liveCaptionTagLong: "Reel / Post",
   liveCaptionShort: (brandName, url) => `Publicité · App ${brandName}, lien en bio. ${url}`,
@@ -940,10 +940,10 @@ const fr: Messages = {
   liveShareBio: "Lien en bio: mets le lien directement dans ta bio Instagram ou TikTok. Les deux plateformes l'acceptent sans redirect.",
   liveShareStory: "Stories et Reels: sticker de lien dessus, note vocale qui explique, fini. N'oublie pas de marquer comme publicité.",
   liveShareCaption: "Captions: mets aussi le lien dans la caption, au cas où quelqu'un ne scrolle pas vers la bio. Le tracking marche au clic, pas au code.",
-  liveCtaDashboard: "Vers ton dashboard d'affiliée",
+  liveCtaDashboard: "Vers ton dashboard Creator",
   liveFooterMail: (email) => `Confirmation à ${email || "ton email"} en route. Des questions?`,
 
-  statusAlreadyActive: "Tu es déjà enregistrée comme affiliée. Pour toute question: alain@getklar.org",
+  statusAlreadyActive: "Tu es déjà enregistrée comme Creator. Pour toute question: alain@getklar.org",
   statusExpiredTitle: { plain: "Lien ", italic: "expiré" },
   statusExpiredLede: "Ton lien d'onboarding a expiré ou n'est pas valide. Écris-nous à alain@getklar.org, on te le renouvelle.",
   statusLoading: { italic: "Chargement …" },
@@ -968,7 +968,7 @@ const fr: Messages = {
 
   calcS2NoteYarn: (shoppers, basket, ratePct) => `${shoppers} acheteuses actives de laine × ${basket} € panier × ${ratePct} %`,
   calcS2NoteAlbum: (buyers, basket, ratePct) => `${buyers} acheteurs d'album × ${basket} € × ${ratePct} %`,
-  calcS2HintYarn: "7,5 % de commission shop × 50 % part affiliée = 3,75 % du panier",
+  calcS2HintYarn: "7,5 % de commission shop × 50 % part Creator = 3,75 % du panier",
   calcS2HintAlbum: "Vente unique, 50 % de part par album",
 };
 

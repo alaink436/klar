@@ -302,6 +302,36 @@ export async function setOutreachStatus(
   return rows[0];
 }
 
+// Languages a target can be (re)assigned to. Drives which mail + reply
+// templates the inbox uses and the language future mails go out in.
+const OUTREACH_LANGS = new Set(["de", "en", "fr", "es", "it"]);
+
+/**
+ * Change a target's outreach language. The inbox offers this so a creator who
+ * was assigned to a wave in the wrong region can be corrected after the fact
+ * (e.g. a DE-scraped creator who actually writes English). Returns the updated row.
+ */
+export async function setOutreachLanguage(id: string, lang: string): Promise<OutreachTarget> {
+  if (!KLAR_INBOX_KEY) throw new Error("KLAR_INBOX_SERVICE_KEY missing");
+  const l = lang.trim().toLowerCase();
+  if (!OUTREACH_LANGS.has(l)) throw new Error(`invalid language: ${lang}`);
+  const res = await fetch(
+    `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?id=eq.${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { ...hdr(), Prefer: "return=representation" },
+      body: JSON.stringify({ language: l }),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`outreach language update ${res.status}: ${text.slice(0, 200)}`);
+  }
+  const rows = (await res.json()) as OutreachTarget[];
+  if (!rows[0]) throw new Error("outreach language update returned no row");
+  return rows[0];
+}
+
 /**
  * Increment the mails_sent counter and stamp last_mail_at. Called when the
  * admin sends an outreach mail (DM follow-up, Wise-setup-mail, etc).

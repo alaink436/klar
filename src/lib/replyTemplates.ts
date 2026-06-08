@@ -4,8 +4,8 @@
 //
 // WICHTIG: Diese Vorlagen sind reine Konversation (Interesse, Infos,
 // Rückfrage, Absage). Der Onboarding-Link gehört NICHT hier rein — der geht
-// ausschliesslich über die explizite "Als Affiliate annehmen"-Aktion raus.
-// Nur weil jemand auf die erste Welle antwortet, ist er noch kein Affiliate.
+// ausschliesslich über die explizite "Als Creator annehmen"-Aktion raus.
+// Nur weil jemand auf die erste Welle antwortet, ist er noch kein Creator.
 //
 // Konditionen spiegeln die Wave-Mail-1 (50% Umsatzbeteiligung, 24 Monate,
 // Gratis-Lifetime-Premium, Auszahlung monatlich). Die Vorlage ist ein
@@ -37,7 +37,7 @@ const DE: ReplyTemplate[] = [
 freut mich riesig, dass du Lust hast. Kurz die Eckpunkte:
 
 - Gratis Lifetime-Premium für dich, ohne Bedingungen
-- Dein persönlicher Affiliate-Link mit 50% Umsatzbeteiligung auf jedes Premium-Abo das darüber reinkommt, 24 Monate lang, automatisch getrackt
+- Dein persönlicher Creator-Link mit 50% Umsatzbeteiligung auf jedes Premium-Abo das darüber reinkommt, 24 Monate lang, automatisch getrackt
 - Auszahlung monatlich (Wise, PayPal oder SEPA)
 - Komplette kreative Freiheit, keine Skripte, keine Freigabe-Schleifen
 
@@ -97,7 +97,7 @@ const EN: ReplyTemplate[] = [
 really glad you're keen. Here are the key points:
 
 - Free lifetime premium for you, no strings
-- Your personal affiliate link with 50% revenue share on every premium sub it brings in, for 24 months, tracked automatically
+- Your personal creator link with 50% revenue share on every premium sub it brings in, for 24 months, tracked automatically
 - Payouts monthly (Wise, PayPal or SEPA)
 - Full creative freedom, no scripts, no approval cycles
 

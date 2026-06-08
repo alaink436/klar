@@ -9,6 +9,7 @@
 // Both POST routes redirect back to /admin/brain with ?msg/?err.
 
 import { useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { KeyRound, UserPlus, Trash2, Users, Plus, ShieldCheck, Mail, Ban, MonitorSmartphone, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -134,8 +135,46 @@ export default function BrainAccessManager({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [previewCopied, setPreviewCopied] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [actionErr, setActionErr] = useState<string | null>(null);
+  const router = useRouter();
   const activeTokens = tokens.filter((t) => !t.revoked).length;
   const activeMembers = members.filter((m) => !m.revoked).length;
+
+  function openConfirm(c: Confirm) {
+    setActionErr(null);
+    setConfirm(c);
+  }
+
+  // Token revoke/delete via fetch + soft-refresh (no full reload): the row list
+  // re-renders from fresh server data once router.refresh() resolves. On error
+  // the dialog stays open and shows why. (Member revoke keeps its form-post.)
+  async function runTokenConfirm() {
+    if (!confirm || (confirm.kind !== "token-revoke" && confirm.kind !== "token-delete")) return;
+    setBusy(true);
+    setActionErr(null);
+    try {
+      const fd = new URLSearchParams();
+      fd.set("action", confirm.kind === "token-delete" ? "delete" : "revoke");
+      fd.set("id", confirm.id);
+      const res = await fetch("/admin/tokens?json=1", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: fd.toString(),
+      });
+      const j = (await res.json().catch(() => ({ ok: false }))) as { ok?: boolean; error?: string };
+      if (res.ok && j.ok) {
+        setConfirm(null);
+        router.refresh();
+      } else {
+        setActionErr(j.error || "Aktion fehlgeschlagen.");
+      }
+    } catch {
+      setActionErr("Netzwerkfehler.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   // Copy the agent-briefing to the clipboard; `mark` drives the per-button
   // "Kopiert ✓" feedback that resets after a moment.
@@ -319,11 +358,11 @@ export default function BrainAccessManager({
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       {!t.revoked && (
-                        <Button variant="outline" size="sm" onClick={() => setConfirm({ kind: "token-revoke", id: t.id, label: t.label })}>
+                        <Button variant="outline" size="sm" onClick={() => openConfirm({ kind: "token-revoke", id: t.id, label: t.label })}>
                           <Ban /> Widerrufen
                         </Button>
                       )}
-                      <Button variant="ghost" size="sm" onClick={() => setConfirm({ kind: "token-delete", id: t.id, label: t.label, active: !t.revoked })}>
+                      <Button variant="ghost" size="sm" onClick={() => openConfirm({ kind: "token-delete", id: t.id, label: t.label, active: !t.revoked })}>
                         <Trash2 /> Löschen
                       </Button>
                     </div>
@@ -442,7 +481,7 @@ export default function BrainAccessManager({
                   </TableCell>
                   <TableCell className="text-right">
                     {!m.revoked && (
-                      <Button variant="outline" size="sm" onClick={() => setConfirm({ kind: "member", email: m.email })}>
+                      <Button variant="outline" size="sm" onClick={() => openConfirm({ kind: "member", email: m.email })}>
                         <Ban /> Entziehen
                       </Button>
                     )}
@@ -455,7 +494,7 @@ export default function BrainAccessManager({
       </Section>
 
       {/* Confirm dialog — token revoke/delete + member revoke share one shell */}
-      <AlertDialog open={confirm !== null} onOpenChange={(o) => !o && setConfirm(null)}>
+      <AlertDialog open={confirm !== null} onOpenChange={(o) => { if (!o && !busy) setConfirm(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -477,30 +516,36 @@ export default function BrainAccessManager({
                     : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <form method="POST" action={confirm?.kind === "member" ? "/admin/brain-invite" : "/admin/tokens"}>
-            <input type="hidden" name="action" value={confirm?.kind === "token-delete" ? "delete" : "revoke"} />
-            {confirm?.kind === "member" ? (
+          {actionErr && <p className="text-danger text-[13px] -mt-1">{actionErr}</p>}
+          {confirm?.kind === "member" ? (
+            // Member revoke: plain form-post (redirect back to /admin/brain).
+            <form method="POST" action="/admin/brain-invite">
+              <input type="hidden" name="action" value="revoke" />
               <input type="hidden" name="email" value={confirm.email} />
-            ) : (
-              <input type="hidden" name="id" value={confirm?.kind === "token-revoke" || confirm?.kind === "token-delete" ? confirm.id : ""} />
-            )}
+              <AlertDialogFooter>
+                <AlertDialogCancel asChild>
+                  <Button type="button" variant="ghost">Abbrechen</Button>
+                </AlertDialogCancel>
+                <AlertDialogAction asChild>
+                  <Button type="submit" variant="danger">Entziehen</Button>
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </form>
+          ) : (
+            // Token revoke/delete: async fetch + soft-refresh, dialog closes on success.
             <AlertDialogFooter>
               <AlertDialogCancel asChild>
-                <Button type="button" variant="ghost">
-                  Abbrechen
-                </Button>
+                <Button type="button" variant="ghost" disabled={busy}>Abbrechen</Button>
               </AlertDialogCancel>
-              <AlertDialogAction asChild>
-                <Button type="submit" variant="danger">
-                  {confirm?.kind === "token-revoke"
+              <Button type="button" variant="danger" disabled={busy} onClick={runTokenConfirm}>
+                {busy
+                  ? "…"
+                  : confirm?.kind === "token-revoke"
                     ? "Widerrufen"
-                    : confirm?.kind === "token-delete"
-                      ? "Löschen"
-                      : "Entziehen"}
-                </Button>
-              </AlertDialogAction>
+                    : "Löschen"}
+              </Button>
             </AlertDialogFooter>
-          </form>
+          )}
         </AlertDialogContent>
       </AlertDialog>
     </div>

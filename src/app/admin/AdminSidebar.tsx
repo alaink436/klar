@@ -50,7 +50,7 @@ export default function AdminSidebar({
       {navItem(active, "brain", "AI-Brain", ICON.brain, "/admin/brain")}
       {navItem(active, "vault", "Vault", ICON.key, "/admin/vault")}
 
-      <div className="navsec">Affiliate</div>
+      <div className="navsec">Creator</div>
       {navItem(active, "revenue", "Einnahmen", ICON.revenue, "/admin/revenue")}
       {navItem(active, "payouts", "Auszahlungen", ICON.payouts, "/admin/payouts")}
       {apps.length > 0 ? (

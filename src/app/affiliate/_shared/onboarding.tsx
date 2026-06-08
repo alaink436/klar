@@ -873,7 +873,7 @@ function StepSign({ brand, go, prev, state, setState, onSubmit, handle }: { bran
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `klar-affiliate-agreement-${cleanHandle}.pdf`;
+      a.download = `klar-creator-agreement-${cleanHandle}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -907,13 +907,13 @@ function StepSign({ brand, go, prev, state, setState, onSubmit, handle }: { bran
       <div className="aff-stack-md">
         <h1 className="aff-h1 small">Sign your <span className="italic">agreement.</span></h1>
         <p className="aff-lede">
-          One last step before you go live. Read the {brand.name} affiliate agreement, type your full legal name to sign it, and you are set. You can download a copy for your records.
+          One last step before you go live. Read the {brand.name} creator agreement, type your full legal name to sign it, and you are set. You can download a copy for your records.
         </p>
       </div>
 
       <div className="aff-sign-doc">
         <div className="aff-sign-doc-head">
-          <span className="aff-resource-eyebrow">Klar Affiliate Agreement</span>
+          <span className="aff-resource-eyebrow">Klar Creator Agreement</span>
           <span className="aff-sign-doc-title">{brand.name} program, version v1.0</span>
         </div>
         <p className="aff-sign-doc-body">
@@ -934,7 +934,7 @@ function StepSign({ brand, go, prev, state, setState, onSubmit, handle }: { bran
           onChange={(e) => set("signature", e.target.value)}
         />
         <p className="aff-sign-hint">
-          By typing my name I, the affiliate, agree to and electronically sign the {brand.name} affiliate agreement (version v1.0). My name, IP address, user agent and the timestamp are stored for the audit trail.
+          By typing my name I, the creator, agree to and electronically sign the {brand.name} creator agreement (version v1.0). My name, IP address, user agent and the timestamp are stored for the audit trail.
         </p>
       </div>
 
@@ -1011,7 +1011,7 @@ function StepLive({ brand, state, handle, t = getMessages("de"), lang = "de" }: 
   const share = async () => {
     try {
       await navigator.share({
-        title: `${brand.name} · Affiliate-Link`,
+        title: `${brand.name} · Creator-Link`,
         text: t.liveCaptionLong(brand.name, "").trim(),
         url: trackingUrl,
       });
@@ -1184,7 +1184,7 @@ export function OnboardingShell({ brand: brandKey, handle, onSubmit, initialStep
             </div>
           </div>
         </div>
-        <div className="aff-footer-note">{brand.short} · Affiliate · v1.0</div>
+        <div className="aff-footer-note">{brand.short} · Creator · v1.0</div>
       </div>
     </div>
   );

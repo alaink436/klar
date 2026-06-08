@@ -68,19 +68,25 @@ export async function POST(req: NextRequest): Promise<Response> {
   }
 
   const action = String(form.get("action") ?? "").trim();
+  // The Zugang UI calls revoke/delete via fetch(?json=1) so it can soft-refresh
+  // (router.refresh) in place instead of a full redirect. The plain form-post
+  // path (redirect back to /admin/brain) stays as the no-JS fallback.
+  const wantsJson = new URL(req.url).searchParams.get("json") === "1";
 
-  if (action === "revoke") {
+  if (action === "revoke" || action === "delete") {
     const id = String(form.get("id") ?? "").trim();
-    if (!id) return backWith(req, { err: "kein Token angegeben" });
-    const ok = await revokeToken(id);
-    return backWith(req, ok ? { msg: "Token widerrufen." } : { err: "Widerruf fehlgeschlagen." });
-  }
-
-  if (action === "delete") {
-    const id = String(form.get("id") ?? "").trim();
-    if (!id) return backWith(req, { err: "kein Token angegeben" });
-    const ok = await deleteToken(id);
-    return backWith(req, ok ? { msg: "Token gelöscht." } : { err: "Löschen fehlgeschlagen." });
+    if (!id) {
+      return wantsJson
+        ? NextResponse.json({ ok: false, error: "kein Token angegeben" }, { status: 400 })
+        : backWith(req, { err: "kein Token angegeben" });
+    }
+    const ok = action === "revoke" ? await revokeToken(id) : await deleteToken(id);
+    const okMsg = action === "revoke" ? "Token widerrufen." : "Token gelöscht.";
+    const errMsg = action === "revoke" ? "Widerruf fehlgeschlagen." : "Löschen fehlgeschlagen.";
+    if (wantsJson) {
+      return NextResponse.json(ok ? { ok: true, msg: okMsg } : { ok: false, error: errMsg }, { status: ok ? 200 : 500 });
+    }
+    return backWith(req, ok ? { msg: okMsg } : { err: errMsg });
   }
 
   if (action === "create") {

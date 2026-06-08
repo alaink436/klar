@@ -154,7 +154,7 @@ export const BRANDS: Record<BrandKey, Brand> = {
       rateMin: 5, rateMax: 80, rateStep: 1,
       basketMin: 10, basketMax: 200, basketStep: 5,
       commissionRate: 0.0375,
-      hint: "7,5 % Shop-Provision × 50 % Affiliate-Anteil = 3,75 % vom Korb",
+      hint: "7,5 % Shop-Provision × 50 % Creator-Anteil = 3,75 % vom Korb",
       recurring: true,
     },
   },
