@@ -479,12 +479,15 @@ getklar.org`;
     const d = new Date(iso);
     return `${String(d.getUTCDate()).padStart(2, "0")}.${String(d.getUTCMonth() + 1).padStart(2, "0")}.`;
   };
-  const apifyBudget = apifyAccount.monthly_usage_credits_usd ?? apifyAccount.max_monthly_usage_usd;
+  // Prefer the plan cap as the budget ceiling (that's where Apify actually blocks
+  // further spend); the included usage-credits are only the free allowance inside
+  // the plan price and can be exceeded up to the cap.
+  const apifyBudget = apifyAccount.max_monthly_usage_usd ?? apifyAccount.monthly_usage_credits_usd;
   const apifyBudgetKind: "credits" | "cap" | "none" =
-    apifyAccount.monthly_usage_credits_usd != null
-      ? "credits"
-      : apifyAccount.max_monthly_usage_usd != null
-        ? "cap"
+    apifyAccount.max_monthly_usage_usd != null
+      ? "cap"
+      : apifyAccount.monthly_usage_credits_usd != null
+        ? "credits"
         : "none";
   const apifyPct = apifyBudget && apifyBudget > 0
     ? Math.min(100, Math.round((apifyAccount.monthly_usage_usd / apifyBudget) * 100))

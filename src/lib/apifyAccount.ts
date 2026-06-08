@@ -12,6 +12,7 @@
 // Cached for 5 minutes via Next-cache so /admin refreshes don't hit the
 // Apify API on every render — fresh enough for an account-level KPI.
 import "server-only";
+import { listSecrets, revealSecret } from "./vault";
 
 export interface ApifyAccountStatus {
   ok: boolean;
@@ -56,8 +57,31 @@ function fallback(reason: ApifyAccountStatus["reason"]): ApifyAccountStatus {
   };
 }
 
+// Apify token: the Klar vault is the single source of truth for keys, so we pull
+// it from there (decrypted server-side, VAULT_MASTER_KEY only in Vercel) and only
+// fall back to the APIFY_API_TOKEN env var if the vault has no apify entry. This
+// way the card can't break when a separate env-var token goes stale. Cached 5 min
+// so the 15s auto-refresh doesn't hit Supabase + decrypt on every render.
+let _apifyTokenCache: { token: string; at: number } | null = null;
+async function getApifyToken(): Promise<string> {
+  if (_apifyTokenCache && Date.now() - _apifyTokenCache.at < 300_000) return _apifyTokenCache.token;
+  let token = "";
+  try {
+    const secrets = await listSecrets();
+    const apify = secrets.find(
+      (s) => !s.revoked_at && (s.provider.toLowerCase() === "apify" || s.label.toLowerCase().includes("apify")),
+    );
+    if (apify) token = (await revealSecret(apify.id)) ?? "";
+  } catch {
+    /* vault unreachable — fall through to the env var */
+  }
+  if (!token) token = process.env.APIFY_API_TOKEN ?? "";
+  _apifyTokenCache = { token, at: Date.now() };
+  return token;
+}
+
 export async function getApifyAccountStatus(): Promise<ApifyAccountStatus> {
-  const token = process.env.APIFY_API_TOKEN ?? "";
+  const token = await getApifyToken();
   if (!token) return fallback("no-token");
   try {
     const auth = { Authorization: `Bearer ${token}` };
