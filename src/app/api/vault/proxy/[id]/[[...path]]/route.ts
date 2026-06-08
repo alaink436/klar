@@ -7,8 +7,8 @@
 // Auth: Authorization: Bearer <token with scope vault:use>.
 // Master key (VAULT_MASTER_KEY) lives only in the server env.
 
-import { verifyToken } from "@/lib/apiTokens";
-import { getForProxy, vaultReady } from "@/lib/vault";
+import { verifyToken, touchTokenUsed } from "@/lib/apiTokens";
+import { getForProxy, vaultReady, touchSecretUsed } from "@/lib/vault";
 import { clientIp, rateLimit } from "@/lib/apiGuards";
 
 export const dynamic = "force-dynamic";
@@ -37,13 +37,22 @@ async function handle(
   if (!rl.ok) return json({ error: "rate limited", retryAfterSeconds: rl.retryAfterSeconds }, 429);
 
   const tok = bearer(req);
-  if (!tok || !(await verifyToken(tok, "vault:use"))) {
-    return json({ error: "unauthorized" }, 401);
-  }
+  if (!tok) return json({ error: "unauthorized" }, 401);
 
   const { id, path } = await ctx.params;
-  const secret = await getForProxy(id);
+
+  // Token check and secret fetch are independent — run both Supabase round-trips
+  // in parallel (one RTT instead of two before the upstream call). Stamp "last
+  // used" on token + secret only after BOTH pass, so a valid id paired with a
+  // bad token never marks the secret as used.
+  const [auth, secret] = await Promise.all([
+    verifyToken(tok, "vault:use", { touch: false }),
+    getForProxy(id, { touch: false }),
+  ]);
+  if (!auth) return json({ error: "unauthorized" }, 401);
   if (!secret) return json({ error: "unknown or revoked secret" }, 404);
+  touchTokenUsed(auth.id);
+  touchSecretUsed(id);
 
   const sub = (path ?? []).join("/");
   const search = new URL(req.url).search;

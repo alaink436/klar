@@ -19,6 +19,8 @@ import {
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { scopeGraph, hasToken, availableFolders, SHOWCASE_FOLDERS } from "@/lib/brainVault";
 import { listTokens } from "@/lib/apiTokens";
+import { listSecrets } from "@/lib/vault";
+import { buildAgentBriefing } from "@/lib/agentBriefing";
 import { listBrainMembers } from "@/lib/brainMembers";
 import BrainExplorer from "@/app/components/brain/BrainExplorer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,6 +33,12 @@ import BrainAccessManager, {
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+function originFromHeaders(h: Headers): string {
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "getklar.org";
+  return `${proto}://${host}`;
+}
 
 export default async function BrainPage({
   searchParams,
@@ -55,7 +63,28 @@ export default async function BrainPage({
   const tokenReady = hasToken();
 
   // Zugang-tab data (same sources /admin/settings used before the move).
-  const [tokenRows, memberRows] = await Promise.all([listTokens(), listBrainMembers()]);
+  const [tokenRows, memberRows, secretRows] = await Promise.all([
+    listTokens(),
+    listBrainMembers(),
+    listSecrets(),
+  ]);
+
+  // Copyable agent-briefing: a self-contained prompt with the live (proxyable)
+  // vault secrets, so an agent on a fresh device can use the gateway without the
+  // Supabase MCP or the PowerShell wrapper. No secrets in it (token is an env var).
+  const briefing = buildAgentBriefing({
+    origin: originFromHeaders(h),
+    secrets: secretRows
+      .filter((s) => !s.revoked_at && s.base_url)
+      .map((s) => ({
+        id: s.id,
+        label: s.label,
+        provider: s.provider,
+        baseUrl: s.base_url ?? "",
+        authHeader: s.auth_header,
+        authScheme: s.auth_scheme,
+      })),
+  });
   const tokens: TokenRow[] = tokenRows.map((t) => ({
     id: t.id,
     label: t.label,
@@ -125,7 +154,7 @@ export default async function BrainPage({
           </TabsContent>
 
           <TabsContent value="zugang">
-            <BrainAccessManager tokens={tokens} members={members} folders={folders} />
+            <BrainAccessManager tokens={tokens} members={members} folders={folders} briefing={briefing} />
           </TabsContent>
         </Tabs>
       </div>

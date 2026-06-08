@@ -237,11 +237,26 @@ export async function revealSecret(id: string): Promise<string | null> {
   }
 }
 
+// Best-effort, fire-and-forget "last used" stamp for a secret. Never awaited.
+// Split out so the proxy can stamp only AFTER the token check has also passed —
+// a request with a valid id but an invalid token must not mark the secret used.
+export function touchSecretUsed(id: string): void {
+  if (!SB_KEY()) return;
+  void fetch(`${URL_BASE}/rest/v1/vault_secrets?id=eq.${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: sbHeaders({ Prefer: "return=minimal" }),
+    body: JSON.stringify({ last_used_at: new Date().toISOString() }),
+    cache: "no-store",
+  }).catch(() => {});
+}
+
 // Server-only: fetch + decrypt a secret for the proxy to inject. Returns the
 // plaintext key alongside its routing config, or null. Plaintext must never
-// leave the proxy handler.
+// leave the proxy handler. By default it best-effort touches last_used_at; pass
+// { touch: false } to skip (the proxy stamps later, once auth has also passed).
 export async function getForProxy(
   id: string,
+  opts: { touch?: boolean } = {},
 ): Promise<{ baseUrl: string; authHeader: string; authScheme: string; key: string } | null> {
   if (!vaultReady()) return null;
   try {
@@ -268,12 +283,7 @@ export async function getForProxy(
     } catch {
       return null; // wrong master key / tampered ciphertext
     }
-    void fetch(`${URL_BASE}/rest/v1/vault_secrets?id=eq.${encodeURIComponent(id)}`, {
-      method: "PATCH",
-      headers: sbHeaders({ Prefer: "return=minimal" }),
-      body: JSON.stringify({ last_used_at: new Date().toISOString() }),
-      cache: "no-store",
-    }).catch(() => {});
+    if (opts.touch !== false) touchSecretUsed(id);
     return { baseUrl: r.base_url, authHeader: r.auth_header, authScheme: r.auth_scheme, key };
   } catch {
     return null;

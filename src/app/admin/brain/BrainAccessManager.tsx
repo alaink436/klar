@@ -9,7 +9,7 @@
 // Both POST routes redirect back to /admin/brain with ?msg/?err.
 
 import { useState, type ReactNode } from "react";
-import { KeyRound, UserPlus, Trash2, Users, Plus, ShieldCheck, Mail, Ban } from "lucide-react";
+import { KeyRound, UserPlus, Trash2, Users, Plus, ShieldCheck, Mail, Ban, MonitorSmartphone, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -63,7 +63,7 @@ export interface FolderOpt {
 
 type Confirm =
   | { kind: "token-revoke"; id: string; label: string }
-  | { kind: "token-delete"; id: string; label: string }
+  | { kind: "token-delete"; id: string; label: string; active: boolean }
   | { kind: "member"; email: string }
   | null;
 
@@ -123,17 +123,104 @@ export default function BrainAccessManager({
   tokens,
   members,
   folders,
+  briefing,
 }: {
   tokens: TokenRow[];
   members: MemberRow[];
   folders: FolderOpt[];
+  briefing: string;
 }) {
   const [confirm, setConfirm] = useState<Confirm>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [previewCopied, setPreviewCopied] = useState(false);
   const activeTokens = tokens.filter((t) => !t.revoked).length;
   const activeMembers = members.filter((m) => !m.revoked).length;
 
+  // Copy the agent-briefing to the clipboard; `mark` drives the per-button
+  // "Kopiert ✓" feedback that resets after a moment.
+  function copyBriefing(mark: (v: boolean) => void) {
+    navigator.clipboard.writeText(briefing).then(
+      () => {
+        mark(true);
+        setTimeout(() => mark(false), 1600);
+      },
+      () => {},
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
+      {/* ── Gerät verbinden (Agent-Prompt) ── */}
+      <Card className="p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex flex-col gap-1.5 min-w-0">
+            <div className="flex items-center gap-2 [font-family:var(--font-display)] font-bold text-[16px] tracking-[-0.01em] text-fg">
+              <span className="text-fg-3">
+                <MonitorSmartphone className="size-4" />
+              </span>
+              Neues Gerät verbinden
+            </div>
+            <p className="[font-family:var(--font-editorial)] italic text-sm leading-relaxed text-fg-3 max-w-[64ch]">
+              Kopier diesen Prompt und füg ihn in Claude Code (oder einen anderen LLM-Agenten) auf dem
+              zweiten Gerät ein. Er listet alle nutzbaren Vault-Keys samt Gateway-Aufruf — der Agent kann
+              ohne Supabase-MCP und ohne PowerShell-Wrapper sofort loslegen. Den <code>vault:use</code>-Token
+              legst du separat als <code>KLAR_VAULT_TOKEN</code> ab; er steht bewusst nicht im Prompt.
+            </p>
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            <Button variant="outline" onClick={() => setPreviewOpen(true)}>
+              Vorschau
+            </Button>
+            <Button variant="pop" onClick={() => copyBriefing(setCopied)}>
+              {copied ? (
+                <>
+                  <Check /> Kopiert
+                </>
+              ) : (
+                <>
+                  <Copy /> Prompt kopieren
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Agent-Prompt — Vorschau */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Agent-Prompt</DialogTitle>
+            <DialogDescription>
+              Self-contained Briefing für einen LLM-Agenten auf einem anderen Gerät. Enthält keinen Token —
+              nur das URL-Schema, die Live-Secrets und die Regeln.
+            </DialogDescription>
+          </DialogHeader>
+          <pre className="max-h-[60vh] overflow-auto rounded-[var(--radius-sm)] border border-line-strong bg-surface-2 p-4 text-[12px] leading-relaxed [font-family:var(--font-mono)] text-fg-2 whitespace-pre-wrap break-words">
+            {briefing}
+          </pre>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="ghost">
+                Schließen
+              </Button>
+            </DialogClose>
+            <Button type="button" onClick={() => copyBriefing(setPreviewCopied)}>
+              {previewCopied ? (
+                <>
+                  <Check /> Kopiert
+                </>
+              ) : (
+                <>
+                  <Copy /> Kopieren
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ── API-Tokens ── */}
       <Section
         icon={<KeyRound className="size-4" />}
@@ -230,15 +317,16 @@ export default function BrainAccessManager({
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    {t.revoked ? (
-                      <Button variant="ghost" size="sm" onClick={() => setConfirm({ kind: "token-delete", id: t.id, label: t.label })}>
+                    <div className="flex items-center justify-end gap-2">
+                      {!t.revoked && (
+                        <Button variant="outline" size="sm" onClick={() => setConfirm({ kind: "token-revoke", id: t.id, label: t.label })}>
+                          <Ban /> Widerrufen
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="sm" onClick={() => setConfirm({ kind: "token-delete", id: t.id, label: t.label, active: !t.revoked })}>
                         <Trash2 /> Löschen
                       </Button>
-                    ) : (
-                      <Button variant="outline" size="sm" onClick={() => setConfirm({ kind: "token-revoke", id: t.id, label: t.label })}>
-                        <Ban /> Widerrufen
-                      </Button>
-                    )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -381,7 +469,9 @@ export default function BrainAccessManager({
               {confirm?.kind === "token-revoke"
                 ? `„${confirm.label}“ wird sofort ungültig. Geräte/Agents mit diesem Token verlieren den Zugriff.`
                 : confirm?.kind === "token-delete"
-                  ? `„${confirm.label}“ wird endgültig aus der Liste entfernt. Das lässt sich nicht rückgängig machen.`
+                  ? confirm.active
+                    ? `„${confirm.label}“ ist noch aktiv und wird sofort ungültig und endgültig entfernt. Geräte/Agents mit diesem Token verlieren den Zugriff. Das lässt sich nicht rückgängig machen.`
+                    : `„${confirm.label}“ wird endgültig aus der Liste entfernt. Das lässt sich nicht rückgängig machen.`
                   : confirm?.kind === "member"
                     ? `${confirm.email} verliert den Zugriff auf /brain. Re-Einladen stellt ihn wieder her.`
                     : ""}
