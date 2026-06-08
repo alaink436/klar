@@ -43,6 +43,7 @@ import OutreachBilling, { type OutreachBillingData } from "./OutreachBilling";
 import OutreachFilters, { type OutreachFilterState } from "./OutreachFilters";
 import OutreachRuns, { type RunRowData, type RunBadgeTone } from "./OutreachRuns";
 import OutreachTargetsByApp, { type AppBuckets, type TargetMini } from "./OutreachTargetsByApp";
+import OutreachWaveForm, { type WaveFormApp, type WaveRegion, type WaveSize } from "./OutreachWaveForm";
 import OutreachClientScripts from "./OutreachClientScripts";
 import OutreachTargets from "./OutreachTargets";
 
@@ -88,6 +89,7 @@ type OutreachMainResult =
       filter: OutreachFilterState;
       billing: OutreachBillingData;
       targetsByApp: AppBuckets[];
+      wave: { apps: WaveFormApp[]; regions: WaveRegion[]; sizes: WaveSize[]; defaultSubject: string; defaultBody: string };
     };
 
 async function outreachMain(
@@ -200,15 +202,18 @@ async function outreachMain(
     </form>
   </details>`;
 
-  // Wave-Starter: kicks off an Apify-driven discovery + Mail-1 send for
-  // selected apps.
-  const liveApps = KLAR_APPS.filter((a) => a.status === "LIVE");
-  const waveAppCheckboxes = liveApps
-    .map((a) => `<label class="wave-pick" style="display:inline-flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:13px;cursor:pointer">
-      <input type="checkbox" name="apps" value="${esc(a.slug)}" class="wave-app-chk" style="margin:0"/>${esc(a.name)}
-    </label>`).join("");
-
-  const defaultMailSubject = "Quick collab idea — {{app_name}} x @{{handle}}";
+  // Wave-starter data for the <OutreachWaveForm> shadcn component (replaces the
+  // old waveForm HTML string + the wave half of OutreachClientScripts).
+  const liveApps = KLAR_APPS.filter((a) => a.status === "LIVE").map((a) => ({ slug: a.slug, name: a.name }));
+  const waveRegions = [
+    { value: "de", label: "DE", flag: "🇩🇪", market: "DACH" },
+    { value: "en", label: "EN", flag: "🌐", market: "Global EN" },
+    { value: "es", label: "ES", flag: "🇪🇸", market: "Espana + LatAm" },
+    { value: "it", label: "IT", flag: "🇮🇹", market: "Italia" },
+    { value: "fr", label: "FR", flag: "🇫🇷", market: "France + BE" },
+  ];
+  const waveSizes = SIZE_BUCKETS.map((b) => ({ value: b.value as string, label: b.label, range: b.range }));
+  const defaultMailSubject = "Quick collab idea: {{app_name}} x @{{handle}}";
   const defaultMailBody = `Hi {{name}},
 
 [1 spezifischer Satz zu ihrem Content der zeigt dass du wirklich folgst].
@@ -217,7 +222,7 @@ Quick intro: I'm Alain, solo-dev behind {{app_name}}, [1-sentence USP].
 
 Why I'm writing: your audience overlaps strongly with our users. What I can offer:
 - Free Lifetime Premium for you, no strings
-- Your personal affiliate link: 50% revenue-share on every Premium sub it brings in, for 24 months, auto-tracked, paid out monthly (Wise/PayPal/SEPA)
+- Your personal creator link: 50% revenue-share on every Premium sub it brings in, for 24 months, auto-tracked, paid out monthly (Wise/PayPal/SEPA)
 - Optional flat fee per post on top if you'd rather de-risk it
 - Full creative freedom, no scripts, no approval cycles
 
@@ -227,106 +232,6 @@ Cheers,
 Alain
 getklar.org`;
 
-  const sizeBuckets: Array<{ value: string; label: string; range: string; defaultOn: boolean }> = [
-    { value: "nano",  label: "Nano",  range: "1-10k",   defaultOn: false },
-    { value: "micro", label: "Micro", range: "10-50k",  defaultOn: true  },
-    { value: "mid",   label: "Mid",   range: "50-500k", defaultOn: true  },
-    { value: "macro", label: "Macro", range: "500k+",   defaultOn: false },
-  ];
-  const sizeChips = sizeBuckets
-    .map((b) => `<label class="wave-pick" style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:8px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:12px;cursor:pointer;min-width:78px">
-      <input type="checkbox" name="size_buckets" value="${esc(b.value)}"${b.defaultOn ? " checked" : ""} class="wave-size-chk" style="margin:0"/>
-      <span style="font-weight:600">${esc(b.label)}</span>
-      <span class="muted" style="font-size:10px;font-family:var(--font-mono)">${esc(b.range)}</span>
-    </label>`).join("");
-
-  const regionChips: Array<{ value: string; label: string; flag: string; market: string; defaultOn: boolean }> = [
-    { value: "de", label: "DE", flag: "🇩🇪", market: "DACH",          defaultOn: true  },
-    { value: "en", label: "EN", flag: "🌐", market: "Global EN",     defaultOn: false },
-    { value: "es", label: "ES", flag: "🇪🇸", market: "España + LatAm", defaultOn: false },
-    { value: "it", label: "IT", flag: "🇮🇹", market: "Italia",        defaultOn: false },
-    { value: "fr", label: "FR", flag: "🇫🇷", market: "France + BE",   defaultOn: false },
-  ];
-  const regionChipsHtml = regionChips
-    .map((r) => `<label class="wave-pick" style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:8px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:12px;cursor:pointer;min-width:88px">
-      <input type="radio" name="languages" value="${esc(r.value)}"${r.defaultOn ? " checked" : ""} class="wave-lang-chk" style="margin:0"/>
-      <span style="font-weight:600">${esc(r.flag)} ${esc(r.label)}</span>
-      <span class="muted" style="font-size:10px;font-family:var(--font-mono)">${esc(r.market)}</span>
-    </label>`).join("");
-
-  const waveForm = `<section style="background:var(--surface);border:1px solid var(--line-strong);border-radius:14px;padding:24px 28px;margin-bottom:32px;box-shadow:var(--shadow-sm)">
-    <h2 style="margin:0 0 4px;font-family:var(--font-display);font-weight:800;font-size:22px;letter-spacing:-0.02em;text-transform:none;color:var(--fg)">Welle starten</h2>
-    <p class="muted" style="margin:0 0 22px;font-size:13px">Apify scraped die gewählten Plattformen, Apps und Größen-Buckets, schickt Mail-1 via Brevo, trackt alles in der DB. Templates pro App lädst du unten oder unter <a class="applink" href="/admin/templates">Templates</a>.</p>
-    <form method="POST" action="/admin/outreach/start" id="wave-form" style="display:flex;flex-direction:column;gap:22px">
-      <div>
-        <div class="k" style="margin-bottom:10px">Apps <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">Multi-Select, nur LIVE</span></div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px">${waveAppCheckboxes}</div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
-        <div>
-          <div class="k" style="margin-bottom:10px">Plattformen</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <label class="wave-pick" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:13px;cursor:pointer">
-              <input type="checkbox" name="platforms" value="tiktok" checked class="wave-plat-chk" style="margin:0"/>TikTok
-            </label>
-            <label class="wave-pick" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:13px;cursor:pointer">
-              <input type="checkbox" name="platforms" value="instagram" checked class="wave-plat-chk" style="margin:0"/>Instagram
-            </label>
-          </div>
-        </div>
-        <div>
-          <div class="k" style="margin-bottom:10px">Größen</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">${sizeChips}</div>
-        </div>
-        <div style="grid-column:1/-1">
-          <div class="k" style="margin-bottom:10px">Region <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">Single-Select. Region wählt Hashtag-Bucket + Mail-Template aus DB. Multi-Region wäre cost-suboptimal (überlappende Scrapes).</span></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">${regionChipsHtml}</div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 240px;gap:24px;align-items:end">
-        <label style="display:flex;flex-direction:column">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
-            <span class="k">Anzahl pro App</span>
-            <span id="wave-count-display" style="font-family:var(--font-display);font-weight:800;font-size:28px;line-height:1;letter-spacing:-0.02em;color:var(--fg);font-variant-numeric:tabular-nums">20</span>
-          </div>
-          <input type="range" name="count_per_app" min="5" max="100" step="5" value="20" id="wave-count" class="wave-slider" style="width:100%;accent-color:var(--fg);cursor:pointer"/>
-          <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10px;color:var(--fg-4);margin-top:4px">
-            <span>5</span><span>25</span><span>50</span><span>75</span><span>100</span>
-          </div>
-        </label>
-        <label style="display:flex;flex-direction:column">
-          <span class="k" style="margin-bottom:6px">Niche-Keyword</span>
-          <input type="text" name="niche" maxlength="80" placeholder="optional, z.B. yarn" style="padding:9px 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--bg);color:var(--fg);font-size:13px"/>
-        </label>
-      </div>
-
-      <details id="wave-mail-details" style="border:1px solid var(--line);border-radius:8px;background:var(--surface-2)">
-        <summary style="cursor:pointer;padding:12px 16px;font-size:13px;color:var(--fg-2);font-weight:600;user-select:none;display:flex;justify-content:space-between;align-items:center">
-          <span><span style="opacity:0.5">▸</span> Mail bearbeiten <span class="muted" style="font-weight:400;font-size:11px;margin-left:8px">(default: pro App eigenes Template aus der DB)</span></span>
-          <span id="wave-mail-summary" class="muted" style="font-size:11px;font-family:var(--font-mono)">geschlossen = App-Default</span>
-        </summary>
-        <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:14px">
-          <label style="display:flex;flex-direction:column">
-            <span class="k" style="margin-bottom:6px">Mail-Subject</span>
-            <input type="text" name="mail_subject" maxlength="200" value="${esc(defaultMailSubject)}" style="padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-mono)"/>
-          </label>
-          <label style="display:flex;flex-direction:column">
-            <span class="k" style="margin-bottom:6px">Mail-Body <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">{{name}}, {{handle}}, {{app_name}} werden pro Target ersetzt</span></span>
-            <textarea name="mail_body" rows="14" style="padding:10px 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-body);resize:vertical;line-height:1.5">${esc(defaultMailBody)}</textarea>
-          </label>
-          <div id="wave-template-status" class="muted" style="font-family:var(--font-mono);font-size:11px;font-style:italic"></div>
-        </div>
-      </details>
-
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap">
-        <div id="wave-cost" class="muted" style="font-family:var(--font-mono);font-size:12px">
-          <span class="k" style="margin-right:8px">Schätzung</span>
-          <span id="wave-cost-display">— Apps + Plattformen wählen</span>
-        </div>
-        <button type="submit" class="btn" style="padding:11px 22px;font-size:14px">Welle starten →</button>
-      </div>
-    </form>
-  </section>`;
   // Run-History compact-Tabelle (letzte 10 Runs).
   const STALE_MS = 10 * 60 * 1000;  // running > 10min → "may be stuck"
   const now = Date.now();
@@ -615,8 +520,7 @@ getklar.org`;
   const topHtml = `<h1>Outreach</h1>
     <p class="sub">Influencer-Outreach-Tracker. <em>Queued → DM gesendet → Antwort → Converted</em>. Auto-Refresh ${autoRefresh ? "alle 15s" : "aus"}, Daten aus Supabase anime-vault.</p>`;
 
-  const midTopHtml = `${waveForm}
-    <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>`;
+  const midTopHtml = `<div style="margin:24px 0 16px;border-top:1px solid var(--line)"></div>`;
 
   const midBotHtml = `<div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
     ${addForm}`;
@@ -643,6 +547,7 @@ getklar.org`;
     stats,
     billing,
     targetsByApp,
+    wave: { apps: liveApps, regions: waveRegions, sizes: waveSizes, defaultSubject: defaultMailSubject, defaultBody: defaultMailBody },
     filter: { platform, status, app, size, q, autoRefresh, showTests, statusOptions, appOptions, sizeOptions },
   };
 }
@@ -690,6 +595,13 @@ export default async function OutreachPage({
             <div dangerouslySetInnerHTML={{ __html: flash + result.topHtml }} />
             <OutreachBilling data={result.billing} />
             <OutreachKpis stats={result.stats} />
+            <OutreachWaveForm
+              apps={result.wave.apps}
+              regions={result.wave.regions}
+              sizes={result.wave.sizes}
+              defaultSubject={result.wave.defaultSubject}
+              defaultBody={result.wave.defaultBody}
+            />
             <div dangerouslySetInnerHTML={{ __html: result.midTopHtml }} />
             <OutreachRuns runs={result.runs} hasRunningWave={result.hasRunningWave} />
             <OutreachTargetsByApp data={result.targetsByApp} />
