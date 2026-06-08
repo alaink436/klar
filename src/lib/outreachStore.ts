@@ -10,6 +10,8 @@
 // RLS: service-role only. Klar's Admin-Route ruft alle CRUD-Functions hier
 // mit dem KLAR_INBOX_SERVICE_KEY (anime-vault Service-Role).
 
+import { SIZE_BUCKETS, sizeOf, type SizeBucket } from "./sizeBuckets";
+
 const KLAR_INBOX_URL =
   process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
 const KLAR_INBOX_KEY = process.env.KLAR_INBOX_SERVICE_KEY ?? "";
@@ -165,11 +167,16 @@ export async function getOutreachPerAppStats(): Promise<PerAppStat[]> {
   }
 }
 
+// Buckets live in the client-safe ./sizeBuckets module; re-exported here so the
+// existing server callers (outreach page/filters) keep importing from the store.
+export { SIZE_BUCKETS, sizeOf, type SizeBucket };
+
 export interface ListFilter {
   platform?: OutreachPlatform | "all";
   status?: OutreachStatus | "all";
   app?: string | "all";
   query?: string;            // ILIKE-Suche über handle/display_name/niche
+  size?: SizeBucket | "all";
   limit?: number;
 }
 
@@ -191,6 +198,13 @@ export async function listOutreachTargets(
   if (f.platform && f.platform !== "all") parts.push(`platform=eq.${encodeURIComponent(f.platform)}`);
   if (f.status && f.status !== "all") parts.push(`status=eq.${encodeURIComponent(f.status)}`);
   if (f.app && f.app !== "all") parts.push(`for_apps=cs.{${encodeURIComponent(f.app)}}`);
+  if (f.size && f.size !== "all") {
+    const b = SIZE_BUCKETS.find((x) => x.value === f.size);
+    if (b) {
+      parts.push(`follower_estimate=gte.${b.min}`);
+      if (b.max !== null) parts.push(`follower_estimate=lt.${b.max}`);
+    }
+  }
   if (f.query) {
     const q = pgrestIlikeValue(f.query);
     if (q.length >= 1) {

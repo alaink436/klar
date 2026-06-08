@@ -14,6 +14,8 @@ export interface OutreachFilterState {
   showTests: boolean;
   statusOptions: { value: string; label: string }[];
   appOptions: string[];
+  size: string;
+  sizeOptions: { value: string; label: string; range: string }[];
 }
 
 function Seg({ items }: { items: { href: string; label: string; on: boolean }[] }) {
@@ -43,14 +45,18 @@ export default function OutreachFilters({
   showTests,
   statusOptions,
   appOptions,
+  size,
+  sizeOptions,
 }: OutreachFilterState) {
-  const build = (p: string, s: string, a: string, opts?: { ar?: boolean; tests?: boolean; dropQ?: boolean }) => {
+  const build = (p: string, s: string, a: string, opts?: { ar?: boolean; tests?: boolean; dropQ?: boolean; sz?: string }) => {
     const ar = opts?.ar ?? autoRefresh;
     const tests = opts?.tests ?? showTests;
+    const sz = opts?.sz ?? size;
     const parts = ["view=outreach"];
     if (p !== "all") parts.push(`p=${encodeURIComponent(p)}`);
     if (s !== "all") parts.push(`s=${encodeURIComponent(s)}`);
     if (a !== "all") parts.push(`a=${encodeURIComponent(a)}`);
+    if (sz !== "all") parts.push(`sz=${encodeURIComponent(sz)}`);
     if (q && !opts?.dropQ) parts.push(`q=${encodeURIComponent(q)}`);
     if (ar) parts.push("ar=1");
     if (tests) parts.push("show_tests=1");
@@ -69,6 +75,7 @@ export default function OutreachFilters({
           {platform !== "all" && <input type="hidden" name="p" value={platform} />}
           {status !== "all" && <input type="hidden" name="s" value={status} />}
           {app !== "all" && <input type="hidden" name="a" value={app} />}
+          {size !== "all" && <input type="hidden" name="sz" value={size} />}
           {autoRefresh && <input type="hidden" name="ar" value="1" />}
           {showTests && <input type="hidden" name="show_tests" value="1" />}
           <Input
@@ -124,6 +131,19 @@ export default function OutreachFilters({
           on: app === a,
         }))}
       />
+
+      <div className="mt-3">
+        <Seg
+          items={[
+            { href: build(platform, status, app, { sz: "all" }), label: "Alle Größen", on: size === "all" },
+            ...sizeOptions.map((o) => ({
+              href: build(platform, status, app, { sz: o.value }),
+              label: `${o.label} · ${o.range}`,
+              on: size === o.value,
+            })),
+          ]}
+        />
+      </div>
     </section>
   );
 }

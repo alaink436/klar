@@ -42,7 +42,6 @@ export default function AdminSidebar({
       <div className="navsec">Studio</div>
       {navItem(active, "overview", "Übersicht", ICON.overview, "/admin/overview")}
       {navItem(active, "inbox", "Inbox", ICON.inbox, "/admin/inbox")}
-      {navItem(active, "templates", "Mail-Vorlagen", ICON.inbox, "/admin/templates")}
       {navItem(active, "outreach", "Outreach", ICON.outreach, "/admin/outreach")}
       {navItem(active, "bookings", "Bookings", ICON.calendar, "/admin/bookings")}
       {navItem(active, "cal", "Cal Admin", ICON.calendar, "/admin/cal")}

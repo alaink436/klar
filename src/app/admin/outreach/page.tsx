@@ -15,7 +15,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   ICON,
-  readCookieFromString,  esc,
+  readCookieFromString,
+  esc,
   fmtRelative,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
@@ -26,6 +27,8 @@ import {
   getOutreachCostSummary,
   listSuppressions,
   isOutreachConfigured,
+  SIZE_BUCKETS,
+  type SizeBucket,
   type OutreachPlatform,
   type OutreachStatus,
   type OutreachTarget,
@@ -36,6 +39,7 @@ import { getApifyAccountStatus } from "../../../lib/apifyAccount";
 import { getBrevoQuota } from "../../../lib/brevoQuota";
 import { KLAR_APPS } from "../../../lib/klarApps";
 import OutreachKpis, { type OutreachStatsLite } from "./OutreachKpis";
+import OutreachBilling, { type OutreachBillingData } from "./OutreachBilling";
 import OutreachFilters, { type OutreachFilterState } from "./OutreachFilters";
 import OutreachRuns, { type RunRowData, type RunBadgeTone } from "./OutreachRuns";
 import OutreachClientScripts from "./OutreachClientScripts";
@@ -81,12 +85,14 @@ type OutreachMainResult =
       filterActive: boolean;
       stats: OutreachStatsLite;
       filter: OutreachFilterState;
+      billing: OutreachBillingData;
     };
 
 async function outreachMain(
   filterPlatform: string,
   filterStatus: string,
   filterApp: string,
+  filterSize: string,
   query: string,
   autoRefresh: boolean,
   showTests: boolean,
@@ -101,11 +107,12 @@ async function outreachMain(
     ? (filterStatus as OutreachStatus)
     : "all";
   const app = filterApp && filterApp !== "all" ? filterApp : "all";
+  const size = (["nano", "micro", "mid", "macro"].includes(filterSize) ? filterSize : "all") as SizeBucket | "all";
   const q = query.trim().slice(0, 80);
 
   const [stats, rowsRaw, runs, costSummary, allTargets, apifyAccount, brevoQuota, suppressions] = await Promise.all([
     getOutreachStats(),
-    listOutreachTargets({ platform, status, app, query: q, limit: 200 }),
+    listOutreachTargets({ platform, status, app, size, query: q, limit: 200 }),
     listOutreachRuns(10),
     getOutreachCostSummary(),
     listOutreachTargets({ platform: "all", status: "all", app: "all", limit: 500 }),
@@ -122,11 +129,13 @@ async function outreachMain(
   // KPI cards + filter strip now render as shadcn React components
   // (OutreachKpis / OutreachFilters) in the page; only the data is computed here.
   const statusOptions = TARGET_STATUS_ORDER.map((s) => ({ value: s as string, label: STATUS_LABEL[s] }));
+  const sizeOptions = SIZE_BUCKETS.map((b) => ({ value: b.value as string, label: b.label, range: b.range }));
   const testsToggleHref = (() => {
     const parts: string[] = ["view=outreach"];
     if (platform !== "all") parts.push(`p=${encodeURIComponent(platform)}`);
     if (status !== "all") parts.push(`s=${encodeURIComponent(status)}`);
     if (app !== "all") parts.push(`a=${encodeURIComponent(app)}`);
+    if (size !== "all") parts.push(`sz=${encodeURIComponent(size)}`);
     if (q) parts.push(`q=${encodeURIComponent(q)}`);
     if (autoRefresh) parts.push("ar=1");
     if (!showTests) parts.push("show_tests=1");
@@ -496,129 +505,85 @@ getklar.org`;
       }).join("")}
     </div>`;
 
-  // Apify-Account-Card: live aus Apify API (GET /v2/users/me/limits).
-  const apifyAccCap = apifyAccount.max_monthly_usage_usd;
-  const apifyAccPct = apifyAccCap && apifyAccCap > 0
-    ? Math.min(100, Math.round((apifyAccount.monthly_usage_usd / apifyAccCap) * 100))
-    : 0;
-  const apifyAccColor = apifyAccPct >= 90 ? "var(--danger)" : apifyAccPct >= 70 ? "var(--warning)" : "var(--success)";
+  // ===== Billing/budget for the <OutreachBilling> shadcn card =====
+  // Replaces the old apifyAccCard / brevoQuotaCard / costCard HTML blocks.
   const fmtCycle = (iso: string | null): string => {
     if (!iso) return "?";
     const d = new Date(iso);
-    return `${String(d.getUTCDate()).padStart(2,"0")}.${String(d.getUTCMonth()+1).padStart(2,"0")}.`;
+    return `${String(d.getUTCDate()).padStart(2, "0")}.${String(d.getUTCMonth() + 1).padStart(2, "0")}.`;
   };
-  const klarWelleShare = apifyAccount.monthly_usage_usd > 0
-    ? Math.round(((costSummary.month_apify_actual_usd || costSummary.month_apify_estimate_usd) / apifyAccount.monthly_usage_usd) * 100)
+  const apifyBudget = apifyAccount.monthly_usage_credits_usd ?? apifyAccount.max_monthly_usage_usd;
+  const apifyBudgetKind: "credits" | "cap" | "none" =
+    apifyAccount.monthly_usage_credits_usd != null
+      ? "credits"
+      : apifyAccount.max_monthly_usage_usd != null
+        ? "cap"
+        : "none";
+  const apifyPct = apifyBudget && apifyBudget > 0
+    ? Math.min(100, Math.round((apifyAccount.monthly_usage_usd / apifyBudget) * 100))
     : null;
-  const apifyAccCard = `<section style="background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;padding:18px 22px;margin-bottom:14px;box-shadow:var(--shadow-sm)">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
-      <h2 style="margin:0;font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-0.01em;text-transform:none;color:var(--fg)">Apify-Account ${apifyAccount.ok ? "" : `<span class="muted" style="font-size:10px;font-weight:400;margin-left:8px">(${apifyAccount.reason})</span>`}</h2>
-      <span class="muted" style="font-size:11px;font-family:var(--font-mono)">${apifyAccount.ok ? `Cycle ${fmtCycle(apifyAccount.cycle_start)} – ${fmtCycle(apifyAccount.cycle_end)}` : "live aus GET /v2/users/me/limits"}</span>
-    </div>
-    ${apifyAccount.ok ? `<div>
-      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-bottom:6px">
-        <span class="k">Spend diesen Cycle <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">alle Aktoren, nicht nur Klar</span></span>
-        <span style="font-family:var(--font-mono);color:var(--fg);font-size:14px"><strong>$${apifyAccount.monthly_usage_usd.toFixed(2)}</strong>${apifyAccCap ? ` / $${apifyAccCap.toFixed(0)} Plan-Cap` : " <span class=\"muted\" style=\"font-size:10px;font-weight:400\">(kein Cap gesetzt)</span>"}</span>
-      </div>
-      ${apifyAccCap ? `<div style="height:10px;background:var(--surface-2);border-radius:5px;overflow:hidden">
-        <div style="height:100%;width:${apifyAccPct}%;background:${apifyAccColor};transition:width .3s"></div>
-      </div>
-      <div class="muted" style="font-size:10px;margin-top:4px;display:flex;justify-content:space-between">
-        <span>${apifyAccPct}% des Plan-Caps</span>
-        ${klarWelleShare !== null ? `<span>Klar-Wellen-Anteil ~${klarWelleShare}% ($${(costSummary.month_apify_actual_usd || costSummary.month_apify_estimate_usd).toFixed(2)})</span>` : ""}
-      </div>` : `<div class="muted" style="font-size:10px;margin-top:4px">Pay-as-you-go ohne Cap. Du kannst in der Apify-Console unter Settings &rarr; Limits einen monthly cap setzen.</div>`}
-      ${apifyAccount.compute_units_used !== null && apifyAccount.compute_units_max ? `<div class="muted" style="font-size:10px;margin-top:8px;font-family:var(--font-mono)">Compute-Units: ${apifyAccount.compute_units_used.toLocaleString()} / ${apifyAccount.compute_units_max.toLocaleString()} CU</div>` : ""}
-      ${apifyAccCap && apifyAccPct >= 70 ? `<p style="font-size:11px;margin:10px 0 0;color:${apifyAccColor};font-style:italic">${apifyAccPct >= 90 ? "Plan-Cap fast erreicht: " : "Plan-Cap wird knapp: "}weitere Wellen oder andere Apify-Aktoren können den Cap sprengen. <a href="https://console.apify.com/billing/limits" target="_blank" style="color:inherit">Cap in Apify-Console anpassen</a>.</p>` : ""}
-    </div>` : `<div class="muted" style="font-size:12px">
-      Apify-Account-Status nicht abrufbar.
-      ${apifyAccount.reason === "no-token" ? "<code>APIFY_API_TOKEN</code> in Vercel env-vars fehlt." : ""}
-      ${apifyAccount.reason === "http-error" ? "Apify-API gab Fehler zurück (Token gültig?)." : ""}
-      ${apifyAccount.reason === "exception" ? "Netzwerk-Fehler beim Lookup." : ""}
-    </div>`}
-  </section>`;
-
-  // Brevo-Quota-Card: live aus Brevo /v3/smtp/statistics/aggregatedReport (today).
-  const brevoQuotaCard = (() => {
-    if (brevoQuota.state === "no-key") {
-      return `<section style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 22px;margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;align-items:baseline">
-          <h2 style="margin:0;font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-0.01em;text-transform:none;color:var(--fg)">Brevo Daily-Cap <span class="muted" style="font-size:10px;font-weight:400;margin-left:8px">(no-key)</span></h2>
-          <span class="muted" style="font-size:11px;font-family:var(--font-mono)">live aus /v3/smtp/statistics/aggregatedReport</span>
-        </div>
-        <p class="muted" style="font-size:12px;margin:8px 0 0">Setze <code>BREVO_API_KEY</code> in Vercel env-vars (Master API-Key aus Brevo SMTP &amp; API). Free-Plan = 300 Mails/Tag, Reset 00:00 UTC.</p>
-      </section>`;
-    }
-    if (brevoQuota.state === "http-error" || brevoQuota.state === "exception") {
-      const note = brevoQuota.state === "http-error" ? `HTTP ${brevoQuota.status}: ${brevoQuota.bodySnippet}` : brevoQuota.message;
-      return `<section style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 22px;margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;align-items:baseline">
-          <h2 style="margin:0;font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-0.01em;text-transform:none;color:var(--fg)">Brevo Daily-Cap <span class="muted" style="font-size:10px;font-weight:400;margin-left:8px">(error)</span></h2>
-        </div>
-        <p class="muted" style="font-size:11px;margin:8px 0 0;font-family:var(--font-mono)">${esc(note)}</p>
-      </section>`;
-    }
-    const used = brevoQuota.usedToday;
-    const cap = brevoQuota.capDaily;
-    const pct = Math.min(100, Math.round((used / cap) * 100));
-    const color = pct >= 90 ? "var(--danger)" : pct >= 70 ? "var(--warning)" : "var(--success)";
-    const resetUtc = new Date();
-    resetUtc.setUTCHours(24, 0, 0, 0);
-    const hoursUntilReset = Math.max(0, Math.round((resetUtc.getTime() - Date.now()) / 3600000 * 10) / 10);
-    return `<section style="background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;padding:18px 22px;margin-bottom:14px;box-shadow:var(--shadow-sm)">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
-        <h2 style="margin:0;font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-0.01em;text-transform:none;color:var(--fg)">Brevo Daily-Cap${brevoQuota.planName ? ` <span class="muted" style="font-size:10px;font-weight:400;margin-left:8px">${esc(brevoQuota.planName)}</span>` : ""}</h2>
-        <span class="muted" style="font-size:11px;font-family:var(--font-mono)">Reset in ~${hoursUntilReset}h (00:00 UTC)</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-bottom:6px">
-        <span class="k">Mails heute <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">account-wide, inkl. nicht-Klar-Sends</span></span>
-        <span style="font-family:var(--font-mono);color:var(--fg);font-size:14px"><strong>${used}</strong> / ${cap}</span>
-      </div>
-      <div style="height:10px;background:var(--surface-2);border-radius:5px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:${color};transition:width .3s"></div>
-      </div>
-      <div class="muted" style="font-size:10px;margin-top:4px;display:flex;justify-content:space-between">
-        <span>${pct}% des Daily-Caps</span>
-        <span>Rest heute: ${Math.max(0, cap - used)} Mails</span>
-      </div>
-      ${pct >= 70 ? `<p style="font-size:11px;margin:10px 0 0;color:${color};font-style:italic">${pct >= 90 ? "Daily-Cap fast erreicht: " : "Daily-Cap wird knapp: "}neue Wellen werden ggf. von Brevo geblockt bis 00:00 UTC. <a href="https://app.brevo.com/billing/plan" target="_blank" style="color:inherit">Plan upgraden</a> für höheren Cap.</p>` : ""}
-    </section>`;
-  })();
-
-  // Klar-Wellen-Cost-Tracker.
-  const apifyUsed = costSummary.month_apify_actual_usd || costSummary.month_apify_estimate_usd;
-  const actualPct = costSummary.month_apify_estimate_usd > 0
+  const klarApifyUsed = costSummary.month_apify_actual_usd || costSummary.month_apify_estimate_usd;
+  const klarSharePct = apifyAccount.monthly_usage_usd > 0
+    ? Math.round((klarApifyUsed / apifyAccount.monthly_usage_usd) * 100)
+    : null;
+  const apifyPlanLabel = apifyAccount.plan_id
+    ? (apifyAccount.monthly_base_price_usd != null && apifyAccount.monthly_base_price_usd > 0
+        ? `${apifyAccount.plan_id} · $${apifyAccount.monthly_base_price_usd.toFixed(0)}/mo`
+        : apifyAccount.plan_id)
+    : null;
+  const brevoResetUtc = new Date();
+  brevoResetUtc.setUTCHours(24, 0, 0, 0);
+  const brevoResetHours = Math.max(0, Math.round((brevoResetUtc.getTime() - Date.now()) / 3600000 * 10) / 10);
+  const brevoOk = brevoQuota.state === "ok";
+  const brevoNote = brevoQuota.state === "no-key"
+    ? "BREVO_API_KEY fehlt in den Vercel-Env-Vars (Free-Plan = 300 Mails/Tag)."
+    : brevoQuota.state === "http-error"
+      ? `HTTP ${brevoQuota.status}: ${brevoQuota.bodySnippet}`
+      : brevoQuota.state === "exception"
+        ? brevoQuota.message
+        : null;
+  const brevoUsed = brevoQuota.state === "ok" ? brevoQuota.usedToday : 0;
+  const brevoCap = brevoQuota.state === "ok" ? brevoQuota.capDaily : 300;
+  const brevoPctVal = brevoCap > 0 ? Math.min(100, Math.round((brevoUsed / brevoCap) * 100)) : 0;
+  const waveActualPct = costSummary.month_apify_estimate_usd > 0
     ? Math.round((costSummary.month_apify_actual_usd / costSummary.month_apify_estimate_usd) * 100)
     : null;
-  const brevoPct = Math.min(100, Math.round((costSummary.brevo_today_count / costSummary.brevo_free_daily_cap) * 100));
-  const brevoColor = brevoPct >= 90 ? "var(--danger)" : brevoPct >= 70 ? "var(--warning)" : "var(--success)";
-  const costCard = `<section style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 22px;margin-bottom:24px">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
-      <h2 style="margin:0;font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-0.01em;text-transform:none;color:var(--fg)">Klar-Wellen diesen Monat</h2>
-      <span class="muted" style="font-size:11px;font-family:var(--font-mono)">${costSummary.month_runs_count} Wellen · ${costSummary.month_targets_added} Targets · ${costSummary.month_mails_sent} Mails</span>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
-      <div>
-        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;margin-bottom:6px">
-          <span class="k">Apify-Cost <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">nur Klar-Wellen</span></span>
-          <span style="font-family:var(--font-mono);color:var(--fg)"><strong>$${apifyUsed.toFixed(2)}</strong> <span class="muted" style="font-size:10px;font-weight:400">${costSummary.month_apify_actual_usd > 0 ? "actual via usageTotalUsd" : "estimate"}</span></span>
-        </div>
-        <div class="muted" style="font-size:10px;margin-top:4px">
-          Estimate $${costSummary.month_apify_estimate_usd.toFixed(2)} · Actual $${costSummary.month_apify_actual_usd.toFixed(2)}${actualPct !== null ? ` (${actualPct}% des Estimates)` : ""}
-        </div>
-      </div>
-      <div>
-        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;margin-bottom:6px">
-          <span class="k">Brevo (heute)</span>
-          <span style="font-family:var(--font-mono);color:var(--fg)"><strong>${costSummary.brevo_today_count}</strong> / ${costSummary.brevo_free_daily_cap} Free-Tier/Tag</span>
-        </div>
-        <div style="height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden">
-          <div style="height:100%;width:${brevoPct}%;background:${brevoColor};transition:width .3s"></div>
-        </div>
-        <div class="muted" style="font-size:10px;margin-top:4px">${costSummary.month_mails_sent} Mails gesamt diesen Monat · ${brevoPct}% Tages-Cap</div>
-      </div>
-    </div>
-    ${brevoPct >= 70 ? `<p class="muted" style="font-size:11px;margin:12px 0 0;font-style:italic">Brevo-Tages-Cap wird knapp, morgen wieder fresh.</p>` : ""}
-  </section>`;
+  const billing: OutreachBillingData = {
+    apify: {
+      ok: apifyAccount.ok,
+      reason: apifyAccount.reason,
+      planLabel: apifyPlanLabel,
+      usageUsd: apifyAccount.monthly_usage_usd,
+      budgetUsd: apifyBudget ?? null,
+      budgetKind: apifyBudgetKind,
+      remainingUsd: apifyBudget != null
+        ? Math.max(0, Math.round((apifyBudget - apifyAccount.monthly_usage_usd) * 100) / 100)
+        : null,
+      pct: apifyPct,
+      cycleResetLabel: apifyAccount.cycle_end ? fmtCycle(apifyAccount.cycle_end) : null,
+      cuUsed: apifyAccount.compute_units_used,
+      cuMax: apifyAccount.compute_units_max,
+      klarShareUsd: klarSharePct !== null ? Math.round(klarApifyUsed * 100) / 100 : null,
+      klarSharePct,
+    },
+    brevo: {
+      ok: brevoOk,
+      note: brevoNote,
+      planName: brevoQuota.state === "ok" ? brevoQuota.planName ?? null : null,
+      usedToday: brevoUsed,
+      capDaily: brevoCap,
+      pct: brevoPctVal,
+      resetHours: brevoResetHours,
+    },
+    waves: {
+      runs: costSummary.month_runs_count,
+      targets: costSummary.month_targets_added,
+      mails: costSummary.month_mails_sent,
+      apifyEstimateUsd: costSummary.month_apify_estimate_usd,
+      apifyActualUsd: costSummary.month_apify_actual_usd,
+      actualPct: waveActualPct,
+    },
+  };
 
   // Suppression-Section.
   const suppressionReasons: Array<{ value: string; label: string }> = [
@@ -678,12 +643,9 @@ getklar.org`;
   // add form, target table and suppression list stay as HTML strings (their
   // inline scripts query the document, so splitting the markup is harmless).
   const topHtml = `<h1>Outreach</h1>
-    <p class="sub">Influencer-Outreach-Tracker. <em>Queued → DM gesendet → Antwort → Converted</em>. Auto-Refresh ${autoRefresh ? "alle 15s" : "aus"}, Daten aus Supabase anime-vault.</p>
-    ${apifyAccCard}
-    ${brevoQuotaCard}`;
+    <p class="sub">Influencer-Outreach-Tracker. <em>Queued → DM gesendet → Antwort → Converted</em>. Auto-Refresh ${autoRefresh ? "alle 15s" : "aus"}, Daten aus Supabase anime-vault.</p>`;
 
-  const midTopHtml = `${costCard}
-    ${waveForm}
+  const midTopHtml = `${waveForm}
     <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>`;
 
   const midBotHtml = `<div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
@@ -697,7 +659,7 @@ getklar.org`;
   const bottomHeadHtml = `<h2>Targets <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${rows.length} angezeigt${q ? ` · Suche: <em>${esc(q)}</em>` : ""}</span></h2>
     ${testsToggle}`;
   const bottomTailHtml = `${suppressionSection}`;
-  const filterActive = platform !== "all" || status !== "all" || app !== "all" || Boolean(q);
+  const filterActive = platform !== "all" || status !== "all" || app !== "all" || size !== "all" || Boolean(q);
 
   return {
     configured: true,
@@ -711,14 +673,15 @@ getklar.org`;
     rows,
     filterActive,
     stats,
-    filter: { platform, status, app, q, autoRefresh, showTests, statusOptions, appOptions },
+    billing,
+    filter: { platform, status, app, size, q, autoRefresh, showTests, statusOptions, appOptions, sizeOptions },
   };
 }
 
 export default async function OutreachPage({
   searchParams,
 }: {
-  searchParams: Promise<{ p?: string; s?: string; a?: string; q?: string; ar?: string; show_tests?: string; msg?: string }>;
+  searchParams: Promise<{ p?: string; s?: string; a?: string; sz?: string; q?: string; ar?: string; show_tests?: string; msg?: string }>;
 }) {
   // Auth — identical gate to brain/cal/bookings/revenue (device cookie + admin session).
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
@@ -735,12 +698,14 @@ export default async function OutreachPage({
   const filterPlatform = sp.p ?? "all";
   const filterStatus = sp.s ?? "all";
   const filterApp = sp.a ?? "all";
+  const filterSize = sp.sz ?? "all";
   const query = sp.q ?? "";
   const autoRefresh = sp.ar === "1";
   const showTests = sp.show_tests === "1";
 
-  const result = await outreachMain(filterPlatform, filterStatus, filterApp, query, autoRefresh, showTests);
-  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";  const topbar = `
+  const result = await outreachMain(filterPlatform, filterStatus, filterApp, filterSize, query, autoRefresh, showTests);
+  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
+  const topbar = `
     <span class="crumb"><b>Outreach</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;
@@ -754,6 +719,7 @@ export default async function OutreachPage({
         {result.configured ? (
           <>
             <div dangerouslySetInnerHTML={{ __html: flash + result.topHtml }} />
+            <OutreachBilling data={result.billing} />
             <OutreachKpis stats={result.stats} />
             <div dangerouslySetInnerHTML={{ __html: result.midTopHtml }} />
             <OutreachRuns runs={result.runs} hasRunningWave={result.hasRunningWave} />

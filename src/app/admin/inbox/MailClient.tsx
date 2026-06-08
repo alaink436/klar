@@ -20,6 +20,7 @@ import MailerClient from "../mailer/MailerClient";
 import TemplateManager from "./TemplateManager";
 import type { ReplyLang, ReplyTemplate } from "@/lib/replyTemplates";
 import type { AppMailTemplate } from "@/lib/outreachStore";
+import { sizeOf, SIZE_BUCKETS, type SizeBucket } from "@/lib/sizeBuckets";
 
 export type Direction = "in" | "out";
 
@@ -239,6 +240,7 @@ export default function MailClient({
   const [selectedId, setSelectedId] = useState<string | null>(conversations[0]?.id ?? null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "inquiry" | "replied" | "converted" | "open">("all");
+  const [sizeFilter, setSizeFilter] = useState<SizeBucket | "all">("all");
   const [narrow, setNarrow] = useState(false);
   const [mailerOpen, setMailerOpen] = useState(false);
 
@@ -350,11 +352,12 @@ export default function MailClient({
       if (filter === "replied" && (c.kind === "inquiry" || c.awaiting || c.status !== "replied")) return false;
       if (filter === "converted" && c.status !== "converted") return false;
       if (filter === "open" && !c.awaiting) return false;
+      if (sizeFilter !== "all" && sizeOf(c.followerEstimate) !== sizeFilter) return false;
       if (!q) return true;
       const hay = `${c.displayName ?? ""} ${c.handle} ${c.messages.map((m) => m.body).join(" ")}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [convs, query, filter]);
+  }, [convs, query, filter, sizeFilter]);
 
   const translateMsg = useCallback(
     async (m: ThreadMessage, srcLang: string) => {
@@ -592,6 +595,22 @@ export default function MailClient({
                 </a>
               ))}
             </div>
+            <div className="seg" style={{ alignSelf: "flex-start" }}>
+              <a className={sizeFilter === "all" ? "on" : ""} style={{ cursor: "pointer" }} onClick={() => setSizeFilter("all")}>
+                Alle Größen
+              </a>
+              {SIZE_BUCKETS.map((b) => (
+                <a
+                  key={b.value}
+                  className={sizeFilter === b.value ? "on" : ""}
+                  style={{ cursor: "pointer" }}
+                  title={`${b.label} · ${b.range} Follower`}
+                  onClick={() => setSizeFilter(b.value)}
+                >
+                  {b.label}
+                </a>
+              ))}
+            </div>
           </div>
           <div className="kr-listscroll">
             {visible.length === 0 ? (
@@ -635,8 +654,8 @@ export default function MailClient({
                       </span>
                       <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 13.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {c.displayName || `@${c.handle}`}
-                        {(c.status === "replied" || (c.kind === "inquiry" && c.inquiry?.status === "new")) && (
-                          <span title={c.kind === "inquiry" ? "Neue Anfrage" : "Neue Antwort"} style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--danger)", marginLeft: 7, verticalAlign: "middle", boxShadow: "0 0 0 3px color-mix(in oklab, var(--danger) 22%, transparent)" }} />
+                        {c.messages[c.messages.length - 1]?.direction === "in" && (
+                          <span title={c.kind === "inquiry" ? "Unbeantwortete Anfrage" : "Unbeantwortet"} style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--danger)", marginLeft: 7, verticalAlign: "middle", boxShadow: "0 0 0 3px color-mix(in oklab, var(--danger) 22%, transparent)" }} />
                         )}
                         {c.awaiting && (
                           <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", border: "1px solid var(--fg-4)", marginLeft: 7, verticalAlign: "middle" }} />
