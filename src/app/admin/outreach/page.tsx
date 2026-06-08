@@ -42,6 +42,7 @@ import OutreachKpis, { type OutreachStatsLite } from "./OutreachKpis";
 import OutreachBilling, { type OutreachBillingData } from "./OutreachBilling";
 import OutreachFilters, { type OutreachFilterState } from "./OutreachFilters";
 import OutreachRuns, { type RunRowData, type RunBadgeTone } from "./OutreachRuns";
+import OutreachTargetsByApp, { type AppBuckets, type TargetMini } from "./OutreachTargetsByApp";
 import OutreachClientScripts from "./OutreachClientScripts";
 import OutreachTargets from "./OutreachTargets";
 
@@ -86,6 +87,7 @@ type OutreachMainResult =
       stats: OutreachStatsLite;
       filter: OutreachFilterState;
       billing: OutreachBillingData;
+      targetsByApp: AppBuckets[];
     };
 
 async function outreachMain(
@@ -445,65 +447,30 @@ getklar.org`;
     bucket.angenommen.sort(newestFirst);
   }
 
-  const renderInfluencerMini = (t: OutreachTarget): string => {
-    const sentRel = t.mail1_sent_at ? fmtRelative(t.mail1_sent_at) : "";
-    const fLabel = t.follower_estimate
-      ? (t.follower_estimate >= 1_000_000
-          ? `${(t.follower_estimate / 1_000_000).toFixed(1)}M`
-          : t.follower_estimate >= 1_000
-            ? `${Math.round(t.follower_estimate / 1_000)}k`
-            : String(t.follower_estimate))
+  // ===== Targets nach App: plain data for the <OutreachTargetsByApp> shadcn comp =====
+  const followerLabel = (n: number | null): string =>
+    n
+      ? n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${Math.round(n / 1_000)}k` : String(n)
       : "";
-    const profileLink = t.profile_url
-      ? `<a class="applink" href="${esc(t.profile_url)}" target="_blank" rel="noopener" style="font-weight:600">@${esc(t.handle)}</a>`
-      : `<span style="font-weight:600">@${esc(t.handle)}</span>`;
-    const platIcon = t.platform === "tiktok" ? "TT" : "IG";
-    return `<div style="padding:8px 10px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px">
-      <div style="min-width:0;flex:1">
-        <div style="display:flex;gap:6px;align-items:center">
-          ${profileLink}
-          <span class="pill" style="font-size:8px;padding:1px 5px">${platIcon}</span>
-          ${fLabel ? `<span class="muted" style="font-size:10px;font-family:var(--font-mono)">${esc(fLabel)}</span>` : ""}
-        </div>
-        ${t.contact_email ? `<div class="muted" style="font-size:10px;margin-top:1px;font-family:var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.contact_email)}</div>` : ""}
-        ${t.last_message ? `<div class="muted" style="font-size:10px;margin-top:2px;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(t.last_message)}">↩ ${esc(t.last_message.slice(0, 90))}</div>` : ""}
-      </div>
-      <div class="muted" style="font-size:10px;white-space:nowrap;text-align:right">${esc(sentRel)}</div>
-    </div>`;
-  };
-
-  const renderBucketCol = (label: string, items: OutreachTarget[], emoji: string): string => `
-    <div style="background:var(--surface);border:1px solid var(--line);border-radius:8px;min-height:120px">
-      <div style="padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline">
-        <span class="k">${emoji} ${esc(label)}</span>
-        <span style="font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--fg)">${items.length}</span>
-      </div>
-      ${items.length === 0
-        ? `<div class="muted" style="padding:12px;font-style:italic;font-size:11px">keine Einträge</div>`
-        : items.slice(0, 8).map(renderInfluencerMini).join("") +
-          (items.length > 8 ? `<div class="muted" style="padding:8px 12px;font-size:11px">+ ${items.length - 8} weitere</div>` : "")}
-    </div>`;
-
-  const targetsByAppSection = `<h2 style="margin-top:32px">Targets nach App</h2>
-    <p class="sub muted" style="margin:0 0 18px;font-size:12px">Influencer aus der Pipeline pro App gruppiert, nach Status: Angefragt → Reply → Angenommen. Targets mit mehreren App-Tags erscheinen in jedem Block. Top 8 pro Spalte angezeigt.</p>
-    <div style="display:flex;flex-direction:column;gap:14px">
-      ${KLAR_APPS.map((meta) => {
-        const bucket = byAppBucket.get(meta.slug)!;
-        const total = bucket.angefragt.length + bucket.reply.length + bucket.angenommen.length;
-        const isOpen = total > 0;
-        return `<details ${isOpen ? "open" : ""} style="background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px 18px">
-          <summary style="cursor:pointer;font-size:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center;user-select:none">
-            <span>${esc(meta.name)} <span class="muted" style="font-weight:400;font-size:11px;margin-left:6px">${esc(meta.slug)}</span></span>
-            <span class="muted" style="font-family:var(--font-mono);font-size:11px">${bucket.angefragt.length} angefragt · ${bucket.reply.length} reply · ${bucket.angenommen.length} angenommen</span>
-          </summary>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:14px">
-            ${renderBucketCol("Angefragt", bucket.angefragt, "✉")}
-            ${renderBucketCol("Reply", bucket.reply, "↩")}
-            ${renderBucketCol("Angenommen", bucket.angenommen, "✓")}
-          </div>
-        </details>`;
-      }).join("")}
-    </div>`;
+  const toMini = (t: OutreachTarget): TargetMini => ({
+    handle: t.handle,
+    profileUrl: t.profile_url,
+    platform: t.platform,
+    followerLabel: followerLabel(t.follower_estimate),
+    contactEmail: t.contact_email,
+    lastMessage: t.last_message ? t.last_message.slice(0, 90) : null,
+    sentRel: t.mail1_sent_at ? fmtRelative(t.mail1_sent_at) : "",
+  });
+  const targetsByApp: AppBuckets[] = KLAR_APPS.map((meta) => {
+    const bucket = byAppBucket.get(meta.slug)!;
+    return {
+      slug: meta.slug,
+      name: meta.name,
+      angefragt: bucket.angefragt.map(toMini),
+      reply: bucket.reply.map(toMini),
+      angenommen: bucket.angenommen.map(toMini),
+    };
+  });
 
   // ===== Billing/budget for the <OutreachBilling> shadcn card =====
   // Replaces the old apifyAccCard / brevoQuotaCard / costCard HTML blocks.
@@ -649,8 +616,6 @@ getklar.org`;
     <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>`;
 
   const midBotHtml = `<div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
-    ${targetsByAppSection}
-    <div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
     ${addForm}`;
 
   // Targets table is now the <OutreachTargets/> shadcn component (rendered in the
@@ -674,6 +639,7 @@ getklar.org`;
     filterActive,
     stats,
     billing,
+    targetsByApp,
     filter: { platform, status, app, size, q, autoRefresh, showTests, statusOptions, appOptions, sizeOptions },
   };
 }
@@ -723,6 +689,7 @@ export default async function OutreachPage({
             <OutreachKpis stats={result.stats} />
             <div dangerouslySetInnerHTML={{ __html: result.midTopHtml }} />
             <OutreachRuns runs={result.runs} hasRunningWave={result.hasRunningWave} />
+            <OutreachTargetsByApp data={result.targetsByApp} />
             <div dangerouslySetInnerHTML={{ __html: result.midBotHtml }} />
             <OutreachFilters {...result.filter} />
             <div dangerouslySetInnerHTML={{ __html: result.bottomHeadHtml }} />

@@ -258,6 +258,8 @@ export default function MailClient({
   >({});
 
   const [composer, setComposer] = useState({ subject: "", body: "" });
+  // Composer starts collapsed; the admin clicks the bar to open it (per request).
+  const [composerOpen, setComposerOpen] = useState(false);
   const [sending, setSending] = useState(false);
   // Composer height is user-resizable (drag the grip) and remembered across
   // sessions per browser. Owned by the DOM — native textarea resize writes to
@@ -337,6 +339,7 @@ export default function MailClient({
     // dropdown is opt-in; the subject still gets a neutral reply default so the
     // message stays sendable without typing one.
     setComposer({ subject: `Re: Klar x ${who}`, body: "" });
+    setComposerOpen(false);
     setSendMsg(null);
     setAcceptOpen(false);
     setDeclineArmed(false);
@@ -391,12 +394,19 @@ export default function MailClient({
         setSendMsg({ ok: false, text: "Nachricht darf nicht leer sein." });
         return;
       }
+      // Optimistic: clear the field + show the bubble immediately, revert on error.
+      const chatBody = composer.body;
+      const now = new Date().toISOString();
+      const localId = `local-${Date.now()}`;
+      const optimistic: ThreadMessage = { id: localId, direction: "out", subject: null, body: chatBody, at: now, provider: "chat" };
+      setConvs((prev) => prev.map((c) => (c.id === sel.id ? { ...c, messages: [...c.messages, optimistic], lastActivityAt: now } : c)));
+      setComposer((c) => ({ ...c, body: "" }));
       setSending(true);
       setSendMsg(null);
       try {
         const fd = new URLSearchParams();
         fd.set("affiliate_user_id", sel.id);
-        fd.set("body", composer.body);
+        fd.set("body", chatBody);
         const res = await fetch("/admin/affiliate-chat/reply?json=1", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -404,15 +414,15 @@ export default function MailClient({
         });
         const j = (await res.json().catch(() => ({ ok: false, msg: "Antwort unlesbar" }))) as { ok?: boolean; msg?: string };
         if (res.ok && j.ok) {
-          const now = new Date().toISOString();
-          const newMsg: ThreadMessage = { id: `local-${Date.now()}`, direction: "out", subject: null, body: composer.body, at: now, provider: "chat" };
-          setConvs((prev) => prev.map((c) => (c.id === sel.id ? { ...c, messages: [...c.messages, newMsg], lastActivityAt: now } : c)));
-          setComposer((c) => ({ ...c, body: "" }));
           setSendMsg({ ok: true, text: "Gesendet. Der Creator sieht es im Dashboard-Chat." });
         } else {
+          setConvs((prev) => prev.map((c) => (c.id === sel.id ? { ...c, messages: c.messages.filter((m) => m.id !== localId) } : c)));
+          setComposer((c) => ({ ...c, body: chatBody }));
           setSendMsg({ ok: false, text: j.msg || "Senden fehlgeschlagen." });
         }
       } catch {
+        setConvs((prev) => prev.map((c) => (c.id === sel.id ? { ...c, messages: c.messages.filter((m) => m.id !== localId) } : c)));
+        setComposer((c) => ({ ...c, body: chatBody }));
         setSendMsg({ ok: false, text: "Netzwerkfehler beim Senden." });
       } finally {
         setSending(false);
@@ -434,14 +444,25 @@ export default function MailClient({
       setSendMsg({ ok: false, text: "Betreff und Nachricht dürfen nicht leer sein." });
       return;
     }
+    // Optimistic: drop the sent bubble in and clear the field immediately so the
+    // reply feels instant; on error we revert (remove the bubble, restore text).
+    const sentSubject = composer.subject;
+    const sentBody = composer.body;
+    const now = new Date().toISOString();
+    const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic: ThreadMessage = { id: localId, direction: "out", subject: sentSubject, body: sentBody, at: now, provider: "brevo" };
+    setConvs((prev) =>
+      prev.map((c) => (c.id === sel.id ? { ...c, messages: [...c.messages, optimistic], lastActivityAt: now } : c)),
+    );
+    setComposer((c) => ({ ...c, body: "" }));
     setSending(true);
     setSendMsg(null);
     try {
       const fd = new URLSearchParams();
       fd.set("id", replyTargetId);
       fd.set("to", sel.contactEmail);
-      fd.set("subject", composer.subject);
-      fd.set("body", composer.body);
+      fd.set("subject", sentSubject);
+      fd.set("body", sentBody);
       const res = await fetch("/admin/outreach/reply?json=1", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -452,25 +473,20 @@ export default function MailClient({
         msg?: string;
       };
       if (res.ok && j.ok) {
-        const now = new Date().toISOString();
-        const newMsg: ThreadMessage = {
-          id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          direction: "out",
-          subject: composer.subject,
-          body: composer.body,
-          at: now,
-          provider: "brevo",
-        };
-        setConvs((prev) =>
-          prev.map((c) =>
-            c.id === sel.id ? { ...c, messages: [...c.messages, newMsg], lastActivityAt: now } : c,
-          ),
-        );
         setSendMsg({ ok: true, text: "Antwort gesendet. Status bleibt „Antwort“, annehmen ist separat." });
       } else {
+        // revert
+        setConvs((prev) =>
+          prev.map((c) => (c.id === sel.id ? { ...c, messages: c.messages.filter((m) => m.id !== localId) } : c)),
+        );
+        setComposer((c) => ({ ...c, body: sentBody }));
         setSendMsg({ ok: false, text: j.msg || "Senden fehlgeschlagen." });
       }
     } catch {
+      setConvs((prev) =>
+        prev.map((c) => (c.id === sel.id ? { ...c, messages: c.messages.filter((m) => m.id !== localId) } : c)),
+      );
+      setComposer((c) => ({ ...c, body: sentBody }));
       setSendMsg({ ok: false, text: "Netzwerkfehler beim Senden." });
     } finally {
       setSending(false);
@@ -976,8 +992,18 @@ export default function MailClient({
                 )}
               </div>
 
-              {/* Composer */}
+              {/* Composer — collapsed to a click-bar until opened */}
               <div style={{ borderTop: "1px solid var(--line)", padding: "14px 24px", display: "flex", flexDirection: "column", gap: 9, background: "var(--surface)" }}>
+                {!composerOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => { setComposerOpen(true); requestAnimationFrame(() => composerRef.current?.focus()); }}
+                    style={{ width: "100%", textAlign: "left", padding: "11px 14px", border: "1px solid var(--line-strong)", borderRadius: "var(--radius-sm)", background: "var(--bg)", color: "var(--fg-3)", fontFamily: "var(--font-body)", fontSize: 13.5, cursor: "text" }}
+                  >
+                    {sel.kind === "affiliate-chat" ? "Nachricht schreiben…" : sel.awaiting ? "Nachfassen…" : "Antworten…"}
+                  </button>
+                ) : (
+                  <>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <span className="muted" style={{ fontSize: 11.5, fontFamily: "var(--font-mono)" }}>
                     An: {sel.kind === "affiliate-chat" ? "Dashboard-Chat" : sel.contactEmail || "— keine Email"}
@@ -1052,6 +1078,8 @@ export default function MailClient({
                     </span>
                   )}
                 </div>
+                  </>
+                )}
               </div>
             </>
           )}
