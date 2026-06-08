@@ -44,7 +44,8 @@ import OutreachFilters, { type OutreachFilterState } from "./OutreachFilters";
 import OutreachRuns, { type RunRowData, type RunBadgeTone } from "./OutreachRuns";
 import OutreachTargetsByApp, { type AppBuckets, type TargetMini } from "./OutreachTargetsByApp";
 import OutreachWaveForm, { type WaveFormApp, type WaveRegion, type WaveSize } from "./OutreachWaveForm";
-import OutreachClientScripts from "./OutreachClientScripts";
+import OutreachAddForm, { type AddFormApp } from "./OutreachAddForm";
+import OutreachSuppressions, { type SuppressionRowData } from "./OutreachSuppressions";
 import OutreachTargets from "./OutreachTargets";
 
 export const dynamic = "force-dynamic";
@@ -82,7 +83,8 @@ type OutreachMainResult =
       hasRunningWave: boolean;
       midBotHtml: string;
       bottomHeadHtml: string;
-      bottomTailHtml: string;
+      addFormApps: AddFormApp[];
+      suppressionRows: SuppressionRowData[];
       rows: OutreachTarget[];
       filterActive: boolean;
       stats: OutreachStatsLite;
@@ -153,54 +155,7 @@ async function outreachMain(
     : "";
   const appOptions = ["all", ...KLAR_APPS.map((a) => a.slug)];
 
-  // Add-Target-Form
-  const appCheckboxes = KLAR_APPS
-    .map((a) => `<label style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;font-size:12px;cursor:pointer">
-      <input type="checkbox" name="for_apps_${a.slug}" value="${esc(a.slug)}" style="margin:0"/>${esc(a.name)}
-    </label>`).join("");
-
-  const addForm = `<details style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin-bottom:24px">
-    <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--fg-2);user-select:none">+ Target hinzufügen</summary>
-    <form method="POST" action="/admin/outreach/add" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:16px" id="outreach-add-form">
-      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Handle*
-        <input type="text" name="handle" required maxlength="64" pattern="[A-Za-z0-9_.-]{1,64}" placeholder="marie_knits" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-family:var(--font-mono);font-size:13px"/>
-      </label>
-      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Plattform*
-        <select name="platform" required style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px">
-          <option value="tiktok">TikTok</option>
-          <option value="instagram">Instagram</option>
-        </select>
-      </label>
-      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Display-Name
-        <input type="text" name="display_name" maxlength="80" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
-      </label>
-      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Profile-URL
-        <input type="url" name="profile_url" maxlength="500" placeholder="https://tiktok.com/@..." style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
-      </label>
-      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Follower (est.)
-        <input type="number" name="follower_estimate" min="0" max="100000000" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
-      </label>
-      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Niche
-        <input type="text" name="niche" maxlength="80" placeholder="yarn, fitness, moto..." style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
-      </label>
-      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Sprache
-        <select name="language" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px">
-          <option value="de">de</option><option value="en">en</option><option value="fr">fr</option><option value="es">es</option><option value="it">it</option>
-        </select>
-      </label>
-      <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Priority (1=top)
-        <input type="number" name="priority" min="1" max="5" value="3" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
-      </label>
-      <div style="grid-column:1/-1;display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Passende Apps
-        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">${appCheckboxes}</div>
-        <input type="hidden" name="for_apps" value="" id="for-apps-hidden"/>
-      </div>
-      <label style="grid-column:1/-1;display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Notes
-        <textarea name="notes" rows="2" maxlength="1000" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-body);resize:vertical"></textarea>
-      </label>
-      <div style="grid-column:1/-1"><button type="submit" class="btn">Target anlegen</button></div>
-    </form>
-  </details>`;
+  const addFormApps = KLAR_APPS.map((a) => ({ slug: a.slug, name: a.name }));
 
   // Wave-starter data for the <OutreachWaveForm> shadcn component (replaces the
   // old waveForm HTML string + the wave half of OutreachClientScripts).
@@ -460,56 +415,16 @@ getklar.org`;
     },
   };
 
-  // Suppression-Section.
-  const suppressionReasons: Array<{ value: string; label: string }> = [
-    { value: "manual",         label: "Manuell (Admin-Entscheidung)" },
-    { value: "stop_request",   label: "STOP-Antwort vom Influencer" },
-    { value: "bounce",         label: "Mail-Bounce (Brevo)" },
-    { value: "spam_complaint", label: "Spam-Complaint" },
-    { value: "opted_out",      label: "Explizit opted-out" },
-    { value: "invalid",        label: "Ungültiger Handle/Email" },
-    { value: "double_ask",     label: "Schon vorher angefragt" },
-  ];
-  const suppressionRowsHtml = suppressions.length === 0
-    ? `<tr><td colspan="5" class="muted" style="padding:14px 16px;text-align:center;font-size:12px">Noch keine Suppressions. Cold-DM-Pipeline läuft offen.</td></tr>`
-    : suppressions.map((s: SuppressionRow) => `<tr>
-        <td><span class="muted" style="font-size:11px;white-space:nowrap">${fmtRelative(s.created_at)}</span></td>
-        <td style="font-family:var(--font-mono);font-size:12px">@${esc(s.handle)}</td>
-        <td><span class="pill" style="font-size:9px;padding:1px 6px;text-transform:uppercase">${esc(s.platform)}</span></td>
-        <td><span class="pill" style="font-size:9px;padding:1px 6px">${esc(s.reason)}</span><div class="muted" style="font-size:10px;margin-top:2px">${esc(s.source)}</div></td>
-        <td class="muted" style="font-size:11px">${esc(s.email ?? "—")}${s.notes ? `<div style="font-size:10px;margin-top:2px;font-style:italic">${esc(s.notes)}</div>` : ""}</td>
-      </tr>`).join("");
-  const suppressionSection = `<details style="margin-top:32px;border:1px solid var(--line);border-radius:10px;background:var(--surface)">
-    <summary style="cursor:pointer;padding:14px 18px;font-size:14px;color:var(--fg);font-weight:700;user-select:none;display:flex;justify-content:space-between;align-items:center">
-      <span>Suppression-List <span class="muted" style="font-weight:400;font-size:11px;margin-left:8px">do-not-contact, ${suppressions.length} Einträge</span></span>
-      <span class="muted" style="font-size:11px;font-family:var(--font-mono)">n8n: <code>POST /api/outreach/check-suppression</code></span>
-    </summary>
-    <div style="padding:0 18px 18px">
-      <form method="POST" action="/admin/outreach/suppression-add" style="display:grid;grid-template-columns:1.5fr 0.8fr 1.2fr 1.5fr auto;gap:10px;margin-bottom:18px;align-items:end">
-        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Handle (ohne @)
-          <input type="text" name="handle" required maxlength="80" placeholder="sammyknits" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px;font-family:var(--font-mono)"/>
-        </label>
-        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Plattform
-          <select name="platform" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px">
-            <option value="*">Beide</option><option value="tiktok">TikTok</option><option value="instagram">Instagram</option>
-          </select>
-        </label>
-        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Grund
-          <select name="reason" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px">
-            ${suppressionReasons.map((r) => `<option value="${esc(r.value)}">${esc(r.label)}</option>`).join("")}
-          </select>
-        </label>
-        <label style="display:flex;flex-direction:column;font-size:11px;color:var(--fg-3);font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase">Notiz <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span>
-          <input type="text" name="notes" maxlength="500" placeholder="z.B. Replied 'no thanks'" style="margin-top:4px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--fg);font-size:13px"/>
-        </label>
-        <button type="submit" class="btn" style="padding:8px 14px;font-size:13px">+ Sperren</button>
-      </form>
-      <table>
-        <thead><tr><th>Wann</th><th>Handle</th><th>Plattform</th><th>Grund / Quelle</th><th>Email / Notiz</th></tr></thead>
-        <tbody>${suppressionRowsHtml}</tbody>
-      </table>
-    </div>
-  </details>`;
+  // Suppression rows for the <OutreachSuppressions> shadcn component.
+  const suppressionRows = suppressions.map((sr: SuppressionRow) => ({
+    whenRel: fmtRelative(sr.created_at),
+    handle: sr.handle,
+    platform: sr.platform,
+    reason: sr.reason,
+    source: sr.source,
+    email: sr.email ?? "",
+    notes: sr.notes ?? "",
+  }));
   // Reply-Inbox lebt jetzt zentral im Postfach (/admin/replies); Outreach ist
   // reiner Scraper/Wave-Tool. "Eingegangene Antworten" + "Offene Anfragen" sind
   // dorthin gewandert.
@@ -522,15 +437,13 @@ getklar.org`;
 
   const midTopHtml = `<div style="margin:24px 0 16px;border-top:1px solid var(--line)"></div>`;
 
-  const midBotHtml = `<div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>
-    ${addForm}`;
+  const midBotHtml = `<div style="margin:32px 0 16px;border-top:1px solid var(--line)"></div>`;
 
   // Targets table is now the <OutreachTargets/> shadcn component (rendered in the
   // page between these two HTML fragments). Heading + tests toggle stay HTML;
   // the suppression list stays HTML below the component.
   const bottomHeadHtml = `<h2>Targets <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${rows.length} angezeigt${q ? ` · Suche: <em>${esc(q)}</em>` : ""}</span></h2>
     ${testsToggle}`;
-  const bottomTailHtml = `${suppressionSection}`;
   const filterActive = platform !== "all" || status !== "all" || app !== "all" || size !== "all" || Boolean(q);
 
   return {
@@ -541,7 +454,8 @@ getklar.org`;
     hasRunningWave,
     midBotHtml,
     bottomHeadHtml,
-    bottomTailHtml,
+    addFormApps,
+    suppressionRows,
     rows,
     filterActive,
     stats,
@@ -606,16 +520,16 @@ export default async function OutreachPage({
             <OutreachRuns runs={result.runs} hasRunningWave={result.hasRunningWave} />
             <OutreachTargetsByApp data={result.targetsByApp} />
             <div dangerouslySetInnerHTML={{ __html: result.midBotHtml }} />
+            <OutreachAddForm apps={result.addFormApps} />
             <OutreachFilters {...result.filter} />
             <div dangerouslySetInnerHTML={{ __html: result.bottomHeadHtml }} />
             <OutreachTargets targets={result.rows} filterActive={result.filterActive} />
-            <div dangerouslySetInnerHTML={{ __html: result.bottomTailHtml }} />
+            <OutreachSuppressions rows={result.suppressionRows} />
           </>
         ) : (
           <div dangerouslySetInnerHTML={{ __html: flash + result.html }} />
         )}
       </div>
-      <OutreachClientScripts />
     </>
   );
 }
