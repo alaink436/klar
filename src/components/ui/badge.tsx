@@ -1,36 +1,53 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-// shadcn-style Badge, themed to the admin .tbadge tones (calm tinted pill with
-// an optional leading status dot). Tones: neutral / ok / info / warn / danger.
+// Status badge using Tremor's official badge styling, verbatim from
+// tremorlabs/tremor (src/components/Badge/Badge.tsx): rounded-md, inset ring,
+// tinted fill per variant, no status dot. We keep Klar's existing `tone` prop as
+// an alias onto Tremor's variants so all 7 call-sites keep working unchanged;
+// new code can also pass `variant` directly. Klar's @custom-variant maps `dark:`
+// onto [data-theme="dark"], so the dark styles below apply in the admin theme.
+
+type Variant = "default" | "neutral" | "success" | "error" | "warning";
 type Tone = "neutral" | "ok" | "info" | "warn" | "danger";
 
-const TONES: Record<Tone, string> = {
-  neutral: "text-fg-3 bg-surface-2 border-line",
-  ok: "text-success bg-[color-mix(in_oklab,var(--success)_12%,transparent)] border-[color-mix(in_oklab,var(--success)_26%,transparent)]",
-  info: "text-info bg-[color-mix(in_oklab,var(--info)_12%,transparent)] border-[color-mix(in_oklab,var(--info)_26%,transparent)]",
-  warn: "text-warning bg-[color-mix(in_oklab,var(--warning)_14%,transparent)] border-[color-mix(in_oklab,var(--warning)_28%,transparent)]",
-  danger: "text-danger bg-[color-mix(in_oklab,var(--danger)_12%,transparent)] border-[color-mix(in_oklab,var(--danger)_26%,transparent)]",
+// Tremor badgeVariants (colors copied 1:1 from the upstream component).
+const VARIANTS: Record<Variant, string> = {
+  default: "bg-blue-50 text-blue-900 ring-blue-500/30 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/30",
+  neutral: "bg-gray-50 text-gray-900 ring-gray-500/30 dark:bg-gray-400/10 dark:text-gray-400 dark:ring-gray-400/20",
+  success: "bg-emerald-50 text-emerald-900 ring-emerald-600/30 dark:bg-emerald-400/10 dark:text-emerald-400 dark:ring-emerald-400/20",
+  error: "bg-red-50 text-red-900 ring-red-600/20 dark:bg-red-400/10 dark:text-red-400 dark:ring-red-400/20",
+  warning: "bg-yellow-50 text-yellow-900 ring-yellow-600/30 dark:bg-yellow-400/10 dark:text-yellow-500 dark:ring-yellow-400/20",
+};
+
+const TONE_TO_VARIANT: Record<Tone, Variant> = {
+  neutral: "neutral",
+  ok: "success",
+  info: "default",
+  warn: "warning",
+  danger: "error",
 };
 
 export function Badge({
   className,
-  tone = "neutral",
-  dot = false,
+  variant,
+  tone,
+  dot,
   children,
   ...props
-}: React.ComponentProps<"span"> & { tone?: Tone; dot?: boolean }) {
+}: React.ComponentProps<"span"> & { variant?: Variant; tone?: Tone; dot?: boolean }) {
+  void dot; // accepted for back-compat; Tremor badges intentionally have no dot
+  const v: Variant = variant ?? (tone ? TONE_TO_VARIANT[tone] : "neutral");
   return (
     <span
       data-slot="badge"
       className={cn(
-        "inline-flex items-center gap-1.5 [font-family:var(--font-mono)] text-[10px] font-semibold tracking-[0.06em] uppercase leading-normal whitespace-nowrap px-2.5 py-1 rounded-full border",
-        TONES[tone],
+        "inline-flex items-center gap-x-1 whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset",
+        VARIANTS[v],
         className,
       )}
       {...props}
     >
-      {dot && <span className="size-1.5 rounded-full bg-current shrink-0" />}
       {children}
     </span>
   );
