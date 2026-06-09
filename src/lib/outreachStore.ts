@@ -1091,3 +1091,125 @@ export async function releaseMail1Claim(id: string): Promise<void> {
     /* best-effort: a stranded 'mail1_sending' is rare and visible in the DB */
   }
 }
+
+// ---------- Evomi wave bulk insert + dedup (additive, n8n-free wave) ---------
+// Used by lib/waveEvomi.ts. createOutreachTarget is single-row + return=representation
+// and would throw on the first duplicate (platform,handle), so the wave bulk-upserts
+// here with resolution=ignore-duplicates (identical on-conflict semantics to the live
+// n8n Insert Targets node) and carries the v3 columns createOutreachTarget can't
+// (contact_email / audience_size / mail_status).
+
+/** A single klar_outreach_targets row produced by the Evomi wave (superset of
+ *  CreateTargetInput with the v3 n8n columns the wave writes). */
+export interface WaveTargetRow {
+  handle: string;
+  platform: OutreachPlatform;
+  display_name: string | null;
+  profile_url: string | null;
+  follower_estimate: number | null;
+  niche: string | null;
+  language: string;
+  for_apps: string[];
+  priority: number;
+  contact_email: string | null;
+  audience_size: string | null;
+  notes: string | null;
+  status: OutreachStatus;
+  mail_status: string; // trial rows are always "trial_hold" — never null (mailer guard)
+}
+
+/** Bulk upsert wave target rows on (platform, handle) with ignore-duplicates so a
+ *  handle that already exists as a live target is skipped, never overwritten.
+ *  Returns the count of net-new rows actually inserted (representation echoes only
+ *  the rows that were not ignored). Throws on a non-OK response. */
+export async function insertWaveTargets(
+  rows: WaveTargetRow[],
+): Promise<{ inserted: number }> {
+  if (!KLAR_INBOX_KEY) throw new Error("KLAR_INBOX_SERVICE_KEY missing");
+  if (rows.length === 0) return { inserted: 0 };
+  const body = rows.map((r) => ({
+    handle: r.handle.trim().replace(/^@/, "").toLowerCase(),
+    platform: r.platform,
+    display_name: r.display_name ?? null,
+    profile_url: r.profile_url ?? null,
+    follower_estimate: r.follower_estimate ?? null,
+    niche: r.niche ?? null,
+    language: r.language ?? "de",
+    for_apps: r.for_apps ?? [],
+    priority: r.priority ?? 3,
+    contact_email: r.contact_email ?? null,
+    audience_size: r.audience_size ?? null,
+    notes: r.notes ?? null,
+    status: r.status ?? "queued",
+    // Never null: a trial-wave row must carry trial_hold so the mailer (which
+    // selects mail_status IS NULL) can never cold-contact it.
+    mail_status: r.mail_status || "trial_hold",
+  }));
+  const res = await fetch(
+    `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?on_conflict=platform,handle`,
+    {
+      method: "POST",
+      headers: {
+        ...hdr(),
+        Prefer: "resolution=ignore-duplicates,return=representation",
+      },
+      body: JSON.stringify(body),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`wave insert ${res.status}: ${text.slice(0, 200)}`);
+  }
+  const inserted = (await res.json()) as unknown[];
+  return { inserted: Array.isArray(inserted) ? inserted.length : 0 };
+}
+
+/** Targeted dedup: which of the given handles already exist as targets on this
+ *  platform. Returns a Set of normalized (lowercased, @-stripped) handles.
+ *  Empty set on a missing key or any failure (dedup is best-effort; the upsert's
+ *  ignore-duplicates is the hard guard). */
+export async function findExistingHandles(
+  platform: OutreachPlatform,
+  handles: string[],
+): Promise<Set<string>> {
+  const norm = handles
+    .map((h) => h.trim().toLowerCase().replace(/^@+/, ""))
+    .filter(Boolean);
+  const out = new Set<string>();
+  if (!KLAR_INBOX_KEY || norm.length === 0) return out;
+  try {
+    const inList = norm.map((h) => `"${h.replace(/"/g, "")}"`).join(",");
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?platform=eq.${encodeURIComponent(platform)}&handle=in.(${inList})&select=handle`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) {
+      console.warn(`[wave] findExistingHandles ${platform} lookup ${res.status} — dedup degraded (ignore-duplicates still guards inserts)`);
+      return out;
+    }
+    const rows = (await res.json()) as Array<{ handle: string }>;
+    for (const r of rows) if (r?.handle) out.add(r.handle.toLowerCase());
+    return out;
+  } catch (e) {
+    console.warn(`[wave] findExistingHandles ${platform} failed — dedup degraded`, e instanceof Error ? e.message : e);
+    return out;
+  }
+}
+
+/** Cleanup: delete all trial rows (niche LIKE 'evomi-trial%'). Returns the
+ *  deleted count. Used by the wave route's DELETE handler. */
+export async function deleteTrialTargets(): Promise<{ deleted: number }> {
+  if (!KLAR_INBOX_KEY) throw new Error("KLAR_INBOX_SERVICE_KEY missing");
+  const res = await fetch(
+    // Double-keyed scope: niche prefix AND mail_status=trial_hold, so a live row
+    // that somehow carries an evomi-trial niche can never be swept by cleanup.
+    `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?niche=like.evomi-trial%25&mail_status=eq.trial_hold`,
+    { method: "DELETE", headers: { ...hdr(), Prefer: "return=representation" } },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`trial delete ${res.status}: ${text.slice(0, 200)}`);
+  }
+  const rows = (await res.json()) as unknown[];
+  return { deleted: Array.isArray(rows) ? rows.length : 0 };
+}

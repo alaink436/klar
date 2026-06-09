@@ -42,6 +42,7 @@ import OutreachKpis, { type OutreachStatsLite } from "./OutreachKpis";
 import OutreachBilling, { type OutreachBillingData } from "./OutreachBilling";
 import OutreachTabs, { type OutreachTab } from "./OutreachTabs";
 import OutreachScrapeSettings, { type ScrapeSettingsData } from "./OutreachScrapeSettings";
+import OutreachEvomiTrial from "./OutreachEvomiTrial";
 import { getScrapeSettings } from "../../../lib/scrapeSettings";
 import { probeSelfhost } from "../../../lib/selfhostProbe";
 import OutreachFilters, { type OutreachFilterState } from "./OutreachFilters";
@@ -73,6 +74,7 @@ const isTestTarget = (t: OutreachTarget): boolean => {
   const e = (t.contact_email ?? "").toLowerCase();
   if (e === "alainkessler04@gmail.com") return true;
   if (h.includes("selftest") || h === "klar_test" || h.startsWith("klar_s")) return true;
+  if ((t.niche ?? "").toLowerCase().startsWith("evomi-trial")) return true; // Evomi-Trial-Rows default ausblenden
   return false;
 };
 
@@ -559,6 +561,7 @@ export default async function OutreachPage({
             {/* SCRAPE-EINSTELLUNGEN */}
             <div hidden={tab !== "scrape"}>
               {scrape && <OutreachScrapeSettings data={scrape} />}
+              <OutreachEvomiTrial appsLive={KLAR_APPS.filter((a) => a.status === "LIVE").map((a) => ({ slug: a.slug, name: a.name }))} />
             </div>
           </>
         ) : (
