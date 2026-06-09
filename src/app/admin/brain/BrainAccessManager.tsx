@@ -125,19 +125,43 @@ export default function BrainAccessManager({
   members,
   folders,
   briefing,
+  briefingBrain,
 }: {
   tokens: TokenRow[];
   members: MemberRow[];
   folders: FolderOpt[];
   briefing: string;
+  briefingBrain: string;
 }) {
   const [confirm, setConfirm] = useState<Confirm>(null);
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [previewCopied, setPreviewCopied] = useState(false);
+  const [previewKey, setPreviewKey] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionErr, setActionErr] = useState<string | null>(null);
   const router = useRouter();
+
+  // The two copyable agent prompts: full vault access vs read-only brain/RAG.
+  const PROMPTS = [
+    {
+      key: "vault",
+      title: "Voller Zugriff — Vault",
+      badge: "vault:use",
+      badgeTone: "warn" as const,
+      desc:
+        "Für dich / Leute mit Vault-Zugriff. Listet alle nutzbaren Vault-Keys samt Gateway-Aufruf — der Agent nutzt echte API-Keys, ohne den Klartext zu sehen. Token separat als KLAR_VAULT_TOKEN ablegen.",
+      text: briefing,
+    },
+    {
+      key: "brain",
+      title: "Nur Learnings — RAG (read-only)",
+      badge: "brain:read",
+      badgeTone: "info" as const,
+      desc:
+        "Für Leute, die nur das Wissen wollen. Lädt alle Brain-Notes (Learnings, Projekt-Status …) read-only über den Export-Endpoint — kein Vault, keine Secrets. Token separat als KLAR_BRAIN_TOKEN ablegen.",
+      text: briefingBrain,
+    },
+  ];
+  const activePrompt = PROMPTS.find((p) => p.key === previewKey) ?? null;
   const activeTokens = tokens.filter((t) => !t.revoked).length;
   const activeMembers = members.filter((m) => !m.revoked).length;
 
@@ -176,13 +200,12 @@ export default function BrainAccessManager({
     }
   }
 
-  // Copy the agent-briefing to the clipboard; `mark` drives the per-button
-  // "Kopiert ✓" feedback that resets after a moment.
-  function copyBriefing(mark: (v: boolean) => void) {
-    navigator.clipboard.writeText(briefing).then(
+  // Copy one of the prompts; `key` drives the per-button "Kopiert ✓" feedback.
+  function copyText(key: string, text: string) {
+    navigator.clipboard.writeText(text).then(
       () => {
-        mark(true);
-        setTimeout(() => mark(false), 1600);
+        setCopiedKey(key);
+        setTimeout(() => setCopiedKey((k) => (k === key ? null : k)), 1600);
       },
       () => {},
     );
@@ -190,54 +213,67 @@ export default function BrainAccessManager({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ── Gerät verbinden (Agent-Prompt) ── */}
+      {/* ── Agent verbinden — zwei Prompts (Vault vs. Learnings/RAG) ── */}
       <Card className="p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex flex-col gap-1.5 min-w-0">
-            <div className="flex items-center gap-2 [font-family:var(--font-display)] font-bold text-[16px] tracking-[-0.01em] text-fg">
-              <span className="text-fg-3">
-                <MonitorSmartphone className="size-4" />
-              </span>
-              Neues Gerät verbinden
+        <div className="flex flex-col gap-1.5 mb-4 min-w-0">
+          <div className="flex items-center gap-2 [font-family:var(--font-display)] font-bold text-[16px] tracking-[-0.01em] text-fg">
+            <span className="text-fg-3">
+              <MonitorSmartphone className="size-4" />
+            </span>
+            Agent verbinden — zwei Prompts
+          </div>
+          <p className="[font-family:var(--font-editorial)] italic text-sm leading-relaxed text-fg-3 max-w-[64ch]">
+            Kopier den passenden Prompt und füg ihn in Claude Code (oder einen anderen LLM-Agenten) ein.
+            Beide enthalten keinen Token — den legst du separat ab. Erzeug den Token mit dem passenden
+            Scope (<code>vault:use</code> bzw. <code>brain:read</code>).
+          </p>
+        </div>
+        <div className="flex flex-col gap-3">
+          {PROMPTS.map((p) => (
+            <div
+              key={p.key}
+              className="flex flex-wrap items-start justify-between gap-3 rounded-[var(--radius-sm)] border border-line bg-surface-2/40 p-4"
+            >
+              <div className="flex flex-col gap-1 min-w-0">
+                <div className="flex items-center gap-2 font-semibold text-fg">
+                  {p.title}
+                  <Badge tone={p.badgeTone}>{p.badge}</Badge>
+                </div>
+                <p className="text-[13px] leading-relaxed text-fg-3 max-w-[60ch]">{p.desc}</p>
+              </div>
+              <div className="shrink-0 flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setPreviewKey(p.key)}>
+                  Vorschau
+                </Button>
+                <Button variant="pop" size="sm" onClick={() => copyText(p.key, p.text)}>
+                  {copiedKey === p.key ? (
+                    <>
+                      <Check /> Kopiert
+                    </>
+                  ) : (
+                    <>
+                      <Copy /> Prompt kopieren
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-            <p className="[font-family:var(--font-editorial)] italic text-sm leading-relaxed text-fg-3 max-w-[64ch]">
-              Kopier diesen Prompt und füg ihn in Claude Code (oder einen anderen LLM-Agenten) auf dem
-              zweiten Gerät ein. Er listet alle nutzbaren Vault-Keys samt Gateway-Aufruf — der Agent kann
-              ohne Supabase-MCP und ohne PowerShell-Wrapper sofort loslegen. Den <code>vault:use</code>-Token
-              legst du separat als <code>KLAR_VAULT_TOKEN</code> ab; er steht bewusst nicht im Prompt.
-            </p>
-          </div>
-          <div className="shrink-0 flex items-center gap-2">
-            <Button variant="outline" onClick={() => setPreviewOpen(true)}>
-              Vorschau
-            </Button>
-            <Button variant="pop" onClick={() => copyBriefing(setCopied)}>
-              {copied ? (
-                <>
-                  <Check /> Kopiert
-                </>
-              ) : (
-                <>
-                  <Copy /> Prompt kopieren
-                </>
-              )}
-            </Button>
-          </div>
+          ))}
         </div>
       </Card>
 
       {/* Agent-Prompt — Vorschau */}
-      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+      <Dialog open={previewKey !== null} onOpenChange={(o) => { if (!o) setPreviewKey(null); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Agent-Prompt</DialogTitle>
+            <DialogTitle>Agent-Prompt — {activePrompt?.title ?? ""}</DialogTitle>
             <DialogDescription>
-              Self-contained Briefing für einen LLM-Agenten auf einem anderen Gerät. Enthält keinen Token —
-              nur das URL-Schema, die Live-Secrets und die Regeln.
+              Self-contained Briefing für einen LLM-Agenten. Enthält keinen Token — nur Endpoint, Regeln
+              {activePrompt?.key === "vault" ? " und die Live-Secrets" : ""}.
             </DialogDescription>
           </DialogHeader>
           <pre className="max-h-[60vh] overflow-auto rounded-[var(--radius-sm)] border border-line-strong bg-surface-2 p-4 text-[12px] leading-relaxed [font-family:var(--font-mono)] text-fg-2 whitespace-pre-wrap break-words">
-            {briefing}
+            {activePrompt?.text ?? ""}
           </pre>
           <DialogFooter>
             <DialogClose asChild>
@@ -245,8 +281,8 @@ export default function BrainAccessManager({
                 Schließen
               </Button>
             </DialogClose>
-            <Button type="button" onClick={() => copyBriefing(setPreviewCopied)}>
-              {previewCopied ? (
+            <Button type="button" onClick={() => activePrompt && copyText("preview", activePrompt.text)}>
+              {copiedKey === "preview" ? (
                 <>
                   <Check /> Kopiert
                 </>

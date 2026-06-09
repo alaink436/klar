@@ -20,7 +20,7 @@ import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { scopeGraph, hasToken, availableFolders, SHOWCASE_FOLDERS } from "@/lib/brainVault";
 import { listTokens } from "@/lib/apiTokens";
 import { listSecrets } from "@/lib/vault";
-import { buildAgentBriefing } from "@/lib/agentBriefing";
+import { buildAgentBriefing, buildBrainBriefing } from "@/lib/agentBriefing";
 import { listBrainMembers } from "@/lib/brainMembers";
 import BrainExplorer from "@/app/components/brain/BrainExplorer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -72,8 +72,9 @@ export default async function BrainPage({
   // Copyable agent-briefing: a self-contained prompt with the live (proxyable)
   // vault secrets, so an agent on a fresh device can use the gateway without the
   // Supabase MCP or the PowerShell wrapper. No secrets in it (token is an env var).
+  const origin = originFromHeaders(h);
   const briefing = buildAgentBriefing({
-    origin: originFromHeaders(h),
+    origin,
     secrets: secretRows
       .filter((s) => !s.revoked_at && s.base_url)
       .map((s) => ({
@@ -85,6 +86,7 @@ export default async function BrainPage({
         authScheme: s.auth_scheme,
       })),
   });
+  const briefingBrain = buildBrainBriefing({ origin });
   const tokens: TokenRow[] = tokenRows.map((t) => ({
     id: t.id,
     label: t.label,
@@ -154,7 +156,7 @@ export default async function BrainPage({
           </TabsContent>
 
           <TabsContent value="zugang">
-            <BrainAccessManager tokens={tokens} members={members} folders={folders} briefing={briefing} />
+            <BrainAccessManager tokens={tokens} members={members} folders={folders} briefing={briefing} briefingBrain={briefingBrain} />
           </TabsContent>
         </Tabs>
       </div>

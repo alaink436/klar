@@ -144,3 +144,56 @@ Datei, gibt ihn nie aus):
   **widerrufen + neu erzeugen**.
 `;
 }
+
+// Build the read-only "Learnings / RAG" briefing for a brain:read token. Unlike
+// the vault briefing this exposes NO secrets and no gateway — only the
+// token-gated brain export endpoint that streams every non-secret note
+// (Learnings, Projects, STATUS …) as Markdown or JSON. `origin` is the public
+// dashboard origin (e.g. https://getklar.org).
+export function buildBrainBriefing({ origin }: { origin: string }): string {
+  return `# Klar AI-Brain — Read-Only Briefing (Learnings / RAG)
+
+Du hast **lesenden** Zugriff auf Alains **AI-Brain** — den zentralen Wissensspeicher
+(Learnings, Projekt-Status, Patterns). Du lädst den kompletten Brain-Kontext über
+**einen** Endpoint. **Kein Vault, keine API-Keys, kein Schreibzugriff.**
+
+## Endpoint & Auth
+- **Alles als Markdown (ein Dokument):** \`GET ${origin}/api/brain/export?format=md\`
+- **Strukturiert (JSON \`{ repo, ref, count, notes:[{path,content}] }\`):** \`GET ${origin}/api/brain/export\`
+- **Header:** \`Authorization: Bearer <KLAR_BRAIN_TOKEN>\` (Scope \`brain:read\`)
+- Der Token steht **nicht** in diesem Prompt. Lies ihn zur Laufzeit aus der
+  Umgebungsvariable \`KLAR_BRAIN_TOKEN\` oder einer Secrets-Datei. **Gib ihn nie im Chat/Log/Commit aus.**
+- Token noch nicht hinterlegt? Alain mintet einen unter \`${origin}/admin\` →
+  **AI-Brain → Zugang → „Token erzeugen"** (Scope \`brain:read\`) und gibt ihn dir,
+  ohne ihn in einen Chat zu pasten.
+
+## Was du bekommst
+- Alle \`.md\`-Notes des Brains: \`Learnings/\` (inkl. \`Learnings/INDEX.md\`),
+  \`Projects/*/PROGRESS.md\`, \`STATUS.md\`, Templates, Patterns …
+- **Nie enthalten:** \`Secrets/\` und \`Credentials/\` — serverseitig herausgefiltert.
+
+## Aufruf (curl)
+\`\`\`bash
+# Ganzes Brain als ein Markdown-Doc laden:
+curl -s "${origin}/api/brain/export?format=md" \\
+  -H "Authorization: Bearer $KLAR_BRAIN_TOKEN"
+
+# Oder strukturiert als JSON:
+curl -s ${origin}/api/brain/export \\
+  -H "Authorization: Bearer $KLAR_BRAIN_TOKEN"
+\`\`\`
+
+## Nutzung
+- Lade den Export als Kontext, dann beantworte Fragen / wende die Learnings an.
+- Für ein Thema gezielt: im Export nach Tag/Titel grep-en — Startpunkt ist
+  \`Learnings/INDEX.md\` (Tabellen „Nach Datum" + „Nach Tag").
+
+## Regeln
+- **Read-only.** Kein Schreibzugriff, kein Vault, keine Secrets — nur Lesen der Notes.
+- **Rate-Limit:** 30 Exporte / Stunde / IP (jeder Pull zieht das ganze Repo).
+- **Fehlercodes:** \`401\` Token fehlt/ungültig/kein \`brain:read\` · \`429\` Rate-Limit ·
+  \`502\` GitHub-Fetch fehlgeschlagen · \`503\` nicht konfiguriert.
+- Token nie in Chat, Git, Logs oder \`echo\`. Bei Leak: Dashboard → Token
+  **widerrufen + neu erzeugen**.
+`;
+}
