@@ -317,6 +317,7 @@ getklar.org`;
     profileUrl: t.profile_url,
     platform: t.platform,
     followerLabel: followerLabel(t.follower_estimate),
+    niche: t.niche,
     contactEmail: t.contact_email,
     lastMessage: t.last_message ? t.last_message.slice(0, 90) : null,
     sentRel: t.mail1_sent_at ? fmtRelative(t.mail1_sent_at) : "",

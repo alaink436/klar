@@ -10,6 +10,7 @@ export interface TargetMini {
   profileUrl: string | null;
   platform: string;
   followerLabel: string;
+  niche: string | null;
   contactEmail: string | null;
   lastMessage: string | null;
   sentRel: string;
@@ -38,6 +39,14 @@ function Mini({ t }: { t: TargetMini }) {
             {t.platform === "tiktok" ? "TT" : "IG"}
           </span>
           {t.followerLabel && <span className="[font-family:var(--font-mono)] text-[10px] text-fg-4 shrink-0">{t.followerLabel}</span>}
+          {t.niche && t.niche !== "—" && (
+            <span
+              className="[font-family:var(--font-mono)] text-[8px] px-1.5 py-px border border-line-strong rounded text-fg-3 shrink-0 truncate max-w-[120px]"
+              title={`Herkunft: #${t.niche}`}
+            >
+              #{t.niche}
+            </span>
+          )}
         </div>
         {t.contactEmail && <div className="[font-family:var(--font-mono)] text-[10px] text-fg-4 truncate">{t.contactEmail}</div>}
         {t.lastMessage && (
