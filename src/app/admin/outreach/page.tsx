@@ -42,9 +42,7 @@ import OutreachKpis, { type OutreachStatsLite } from "./OutreachKpis";
 import OutreachBilling, { type OutreachBillingData } from "./OutreachBilling";
 import OutreachTabs, { type OutreachTab } from "./OutreachTabs";
 import OutreachScrapeSettings, { type ScrapeSettingsData } from "./OutreachScrapeSettings";
-import OutreachEvomiTrial from "./OutreachEvomiTrial";
 import { getScrapeSettings } from "../../../lib/scrapeSettings";
-import { probeSelfhost } from "../../../lib/selfhostProbe";
 import OutreachFilters, { type OutreachFilterState } from "./OutreachFilters";
 import OutreachRuns, { type RunRowData, type RunBadgeTone } from "./OutreachRuns";
 import OutreachTargetsByApp, { type AppBuckets, type TargetMini } from "./OutreachTargetsByApp";
@@ -507,9 +505,7 @@ export default async function OutreachPage({
     : "pipeline";
   // Scrape-tab data: only fetched when that tab is active (fail-soft probes).
   const scrape: ScrapeSettingsData | null =
-    tab === "scrape" && result.configured
-      ? { settings: await getScrapeSettings(), selfhost: await probeSelfhost() }
-      : null;
+    tab === "scrape" && result.configured ? { settings: await getScrapeSettings() } : null;
 
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
   const topbar = `
@@ -560,8 +556,12 @@ export default async function OutreachPage({
 
             {/* SCRAPE-EINSTELLUNGEN */}
             <div hidden={tab !== "scrape"}>
-              {scrape && <OutreachScrapeSettings data={scrape} />}
-              <OutreachEvomiTrial appsLive={KLAR_APPS.filter((a) => a.status === "LIVE").map((a) => ({ slug: a.slug, name: a.name }))} />
+              {scrape && (
+                <OutreachScrapeSettings
+                  data={scrape}
+                  appsLive={KLAR_APPS.filter((a) => a.status === "LIVE").map((a) => ({ slug: a.slug, name: a.name }))}
+                />
+              )}
             </div>
           </>
         ) : (

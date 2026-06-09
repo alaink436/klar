@@ -150,11 +150,15 @@ export default function OutreachEvomiTrial({ appsLive }: OutreachEvomiTrialProps
   const disabled = busy != null || !app || platforms.length === 0 || buckets.length === 0;
 
   return (
-    <Card className="p-5 max-w-[760px]">
-      <div className={LABEL}>Evomi-Trial (n8n-frei)</div>
+    <Card className="p-5">
+      <div className={LABEL}>2 · Proxy-API-Scrape (Evomi, n8n-frei)</div>
       <p className={HINT}>
-        Discovery via Apify, Anreicherung via Evomi, direkt in-app. Dry-Run schreibt nichts;
-        Commit fügt Trial-Rows ein (markiert <code>evomi-trial</code>, nie automatisch gemailt).
+        Die neue Variante: Kandidaten kommen aus Apify, die Anreicherung (Bio, Follower, E-Mail) läuft
+        über die Evomi-Scraper-API — ganz ohne n8n und ohne eigenen Server.{" "}
+        <strong className="text-fg-2">Dry-Run</strong> zeigt die gefundenen Profile, ohne etwas zu
+        speichern. <strong className="text-fg-2">Commit</strong> legt sie als markierte Test-Targets an
+        (werden nie automatisch gemailt). <strong className="text-fg-2">Löschen</strong> entfernt alle
+        Test-Targets wieder.
       </p>
 
       <div className="mt-4 flex flex-col gap-4 text-[13px]">

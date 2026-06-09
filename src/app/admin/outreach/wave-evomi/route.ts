@@ -37,8 +37,19 @@ function bad(msg: string): Response {
   return NextResponse.json({ ok: false, error: msg }, { status: 400 });
 }
 
-/** Strict device + admin gate. Returns null when authorized, else a redirect. */
+/** Authorized via EITHER a machine token OR the strict device+admin gate.
+ *  Returns null when authorized, else a 401/redirect response.
+ *
+ *  Path A (machine): `Authorization: Bearer <WAVE_TRIAL_TOKEN>` — lets an operator
+ *  or agent run dry-runs/cleanup without a 2FA browser session. Constant-time
+ *  compared; only active when the env var is set.
+ *  Path B (human UI): HMAC device cookie + admin session (mirror of scrape-settings). */
 async function gate(req: NextRequest): Promise<Response | null> {
+  const TOKEN = process.env.WAVE_TRIAL_TOKEN ?? "";
+  if (TOKEN) {
+    const m = /^Bearer\s+(.+)$/i.exec((req.headers.get("authorization") ?? "").trim());
+    if (m && ctEqual(m[1].trim(), TOKEN)) return null;
+  }
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
   const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
   if (!KEY || !DEV) {
