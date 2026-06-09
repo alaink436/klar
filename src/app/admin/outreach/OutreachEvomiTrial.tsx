@@ -151,7 +151,7 @@ export default function OutreachEvomiTrial({ appsLive }: OutreachEvomiTrialProps
 
   return (
     <Card className="p-5">
-      <div className={LABEL}>2 · Proxy-API-Scrape (Evomi, n8n-frei)</div>
+      <div className={LABEL}>Evomi-Scrape (n8n-frei)</div>
       <p className={HINT}>
         Die neue Variante: Kandidaten kommen aus Apify, die Anreicherung (Bio, Follower, E-Mail) läuft
         über die Evomi-Scraper-API — ganz ohne n8n und ohne eigenen Server.{" "}

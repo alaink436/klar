@@ -41,8 +41,7 @@ import { KLAR_APPS } from "../../../lib/klarApps";
 import OutreachKpis, { type OutreachStatsLite } from "./OutreachKpis";
 import OutreachBilling, { type OutreachBillingData } from "./OutreachBilling";
 import OutreachTabs, { type OutreachTab } from "./OutreachTabs";
-import OutreachScrapeSettings, { type ScrapeSettingsData } from "./OutreachScrapeSettings";
-import { getScrapeSettings } from "../../../lib/scrapeSettings";
+import OutreachEvomiTrial from "./OutreachEvomiTrial";
 import OutreachFilters, { type OutreachFilterState } from "./OutreachFilters";
 import OutreachRuns, { type RunRowData, type RunBadgeTone } from "./OutreachRuns";
 import OutreachTargetsByApp, { type AppBuckets, type TargetMini } from "./OutreachTargetsByApp";
@@ -503,9 +502,6 @@ export default async function OutreachPage({
   const tab: OutreachTab = (OUTREACH_TABS as readonly string[]).includes(sp.tab ?? "")
     ? (sp.tab as OutreachTab)
     : "pipeline";
-  // Scrape-tab data: only fetched when that tab is active (fail-soft probes).
-  const scrape: ScrapeSettingsData | null =
-    tab === "scrape" && result.configured ? { settings: await getScrapeSettings() } : null;
 
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
   const topbar = `
@@ -554,14 +550,16 @@ export default async function OutreachPage({
               <OutreachSuppressions rows={result.suppressionRows} />
             </div>
 
-            {/* SCRAPE-EINSTELLUNGEN */}
+            {/* EVOMI (n8n-frei) */}
             <div hidden={tab !== "scrape"}>
-              {scrape && (
-                <OutreachScrapeSettings
-                  data={scrape}
-                  appsLive={KLAR_APPS.filter((a) => a.status === "LIVE").map((a) => ({ slug: a.slug, name: a.name }))}
-                />
-              )}
+              <p className="text-[12.5px] text-fg-3 max-w-[80ch] mt-2 mb-1">
+                n8n-frei: Kandidaten kommen aus Apify, die Anreicherung (Bio, Follower, E-Mail) läuft
+                über die Evomi-Scraper-API, direkt in-app. Die laufende n8n-Pipeline ist im
+                Pipeline-Tab.
+              </p>
+              <OutreachEvomiTrial
+                appsLive={KLAR_APPS.filter((a) => a.status === "LIVE").map((a) => ({ slug: a.slug, name: a.name }))}
+              />
             </div>
           </>
         ) : (

@@ -16,7 +16,7 @@ const TABS: { id: OutreachTab; label: string }[] = [
   { id: "pipeline", label: "Pipeline" },
   { id: "abrechnung", label: "Abrechnung" },
   { id: "sperrliste", label: "Sperrliste" },
-  { id: "scrape", label: "Scrape-Einstellungen" },
+  { id: "scrape", label: "Evomi" },
 ];
 
 export default function OutreachTabs({
@@ -48,6 +48,10 @@ export default function OutreachTabs({
           href={href(t.id)}
           scroll={false}
           aria-current={active === t.id ? "page" : undefined}
+          // Inline style on the active tab: a global `a { color }` rule in the
+          // admin CSS otherwise overrides text-accent-fg, making the label dark
+          // and invisible on the black active pill. Inline wins.
+          style={active === t.id ? { backgroundColor: "var(--fg)", color: "var(--accent-fg)" } : undefined}
           className={cn(
             "inline-flex items-center gap-2 px-4 py-1.5 rounded-[calc(var(--radius-sm)-2px)] transition-colors [font-family:var(--font-mono)] text-[11px] font-semibold tracking-[0.08em] uppercase",
             active === t.id ? "bg-fg text-accent-fg" : "text-fg-3 hover:text-fg-2 hover:bg-surface",
