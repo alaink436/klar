@@ -6,6 +6,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { readCookie, ctEqual } from "../../_shared";
+import { verifyDeviceCookie } from "../../../../lib/deviceCookie";
 import {
   upsertScrapeSettings,
   type ScrapeBackend,
@@ -24,7 +25,13 @@ function back(req: NextRequest, msg: string): Response {
 
 export async function POST(req: NextRequest): Promise<Response> {
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  if (!KEY) return back(req, "Server misconfigured: KLAR_ADMIN_KEY missing");
+  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
+  if (!KEY || !DEV) return back(req, "Server misconfigured: admin secrets missing");
+  // Full gate: HMAC device cookie + admin session (mirror of the page.tsx GET
+  // gate). Verifying the device cookie first closes the CSRF gap of an
+  // admin-cookie-only POST changing live scrape behavior.
+  const device = await verifyDeviceCookie(readCookie(req, "klar_device"), DEV);
+  if (!device) return NextResponse.redirect(new URL("/admin/login", req.url), 303);
   if (!ctEqual(readCookie(req, "klar_admin"), KEY)) {
     return NextResponse.redirect(new URL("/admin/login", req.url), 303);
   }

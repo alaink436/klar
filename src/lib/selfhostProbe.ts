@@ -29,6 +29,7 @@ export async function probeSelfhost(): Promise<SelfhostProbe> {
   const started = Date.now();
   try {
     const health = await fetch(`${url}/healthz`, {
+      headers: auth, // harmless if /healthz is public; required if it is bearer-gated
       signal: AbortSignal.timeout(TIMEOUT_MS),
       cache: "no-store",
     });
