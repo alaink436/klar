@@ -55,8 +55,14 @@ async function handle(
   touchSecretUsed(id);
 
   const sub = (path ?? []).join("/");
-  const search = new URL(req.url).search;
-  const target = `${secret.baseUrl}${sub ? `/${sub}` : ""}${search}`;
+  // Preserve the caller's query params. For query-param auth (e.g. Evomi
+  // ?api_key=), inject the decrypted key as an extra param — authHeader holds the
+  // param name. URLSearchParams round-trips already-encoded values (e.g. ?url=…)
+  // cleanly, so this is safe for both auth modes.
+  const params = new URL(req.url).searchParams;
+  if (secret.authIn === "query") params.set(secret.authHeader, secret.key);
+  const qs = params.toString();
+  const target = `${secret.baseUrl}${sub ? `/${sub}` : ""}${qs ? `?${qs}` : ""}`;
 
   // Forward only safe request headers; inject the decrypted key on the
   // configured auth header. The incoming Authorization (our vault token) is
@@ -69,7 +75,9 @@ async function handle(
   // GitHub (and a few other APIs) reject requests without a User-Agent. Forward
   // the caller's if present, otherwise send a stable default so they don't 403.
   if (!fwd.has("user-agent")) fwd.set("user-agent", "klar-vault-proxy");
-  fwd.set(secret.authHeader, `${secret.authScheme}${secret.key}`);
+  // Header auth: inject the key on the configured header. Query auth already
+  // injected it into the URL above, so no auth header here.
+  if (secret.authIn !== "query") fwd.set(secret.authHeader, `${secret.authScheme}${secret.key}`);
 
   const method = req.method.toUpperCase();
   const hasBody = method !== "GET" && method !== "HEAD";

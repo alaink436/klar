@@ -54,6 +54,7 @@ export interface VaultSecretMeta {
   base_url: string | null; // null = store-only secret (reveal only, not proxyable)
   auth_header: string;
   auth_scheme: string;
+  auth_in: string; // "header" (default) | "query" — where the proxy injects the key
   created_at: string;
   last_used_at: string | null;
   revoked_at: string | null;
@@ -66,6 +67,7 @@ export interface AddSecretInput {
   base_url?: string; // omit/empty for a store-only secret (reveal only, no proxy)
   auth_header?: string;
   auth_scheme?: string;
+  auth_in?: "header" | "query"; // "query" => auth_header is the query-param name
   secret: string; // the raw API key — encrypted here, never stored in clear
 }
 
@@ -94,6 +96,7 @@ export async function addSecret(
     base_url: base,
     auth_header: (input.auth_header || "authorization").toLowerCase().slice(0, 60),
     auth_scheme: input.auth_scheme ?? "Bearer ",
+    auth_in: input.auth_in === "query" ? "query" : "header",
     ...enc,
   };
   try {
@@ -114,7 +117,7 @@ export async function listSecrets(): Promise<VaultSecretMeta[]> {
   if (!SB_KEY()) return [];
   try {
     const res = await fetch(
-      `${URL_BASE}/rest/v1/vault_secrets?select=id,label,provider,category,base_url,auth_header,auth_scheme,created_at,last_used_at,revoked_at&order=created_at.desc`,
+      `${URL_BASE}/rest/v1/vault_secrets?select=id,label,provider,category,base_url,auth_header,auth_scheme,auth_in,created_at,last_used_at,revoked_at&order=created_at.desc`,
       { headers: sbHeaders(), cache: "no-store" },
     );
     if (!res.ok) return [];
@@ -132,6 +135,7 @@ export interface UpdateSecretMetaInput {
   base_url?: string; // empty -> store-only (drops proxyability); set -> proxyable
   auth_header?: string;
   auth_scheme?: string;
+  auth_in?: "header" | "query"; // omit to leave the stored value untouched
 }
 
 // Edit a secret's metadata in place (label / provider / category / routing).
@@ -153,7 +157,7 @@ export async function updateSecretMeta(
     }
   }
   const category = (input.category ?? "").trim().slice(0, 60);
-  const patch = {
+  const patch: Record<string, unknown> = {
     label: input.label.slice(0, 80) || "Unbenannt",
     provider: input.provider.slice(0, 40) || "custom",
     category: category || null,
@@ -161,6 +165,9 @@ export async function updateSecretMeta(
     auth_header: (input.auth_header || "authorization").toLowerCase().slice(0, 60),
     auth_scheme: input.auth_scheme ?? "Bearer ",
   };
+  // Only touch auth_in when explicitly provided, so editing a secret's metadata
+  // never silently resets a query-param key back to header auth.
+  if (input.auth_in === "header" || input.auth_in === "query") patch.auth_in = input.auth_in;
   try {
     const res = await fetch(`${URL_BASE}/rest/v1/vault_secrets?id=eq.${encodeURIComponent(id)}`, {
       method: "PATCH",
@@ -257,11 +264,17 @@ export function touchSecretUsed(id: string): void {
 export async function getForProxy(
   id: string,
   opts: { touch?: boolean } = {},
-): Promise<{ baseUrl: string; authHeader: string; authScheme: string; key: string } | null> {
+): Promise<{
+  baseUrl: string;
+  authHeader: string;
+  authScheme: string;
+  authIn: "header" | "query";
+  key: string;
+} | null> {
   if (!vaultReady()) return null;
   try {
     const res = await fetch(
-      `${URL_BASE}/rest/v1/vault_secrets?id=eq.${encodeURIComponent(id)}&select=base_url,auth_header,auth_scheme,ciphertext,iv,auth_tag,revoked_at&limit=1`,
+      `${URL_BASE}/rest/v1/vault_secrets?id=eq.${encodeURIComponent(id)}&select=base_url,auth_header,auth_scheme,auth_in,ciphertext,iv,auth_tag,revoked_at&limit=1`,
       { headers: sbHeaders(), cache: "no-store" },
     );
     if (!res.ok) return null;
@@ -269,6 +282,7 @@ export async function getForProxy(
       base_url: string | null;
       auth_header: string;
       auth_scheme: string;
+      auth_in: string | null;
       ciphertext: string;
       iv: string;
       auth_tag: string;
@@ -284,7 +298,13 @@ export async function getForProxy(
       return null; // wrong master key / tampered ciphertext
     }
     if (opts.touch !== false) touchSecretUsed(id);
-    return { baseUrl: r.base_url, authHeader: r.auth_header, authScheme: r.auth_scheme, key };
+    return {
+      baseUrl: r.base_url,
+      authHeader: r.auth_header,
+      authScheme: r.auth_scheme,
+      authIn: r.auth_in === "query" ? "query" : "header",
+      key,
+    };
   } catch {
     return null;
   }

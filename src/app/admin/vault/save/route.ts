@@ -79,10 +79,11 @@ export async function POST(req: NextRequest): Promise<Response> {
     const base_url = String(form.get("base_url") ?? "").trim();
     const auth_header = String(form.get("auth_header") ?? "authorization").trim();
     const auth_scheme = String(form.get("auth_scheme") ?? "Bearer ");
+    const auth_in = String(form.get("auth_in") ?? "header").trim() === "query" ? "query" : "header";
     const secret = String(form.get("secret") ?? "");
     if (!secret) return backWith(req, { err: "Kein Key angegeben." });
     // base_url is optional: omit it for a store-only secret (reveal only, no proxy).
-    const r = await addSecret({ label, provider, category, base_url, auth_header, auth_scheme, secret });
+    const r = await addSecret({ label, provider, category, base_url, auth_header, auth_scheme, auth_in, secret });
     return backWith(req, r.ok ? { msg: "Vault-Key gespeichert (verschlüsselt)." } : { err: r.error });
   }
 

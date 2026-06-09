@@ -61,6 +61,7 @@ const CATEGORY_SUGGESTIONS = [
   "Resend",
   "Automation",
   "Social / Marketing",
+  "Scraping",
   "Mobile / Stores",
   "Infrastruktur",
   "Sonstiges",
@@ -152,6 +153,7 @@ interface ProviderPreset {
   baseUrl: string;
   authHeader: string;
   authScheme: string;
+  authIn?: "header" | "query"; // "query" => authHeader is the query-param name (e.g. Evomi ?api_key=)
   keyExample: string;
   labelExample: string;
 }
@@ -185,6 +187,8 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   { id: "apify", label: "Apify", category: "Automation", provider: "apify", baseUrl: "https://api.apify.com/v2", authHeader: "authorization", authScheme: "Bearer ", keyExample: "apify_api_…", labelExample: "Apify" },
   // Social / Marketing
   { id: "blotato", label: "Blotato", category: "Social / Marketing", provider: "blotato", baseUrl: "https://backend.blotato.com/v2", authHeader: "blotato-api-key", authScheme: "", keyExample: "…== (Base64, = gehört dazu)", labelExample: "Blotato" },
+  // Scraping
+  { id: "evomi", label: "Evomi (Scraper API)", category: "Scraping", provider: "evomi", baseUrl: "https://scrape.evomi.com/api/v1/scraper", authHeader: "api_key", authScheme: "", authIn: "query", keyExample: "Evomi api_key (Query-Param)", labelExample: "Evomi Scraper API" },
   // Mobile / Stores
   { id: "appstore", label: "App Store Connect (.p8)", category: "Mobile / Stores", provider: "apple", baseUrl: "", authHeader: "authorization", authScheme: "Bearer ", keyExample: "-----BEGIN PRIVATE KEY----- (.p8)", labelExample: "App Store Connect API" },
   { id: "expo", label: "Expo / EAS", category: "Mobile / Stores", provider: "expo", baseUrl: "https://api.expo.dev", authHeader: "authorization", authScheme: "Bearer ", keyExample: "Expo Access-Token", labelExample: "Expo EAS" },
@@ -206,6 +210,7 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
   const [baseUrl, setBaseUrl] = useState("");
   const [authHeader, setAuthHeader] = useState("authorization");
   const [authScheme, setAuthScheme] = useState("Bearer ");
+  const [authIn, setAuthIn] = useState<"header" | "query">("header");
   const [presetId, setPresetId] = useState("");
 
   const catEx = exampleFor(category);
@@ -231,6 +236,7 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
     setBaseUrl(p.baseUrl);
     setAuthHeader(p.authHeader);
     setAuthScheme(p.authScheme);
+    setAuthIn(p.authIn === "query" ? "query" : "header");
     if (!category.trim()) setCategory(p.category);
   }
 
@@ -299,7 +305,7 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
           />
           <Field
             name="auth_header"
-            label="Auth-Header"
+            label={authIn === "query" ? "Query-Param-Name" : "Auth-Header"}
             value={authHeader}
             onChange={(e) => setAuthHeader(e.target.value)}
           />
@@ -320,6 +326,24 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
             onChange={(e) => setAuthScheme(e.target.value)}
             className="col-span-2"
           />
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <Label htmlFor="auth_in">
+              Auth-Ort{" "}
+              <span className="text-fg-4 font-normal">
+                (Header = Standard; Query = Key als URL-Parameter, z.B. Evomi <code>?api_key=</code>)
+              </span>
+            </Label>
+            <select
+              id="auth_in"
+              name="auth_in"
+              className={SELECT_CLASS}
+              value={authIn}
+              onChange={(e) => setAuthIn(e.target.value === "query" ? "query" : "header")}
+            >
+              <option value="header">Header</option>
+              <option value="query">Query-Parameter</option>
+            </select>
+          </div>
         </>
       )}
       <div className="col-span-2 flex flex-col gap-1.5">
