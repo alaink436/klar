@@ -40,6 +40,10 @@ import { getBrevoQuota } from "../../../lib/brevoQuota";
 import { KLAR_APPS } from "../../../lib/klarApps";
 import OutreachKpis, { type OutreachStatsLite } from "./OutreachKpis";
 import OutreachBilling, { type OutreachBillingData } from "./OutreachBilling";
+import OutreachTabs, { type OutreachTab } from "./OutreachTabs";
+import OutreachScrapeSettings, { type ScrapeSettingsData } from "./OutreachScrapeSettings";
+import { getScrapeSettings } from "../../../lib/scrapeSettings";
+import { probeSelfhost } from "../../../lib/selfhostProbe";
 import OutreachFilters, { type OutreachFilterState } from "./OutreachFilters";
 import OutreachRuns, { type RunRowData, type RunBadgeTone } from "./OutreachRuns";
 import OutreachTargetsByApp, { type AppBuckets, type TargetMini } from "./OutreachTargetsByApp";
@@ -470,7 +474,7 @@ getklar.org`;
 export default async function OutreachPage({
   searchParams,
 }: {
-  searchParams: Promise<{ p?: string; s?: string; a?: string; sz?: string; q?: string; ar?: string; show_tests?: string; msg?: string }>;
+  searchParams: Promise<{ p?: string; s?: string; a?: string; sz?: string; q?: string; ar?: string; show_tests?: string; msg?: string; tab?: string }>;
 }) {
   // Auth — identical gate to brain/cal/bookings/revenue (device cookie + admin session).
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
@@ -493,6 +497,18 @@ export default async function OutreachPage({
   const showTests = sp.show_tests === "1";
 
   const result = await outreachMain(filterPlatform, filterStatus, filterApp, filterSize, query, autoRefresh, showTests);
+
+  // Sub-menu: ?tab= drives which panel renders. Unknown/missing -> pipeline.
+  const OUTREACH_TABS = ["pipeline", "abrechnung", "sperrliste", "scrape"] as const;
+  const tab: OutreachTab = (OUTREACH_TABS as readonly string[]).includes(sp.tab ?? "")
+    ? (sp.tab as OutreachTab)
+    : "pipeline";
+  // Scrape-tab data: only fetched when that tab is active (fail-soft probes).
+  const scrape: ScrapeSettingsData | null =
+    tab === "scrape" && result.configured
+      ? { settings: await getScrapeSettings(), selfhost: await probeSelfhost() }
+      : null;
+
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
   const topbar = `
     <span class="crumb"><b>Outreach</b>${ICON.chevron}<span>Klar Control</span></span>
@@ -508,24 +524,42 @@ export default async function OutreachPage({
         {result.configured ? (
           <>
             <div dangerouslySetInnerHTML={{ __html: flash + result.topHtml }} />
-            <OutreachBilling data={result.billing} />
-            <OutreachKpis stats={result.stats} />
-            <OutreachWaveForm
-              apps={result.wave.apps}
-              regions={result.wave.regions}
-              sizes={result.wave.sizes}
-              defaultSubject={result.wave.defaultSubject}
-              defaultBody={result.wave.defaultBody}
-            />
-            <div dangerouslySetInnerHTML={{ __html: result.midTopHtml }} />
-            <OutreachRuns runs={result.runs} hasRunningWave={result.hasRunningWave} />
-            <OutreachTargetsByApp data={result.targetsByApp} />
-            <div dangerouslySetInnerHTML={{ __html: result.midBotHtml }} />
-            <OutreachAddForm apps={result.addFormApps} />
-            <OutreachFilters {...result.filter} />
-            <div dangerouslySetInnerHTML={{ __html: result.bottomHeadHtml }} />
-            <OutreachTargets targets={result.rows} filterActive={result.filterActive} />
-            <OutreachSuppressions rows={result.suppressionRows} />
+            <OutreachTabs active={tab} filterParams={result.filter} />
+
+            {/* PIPELINE */}
+            <div hidden={tab !== "pipeline"}>
+              <OutreachKpis stats={result.stats} />
+              <OutreachWaveForm
+                apps={result.wave.apps}
+                regions={result.wave.regions}
+                sizes={result.wave.sizes}
+                defaultSubject={result.wave.defaultSubject}
+                defaultBody={result.wave.defaultBody}
+              />
+              <div dangerouslySetInnerHTML={{ __html: result.midTopHtml }} />
+              <OutreachRuns runs={result.runs} hasRunningWave={result.hasRunningWave} />
+              <OutreachTargetsByApp data={result.targetsByApp} />
+              <div dangerouslySetInnerHTML={{ __html: result.midBotHtml }} />
+              <OutreachAddForm apps={result.addFormApps} />
+              <OutreachFilters {...result.filter} />
+              <div dangerouslySetInnerHTML={{ __html: result.bottomHeadHtml }} />
+              <OutreachTargets targets={result.rows} filterActive={result.filterActive} />
+            </div>
+
+            {/* ABRECHNUNG */}
+            <div hidden={tab !== "abrechnung"}>
+              <OutreachBilling data={result.billing} />
+            </div>
+
+            {/* SPERRLISTE */}
+            <div hidden={tab !== "sperrliste"}>
+              <OutreachSuppressions rows={result.suppressionRows} />
+            </div>
+
+            {/* SCRAPE-EINSTELLUNGEN */}
+            <div hidden={tab !== "scrape"}>
+              {scrape && <OutreachScrapeSettings data={scrape} />}
+            </div>
           </>
         ) : (
           <div dangerouslySetInnerHTML={{ __html: flash + result.html }} />
