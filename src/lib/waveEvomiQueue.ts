@@ -224,19 +224,35 @@ export async function runEvomiDiscovery(run: OutreachRun): Promise<EvomiStartRep
     (await getAppTemplate(app, run.language)) ??
     (run.language !== "de" ? await getAppTemplate(app, "de") : null);
   const { hashtags, keywords } = resolveTerms(run.niche, app, undefined, tpl?.hashtags ?? null);
-  // Over-fetch at discovery: IG hashtag posts dedupe heavily to owners, TT keyword
-  // results are more unique. We slice to the budget after dedup/suppression.
-  const igDiscoverLimit = Math.min(Math.ceil(perPlatformBudget * 3), 90);
-  const ttDiscoverLimit = Math.min(Math.ceil(perPlatformBudget * 1.5), 60);
+  // Over-fetch HEAVILY at discovery: hashtag/keyword search returns mostly tiny
+  // accounts (<1k followers) that the size filter then drops — measured ~85% loss.
+  // We pull a big raw pool, pre-filter TikTok by its follower hint (free, comes
+  // with the search) so enrichment credits go to plausible creators, and slice to
+  // budget only after dedup/suppression/size-hint.
+  const igDiscoverLimit = Math.min(Math.ceil(perPlatformBudget * 5), 120);
+  const ttDiscoverLimit = Math.min(Math.ceil(perPlatformBudget * 6), 120);
 
   const [igRes, ttRes] = await Promise.all([
     wantIg ? discoverInstagramHandles(hashtags, igDiscoverLimit, apifyCreds) : Promise.resolve({ handles: [] as string[], runId: null }),
     wantTt ? discoverTiktokHandles(keywords, ttDiscoverLimit, apifyCreds) : Promise.resolve({ candidates: [] as { handle: string; followers: number | null }[], runId: null }),
   ]);
 
+  // TikTok pre-filter on the search-time follower hint: drop accounts clearly
+  // outside the selected range BEFORE spending an Evomi render on them. Tolerant
+  // bounds (the hint is approximate): keep unknowns + [min*0.6 .. max*1.5].
+  const ttHintLo = follower_min * 0.6;
+  const ttHintHi = follower_max * 1.5;
+  const ttHinted = ttRes.candidates.filter(
+    (c) => c.followers == null || (c.followers >= ttHintLo && c.followers <= ttHintHi),
+  );
+  const ttDroppedByHint = ttRes.candidates.length - ttHinted.length;
+
   const igHandles = [...new Set(igRes.handles.map((h) => h.toLowerCase().trim()).filter(Boolean))];
-  const ttHandles = [...new Set(ttRes.candidates.map((c) => c.handle.toLowerCase().trim()).filter(Boolean))];
-  const discovered = igHandles.length + ttHandles.length;
+  const ttHandles = [...new Set(ttHinted.map((c) => c.handle.toLowerCase().trim()).filter(Boolean))];
+  const discovered = igRes.handles.length + ttRes.candidates.length;
+  if (ttDroppedByHint > 0) {
+    console.log(`[wave] ${run.id.slice(0, 8)} TT follower-hint pre-filter dropped ${ttDroppedByHint}/${ttRes.candidates.length} tiny/huge accounts`);
+  }
 
   const [igClean, ttClean] = await Promise.all([
     survivors("instagram", igHandles),
