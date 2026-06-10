@@ -143,45 +143,137 @@ export function isAggregatorUrl(url: string | null | undefined): boolean {
   }
 }
 
-/** Fetch an aggregator page and scrape an email (mailto: first, then regex),
- *  applying the same block filters. 6s timeout (matches n8n). null on any failure. */
-export async function crawlAggregator(url: string): Promise<string | null> {
-  if (!isAggregatorUrl(url)) return null;
-  const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), 6000); // n8n parity
-  let html: string;
-  try {
-    const res = await fetch(url, {
-      method: "GET",
-      // SSRF guard: do NOT follow redirects. The initial URL is allowlist-checked
-      // (isAggregatorUrl), but a user-controlled aggregator page could 3xx to an
-      // internal/metadata target; redirect:"manual" surfaces 3xx as a non-ok
-      // response which we treat as a miss below.
-      redirect: "manual",
-      signal: ac.signal,
-      cache: "no-store",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; KlarBot/1.0; +https://getklar.org)",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "de,en;q=0.7",
-      },
-    });
-    clearTimeout(t);
-    if (!res.ok) return null;
-    html = await res.text();
-  } catch {
-    clearTimeout(t);
-    return null;
-  }
-  // mailto: links are the strongest signal; check them first.
+// mailto: links are the strongest signal; fall back to the bio regex over HTML.
+function emailFromHtml(html: string): string | null {
   const mailto = html.match(/mailto:([\w.+-]+@[\w-]+\.[\w.-]+)/i);
   if (mailto?.[1] && !isBlockedEmail(mailto[1])) return mailto[1].toLowerCase();
   return pickEmailFromBio(html);
 }
 
-/** The exact n8n Crawl-node trigger + write-back, generalised. Given an enriched
- *  profile, returns the resolved contact email or null. Order: business/public ->
- *  bio-regex -> aggregator crawl. Same yield as the live workflow. */
+// SSRF guard for crawling arbitrary creator-site URLs: only http(s), no
+// localhost/.local/.internal names, no literal private/loopback/link-local IPs.
+// (No DNS resolution here — a hostname that RESOLVES to a private IP is an
+// accepted residual risk; the n8n crawl had no guard at all.)
+function isSafePublicUrl(raw: string): URL | null {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+  const h = u.hostname.toLowerCase();
+  if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal") || h.endsWith(".lan")) return null;
+  if (h.includes(":")) return null; // raw IPv6 literal — just block
+  const m = h.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    if (
+      a === 0 || a === 10 || a === 127 ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168)
+    ) {
+      return null;
+    }
+  }
+  return u;
+}
+
+// One guarded HTML fetch with manual, re-validated redirects (max 3 hops — many
+// sites 3xx http->https or apex->www; each hop goes through the SSRF guard).
+async function fetchHtml(rawUrl: string, timeoutMs = 4500): Promise<string | null> {
+  let current = isSafePublicUrl(rawUrl);
+  for (let hop = 0; current && hop < 4; hop++) {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), timeoutMs);
+    try {
+      const res = await fetch(current.toString(), {
+        method: "GET",
+        redirect: "manual",
+        signal: ac.signal,
+        cache: "no-store",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; KlarBot/1.0; +https://getklar.org)",
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "de,en;q=0.7",
+        },
+      });
+      clearTimeout(t);
+      if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get("location");
+        current = loc ? isSafePublicUrl(new URL(loc, current).toString()) : null;
+        continue;
+      }
+      if (!res.ok) return null;
+      return await res.text();
+    } catch {
+      clearTimeout(t);
+      return null;
+    }
+  }
+  return null;
+}
+
+/** Fetch an aggregator page and scrape an email (mailto: first, then regex),
+ *  applying the same block filters. null on any failure. */
+export async function crawlAggregator(url: string): Promise<string | null> {
+  if (!isAggregatorUrl(url)) return null;
+  const html = await fetchHtml(url, 6000); // n8n-parity timeout
+  return html ? emailFromHtml(html) : null;
+}
+
+// Contact/imprint page names across the five outreach regions: DE/AT/CH
+// (Impressumspflicht), FR (mentions légales), ES (aviso legal/contacto),
+// IT (contatti), EN/universal (contact/about/legal).
+const CONTACT_HREF_RE =
+  /href=["']([^"'#]*(?:impressum|imprint|kontakt|contact|mentions|aviso|contatti|contacto|legal|about)[^"'#]*)["']/gi;
+
+/** Crawl a creator's own website for a contact email: homepage first, then up
+ *  to two contact-ish pages (links found on the homepage, same-origin; blind
+ *  /impressum + /contact as fallback). Budget: max 3 HTML fetches à 4.5s. */
+export async function crawlWebsiteForEmail(rawUrl: string): Promise<string | null> {
+  const u = isSafePublicUrl(rawUrl);
+  if (!u) return null;
+  const home = await fetchHtml(u.toString());
+  if (home) {
+    const direct = emailFromHtml(home);
+    if (direct) return direct;
+  }
+  // Candidate contact pages: prefer real links from the homepage (same-origin
+  // only — a footer link to facebook.com/contact must not burn the budget).
+  const candidates: string[] = [];
+  if (home) {
+    let m: RegExpExecArray | null;
+    while ((m = CONTACT_HREF_RE.exec(home)) !== null && candidates.length < 4) {
+      try {
+        const link = new URL(m[1], u);
+        if (link.origin === u.origin && !candidates.includes(link.toString())) {
+          candidates.push(link.toString());
+        }
+      } catch {
+        /* unparseable href */
+      }
+    }
+  }
+  if (candidates.length === 0) {
+    candidates.push(new URL("/impressum", u).toString(), new URL("/contact", u).toString());
+  }
+  for (const c of candidates.slice(0, 2)) {
+    const html = await fetchHtml(c);
+    if (!html) continue;
+    const email = emailFromHtml(html);
+    if (email) return email;
+  }
+  return null;
+}
+
+/** Resolved contact email for an enriched profile, or null. Order: direct
+ *  (business/public) -> bio regex -> link crawl. The crawl now covers BOTH
+ *  aggregators (linktree & co, n8n parity) AND the creator's own website
+ *  (homepage + imprint/contact pages) — since IG stopped exposing business
+ *  emails, the bio link is the main remaining email source. */
 export async function resolveContactEmail(p: {
   biography: string;
   businessEmail: string | null;
@@ -193,8 +285,8 @@ export async function resolveContactEmail(p: {
   if (direct && !isBlockedEmail(direct)) return direct;
   const fromBio = pickEmailFromBio(p.biography);
   if (fromBio) return fromBio;
-  // n8n trigger: only crawl when no direct + no bio email AND ext is an aggregator.
   const ext = p.externalUrl || p.bioLinks?.[0]?.url || "";
-  if (ext && isAggregatorUrl(ext)) return crawlAggregator(ext);
-  return null;
+  if (!ext) return null;
+  if (isAggregatorUrl(ext)) return crawlAggregator(ext);
+  return crawlWebsiteForEmail(ext);
 }

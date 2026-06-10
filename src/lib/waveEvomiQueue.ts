@@ -341,9 +341,11 @@ export async function drainEvomiQueue(): Promise<DrainReport> {
       : Promise.resolve(igClaimed.map(() => ({ profile: null, status: 0, reason: "error" as const }))),
   ]);
 
-  // Process a (candidate, enrichResult) pair: bucket a LIVE row by run, or finish
-  // the candidate terminal. Returns the row to insert (with its candidate id) or null.
-  const rowsByRun = new Map<string, { candidateId: string; row: WaveTargetRow }[]>();
+  // Process a (candidate, enrichResult) pair: collect a LIVE row, or finish the
+  // candidate terminal. Collected rows go into a flat array (sync push — safe
+  // under parallel handles, unlike a get-or-create Map) and are grouped by run
+  // afterwards.
+  const collected: { candidateId: string; runId: string; row: WaveTargetRow }[] = [];
   async function handle(cand: WaveCandidate, r: EnrichResult): Promise<void> {
     // Deadline: this handle was never enriched (the tick ran out of time). Put it
     // back to pending so the next tick retries it — NOT terminal, no data loss.
@@ -380,17 +382,25 @@ export async function drainEvomiQueue(): Promise<DrainReport> {
       report.dropped++;
       return;
     }
-    const arr = rowsByRun.get(cand.run_id) ?? [];
-    arr.push({ candidateId: cand.id, row });
-    rowsByRun.set(cand.run_id, arr);
+    collected.push({ candidateId: cand.id, runId: cand.run_id, row });
   }
 
-  // Run all pair handlers (each does its own awaits; sequential is fine and keeps
-  // PostgREST load modest). IG first (cheap), then TT.
-  for (let i = 0; i < igClaimed.length; i++) await handle(igClaimed[i], igResults[i]);
-  for (let i = 0; i < ttClaimed.length; i++) await handle(ttClaimed[i], ttResults[i]);
+  // Run all pair handlers IN PARALLEL: normalizeToTarget may crawl the creator's
+  // website for an email (up to ~3×4.5s per profile) — sequentially that would
+  // blow the 60s ceiling at 25 IG candidates; in parallel the wall-clock is the
+  // slowest single profile. The per-candidate DB PATCHes are lightweight.
+  await Promise.all([
+    ...igClaimed.map((c, i) => handle(c, igResults[i])),
+    ...ttClaimed.map((c, i) => handle(c, ttResults[i])),
+  ]);
 
-  // Per run: bulk-insert the LIVE rows, mark their candidates done, bump the run.
+  // Group by run, then per run: bulk-insert, mark candidates done, bump the run.
+  const rowsByRun = new Map<string, { candidateId: string; row: WaveTargetRow }[]>();
+  for (const e of collected) {
+    const arr = rowsByRun.get(e.runId) ?? [];
+    arr.push({ candidateId: e.candidateId, row: e.row });
+    rowsByRun.set(e.runId, arr);
+  }
   const touchedRuns = new Set<string>([...rowsByRun.keys(), ...ttClaimed.map((c) => c.run_id), ...igClaimed.map((c) => c.run_id)]);
   for (const [runId, entries] of rowsByRun) {
     if (entries.length === 0) continue;
