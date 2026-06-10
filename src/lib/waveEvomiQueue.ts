@@ -53,7 +53,7 @@ import {
 } from "./apifyDiscovery";
 import { normalizeToTarget, type WaveJob } from "./outreachNormalize";
 import { getEvomiProxy } from "./evomiProxy";
-import { resolveFollowerRange } from "./waveEvomi";
+import { resolveFollowerRange, toTiktokKeyword } from "./waveEvomi";
 
 const EVOMI_ID = "ef44b8c6-20f4-476a-8a18-2d8cd5f9b409";
 const APIFY_ID = "658f655b-11cd-4119-bea0-e6f4e6fc2c4a";
@@ -100,6 +100,10 @@ export interface EvomiStartReport {
 // app slug. The template pool (klar_app_mail_templates.hashtags, per app+lang)
 // is what the n8n Build-Job-List used — searching the bare app slug surfaces
 // random profiles with ~0% email yield, the curated pool surfaces creators.
+//
+// IMPORTANT: the curated pool is INSTAGRAM-centric (e.g. "knittersofinstagram").
+// Feeding those verbatim to the TikTok keyword search returns garbage, so TT
+// keywords strip the IG suffix (toTiktokKeyword, shared with the trial path).
 function resolveTerms(
   niche: string | null,
   app: string,
@@ -108,15 +112,16 @@ function resolveTerms(
 ): { hashtags: string[]; keywords: string[] } {
   const clean = (arr: string[]) =>
     arr.map((h) => h.replace(/^#/, "").replace(/\s+/g, "").toLowerCase()).filter(Boolean);
+  const ttKeywords = (arr: string[]) => [...new Set(arr.map(toTiktokKeyword).filter(Boolean))];
   if (hashtags && hashtags.length > 0) {
-    return { hashtags: clean(hashtags), keywords: hashtags.slice() };
+    return { hashtags: clean(hashtags), keywords: ttKeywords(hashtags) };
   }
   const typed = (niche ?? "").trim();
   if (typed) {
     return { hashtags: [typed.replace(/\s+/g, "").toLowerCase()], keywords: [typed] };
   }
   if (templateHashtags && templateHashtags.length > 0) {
-    return { hashtags: clean(templateHashtags), keywords: templateHashtags.slice() };
+    return { hashtags: clean(templateHashtags), keywords: ttKeywords(templateHashtags) };
   }
   return { hashtags: [app.replace(/\s+/g, "").toLowerCase()], keywords: [app] };
 }

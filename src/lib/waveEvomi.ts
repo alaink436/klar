@@ -114,6 +114,17 @@ export function resolveFollowerRange(buckets: SizeBucket[]): [number, number] {
   return [Number.isFinite(min) ? min : 10_000, max || 500_000];
 }
 
+// The curated hashtag pool (klar_app_mail_templates.hashtags) is INSTAGRAM-centric
+// (e.g. "knittersofinstagram"). Fed verbatim to the TikTok keyword search those
+// return garbage (random accounts containing the word), so TT keywords strip the
+// IG-platform suffix down to a plain topical term ("knittersofinstagram" ->
+// "knitters"). Exported + reused by waveEvomiQueue's resolveTerms.
+export function toTiktokKeyword(hashtag: string): string {
+  const base = hashtag.replace(/^#/, "").trim().toLowerCase();
+  const stripped = base.replace(/(of|on)?instagram$|insta$|onig$|ongram$/i, "");
+  return stripped.length >= 3 ? stripped : base;
+}
+
 // Niche -> discovery terms. Hashtags strip spaces/# (IG hashtag actor); keywords
 // keep words (TikTok keyword actor). Priority: explicit hashtags > typed niche >
 // curated template pool (klar_app_mail_templates.hashtags, n8n parity — the bare
@@ -128,16 +139,17 @@ function resolveTerms(
 } {
   const clean = (arr: string[]) =>
     arr.map((h) => h.replace(/^#/, "").replace(/\s+/g, "").toLowerCase()).filter(Boolean);
+  const ttKeywords = (arr: string[]) => [...new Set(arr.map(toTiktokKeyword).filter(Boolean))];
   const niche = (input.niche ?? "").trim();
   const nicheUsed = niche || input.app;
   if (input.hashtags && input.hashtags.length > 0) {
-    return { hashtags: clean(input.hashtags), keywords: input.hashtags.slice(), nicheUsed };
+    return { hashtags: clean(input.hashtags), keywords: ttKeywords(input.hashtags), nicheUsed };
   }
   if (niche) {
     return { hashtags: [niche.replace(/\s+/g, "").toLowerCase()], keywords: [niche], nicheUsed };
   }
   if (templateHashtags && templateHashtags.length > 0) {
-    return { hashtags: clean(templateHashtags), keywords: templateHashtags.slice(), nicheUsed };
+    return { hashtags: clean(templateHashtags), keywords: ttKeywords(templateHashtags), nicheUsed };
   }
   return { hashtags: [input.app.replace(/\s+/g, "").toLowerCase()], keywords: [input.app], nicheUsed };
 }
