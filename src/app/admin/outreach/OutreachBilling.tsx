@@ -13,6 +13,7 @@ export interface OutreachBillingData {
     reason: string; // live | no-key | unauthorized | http-error | exception
     credits: number | null;
     concurrency: number | null;
+    proxyMb: number | null; // residential proxy bandwidth left (email crawls)
   };
   apify: {
     ok: boolean;
@@ -120,14 +121,20 @@ export default function OutreachBilling({ data }: { data: OutreachBillingData })
           </p>
         ) : (
           <>
-            <Metric
-              value={evomi.credits !== null ? evomi.credits.toLocaleString("de-CH") : "—"}
-              label="Scraper-Credits übrig"
-              accent
-            />
+            <div className="flex items-end gap-6 flex-wrap">
+              <Metric
+                value={evomi.credits !== null ? evomi.credits.toLocaleString("de-CH") : "—"}
+                label="Scraper-Credits"
+                accent
+              />
+              <Metric
+                value={evomi.proxyMb !== null ? `${evomi.proxyMb >= 1000 ? (evomi.proxyMb / 1000).toFixed(1) + " GB" : Math.round(evomi.proxyMb) + " MB"}` : "—"}
+                label="Proxy-Bandbreite"
+              />
+            </div>
             <p className="[font-family:var(--font-mono)] text-[10.5px] text-fg-3 mt-3 leading-relaxed">
-              TikTok-Anreicherung: ~2 Credits (request) bis ~6 (Browser-Render) pro Profil
-              {evomi.concurrency !== null ? ` · Concurrency ${evomi.concurrency}` : ""}
+              Credits: TikTok-Anreicherung ~2 (request) bis ~6 (Render)/Profil{evomi.concurrency !== null ? ` · Concurrency ${evomi.concurrency}` : ""}.
+              Bandbreite: Residential-Proxy für die E-Mail-Crawls (Impressum/Linktree).
             </p>
           </>
         )}

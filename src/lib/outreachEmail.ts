@@ -13,6 +13,11 @@
 // externalUrl/bioLinks[0].url is a known aggregator).
 
 import "server-only";
+import type { Dispatcher } from "undici";
+
+// How a contact email was found — surfaced in the run/trial report so the
+// operator can see WHICH source produced each hit.
+export type EmailSource = "direct" | "bio" | "aggregator" | "website";
 
 // The 16 aggregator hosts, verbatim (identical in klar-scraper email.ts + n8n).
 export const AGGREGATORS = [
@@ -183,13 +188,20 @@ function isSafePublicUrl(raw: string): URL | null {
 
 // One guarded HTML fetch with manual, re-validated redirects (max 3 hops — many
 // sites 3xx http->https or apex->www; each hop goes through the SSRF guard).
-async function fetchHtml(rawUrl: string, timeoutMs = 4500): Promise<string | null> {
+// `dispatcher` (an undici ProxyAgent) routes the request through the residential
+// proxy; omit it for a direct fetch. `dispatcher` is a Node/undici fetch option,
+// hence the cast (it's not in the standard RequestInit type).
+async function fetchHtml(
+  rawUrl: string,
+  opts: { timeoutMs?: number; dispatcher?: Dispatcher | null } = {},
+): Promise<string | null> {
+  const timeoutMs = opts.timeoutMs ?? 4500;
   let current = isSafePublicUrl(rawUrl);
   for (let hop = 0; current && hop < 4; hop++) {
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), timeoutMs);
     try {
-      const res = await fetch(current.toString(), {
+      const init: RequestInit & { dispatcher?: Dispatcher } = {
         method: "GET",
         redirect: "manual",
         signal: ac.signal,
@@ -199,7 +211,9 @@ async function fetchHtml(rawUrl: string, timeoutMs = 4500): Promise<string | nul
           Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
           "Accept-Language": "de,en;q=0.7",
         },
-      });
+      };
+      if (opts.dispatcher) init.dispatcher = opts.dispatcher;
+      const res = await fetch(current.toString(), init);
       clearTimeout(t);
       if (res.status >= 300 && res.status < 400) {
         const loc = res.headers.get("location");
@@ -218,9 +232,9 @@ async function fetchHtml(rawUrl: string, timeoutMs = 4500): Promise<string | nul
 
 /** Fetch an aggregator page and scrape an email (mailto: first, then regex),
  *  applying the same block filters. null on any failure. */
-export async function crawlAggregator(url: string): Promise<string | null> {
+export async function crawlAggregator(url: string, dispatcher?: Dispatcher | null): Promise<string | null> {
   if (!isAggregatorUrl(url)) return null;
-  const html = await fetchHtml(url, 6000); // n8n-parity timeout
+  const html = await fetchHtml(url, { timeoutMs: 6000, dispatcher }); // n8n-parity timeout
   return html ? emailFromHtml(html) : null;
 }
 
@@ -233,10 +247,10 @@ const CONTACT_HREF_RE =
 /** Crawl a creator's own website for a contact email: homepage first, then up
  *  to two contact-ish pages (links found on the homepage, same-origin; blind
  *  /impressum + /contact as fallback). Budget: max 3 HTML fetches à 4.5s. */
-export async function crawlWebsiteForEmail(rawUrl: string): Promise<string | null> {
+export async function crawlWebsiteForEmail(rawUrl: string, dispatcher?: Dispatcher | null): Promise<string | null> {
   const u = isSafePublicUrl(rawUrl);
   if (!u) return null;
-  const home = await fetchHtml(u.toString());
+  const home = await fetchHtml(u.toString(), { dispatcher });
   if (home) {
     const direct = emailFromHtml(home);
     if (direct) return direct;
@@ -261,7 +275,7 @@ export async function crawlWebsiteForEmail(rawUrl: string): Promise<string | nul
     candidates.push(new URL("/impressum", u).toString(), new URL("/contact", u).toString());
   }
   for (const c of candidates.slice(0, 2)) {
-    const html = await fetchHtml(c);
+    const html = await fetchHtml(c, { dispatcher });
     if (!html) continue;
     const email = emailFromHtml(html);
     if (email) return email;
@@ -269,11 +283,41 @@ export async function crawlWebsiteForEmail(rawUrl: string): Promise<string | nul
   return null;
 }
 
-/** Resolved contact email for an enriched profile, or null. Order: direct
- *  (business/public) -> bio regex -> link crawl. The crawl now covers BOTH
- *  aggregators (linktree & co, n8n parity) AND the creator's own website
- *  (homepage + imprint/contact pages) — since IG stopped exposing business
- *  emails, the bio link is the main remaining email source. */
+export interface ResolvedEmail {
+  email: string | null;
+  source: EmailSource | null; // null when no email found
+  crawled: boolean;           // a network crawl was attempted (aggregator/website)
+}
+
+/** Resolved contact email + WHERE it came from. Order: direct (business/public)
+ *  -> bio regex -> link crawl. The crawl covers BOTH aggregators (linktree & co,
+ *  n8n parity) AND the creator's own website (homepage + imprint/contact pages).
+ *  Crawls go through `opts.dispatcher` (residential proxy) when provided. */
+export async function resolveContactEmailDetailed(
+  p: {
+    biography: string;
+    businessEmail: string | null;
+    publicEmail: string | null;
+    externalUrl: string | null;
+    bioLinks: { url: string }[];
+  },
+  opts: { dispatcher?: Dispatcher | null } = {},
+): Promise<ResolvedEmail> {
+  const direct = (p.businessEmail || p.publicEmail || "").trim().toLowerCase();
+  if (direct && !isBlockedEmail(direct)) return { email: direct, source: "direct", crawled: false };
+  const fromBio = pickEmailFromBio(p.biography);
+  if (fromBio) return { email: fromBio, source: "bio", crawled: false };
+  const ext = p.externalUrl || p.bioLinks?.[0]?.url || "";
+  if (!ext) return { email: null, source: null, crawled: false };
+  if (isAggregatorUrl(ext)) {
+    const email = await crawlAggregator(ext, opts.dispatcher);
+    return { email, source: email ? "aggregator" : null, crawled: true };
+  }
+  const email = await crawlWebsiteForEmail(ext, opts.dispatcher);
+  return { email, source: email ? "website" : null, crawled: true };
+}
+
+/** Backwards-compatible thin wrapper (email only). */
 export async function resolveContactEmail(p: {
   biography: string;
   businessEmail: string | null;
@@ -281,12 +325,5 @@ export async function resolveContactEmail(p: {
   externalUrl: string | null;
   bioLinks: { url: string }[];
 }): Promise<string | null> {
-  const direct = (p.businessEmail || p.publicEmail || "").trim().toLowerCase();
-  if (direct && !isBlockedEmail(direct)) return direct;
-  const fromBio = pickEmailFromBio(p.biography);
-  if (fromBio) return fromBio;
-  const ext = p.externalUrl || p.bioLinks?.[0]?.url || "";
-  if (!ext) return null;
-  if (isAggregatorUrl(ext)) return crawlAggregator(ext);
-  return crawlWebsiteForEmail(ext);
+  return (await resolveContactEmailDetailed(p)).email;
 }

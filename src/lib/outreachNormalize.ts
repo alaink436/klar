@@ -6,8 +6,9 @@
 // and the no-email drop here, exactly like the format nodes.
 
 import "server-only";
+import type { Dispatcher } from "undici";
 import type { NormalizedProfile } from "./evomiScraper";
-import { resolveContactEmail } from "./outreachEmail";
+import { resolveContactEmailDetailed, type EmailSource } from "./outreachEmail";
 
 export interface WaveJob {
   app: string;
@@ -36,32 +37,37 @@ export interface OutreachTargetRow {
   priority: number; // always 3
   contact_email: string; // never empty (no-email rows are dropped)
   audience_size: string | null; // always null at scrape time
-  notes: string; // "discovery=wave-evomi; …" (+ trial prefix in trial mode)
+  notes: string; // "discovery=wave-evomi; email=<source>; …" (+ trial prefix)
   status: "queued";
   mail_status: string | null; // "trial_hold" (trial) | null (live → mailable)
+  // Transient (NOT a DB column — insertWaveTargets ignores it): where the email
+  // came from, for the run/trial report breakdown.
+  email_source: EmailSource;
 }
 
 const TRIAL_NICHE_PREFIX = "evomi-trial:";
 
-function buildNotes(bio: string, trial: boolean): string {
+function buildNotes(bio: string, trial: boolean, source: EmailSource): string {
   const prefix = trial ? "evomi-trial; discovery=wave-evomi" : "discovery=wave-evomi";
-  return `${prefix}; bio=${(bio || "").slice(0, 120)}`
+  return `${prefix}; email=${source}; bio=${(bio || "").slice(0, 120)}`
     .replace(/\n/g, " ")
     .slice(0, 1000);
 }
 
 /** Resolve email + apply follower filter + shape the row. Returns null when the
- *  profile fails the follower range OR has no resolvable email (= n8n drop). */
+ *  profile fails the follower range OR has no resolvable email (= n8n drop).
+ *  `opts.dispatcher` routes the email crawls through the residential proxy. */
 export async function normalizeToTarget(
   p: NormalizedProfile,
   job: WaveJob,
+  opts: { dispatcher?: Dispatcher | null } = {},
 ): Promise<OutreachTargetRow | null> {
   // 1) follower filter — identical to format nodes (f < fmin || f > fmax -> skip).
   const f = Number(p.followers || 0);
   if (f < job.follower_min || f > job.follower_max) return null;
-  // 2) email resolution (direct -> bio -> aggregator crawl). Drop if none.
-  const email = await resolveContactEmail(p);
-  if (!email) return null;
+  // 2) email resolution (direct -> bio -> aggregator/website crawl). Drop if none.
+  const resolved = await resolveContactEmailDetailed(p, { dispatcher: opts.dispatcher });
+  if (!resolved.email || !resolved.source) return null;
   // 3) shape — the n8n IG/TikTok Format Targets row. Trial markers only in trial mode.
   const trial = job.trial !== false; // default true (legacy preview safety)
   const nicheUsed = job.niche ?? "";
@@ -80,10 +86,11 @@ export async function normalizeToTarget(
     language: job.language || "de",
     for_apps: [job.app],
     priority: 3,
-    contact_email: email,
+    contact_email: resolved.email,
     audience_size: null,
-    notes: buildNotes(p.biography, trial),
+    notes: buildNotes(p.biography, trial, resolved.source),
     status: "queued",
     mail_status: trial ? "trial_hold" : null,
+    email_source: resolved.source,
   };
 }

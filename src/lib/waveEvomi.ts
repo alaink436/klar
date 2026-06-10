@@ -33,6 +33,7 @@ import {
   type ApifyCreds,
 } from "./apifyDiscovery";
 import { normalizeToTarget, type WaveJob } from "./outreachNormalize";
+import { getEvomiProxy } from "./evomiProxy";
 
 // Vault ids (from the integration map; same secrets the live pipeline uses).
 const EVOMI_ID = "ef44b8c6-20f4-476a-8a18-2d8cd5f9b409";
@@ -90,6 +91,9 @@ export interface EvomiWaveReport {
   inserted: number; // net-new rows committed (0 on dry-run)
   rows: WaveTargetRow[];
   perStageCounts: PerStageCounts;
+  // Where the emails came from + whether the residential proxy was used.
+  emailSources: { direct: number; bio: number; aggregator: number; website: number };
+  proxyUsed: boolean;
   durationMs: number;
   partial: boolean;
   error?: string;
@@ -159,6 +163,7 @@ export async function runEvomiWave(
     final: 0,
   };
 
+  const emailSources = { direct: 0, bio: 0, aggregator: 0, website: 0 };
   const empty = (error?: string, maxProfiles = 0): EvomiWaveReport => ({
     ok: !error,
     commit,
@@ -173,6 +178,8 @@ export async function runEvomiWave(
     inserted: 0,
     rows: [],
     perStageCounts: stages,
+    emailSources,
+    proxyUsed: false,
     durationMs: Date.now() - started,
     partial: false,
     error,
@@ -297,6 +304,9 @@ export async function runEvomiWave(
   const rows: WaveTargetRow[] = [];
   let partial = false;
 
+  // Residential proxy for the email crawls (fail-soft: null = direct fetch).
+  const proxy = await getEvomiProxy();
+
   async function enrichAndShape(
     platform: WavePlatform,
     handles: string[],
@@ -319,9 +329,10 @@ export async function runEvomiWave(
       const bucket = sizeOf(r.profile.followers);
       if (!bucket || (selectedBuckets.size > 0 && !selectedBuckets.has(bucket))) continue;
       stages.inSizeBucket += 1; // passed the size-bucket filter
-      const row = await normalizeToTarget(r.profile, job);
+      const row = await normalizeToTarget(r.profile, job, { dispatcher: proxy.dispatcher });
       if (!row) continue; // dropped: no contact email (range now aligned with the bucket check)
       stages.withEmail += 1;
+      if (row.email_source) emailSources[row.email_source] += 1;
       rows.push(row);
     }
   }
@@ -356,6 +367,8 @@ export async function runEvomiWave(
     inserted,
     rows,
     perStageCounts: stages,
+    emailSources,
+    proxyUsed: Boolean(proxy.dispatcher),
     durationMs: Date.now() - started,
     partial,
     error: insertError,

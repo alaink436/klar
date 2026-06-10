@@ -1201,6 +1201,9 @@ export interface WaveTargetRow {
   // trial rows carry "trial_hold" (mailer skips them); LIVE wave rows carry null
   // so listTargetsForMail1 (mail_status IS NULL) picks them up for cold contact.
   mail_status: string | null;
+  // Transient: where the email came from (direct/bio/aggregator/website). NOT a
+  // DB column — insertWaveTargets never reads it; carried for the report only.
+  email_source?: "direct" | "bio" | "aggregator" | "website";
 }
 
 /** Bulk upsert wave target rows on (platform, handle) with ignore-duplicates so a

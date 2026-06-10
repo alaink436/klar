@@ -37,6 +37,7 @@ import {
 } from "../../../lib/outreachStore";
 import { getApifyAccountStatus } from "../../../lib/apifyAccount";
 import { getEvomiAccountStatus } from "../../../lib/evomiAccount";
+import { getEvomiProxyBalanceMb } from "../../../lib/evomiProxy";
 import { getBrevoQuota } from "../../../lib/brevoQuota";
 import { KLAR_APPS } from "../../../lib/klarApps";
 import OutreachKpis, { type OutreachStatsLite } from "./OutreachKpis";
@@ -132,6 +133,7 @@ async function outreachMain(
     getBrevoQuota(),
     listSuppressions(20),
   ]);
+  const evomiProxyMb = await getEvomiProxyBalanceMb();
   // Test-Targets standardmäßig ausblenden, mit Toggle. Counter zählt aus
   // dem aktuell geladenen Subset (rowsRaw), nicht aus allTargets — sonst
   // verwirrt die Zahl wenn ein anderer Filter aktiv ist.
@@ -400,6 +402,7 @@ getklar.org`;
       reason: evomiAccount.reason,
       credits: evomiAccount.credits,
       concurrency: evomiAccount.concurrency,
+      proxyMb: evomiProxyMb,
     },
     apify: {
       ok: apifyAccount.ok,

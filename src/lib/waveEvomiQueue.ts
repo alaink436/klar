@@ -52,6 +52,7 @@ import {
   type ApifyCreds,
 } from "./apifyDiscovery";
 import { normalizeToTarget, type WaveJob } from "./outreachNormalize";
+import { getEvomiProxy } from "./evomiProxy";
 import { resolveFollowerRange } from "./waveEvomi";
 
 const EVOMI_ID = "ef44b8c6-20f4-476a-8a18-2d8cd5f9b409";
@@ -286,6 +287,9 @@ export interface DrainReport {
   errored: number;
   deferred: number; // hit the soft deadline, released back to pending
   runsFinalized: string[];
+  // Where the inserted targets' emails came from, this tick.
+  emailSources: { direct: number; bio: number; aggregator: number; website: number };
+  proxyUsed: boolean; // residential proxy active for the crawls this tick
   error?: string;
 }
 
@@ -300,7 +304,10 @@ function reasonToStatus(reason: EnrichResult["reason"]): "dropped" | "error" {
  *  enrich hybrid, insert LIVE targets, finalize drained runs. Never throws. */
 export async function drainEvomiQueue(): Promise<DrainReport> {
   const started = Date.now();
-  const report: DrainReport = { ok: true, claimed: 0, inserted: 0, done: 0, dropped: 0, errored: 0, deferred: 0, runsFinalized: [] };
+  const report: DrainReport = {
+    ok: true, claimed: 0, inserted: 0, done: 0, dropped: 0, errored: 0, deferred: 0,
+    runsFinalized: [], emailSources: { direct: 0, bio: 0, aggregator: 0, website: 0 }, proxyUsed: false,
+  };
 
   // Self-healing fallback: discover one queued evomi run whose request-time
   // worker died. Discovery is the slow Apify part — when it ran, skip TikTok
@@ -341,6 +348,11 @@ export async function drainEvomiQueue(): Promise<DrainReport> {
       : Promise.resolve(igClaimed.map(() => ({ profile: null, status: 0, reason: "error" as const }))),
   ]);
 
+  // Residential proxy for the email crawls (aggregator + website). Fail-soft:
+  // null dispatcher = direct fetch. Resolved once per tick (cached 5 min).
+  const proxy = await getEvomiProxy();
+  report.proxyUsed = Boolean(proxy.dispatcher);
+
   // Process a (candidate, enrichResult) pair: collect a LIVE row, or finish the
   // candidate terminal. Collected rows go into a flat array (sync push — safe
   // under parallel handles, unlike a get-or-create Map) and are grouped by run
@@ -376,12 +388,13 @@ export async function drainEvomiQueue(): Promise<DrainReport> {
       follower_max: cand.follower_max,
       trial: false, // LIVE row
     };
-    const row = await normalizeToTarget(r.profile, job);
+    const row = await normalizeToTarget(r.profile, job, { dispatcher: proxy.dispatcher });
     if (!row) {
       await finishCandidate(cand.id, "dropped", "no-email-or-range");
       report.dropped++;
       return;
     }
+    if (row.email_source) report.emailSources[row.email_source]++;
     collected.push({ candidateId: cand.id, runId: cand.run_id, row });
   }
 
