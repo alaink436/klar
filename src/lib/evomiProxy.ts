@@ -65,9 +65,13 @@ export async function getEvomiProxy(): Promise<EvomiProxyInfo> {
       _cache = { info: empty, at: Date.now() };
       return empty;
     }
-    const proxyUrl = `http://${encodeURIComponent(rpc.username)}:${encodeURIComponent(rpc.password)}@${rpc.endpoint}:${port}`;
+    // Auth via the `token` option, NOT embedded in the URI: undici's ProxyAgent
+    // parses URL-embedded creds inconsistently (a password with reserved chars
+    // breaks it), while a Basic token is unambiguous. Verified live to return a
+    // residential IP.
+    const token = "Basic " + Buffer.from(`${rpc.username}:${rpc.password}`).toString("base64");
     const info: EvomiProxyInfo = {
-      dispatcher: new ProxyAgent(proxyUrl),
+      dispatcher: new ProxyAgent({ uri: `http://${rpc.endpoint}:${port}`, token }),
       balanceMb: typeof rpc.balance_mb === "number" ? Math.round(rpc.balance_mb * 10) / 10 : null,
       endpoint: `${rpc.endpoint}:${port}`,
     };

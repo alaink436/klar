@@ -13,7 +13,12 @@
 // externalUrl/bioLinks[0].url is a known aggregator).
 
 import "server-only";
-import type { Dispatcher } from "undici";
+// Use undici's OWN fetch (not Node's global fetch): a ProxyAgent dispatcher built
+// from the installed undici@8 is incompatible with Node 24's BUILT-IN undici, so
+// passing it to global fetch throws UND_ERR_INVALID_ARG. Importing fetch from the
+// same package keeps dispatcher + fetch on one undici instance. Verified live: the
+// proxied request returns a residential IP, the direct one the server IP.
+import { fetch as undiciFetch, type Dispatcher, type RequestInit as UndiciRequestInit } from "undici";
 
 // How a contact email was found — surfaced in the run/trial report so the
 // operator can see WHICH source produced each hit.
@@ -201,11 +206,10 @@ async function fetchHtml(
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), timeoutMs);
     try {
-      const init: RequestInit & { dispatcher?: Dispatcher } = {
+      const init: UndiciRequestInit = {
         method: "GET",
         redirect: "manual",
         signal: ac.signal,
-        cache: "no-store",
         headers: {
           "User-Agent": "Mozilla/5.0 (compatible; KlarBot/1.0; +https://getklar.org)",
           Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -213,7 +217,7 @@ async function fetchHtml(
         },
       };
       if (opts.dispatcher) init.dispatcher = opts.dispatcher;
-      const res = await fetch(current.toString(), init);
+      const res = await undiciFetch(current.toString(), init);
       clearTimeout(t);
       if (res.status >= 300 && res.status < 400) {
         const loc = res.headers.get("location");
