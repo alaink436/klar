@@ -224,12 +224,12 @@ export async function runEvomiDiscovery(run: OutreachRun): Promise<EvomiStartRep
     (await getAppTemplate(app, run.language)) ??
     (run.language !== "de" ? await getAppTemplate(app, "de") : null);
   const { hashtags, keywords } = resolveTerms(run.niche, app, undefined, tpl?.hashtags ?? null);
-  // Over-fetch HEAVILY at discovery: hashtag/keyword search returns mostly tiny
-  // accounts (<1k followers) that the size filter then drops — measured ~85% loss.
-  // We pull a big raw pool, pre-filter TikTok by its follower hint (free, comes
-  // with the search) so enrichment credits go to plausible creators, and slice to
-  // budget only after dedup/suppression/size-hint.
-  const igDiscoverLimit = Math.min(Math.ceil(perPlatformBudget * 5), 120);
+  // Discovery cost is LOPSIDED: apify/instagram-hashtag-scraper bills ~$0.01/post
+  // (~$1 for a 90-post run, MEASURED), while apidojo/tiktok-scraper is ~$0.005 for
+  // the whole run. So we keep IG over-fetch MODEST (cost control) and over-fetch
+  // TikTok HEAVILY (near-free) — TikTok also enriches on prepaid Evomi credits and
+  // pre-filters on the free follower hint, so the big TT pool is essentially free.
+  const igDiscoverLimit = Math.min(Math.ceil(perPlatformBudget * 2.5), 60);
   const ttDiscoverLimit = Math.min(Math.ceil(perPlatformBudget * 6), 120);
 
   const [igRes, ttRes] = await Promise.all([
