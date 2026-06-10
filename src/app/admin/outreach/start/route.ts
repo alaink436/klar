@@ -13,10 +13,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { readCookie, ctEqual } from "../../_shared";
 import { createOutreachRun } from "../../../../lib/outreachStore";
+import { getScrapeSettings } from "../../../../lib/scrapeSettings";
+import { startEvomiWave } from "../../../../lib/waveEvomiQueue";
+import type { SizeBucket } from "../../../../lib/sizeBuckets";
+import type { WavePlatform } from "../../../../lib/waveEvomiQueue";
 import { KLAR_APPS } from "../../../../lib/klarApps";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Hobby ceiling. n8n path returns instantly; the evomi path runs Apify discovery
+// inline (fast for small waves) before enqueueing — keep test-wave counts modest.
+export const maxDuration = 60;
 
 const COUNT_MIN = 1;
 const COUNT_MAX = 500;
@@ -185,6 +192,53 @@ export async function POST(req: NextRequest): Promise<Response> {
     for (const lang of languages) {
       combos.push({ app, lang: lang as Combo["lang"] });
     }
+  }
+
+  // ===== Backend dispatch =====
+  // wave_backend='evomi' → in-app path: each combo runs Apify discovery + enqueue
+  // inline (startEvomiWave creates its own run row + candidate queue), the cron
+  // drains enrichment. No n8n webhook. Default 'n8n' keeps the legacy path below.
+  const settings = await getScrapeSettings();
+  if (settings.wave_backend === "evomi") {
+    const evomiPlatforms = platforms as WavePlatform[];
+    const evomiBuckets = sizeBuckets as SizeBucket[];
+    const okRuns: Array<{ app: string; lang: string; queued: number; id: string }> = [];
+    const emptyRuns: Array<{ app: string; lang: string }> = [];
+    const failRuns: Array<{ app: string; lang: string; error: string }> = [];
+    for (const c of combos) {
+      const rep = await startEvomiWave({
+        app: c.app,
+        platforms: evomiPlatforms,
+        size_buckets: evomiBuckets,
+        niche,
+        count,
+        language: c.lang,
+        mail_subject: mailSubject,
+        mail_body: mailBody,
+      });
+      if (rep.ok && rep.runId && rep.queued > 0) {
+        okRuns.push({ app: c.app, lang: c.lang, queued: rep.queued, id: rep.runId });
+      } else if (rep.ok) {
+        emptyRuns.push({ app: c.app, lang: c.lang });
+      } else {
+        failRuns.push({ app: c.app, lang: c.lang, error: rep.error ?? "unknown" });
+      }
+    }
+    if (okRuns.length === 0) {
+      const why = failRuns.length > 0
+        ? `Fehler: ${failRuns.map((f) => `${f.app}/${f.lang}=${f.error}`).join("; ").slice(0, 200)}`
+        : "Discovery lieferte nichts Neues (alles dedupliziert/gesperrt).";
+      return back(req, `Evomi-Welle: nichts enqueued. ${why}`);
+    }
+    const totalQueued = okRuns.reduce((s, r) => s + r.queued, 0);
+    const tail = [
+      emptyRuns.length > 0 ? `${emptyRuns.length} leer` : "",
+      failRuns.length > 0 ? `${failRuns.length} Fehler` : "",
+    ].filter(Boolean).join(", ");
+    return back(
+      req,
+      `Evomi-Welle gestartet (in-app): ${okRuns.length} Run(s), ${totalQueued} Profile in der Queue — der Cron reichert an (TikTok via Evomi, IG via Apify) und mailt dann automatisch.${tail ? ` (${tail})` : ""} Runs: ${okRuns.map((r) => `${r.app}·${r.lang} #${r.id.slice(0, 6)}`).join(", ")}`,
+    );
   }
 
   // Single-combo path: keep behaviour identical (one row, one webhook).

@@ -1,19 +1,31 @@
-// GET /api/cron/outreach-wave-evomi — SCALE-PATH STUB (not used for the trial).
+// GET /api/cron/outreach-wave-evomi — drains the Evomi candidate queue.
 //
-// The trial Evomi wave is single-shot (admin button -> /admin/outreach/wave-evomi).
-// This cron is the future scale path that drains a klar_wave_candidates queue N
-// handles per tick; until that queue model is built, it is a no-op stub that just
-// confirms the auth gate works. Registered in vercel.json only when the queue path
-// ships (the orchestrator wires the cron entry, not this task).
+// Trigger: an EXTERNAL scheduler hits this endpoint (the Klar Vercel project is on
+// the Hobby plan — max 2 cron jobs, daily-only granularity — so the queue drain is
+// pinged by an n8n 5-min heartbeat / cron-job.org instead of a Vercel cron). On
+// Vercel Pro this can move back to a native `*/5 * * * *` entry in vercel.json.
 //
-// Auth mirrors cron/outreach-mail/route.ts: Vercel attaches
-// `Authorization: Bearer $CRON_SECRET` when CRON_SECRET is set; fail-closed
-// (no secret => 401, nothing runs).
+// Each tick claims a bounded batch of pending klar_wave_candidates, enriches them
+// HYBRID (TikTok→Evomi, IG→Apify profile scraper) in PARALLEL, inserts LIVE
+// mailable targets, and finalizes any run whose queue is fully drained. Idempotent
+// + chunked: a real-size wave drains over several ticks, each within the 60s Hobby
+// function limit. No-op (claimed:0) when the queue is empty. A tick that is killed
+// mid-flight loses nothing — claimed-but-unfinished candidates are reclaimed by the
+// stale-reaper on a later tick.
+//
+// Only does work for waves started while scrape_settings.wave_backend='evomi'
+// (those are the only ones that enqueue candidates). The legacy n8n path is
+// untouched.
+//
+// Auth mirrors cron/outreach-mail/route.ts: the scheduler sends
+// `Authorization: Bearer $CRON_SECRET`; fail-closed (no secret => 401).
 
 import { NextResponse, type NextRequest } from "next/server";
+import { drainEvomiQueue } from "../../../../lib/waveEvomiQueue";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // Vercel Hobby function ceiling
 
 export async function GET(req: NextRequest): Promise<Response> {
   const SECRET = process.env.CRON_SECRET ?? "";
@@ -21,5 +33,11 @@ export async function GET(req: NextRequest): Promise<Response> {
   if (!SECRET || auth !== `Bearer ${SECRET}`) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
-  return NextResponse.json({ ok: true, note: "scale-path stub" });
+  try {
+    const report = await drainEvomiQueue();
+    return NextResponse.json({ ok: true, report });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ ok: false, error: msg.slice(0, 300) }, { status: 500 });
+  }
 }

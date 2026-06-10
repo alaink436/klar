@@ -541,6 +541,42 @@ export async function createOutreachRun(input: CreateRunInput): Promise<Outreach
   return rows[0];
 }
 
+/** Patch a run row (status/progress/cost/audit). Used by the Evomi engine to mark
+ *  a run running → done and stamp targets_added + cost_actual as the cron drains
+ *  its candidate queue. Best-effort: a failed PATCH is logged, never thrown, so a
+ *  stats update can't abort the wave (mirrors markMail1Sent's resilience). */
+export interface RunPatch {
+  status?: OutreachRunStatus;
+  targets_added?: number;
+  mails_sent?: number;
+  cost_actual_usd?: number | null;
+  cost_estimate_usd?: number | null;
+  apify_run_ids?: Record<string, string> | null;
+  errors?: unknown | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+}
+
+export async function updateOutreachRun(id: string, patch: RunPatch): Promise<void> {
+  if (!KLAR_INBOX_KEY || !id) return;
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_runs?id=eq.${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        headers: { ...hdr(), Prefer: "return=minimal" },
+        body: JSON.stringify(patch),
+      },
+    );
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.warn(`[wave] updateOutreachRun ${id.slice(0, 8)} ${res.status}: ${text.slice(0, 120)}`);
+    }
+  } catch (e) {
+    console.warn(`[wave] updateOutreachRun ${id.slice(0, 8)} failed`, e instanceof Error ? e.message : e);
+  }
+}
+
 // ---------- klar_app_mail_templates (per-app outreach config) --------------
 
 export interface AppMailTemplate {
@@ -1115,7 +1151,9 @@ export interface WaveTargetRow {
   audience_size: string | null;
   notes: string | null;
   status: OutreachStatus;
-  mail_status: string; // trial rows are always "trial_hold" — never null (mailer guard)
+  // trial rows carry "trial_hold" (mailer skips them); LIVE wave rows carry null
+  // so listTargetsForMail1 (mail_status IS NULL) picks them up for cold contact.
+  mail_status: string | null;
 }
 
 /** Bulk upsert wave target rows on (platform, handle) with ignore-duplicates so a
@@ -1141,9 +1179,10 @@ export async function insertWaveTargets(
     audience_size: r.audience_size ?? null,
     notes: r.notes ?? null,
     status: r.status ?? "queued",
-    // Never null: a trial-wave row must carry trial_hold so the mailer (which
-    // selects mail_status IS NULL) can never cold-contact it.
-    mail_status: r.mail_status || "trial_hold",
+    // Pass mail_status through verbatim: trial rows arrive as "trial_hold" (mailer
+    // skips them), LIVE rows arrive as null (mailer cold-contacts them). The row
+    // shaper (outreachNormalize) owns this decision — do NOT force a default here.
+    mail_status: r.mail_status ?? null,
   }));
   const res = await fetch(
     `${KLAR_INBOX_URL}/rest/v1/klar_outreach_targets?on_conflict=platform,handle`,
@@ -1212,4 +1251,223 @@ export async function deleteTrialTargets(): Promise<{ deleted: number }> {
   }
   const rows = (await res.json()) as unknown[];
   return { deleted: Array.isArray(rows) ? rows.length : 0 };
+}
+
+// ---------- klar_wave_candidates (Evomi scale-path work queue) --------------
+// The "Welle starten" button (when wave_backend='evomi') does fast Apify discovery
+// inline, then enqueues one row per (run, platform, handle) here. The cron
+// (/api/cron/outreach-wave-evomi) claims N pending per tick, enriches them
+// (TikTok→Evomi, IG→Apify), inserts LIVE targets, and marks each candidate done.
+// This keeps per-invocation work under the Vercel function limit. Migration 0011.
+
+export type CandidateStatus = "pending" | "claimed" | "done" | "dropped" | "error";
+
+export interface WaveCandidate {
+  id: string;
+  run_id: string;
+  platform: OutreachPlatform;
+  handle: string;
+  app: string;
+  niche: string | null;
+  language: string;
+  size_buckets: string[];
+  follower_min: number;
+  follower_max: number;
+  status: CandidateStatus;
+}
+
+export interface CandidateInput {
+  run_id: string;
+  platform: OutreachPlatform;
+  handle: string;
+  app: string;
+  niche: string | null;
+  language: string;
+  size_buckets: string[];
+  follower_min: number;
+  follower_max: number;
+}
+
+const CANDIDATE_COLS =
+  "id,run_id,platform,handle,app,niche,language,size_buckets,follower_min,follower_max,status";
+
+/** Bulk-enqueue candidate handles for a run. Ignore-duplicates on
+ *  (run_id,platform,handle) so a re-run can't double-queue the same handle.
+ *  Returns the count of net-new rows queued. */
+export async function enqueueCandidates(
+  rows: CandidateInput[],
+): Promise<{ queued: number }> {
+  if (!KLAR_INBOX_KEY) throw new Error("KLAR_INBOX_SERVICE_KEY missing");
+  if (rows.length === 0) return { queued: 0 };
+  const body = rows.map((r) => ({
+    run_id: r.run_id,
+    platform: r.platform,
+    handle: r.handle.trim().replace(/^@/, "").toLowerCase(),
+    app: r.app,
+    niche: r.niche ?? null,
+    language: r.language ?? "de",
+    size_buckets: r.size_buckets ?? [],
+    follower_min: r.follower_min ?? 0,
+    follower_max: r.follower_max ?? 1_000_000_000,
+    status: "pending" as CandidateStatus,
+  }));
+  const res = await fetch(
+    `${KLAR_INBOX_URL}/rest/v1/klar_wave_candidates?on_conflict=run_id,platform,handle`,
+    {
+      method: "POST",
+      headers: { ...hdr(), Prefer: "resolution=ignore-duplicates,return=representation" },
+      body: JSON.stringify(body),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`candidate enqueue ${res.status}: ${text.slice(0, 200)}`);
+  }
+  const inserted = (await res.json()) as unknown[];
+  return { queued: Array.isArray(inserted) ? inserted.length : 0 };
+}
+
+/** Atomically claim up to `limit` candidates for processing. Picks pending rows
+ *  AND stale-claimed rows (claimed_at older than staleMs — a crashed/timed-out
+ *  prior tick), oldest first. Optional platform filter so the cron can budget
+ *  TikTok (slow Evomi render) and Instagram (fast Apify) separately.
+ *
+ *  Two-step claim: select candidate ids, then a conditional PATCH guarded by the
+ *  same claimable predicate + return=representation. Only rows that were still
+ *  claimable come back, so two overlapping ticks never process the same handle. */
+export async function claimCandidates(opts: {
+  limit: number;
+  platform?: OutreachPlatform;
+  staleMs?: number;
+}): Promise<WaveCandidate[]> {
+  if (!KLAR_INBOX_KEY) return [];
+  const limit = Math.min(Math.max(opts.limit, 1), 100);
+  const staleIso = new Date(Date.now() - (opts.staleMs ?? 600_000)).toISOString();
+  // claimable = pending OR (claimed AND claimed_at < stale)
+  const claimable = `or=(status.eq.pending,and(status.eq.claimed,claimed_at.lt.${staleIso}))`;
+  const platformFilter = opts.platform ? `&platform=eq.${encodeURIComponent(opts.platform)}` : "";
+  try {
+    const sel = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_wave_candidates?${claimable}${platformFilter}&select=id&order=created_at.asc&limit=${limit}`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!sel.ok) return [];
+    const ids = ((await sel.json()) as Array<{ id: string }>).map((r) => r.id).filter(Boolean);
+    if (ids.length === 0) return [];
+    const inList = ids.map((id) => `"${id}"`).join(",");
+    const claimedAt = new Date().toISOString();
+    const patch = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_wave_candidates?id=in.(${inList})&${claimable}&select=${CANDIDATE_COLS}`,
+      {
+        method: "PATCH",
+        headers: { ...hdr(), Prefer: "return=representation" },
+        body: JSON.stringify({ status: "claimed", claimed_at: claimedAt }),
+      },
+    );
+    if (!patch.ok) return [];
+    return (await patch.json()) as WaveCandidate[];
+  } catch (e) {
+    console.warn("[wave] claimCandidates failed", e instanceof Error ? e.message : e);
+    return [];
+  }
+}
+
+/** Mark a claimed candidate terminal: done (target inserted), dropped (enriched
+ *  but failed the follower/email filter), or error (enrichment failed). Errors are
+ *  terminal — a poison handle is never re-queued into an infinite retry loop. */
+export async function finishCandidate(
+  id: string,
+  status: "done" | "dropped" | "error",
+  note?: string,
+): Promise<void> {
+  if (!KLAR_INBOX_KEY || !id) return;
+  try {
+    await fetch(`${KLAR_INBOX_URL}/rest/v1/klar_wave_candidates?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { ...hdr(), Prefer: "return=minimal" },
+      body: JSON.stringify({
+        status,
+        finished_at: new Date().toISOString(),
+        result_note: note ? note.slice(0, 300) : null,
+      }),
+    });
+  } catch (e) {
+    console.warn(`[wave] finishCandidate ${id.slice(0, 8)} failed`, e instanceof Error ? e.message : e);
+  }
+}
+
+/** Release a claimed candidate back to pending (NOT terminal). Used when a tick
+ *  hits its soft time deadline before reaching this handle — it must be retried
+ *  next tick, not lost. Clears claimed_at so it sorts back into the drain order. */
+export async function releaseCandidate(id: string): Promise<void> {
+  if (!KLAR_INBOX_KEY || !id) return;
+  try {
+    await fetch(`${KLAR_INBOX_URL}/rest/v1/klar_wave_candidates?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { ...hdr(), Prefer: "return=minimal" },
+      body: JSON.stringify({ status: "pending", claimed_at: null }),
+    });
+  } catch (e) {
+    console.warn(`[wave] releaseCandidate ${id.slice(0, 8)} failed`, e instanceof Error ? e.message : e);
+  }
+}
+
+/** Count remaining open (pending + claimed) candidates for a run, so the cron
+ *  knows when a run is fully drained and can be finalized. */
+export async function countOpenCandidates(runId: string): Promise<number> {
+  if (!KLAR_INBOX_KEY) return 0;
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_wave_candidates?run_id=eq.${encodeURIComponent(runId)}&status=in.(pending,claimed)&select=id`,
+      { headers: { ...hdr(), Prefer: "count=exact" }, cache: "no-store" },
+    );
+    if (!res.ok) return 0;
+    // Prefer count from Content-Range header (cheap), fall back to body length.
+    const cr = res.headers.get("content-range");
+    if (cr) {
+      const total = cr.split("/")[1];
+      if (total && total !== "*") return Number(total) || 0;
+    }
+    const rows = (await res.json()) as unknown[];
+    return Array.isArray(rows) ? rows.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Distinct run_ids that still have open (pending/claimed) candidates. Lets the
+ *  cron drain across all in-flight Evomi waves, oldest candidates first. */
+export async function listOpenCandidateRunIds(): Promise<string[]> {
+  if (!KLAR_INBOX_KEY) return [];
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_wave_candidates?status=in.(pending,claimed)&select=run_id&order=created_at.asc&limit=500`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    const rows = (await res.json()) as Array<{ run_id: string }>;
+    return [...new Set(rows.map((r) => r.run_id).filter(Boolean))];
+  } catch {
+    return [];
+  }
+}
+
+/** Read-modify-write increment of a run's targets_added counter (single-instance
+ *  cron, so no lock needed). Used to reflect live inserts as the queue drains. */
+export async function incrementRunTargets(runId: string, delta: number): Promise<void> {
+  if (!KLAR_INBOX_KEY || !runId || delta === 0) return;
+  try {
+    const cur = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_runs?id=eq.${encodeURIComponent(runId)}&select=targets_added`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    let base = 0;
+    if (cur.ok) {
+      const rows = (await cur.json()) as Array<{ targets_added: number }>;
+      base = rows[0]?.targets_added ?? 0;
+    }
+    await updateOutreachRun(runId, { targets_added: base + delta });
+  } catch (e) {
+    console.warn(`[wave] incrementRunTargets ${runId.slice(0, 8)} failed`, e instanceof Error ? e.message : e);
+  }
 }

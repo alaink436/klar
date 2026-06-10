@@ -11,6 +11,7 @@ import {
   upsertScrapeSettings,
   type ScrapeBackend,
   type ProxyProvider,
+  type WaveBackend,
 } from "../../../../lib/scrapeSettings";
 
 export const runtime = "nodejs";
@@ -46,6 +47,11 @@ export async function POST(req: NextRequest): Promise<Response> {
   const tiktok_backend: ScrapeBackend =
     String(form.get("tiktok_backend") ?? "apify") === "selfhost" ? "selfhost" : "apify";
 
+  // The production scrape path: 'evomi' routes "Welle starten" through the in-app
+  // queue+cron (TikTok via Evomi, IG via Apify); 'n8n' keeps the legacy webhook.
+  const wave_backend: WaveBackend =
+    String(form.get("wave_backend") ?? "n8n") === "evomi" ? "evomi" : "n8n";
+
   const proxyRaw = String(form.get("proxy_provider") ?? "none");
   const proxy_provider: ProxyProvider =
     proxyRaw === "iproyal" ? "iproyal" : proxyRaw === "dataimpulse" ? "dataimpulse" : "none";
@@ -57,6 +63,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     const s = await upsertScrapeSettings({
       tiktok_backend,
       instagram_backend: "apify", // invariant — IG self-host never honoured
+      wave_backend,
       max_profiles_per_wave,
       selfhost_enabled,
       proxy_provider,
@@ -64,7 +71,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     });
     return back(
       req,
-      `Scrape-Einstellungen gespeichert: TikTok=${s.tiktok_backend}, max ${s.max_profiles_per_wave}/Welle, Proxy=${s.proxy_provider}`,
+      `Scrape-Einstellungen gespeichert: Backend=${s.wave_backend}, TikTok=${s.tiktok_backend}, max ${s.max_profiles_per_wave}/Welle`,
     );
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

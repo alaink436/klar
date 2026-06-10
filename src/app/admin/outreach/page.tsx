@@ -42,6 +42,8 @@ import OutreachKpis, { type OutreachStatsLite } from "./OutreachKpis";
 import OutreachBilling, { type OutreachBillingData } from "./OutreachBilling";
 import OutreachTabs, { type OutreachTab } from "./OutreachTabs";
 import OutreachEvomiTrial from "./OutreachEvomiTrial";
+import OutreachScrapeSettings, { type ScrapeSettingsView } from "./OutreachScrapeSettings";
+import { getScrapeSettings } from "../../../lib/scrapeSettings";
 import OutreachFilters, { type OutreachFilterState } from "./OutreachFilters";
 import OutreachRuns, { type RunRowData, type RunBadgeTone } from "./OutreachRuns";
 import OutreachTargetsByApp, { type AppBuckets, type TargetMini } from "./OutreachTargetsByApp";
@@ -496,6 +498,13 @@ export default async function OutreachPage({
   const showTests = sp.show_tests === "1";
 
   const result = await outreachMain(filterPlatform, filterStatus, filterApp, filterSize, query, autoRefresh, showTests);
+  const scrapeSettings = await getScrapeSettings();
+  const scrapeSettingsView: ScrapeSettingsView = {
+    wave_backend: scrapeSettings.wave_backend,
+    tiktok_backend: scrapeSettings.tiktok_backend,
+    max_profiles_per_wave: scrapeSettings.max_profiles_per_wave,
+    updated_at: scrapeSettings.updated_at,
+  };
 
   // Sub-menu: ?tab= drives which panel renders. Unknown/missing -> pipeline.
   const OUTREACH_TABS = ["pipeline", "abrechnung", "sperrliste", "scrape"] as const;
@@ -552,11 +561,15 @@ export default async function OutreachPage({
 
             {/* EVOMI (n8n-frei) */}
             <div hidden={tab !== "scrape"}>
-              <p className="text-[12.5px] text-fg-3 max-w-[80ch] mt-2 mb-1">
-                n8n-frei: Kandidaten kommen aus Apify, die Anreicherung (Bio, Follower, E-Mail) läuft
-                über die Evomi-Scraper-API, direkt in-app. Die laufende n8n-Pipeline ist im
-                Pipeline-Tab.
+              <p className="text-[12.5px] text-fg-3 max-w-[80ch] mt-2 mb-3">
+                n8n-frei: Kandidaten kommen aus Apify, die Anreicherung läuft in-app — TikTok über
+                die Evomi-Scraper-API, Instagram über den Apify-Profil-Scraper (liefert
+                business_email). Mit dem Backend-Schalter <strong>evomi</strong> nutzt der echte
+                &bdquo;Welle starten&ldquo;-Button im Pipeline-Tab diesen Pfad; der Cron reichert an und der
+                Mailer kontaktiert automatisch. Der Test-Bereich unten bleibt isoliert (Trial-Rows,
+                nie gemailt).
               </p>
+              <OutreachScrapeSettings settings={scrapeSettingsView} />
               <OutreachEvomiTrial
                 appsLive={KLAR_APPS.filter((a) => a.status === "LIVE").map((a) => ({ slug: a.slug, name: a.name }))}
               />

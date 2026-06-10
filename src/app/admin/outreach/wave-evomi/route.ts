@@ -21,7 +21,7 @@ import type { SizeBucket } from "../../../../lib/sizeBuckets";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300; // Vercel ceiling for the trial single-shot
+export const maxDuration = 60; // Vercel Hobby ceiling — keep trial counts small (1-5)
 
 const COUNT_MIN = 1;
 const COUNT_MAX = 5; // trial hard cap

@@ -44,7 +44,8 @@ const SOFT_DEADLINE_MS = 270_000;
 // n8n Build Job List BUCKET_RANGE -> [follower_min, follower_max]. NOTE: nano
 // starts at 1000 here (vs 0 in sizeBuckets.ts) — the wave's follower filter uses
 // these n8n ranges, while sizeOf() stays the DB/UI bucket-membership check.
-const BUCKET_RANGE: Record<SizeBucket, [number, number]> = {
+// Exported so the production queue path (waveEvomiQueue.ts) shares one table.
+export const BUCKET_RANGE: Record<SizeBucket, [number, number]> = {
   nano: [1_000, 10_000],
   micro: [10_000, 50_000],
   mid: [50_000, 500_000],
@@ -95,7 +96,8 @@ export interface EvomiWaveReport {
 
 // Resolve the combined [min,max] follower range from the selected buckets, using
 // the n8n BUCKET_RANGE table. Default [10000, 500000] (micro+mid) when none.
-function resolveFollowerRange(buckets: SizeBucket[]): [number, number] {
+// Exported for the production queue path.
+export function resolveFollowerRange(buckets: SizeBucket[]): [number, number] {
   if (buckets.length === 0) return [10_000, 500_000];
   let min = Number.POSITIVE_INFINITY;
   let max = 0;

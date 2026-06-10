@@ -15,10 +15,15 @@ const KLAR_INBOX_KEY = process.env.KLAR_INBOX_SERVICE_KEY ?? "";
 
 export type ScrapeBackend = "apify" | "selfhost";
 export type ProxyProvider = "iproyal" | "dataimpulse" | "none";
+// Production scrape path. 'n8n' = /admin/outreach/start fires the n8n webhook
+// (legacy, default). 'evomi' = start enqueues candidates + the cron drains
+// enrichment in-app (TikTok via Evomi, Instagram via the Apify profile scraper).
+export type WaveBackend = "n8n" | "evomi";
 
 export interface ScrapeSettings {
   tiktok_backend: ScrapeBackend;
   instagram_backend: ScrapeBackend; // always "apify" (IG residential is blocked)
+  wave_backend: WaveBackend; // which engine runs a "Welle starten"
   max_profiles_per_wave: number; // hard cap, 5..200
   selfhost_enabled: boolean;
   proxy_provider: ProxyProvider;
@@ -29,6 +34,7 @@ export interface ScrapeSettings {
 export const DEFAULT_SCRAPE_SETTINGS: ScrapeSettings = {
   tiktok_backend: "apify",
   instagram_backend: "apify",
+  wave_backend: "n8n",
   max_profiles_per_wave: 30,
   selfhost_enabled: false,
   proxy_provider: "none",
@@ -60,6 +66,7 @@ function coerce(row: Partial<ScrapeSettings> | undefined): ScrapeSettings {
   return {
     tiktok_backend: row.tiktok_backend === "selfhost" ? "selfhost" : "apify",
     instagram_backend: "apify",
+    wave_backend: row.wave_backend === "evomi" ? "evomi" : "n8n",
     max_profiles_per_wave: clampMaxProfiles(row.max_profiles_per_wave),
     selfhost_enabled: Boolean(row.selfhost_enabled),
     proxy_provider: PROXY_PROVIDERS.includes(row.proxy_provider as ProxyProvider)
@@ -90,6 +97,7 @@ export async function getScrapeSettings(): Promise<ScrapeSettings> {
 export interface ScrapeSettingsPatch {
   tiktok_backend?: ScrapeBackend;
   instagram_backend?: ScrapeBackend;
+  wave_backend?: WaveBackend;
   max_profiles_per_wave?: number;
   selfhost_enabled?: boolean;
   proxy_provider?: ProxyProvider;

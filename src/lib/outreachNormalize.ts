@@ -15,32 +15,37 @@ export interface WaveJob {
   language: string; // 'de' | 'en' | ...
   follower_min: number; // from the resolved bucket range
   follower_max: number;
+  // false => LIVE row (real niche, no trial_hold, mail_status=null so the in-app
+  // mailer picks it up). Undefined/true => isolated TRIAL row (evomi-trial markers,
+  // trial_hold, hidden in the UI). Default true keeps the legacy preview card safe.
+  trial?: boolean;
 }
 
 /** Frozen target-row shape (subset of klar_outreach_targets that the wave writes).
- *  Matches IG/TikTok Format Targets output 1:1, plus the trial markers. */
+ *  Matches IG/TikTok Format Targets output 1:1. In TRIAL mode it carries the
+ *  evomi-trial markers; in LIVE mode it is an ordinary mailable target. */
 export interface OutreachTargetRow {
   handle: string;
   platform: "instagram" | "tiktok";
   display_name: string | null;
   profile_url: string | null;
   follower_estimate: number | null;
-  niche: string; // "evomi-trial:<niche>" marker
+  niche: string | null; // real niche (live, null if empty) OR "evomi-trial:<niche>" (trial)
   language: string;
   for_apps: string[];
   priority: number; // always 3
   contact_email: string; // never empty (no-email rows are dropped)
   audience_size: string | null; // always null at scrape time
-  notes: string; // "evomi-trial; …" marker prefix
+  notes: string; // "discovery=wave-evomi; …" (+ trial prefix in trial mode)
   status: "queued";
-  mail_status: string; // "trial_hold" — keeps it out of listTargetsForMail1
+  mail_status: string | null; // "trial_hold" (trial) | null (live → mailable)
 }
 
 const TRIAL_NICHE_PREFIX = "evomi-trial:";
-const TRIAL_NOTES_PREFIX = "evomi-trial; discovery=wave-evomi";
 
-function buildNotes(bio: string): string {
-  return `${TRIAL_NOTES_PREFIX}; bio=${(bio || "").slice(0, 120)}`
+function buildNotes(bio: string, trial: boolean): string {
+  const prefix = trial ? "evomi-trial; discovery=wave-evomi" : "discovery=wave-evomi";
+  return `${prefix}; bio=${(bio || "").slice(0, 120)}`
     .replace(/\n/g, " ")
     .slice(0, 1000);
 }
@@ -57,7 +62,8 @@ export async function normalizeToTarget(
   // 2) email resolution (direct -> bio -> aggregator crawl). Drop if none.
   const email = await resolveContactEmail(p);
   if (!email) return null;
-  // 3) shape — the n8n IG/TikTok Format Targets row, plus the trial markers.
+  // 3) shape — the n8n IG/TikTok Format Targets row. Trial markers only in trial mode.
+  const trial = job.trial !== false; // default true (legacy preview safety)
   const nicheUsed = job.niche ?? "";
   return {
     handle: p.handle.toLowerCase(),
@@ -70,14 +76,14 @@ export async function normalizeToTarget(
         ? `https://www.instagram.com/${p.handle}/`
         : `https://www.tiktok.com/@${p.handle}`),
     follower_estimate: f || null,
-    niche: `${TRIAL_NICHE_PREFIX}${nicheUsed}`,
+    niche: trial ? `${TRIAL_NICHE_PREFIX}${nicheUsed}` : (nicheUsed || null),
     language: job.language || "de",
     for_apps: [job.app],
     priority: 3,
     contact_email: email,
     audience_size: null,
-    notes: buildNotes(p.biography),
+    notes: buildNotes(p.biography, trial),
     status: "queued",
-    mail_status: "trial_hold",
+    mail_status: trial ? "trial_hold" : null,
   };
 }
