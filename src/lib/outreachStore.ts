@@ -505,6 +505,9 @@ export interface CreateRunInput {
   mail_subject?: string | null;
   mail_body?: string | null;
   cost_estimate_usd?: number | null;
+  // 'admin' (default, n8n path) | 'evomi' — marks runs the in-app discovery
+  // worker owns, so the cron can pick up queued evomi runs as a fallback.
+  created_by?: string;
 }
 
 /** Insert a new outreach-wave run row. n8n consumer (next session) polls
@@ -521,7 +524,7 @@ export async function createOutreachRun(input: CreateRunInput): Promise<Outreach
     mail_subject: input.mail_subject ?? null,
     mail_body: input.mail_body ?? null,
     cost_estimate_usd: input.cost_estimate_usd ?? null,
-    created_by: "admin",
+    created_by: input.created_by ?? "admin",
     status: "queued" as OutreachRunStatus,
   };
   const res = await fetch(
@@ -574,6 +577,50 @@ export async function updateOutreachRun(id: string, patch: RunPatch): Promise<vo
     }
   } catch (e) {
     console.warn(`[wave] updateOutreachRun ${id.slice(0, 8)} failed`, e instanceof Error ? e.message : e);
+  }
+}
+
+/** Queued evomi runs awaiting discovery (created_by='evomi'). The cron picks
+ *  these up as the self-healing fallback when the request-time after() worker
+ *  died before discovering. Oldest first. */
+export async function listQueuedEvomiRuns(limit = 2): Promise<OutreachRun[]> {
+  if (!KLAR_INBOX_KEY) return [];
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_runs?status=eq.queued&created_by=eq.evomi&select=*&order=created_at.asc&limit=${Math.min(Math.max(limit, 1), 5)}`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as OutreachRun[];
+  } catch {
+    return [];
+  }
+}
+
+/** Atomically claim a queued run for discovery (queued -> running). Conditional
+ *  PATCH with simple filters + return=representation: exactly one worker (the
+ *  request-time after() OR the cron fallback) wins; the loser sees 0 rows and
+ *  skips. Prevents double discovery = double Apify spend. */
+export async function claimRunForDiscovery(runId: string): Promise<boolean> {
+  if (!KLAR_INBOX_KEY || !runId) return false;
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_outreach_runs?id=eq.${encodeURIComponent(runId)}&status=eq.queued`,
+      {
+        method: "PATCH",
+        headers: { ...hdr(), Prefer: "return=representation" },
+        body: JSON.stringify({ status: "running", started_at: new Date().toISOString() }),
+      },
+    );
+    if (!res.ok) {
+      console.warn(`[wave] claimRunForDiscovery ${runId.slice(0, 8)} ${res.status}`);
+      return false;
+    }
+    const rows = (await res.json()) as unknown[];
+    return Array.isArray(rows) && rows.length === 1;
+  } catch (e) {
+    console.warn(`[wave] claimRunForDiscovery ${runId.slice(0, 8)} failed`, e instanceof Error ? e.message : e);
+    return false;
   }
 }
 

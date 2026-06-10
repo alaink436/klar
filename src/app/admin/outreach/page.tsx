@@ -192,14 +192,23 @@ Alain
 getklar.org`;
 
   // Run-History compact-Tabelle (letzte 10 Runs).
-  const STALE_MS = 10 * 60 * 1000;  // running > 10min → "may be stuck"
+  const STALE_MS = 10 * 60 * 1000;  // running > 10min → "may be stuck" (n8n path)
+  const EVOMI_STALE_MS = 3 * 60 * 60 * 1000; // evomi runs drain over many 15min ticks
   const now = Date.now();
+  const isEvomiRun = (r: OutreachRun) => r.created_by === "evomi";
   const isStale = (r: OutreachRun) =>
     r.status === "running" && r.started_at &&
-    now - new Date(r.started_at).getTime() > STALE_MS;
+    now - new Date(r.started_at).getTime() > (isEvomiRun(r) ? EVOMI_STALE_MS : STALE_MS);
 
   const getPhaseLabel = (r: OutreachRun): { label: string; tone: "wait" | "active" | "done" | "warn" } | null => {
-    if (r.status === "queued") return { label: "queued", tone: "wait" };
+    if (r.status === "queued") {
+      return isEvomiRun(r)
+        ? { label: "Discovery startet …", tone: "wait" }
+        : { label: "queued", tone: "wait" };
+    }
+    if (isEvomiRun(r) && r.status === "running") {
+      return { label: `Queue-Drain läuft (${r.targets_added ?? 0} Targets)`, tone: "active" };
+    }
     if (r.status === "done") {
       const wasBackstop = r.errors && typeof r.errors === "object" && (r.errors as Record<string, unknown>).phase === "backstop";
       if (wasBackstop) return { label: "0 targets (backstopped)", tone: "warn" };

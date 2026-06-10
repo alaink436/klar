@@ -35,14 +35,17 @@ const COST_CONFIRM_USD = 2.0;
 const IG_ITEM_USD = 0.0023;
 const TT_RUN_USD = 0.3;
 
+// Apify is involved on BOTH paths: it is the only working profile SEARCH
+// (Evomi can't search IG/TikTok — captcha/login walls). Evomi replaces the
+// expensive per-profile TikTok enrichment, not the discovery.
 const BACKEND_META: Record<WaveBackend, { title: string; desc: string }> = {
   n8n: {
     title: "n8n (klassisch)",
-    desc: "Welle feuert den n8n-Workflow: Apify scraped Discovery + Profile, Targets landen direkt in der Pipeline.",
+    desc: "Alles über Apify, orchestriert von n8n: Profile suchen + anreichern in einem Rutsch, Targets landen direkt in der Pipeline.",
   },
   evomi: {
     title: "Evomi (in-app)",
-    desc: "Discovery via Apify, dann Warteschlange: der 15-Minuten-Takt reichert an (TikTok via Evomi, Instagram via Apify) und legt mailbare Targets ab.",
+    desc: "Apify sucht die Profile (Hashtags/Keywords — das kann nur Apify), die Anreicherung läuft dann in-app: TikTok günstig über Evomi, Instagram über Apify. Welle startet sofort, Targets füllen sich über den 15-Minuten-Takt.",
   },
 };
 

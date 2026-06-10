@@ -27,6 +27,8 @@ import {
   insertWaveTargets,
   createOutreachRun,
   updateOutreachRun,
+  listQueuedEvomiRuns,
+  claimRunForDiscovery,
   getAppTemplate,
   enqueueCandidates,
   claimCandidates,
@@ -39,6 +41,7 @@ import {
   type WaveTargetRow,
   type OutreachPlatform,
   type OutreachLang,
+  type OutreachRun,
 } from "./outreachStore";
 import { sizeOf, type SizeBucket } from "./sizeBuckets";
 import { enrichBatch, type EvomiCreds, type EnrichResult } from "./evomiScraper";
@@ -134,45 +137,86 @@ async function survivors(platform: WavePlatform, handles: string[]): Promise<str
   return afterExisting.filter((h) => !suppressed.has(h));
 }
 
-/** Phase A: discovery + enqueue. Never throws — failures resolve into the report. */
-export async function startEvomiWave(input: EvomiStartInput): Promise<EvomiStartReport> {
-  const [follower_min, follower_max] = resolveFollowerRange(input.size_buckets);
-  const fail = (error: string): EvomiStartReport => ({
-    ok: false,
-    runId: null,
+/** Phase A1 — create the audit run row IMMEDIATELY (fast, runs in the request).
+ *  The row appears in the run history as 'queued' right away; discovery happens
+ *  asynchronously (request-time after() worker, cron fallback). Never does any
+ *  Apify/Evomi work. Throws on a DB failure (caller surfaces it in the flash). */
+export async function createEvomiRun(input: EvomiStartInput): Promise<OutreachRun> {
+  // Up-front estimate (pre-discovery): IG discovery 3× over-fetch + IG profile
+  // enrichment items; TT discovery is pay-per-result cents.
+  const ig = input.platforms.includes("instagram");
+  const tt = input.platforms.includes("tiktok");
+  const igUsd = ig ? Math.min(Math.ceil(input.count * 3), 90) * 0.0023 + input.count * 0.0023 : 0;
+  const costEstimate = Math.round((igUsd + (tt ? 0.05 : 0)) * 10000) / 10000;
+  return createOutreachRun({
+    apps: [input.app],
+    platforms: input.platforms,
+    size_buckets: input.size_buckets,
+    language: input.language as OutreachLang,
+    count_per_app: input.count,
+    niche: input.niche,
+    mail_subject: input.mail_subject ?? null,
+    mail_body: input.mail_body ?? null,
+    cost_estimate_usd: costEstimate,
+    created_by: "evomi",
+  });
+}
+
+/** Phase A2 — discovery + enqueue for ONE queued evomi run. Claims the run
+ *  atomically (queued -> running) so the request-time after() worker and the
+ *  cron fallback never double-discover (= double Apify spend). Reads everything
+ *  it needs off the run row. Never throws. */
+export async function runEvomiDiscovery(run: OutreachRun): Promise<EvomiStartReport> {
+  const app = run.apps[0] ?? "";
+  const platforms = run.platforms.filter((p): p is WavePlatform => p === "tiktok" || p === "instagram");
+  const sizeBuckets = run.size_buckets.filter((b): b is SizeBucket =>
+    b === "nano" || b === "micro" || b === "mid" || b === "macro");
+  const [follower_min, follower_max] = resolveFollowerRange(sizeBuckets);
+  const report = (over: Partial<EvomiStartReport>): EvomiStartReport => ({
+    ok: true,
+    runId: run.id,
     discovered: 0,
     queued: 0,
     perPlatform: { instagram: 0, tiktok: 0 },
     followerRange: [follower_min, follower_max],
-    error,
+    ...over,
   });
+  const failRun = async (error: string, phase: string): Promise<EvomiStartReport> => {
+    await updateOutreachRun(run.id, {
+      status: "failed",
+      finished_at: new Date().toISOString(),
+      errors: { phase, message: error.slice(0, 300) },
+    });
+    return report({ ok: false, error });
+  };
+
+  if (!app || platforms.length === 0) return failRun("run row missing app/platforms", "discovery");
+  // Atomic claim: only the winner discovers.
+  const won = await claimRunForDiscovery(run.id);
+  if (!won) return report({ error: "already claimed (other worker discovering)" });
 
   const apifyRouting = await getForProxy(APIFY_ID);
-  if (!apifyRouting) return fail("apify key unavailable");
+  if (!apifyRouting) return failRun("apify key unavailable", "discovery");
   const apifyCreds: ApifyCreds = { key: apifyRouting.key, baseUrl: apifyRouting.baseUrl };
 
   const settings = await getScrapeSettings();
-  const wantIg = input.platforms.includes("instagram");
-  const wantTt = input.platforms.includes("tiktok");
+  const wantIg = platforms.includes("instagram");
+  const wantTt = platforms.includes("tiktok");
   const activePlatforms = (wantIg ? 1 : 0) + (wantTt ? 1 : 0) || 1;
+  const count = Math.max(run.count_per_app, 1);
   // Per-platform enrichment budget = the smaller of what the operator asked for
   // and the global cap split across platforms. This bounds Evomi/Apify spend.
   const perPlatformBudget = Math.max(
     1,
-    Math.min(Math.max(input.count, 1), Math.floor(settings.max_profiles_per_wave / activePlatforms) || settings.max_profiles_per_wave),
+    Math.min(count, Math.floor(settings.max_profiles_per_wave / activePlatforms) || settings.max_profiles_per_wave),
   );
 
   // Curated discovery pool from the app's mail template (n8n parity). Language-
   // specific first, German fallback (all six apps are seeded in de).
   const tpl =
-    (await getAppTemplate(input.app, input.language)) ??
-    (input.language !== "de" ? await getAppTemplate(input.app, "de") : null);
-  const { hashtags, keywords } = resolveTerms(
-    input.niche,
-    input.app,
-    input.hashtags,
-    tpl?.hashtags ?? null,
-  );
+    (await getAppTemplate(app, run.language)) ??
+    (run.language !== "de" ? await getAppTemplate(app, "de") : null);
+  const { hashtags, keywords } = resolveTerms(run.niche, app, undefined, tpl?.hashtags ?? null);
   // Over-fetch at discovery: IG hashtag posts dedupe heavily to owners, TT keyword
   // results are more unique. We slice to the budget after dedup/suppression.
   const igDiscoverLimit = Math.min(Math.ceil(perPlatformBudget * 3), 90);
@@ -195,67 +239,39 @@ export async function startEvomiWave(input: EvomiStartInput): Promise<EvomiStart
   const ttQueue = ttClean.slice(0, perPlatformBudget);
 
   if (igQueue.length + ttQueue.length === 0) {
-    return {
-      ok: true,
-      runId: null,
-      discovered,
-      queued: 0,
-      perPlatform: { instagram: 0, tiktok: 0 },
-      followerRange: [follower_min, follower_max],
-      error: "nichts zu enqueuen (Discovery leer oder alles dedupliziert/gesperrt)",
-    };
-  }
-
-  // Rough cost estimate for the audit card: Apify IG items @ $0.0023 + TT compute.
-  const costEstimate =
-    Math.round((igQueue.length * 0.0023 + (ttQueue.length > 0 ? 0.3 : 0)) * 10000) / 10000;
-
-  let runId: string;
-  try {
-    const run = await createOutreachRun({
-      apps: [input.app],
-      platforms: input.platforms,
-      size_buckets: input.size_buckets,
-      language: input.language as OutreachLang,
-      count_per_app: input.count,
-      niche: input.niche,
-      mail_subject: input.mail_subject ?? null,
-      mail_body: input.mail_body ?? null,
-      cost_estimate_usd: costEstimate,
+    // Nothing to enrich: close the run VISIBLY (done + note) instead of leaving
+    // no trace — the operator sees why in the run-history detail.
+    await updateOutreachRun(run.id, {
+      status: "done",
+      finished_at: new Date().toISOString(),
+      errors: { phase: "discovery", message: `0 Kandidaten (discovered=${discovered}, alles dedupliziert/gesperrt oder Suche leer)` },
     });
-    runId = run.id;
-  } catch (e) {
-    return fail(`run anlegen fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}`);
+    return report({ discovered, error: "nichts zu enqueuen (Discovery leer oder alles dedupliziert/gesperrt)" });
   }
-  // Mark running + start time (createOutreachRun seeds status='queued').
-  await updateOutreachRun(runId, { status: "running", started_at: new Date().toISOString() });
 
   const candidates: CandidateInput[] = [];
   for (const h of igQueue) {
-    candidates.push({ run_id: runId, platform: "instagram", handle: h, app: input.app, niche: input.niche, language: input.language, size_buckets: input.size_buckets, follower_min, follower_max });
+    candidates.push({ run_id: run.id, platform: "instagram", handle: h, app, niche: run.niche, language: run.language, size_buckets: sizeBuckets, follower_min, follower_max });
   }
   for (const h of ttQueue) {
-    candidates.push({ run_id: runId, platform: "tiktok", handle: h, app: input.app, niche: input.niche, language: input.language, size_buckets: input.size_buckets, follower_min, follower_max });
+    candidates.push({ run_id: run.id, platform: "tiktok", handle: h, app, niche: run.niche, language: run.language, size_buckets: sizeBuckets, follower_min, follower_max });
   }
 
-  let queued = 0;
   try {
-    const r = await enqueueCandidates(candidates);
-    queued = r.queued;
+    const { queued } = await enqueueCandidates(candidates);
+    return report({ discovered, queued, perPlatform: { instagram: igQueue.length, tiktok: ttQueue.length } });
   } catch (e) {
-    // Run row exists but enqueue failed: mark it failed so it's not a zombie.
-    await updateOutreachRun(runId, { status: "failed", finished_at: new Date().toISOString(), errors: { phase: "enqueue", message: e instanceof Error ? e.message : String(e) } });
-    return { ...fail(`enqueue fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}`), runId };
+    return failRun(`enqueue fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}`, "enqueue");
   }
+}
 
-  return {
-    ok: true,
-    runId,
-    discovered,
-    queued,
-    perPlatform: { instagram: igQueue.length, tiktok: ttQueue.length },
-    followerRange: [follower_min, follower_max],
-  };
+/** Cron fallback: pick up queued evomi runs whose request-time discovery worker
+ *  died (60s kill, crash). One run per call (time budget). */
+export async function discoverQueuedEvomiRuns(): Promise<{ discovered: boolean }> {
+  const runs = await listQueuedEvomiRuns(1);
+  if (runs.length === 0) return { discovered: false };
+  await runEvomiDiscovery(runs[0]);
+  return { discovered: true };
 }
 
 // --------------------------- drain (cron) ----------------------------------
@@ -285,9 +301,17 @@ export async function drainEvomiQueue(): Promise<DrainReport> {
   const started = Date.now();
   const report: DrainReport = { ok: true, claimed: 0, inserted: 0, done: 0, dropped: 0, errored: 0, deferred: 0, runsFinalized: [] };
 
+  // Self-healing fallback: discover one queued evomi run whose request-time
+  // worker died. Discovery is the slow Apify part — when it ran, skip TikTok
+  // enrichment this tick (Evomi renders are the other long pole) so the tick
+  // stays inside the 60s Hobby ceiling; IG is one fast Apify batch call.
+  const { discovered: discoveryRan } = await discoverQueuedEvomiRuns();
+
   // Claim per platform so the slow TikTok render budget can't starve fast IG.
   const [ttClaimed, igClaimed] = await Promise.all([
-    claimCandidates({ platform: "tiktok", limit: TT_PER_TICK }),
+    discoveryRan
+      ? Promise.resolve([] as WaveCandidate[])
+      : claimCandidates({ platform: "tiktok", limit: TT_PER_TICK }),
     claimCandidates({ platform: "instagram", limit: IG_PER_TICK }),
   ]);
   report.claimed = ttClaimed.length + igClaimed.length;

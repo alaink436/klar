@@ -11,10 +11,11 @@
 // Admin-Auth via klar_admin Cookie (mirror of /admin/outreach/add).
 
 import { NextResponse, type NextRequest } from "next/server";
+import { after } from "next/server";
 import { readCookie, ctEqual } from "../../_shared";
 import { createOutreachRun } from "../../../../lib/outreachStore";
 import { getScrapeSettings } from "../../../../lib/scrapeSettings";
-import { startEvomiWave } from "../../../../lib/waveEvomiQueue";
+import { createEvomiRun, runEvomiDiscovery } from "../../../../lib/waveEvomiQueue";
 import type { SizeBucket } from "../../../../lib/sizeBuckets";
 import type { WavePlatform } from "../../../../lib/waveEvomiQueue";
 import { KLAR_APPS } from "../../../../lib/klarApps";
@@ -195,49 +196,51 @@ export async function POST(req: NextRequest): Promise<Response> {
   }
 
   // ===== Backend dispatch =====
-  // wave_backend='evomi' → in-app path: each combo runs Apify discovery + enqueue
-  // inline (startEvomiWave creates its own run row + candidate queue), the cron
-  // drains enrichment. No n8n webhook. Default 'n8n' keeps the legacy path below.
+  // wave_backend='evomi' → in-app path: the request only creates the audit run
+  // rows (instant, they show up as 'queued' in the run history) and responds
+  // immediately — the slow Apify discovery runs AFTER the response via after();
+  // if that worker dies (60s kill), the drain cron picks the queued run up on
+  // its next tick. No n8n webhook. Default 'n8n' keeps the legacy path below.
   const settings = await getScrapeSettings();
   if (settings.wave_backend === "evomi") {
     const evomiPlatforms = platforms as WavePlatform[];
     const evomiBuckets = sizeBuckets as SizeBucket[];
-    const okRuns: Array<{ app: string; lang: string; queued: number; id: string }> = [];
-    const emptyRuns: Array<{ app: string; lang: string }> = [];
-    const failRuns: Array<{ app: string; lang: string; error: string }> = [];
+    const created: Array<{ app: string; lang: string; run: Awaited<ReturnType<typeof createEvomiRun>> }> = [];
+    const failed: Array<{ app: string; lang: string; error: string }> = [];
     for (const c of combos) {
-      const rep = await startEvomiWave({
-        app: c.app,
-        platforms: evomiPlatforms,
-        size_buckets: evomiBuckets,
-        niche,
-        count,
-        language: c.lang,
-        mail_subject: mailSubject,
-        mail_body: mailBody,
-      });
-      if (rep.ok && rep.runId && rep.queued > 0) {
-        okRuns.push({ app: c.app, lang: c.lang, queued: rep.queued, id: rep.runId });
-      } else if (rep.ok) {
-        emptyRuns.push({ app: c.app, lang: c.lang });
-      } else {
-        failRuns.push({ app: c.app, lang: c.lang, error: rep.error ?? "unknown" });
+      try {
+        const run = await createEvomiRun({
+          app: c.app,
+          platforms: evomiPlatforms,
+          size_buckets: evomiBuckets,
+          niche,
+          count,
+          language: c.lang,
+          mail_subject: mailSubject,
+          mail_body: mailBody,
+        });
+        created.push({ app: c.app, lang: c.lang, run });
+      } catch (e) {
+        failed.push({ app: c.app, lang: c.lang, error: (e instanceof Error ? e.message : String(e)).slice(0, 80) });
       }
     }
-    if (okRuns.length === 0) {
-      const why = failRuns.length > 0
-        ? `Fehler: ${failRuns.map((f) => `${f.app}/${f.lang}=${f.error}`).join("; ").slice(0, 200)}`
-        : "Discovery lieferte nichts Neues (alles dedupliziert/gesperrt).";
-      return back(req, `Evomi-Welle: nichts enqueued. ${why}`);
+    if (created.length === 0) {
+      return back(req, `Evomi-Welle fehlgeschlagen: ${failed.map((f) => `${f.app}/${f.lang}=${f.error}`).join("; ").slice(0, 250)}`);
     }
-    const totalQueued = okRuns.reduce((s, r) => s + r.queued, 0);
-    const tail = [
-      emptyRuns.length > 0 ? `${emptyRuns.length} leer` : "",
-      failRuns.length > 0 ? `${failRuns.length} Fehler` : "",
-    ].filter(Boolean).join(", ");
+    // Discovery in the background, sequential per run; the response goes out NOW.
+    after(async () => {
+      for (const c of created) {
+        try {
+          await runEvomiDiscovery(c.run);
+        } catch (e) {
+          console.warn(`[wave] after-discovery ${c.run.id.slice(0, 8)} failed`, e instanceof Error ? e.message : e);
+        }
+      }
+    });
+    const tail = failed.length > 0 ? ` (${failed.length} fehlgeschlagen: ${failed.map((f) => f.app + "/" + f.lang).join(", ")})` : "";
     return back(
       req,
-      `Evomi-Welle gestartet (in-app): ${okRuns.length} Run(s), ${totalQueued} Profile in der Queue — der Cron reichert an (TikTok via Evomi, IG via Apify) und mailt dann automatisch.${tail ? ` (${tail})` : ""} Runs: ${okRuns.map((r) => `${r.app}·${r.lang} #${r.id.slice(0, 6)}`).join(", ")}`,
+      `Evomi-Welle angelegt: ${created.map((c) => `${c.app}·${c.lang} #${c.run.id.slice(0, 6)}`).join(", ")}. Discovery läuft im Hintergrund — Status unter „Letzte Wellen", Targets füllen sich über den 15-Minuten-Takt.${tail}`,
     );
   }
 
