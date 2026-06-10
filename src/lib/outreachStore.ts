@@ -1288,9 +1288,6 @@ export interface CandidateInput {
   follower_max: number;
 }
 
-const CANDIDATE_COLS =
-  "id,run_id,platform,handle,app,niche,language,size_buckets,follower_min,follower_max,status";
-
 /** Bulk-enqueue candidate handles for a run. Ignore-duplicates on
  *  (run_id,platform,handle) so a re-run can't double-queue the same handle.
  *  Returns the count of net-new rows queued. */
@@ -1332,9 +1329,11 @@ export async function enqueueCandidates(
  *  prior tick), oldest first. Optional platform filter so the cron can budget
  *  TikTok (slow Evomi render) and Instagram (fast Apify) separately.
  *
- *  Two-step claim: select candidate ids, then a conditional PATCH guarded by the
- *  same claimable predicate + return=representation. Only rows that were still
- *  claimable come back, so two overlapping ticks never process the same handle. */
+ *  Two conditional PATCHes with SIMPLE filters (status=eq + claimed_at=lt) —
+ *  PostgREST 400s a combined or=(...,and(...)) predicate on PATCH (it accepts it
+ *  on GET), which silently zeroed every claim until the API logs surfaced it.
+ *  return=representation means only rows that were still claimable come back, so
+ *  two overlapping ticks never process the same handle. */
 export async function claimCandidates(opts: {
   limit: number;
   platform?: OutreachPlatform;
@@ -1343,29 +1342,48 @@ export async function claimCandidates(opts: {
   if (!KLAR_INBOX_KEY) return [];
   const limit = Math.min(Math.max(opts.limit, 1), 100);
   const staleIso = new Date(Date.now() - (opts.staleMs ?? 600_000)).toISOString();
-  // claimable = pending OR (claimed AND claimed_at < stale)
-  const claimable = `or=(status.eq.pending,and(status.eq.claimed,claimed_at.lt.${staleIso}))`;
   const platformFilter = opts.platform ? `&platform=eq.${encodeURIComponent(opts.platform)}` : "";
-  try {
+  const claimedAt = new Date().toISOString();
+
+  // One guarded claim pass: PATCH rows matching the simple predicate, capped via
+  // an id=in.(...) list selected just before. Returns the claimed rows.
+  async function claimPass(predicate: string, max: number): Promise<WaveCandidate[]> {
+    if (max <= 0) return [];
     const sel = await fetch(
-      `${KLAR_INBOX_URL}/rest/v1/klar_wave_candidates?${claimable}${platformFilter}&select=id&order=created_at.asc&limit=${limit}`,
+      `${KLAR_INBOX_URL}/rest/v1/klar_wave_candidates?${predicate}${platformFilter}&select=id&order=created_at.asc&limit=${max}`,
       { headers: hdr(), cache: "no-store" },
     );
-    if (!sel.ok) return [];
+    if (!sel.ok) {
+      console.warn(`[wave] claim select ${sel.status}: ${(await sel.text().catch(() => "")).slice(0, 150)}`);
+      return [];
+    }
     const ids = ((await sel.json()) as Array<{ id: string }>).map((r) => r.id).filter(Boolean);
     if (ids.length === 0) return [];
     const inList = ids.map((id) => `"${id}"`).join(",");
-    const claimedAt = new Date().toISOString();
     const patch = await fetch(
-      `${KLAR_INBOX_URL}/rest/v1/klar_wave_candidates?id=in.(${inList})&${claimable}&select=${CANDIDATE_COLS}`,
+      `${KLAR_INBOX_URL}/rest/v1/klar_wave_candidates?id=in.(${inList})&${predicate}`,
       {
         method: "PATCH",
         headers: { ...hdr(), Prefer: "return=representation" },
         body: JSON.stringify({ status: "claimed", claimed_at: claimedAt }),
       },
     );
-    if (!patch.ok) return [];
+    if (!patch.ok) {
+      console.warn(`[wave] claim patch ${patch.status}: ${(await patch.text().catch(() => "")).slice(0, 150)}`);
+      return [];
+    }
     return (await patch.json()) as WaveCandidate[];
+  }
+
+  try {
+    // Pass 1: pending (the normal path). Pass 2: reclaim stale claims from a
+    // crashed/timed-out tick, only with leftover budget.
+    const fresh = await claimPass("status=eq.pending", limit);
+    const stale = await claimPass(
+      `status=eq.claimed&claimed_at=lt.${encodeURIComponent(staleIso)}`,
+      limit - fresh.length,
+    );
+    return [...fresh, ...stale];
   } catch (e) {
     console.warn("[wave] claimCandidates failed", e instanceof Error ? e.message : e);
     return [];
