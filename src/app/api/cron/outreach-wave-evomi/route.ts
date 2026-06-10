@@ -17,10 +17,14 @@
 // (those are the only ones that enqueue candidates). The legacy n8n path is
 // untouched.
 //
-// Auth mirrors cron/outreach-mail/route.ts: the scheduler sends
-// `Authorization: Bearer $CRON_SECRET`; fail-closed (no secret => 401).
+// Auth: `Authorization: Bearer <token>` where token is CRON_SECRET (native Vercel
+// cron path, if/when the project moves to Pro) OR WAVE_TRIAL_TOKEN (the machine
+// token the external scheduler uses — same dual-gate pattern as the wave-evomi
+// admin route, whose Path A accepts the identical token). Both are Vercel
+// "Sensitive" env vars; fail-closed (neither set => 401, nothing runs).
 
 import { NextResponse, type NextRequest } from "next/server";
+import { ctEqual } from "../../../admin/_shared";
 import { drainEvomiQueue } from "../../../../lib/waveEvomiQueue";
 
 export const runtime = "nodejs";
@@ -29,8 +33,13 @@ export const maxDuration = 60; // Vercel Hobby function ceiling
 
 export async function GET(req: NextRequest): Promise<Response> {
   const SECRET = process.env.CRON_SECRET ?? "";
-  const auth = req.headers.get("authorization") ?? "";
-  if (!SECRET || auth !== `Bearer ${SECRET}`) {
+  const TRIAL = process.env.WAVE_TRIAL_TOKEN ?? "";
+  const m = /^Bearer\s+(.+)$/i.exec((req.headers.get("authorization") ?? "").trim());
+  const token = m?.[1]?.trim() ?? "";
+  const authorized =
+    Boolean(token) &&
+    ((Boolean(SECRET) && ctEqual(token, SECRET)) || (Boolean(TRIAL) && ctEqual(token, TRIAL)));
+  if (!authorized) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
   try {
