@@ -203,7 +203,10 @@ interface TtUserDetail {
   __DEFAULT_SCOPE__?: {
     "webapp.user-detail"?: {
       userInfo?: {
-        user?: { uniqueId?: string; nickname?: string; signature?: string };
+        // `bioLink.link` is the website a creator sets on their profile (often a
+        // linktree/aggregator or their own site) — the only crawlable email
+        // source for TikTok, which exposes no business/public email field.
+        user?: { uniqueId?: string; nickname?: string; signature?: string; bioLink?: { link?: string } };
         // followerCount is a NUMBER in `stats` but a STRING in `statsV2` (newer
         // layout). Number() coerces both.
         stats?: { followerCount?: number | string };
@@ -249,7 +252,9 @@ export async function enrichTiktok(
       profileUrl: target,
       businessEmail: null,
       publicEmail: null,
-      externalUrl: null, // TT detail JSON has no usable external link field here
+      // bioLink.link is the creator's website (aggregator or own site) — feeds
+      // resolveContactEmail's aggregator + website crawl, same as IG external_url.
+      externalUrl: (user.bioLink?.link ?? "").trim() || null,
       bioLinks: [],
     },
   };
