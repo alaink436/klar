@@ -189,6 +189,9 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   { id: "blotato", label: "Blotato", category: "Social / Marketing", provider: "blotato", baseUrl: "https://backend.blotato.com/v2", authHeader: "blotato-api-key", authScheme: "", keyExample: "…== (Base64, = gehört dazu)", labelExample: "Blotato" },
   // Scraping
   { id: "evomi", label: "Evomi (Scraper API)", category: "Scraping", provider: "evomi", baseUrl: "https://scrape.evomi.com/api/v1/scraper", authHeader: "api_key", authScheme: "", authIn: "query", keyExample: "Evomi api_key (Query-Param)", labelExample: "Evomi Scraper API" },
+  // Personal API Key (my.evomi.com → Settings → API) — account-level: balance,
+  // credits, proxy data. NOT the scraper key. Feeds the Evomi-Credits billing card.
+  { id: "evomi-public", label: "Evomi (Public API / Credits)", category: "Scraping", provider: "evomi", baseUrl: "https://api.evomi.com/public", authHeader: "x-apikey", authScheme: "", keyExample: "Personal API Key (Settings → API)", labelExample: "Evomi Public API" },
   // Mobile / Stores
   { id: "appstore", label: "App Store Connect (.p8)", category: "Mobile / Stores", provider: "apple", baseUrl: "", authHeader: "authorization", authScheme: "Bearer ", keyExample: "-----BEGIN PRIVATE KEY----- (.p8)", labelExample: "App Store Connect API" },
   { id: "expo", label: "Expo / EAS", category: "Mobile / Stores", provider: "expo", baseUrl: "https://api.expo.dev", authHeader: "authorization", authScheme: "Bearer ", keyExample: "Expo Access-Token", labelExample: "Expo EAS" },
