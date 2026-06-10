@@ -123,6 +123,11 @@ function isBlockedEmail(email: string): boolean {
   }
   // image/asset extensions occasionally match the regex (e.g. logo@2x.png).
   if (/\.(png|jpe?g|gif|svg|webp|ico|css|js|woff2?|ttf|otf|map)$/i.test(domain)) return true;
+  // The TLD (after the last dot) must be alphabetic. Crawled HTML/JS leaks
+  // package specs like "intersection-observer@0.12.0" or "foo@1.2.3" that match
+  // the email regex but whose "TLD" is numeric — a real TLD is 2+ letters.
+  const tld = domain.slice(domain.lastIndexOf(".") + 1);
+  if (!/^[a-z]{2,}$/.test(tld)) return true;
   // n8n length guard.
   if (lower.length < 6 || lower.length > 120) return true;
   return false;
