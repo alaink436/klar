@@ -22,6 +22,7 @@ import {
   checkSuppressions,
   findExistingHandles,
   insertWaveTargets,
+  getAppTemplate,
   type WaveTargetRow,
 } from "./outreachStore";
 import { sizeOf, type SizeBucket } from "./sizeBuckets";
@@ -110,23 +111,31 @@ export function resolveFollowerRange(buckets: SizeBucket[]): [number, number] {
 }
 
 // Niche -> discovery terms. Hashtags strip spaces/# (IG hashtag actor); keywords
-// keep words (TikTok keyword actor). Explicit hashtags override.
-function resolveTerms(input: EvomiWaveInput): {
+// keep words (TikTok keyword actor). Priority: explicit hashtags > typed niche >
+// curated template pool (klar_app_mail_templates.hashtags, n8n parity — the bare
+// app slug surfaces random profiles with ~0% email yield) > app slug.
+function resolveTerms(
+  input: EvomiWaveInput,
+  templateHashtags?: string[] | null,
+): {
   hashtags: string[];
   keywords: string[];
   nicheUsed: string;
 } {
+  const clean = (arr: string[]) =>
+    arr.map((h) => h.replace(/^#/, "").replace(/\s+/g, "").toLowerCase()).filter(Boolean);
   const niche = (input.niche ?? "").trim();
   const nicheUsed = niche || input.app;
   if (input.hashtags && input.hashtags.length > 0) {
-    const hashtags = input.hashtags
-      .map((h) => h.replace(/^#/, "").replace(/\s+/g, "").toLowerCase())
-      .filter(Boolean);
-    return { hashtags, keywords: input.hashtags.slice(), nicheUsed };
+    return { hashtags: clean(input.hashtags), keywords: input.hashtags.slice(), nicheUsed };
   }
-  const keyword = nicheUsed;
-  const hashtag = nicheUsed.replace(/\s+/g, "").toLowerCase();
-  return { hashtags: [hashtag], keywords: [keyword], nicheUsed };
+  if (niche) {
+    return { hashtags: [niche.replace(/\s+/g, "").toLowerCase()], keywords: [niche], nicheUsed };
+  }
+  if (templateHashtags && templateHashtags.length > 0) {
+    return { hashtags: clean(templateHashtags), keywords: templateHashtags.slice(), nicheUsed };
+  }
+  return { hashtags: [input.app.replace(/\s+/g, "").toLowerCase()], keywords: [input.app], nicheUsed };
 }
 
 /** Run the Evomi wave for one app. Never throws — failures resolve into the
@@ -192,8 +201,12 @@ export async function runEvomiWave(
     TRIAL_MAX_PROFILES,
   );
 
-  // 3) resolve terms + over-fetch ratio (n8n Build Job List).
-  const { hashtags, keywords, nicheUsed } = resolveTerms(input);
+  // 3) resolve terms + over-fetch ratio (n8n Build Job List). Curated template
+  // pool as default (language-specific, German fallback).
+  const tpl =
+    (await getAppTemplate(input.app, input.language)) ??
+    (input.language !== "de" ? await getAppTemplate(input.app, "de") : null);
+  const { hashtags, keywords, nicheUsed } = resolveTerms(input, tpl?.hashtags ?? null);
   const smallBucketOnly =
     input.size_buckets.length > 0 &&
     input.size_buckets.every((b) => b === "nano" || b === "micro");

@@ -27,6 +27,7 @@ import {
   insertWaveTargets,
   createOutreachRun,
   updateOutreachRun,
+  getAppTemplate,
   enqueueCandidates,
   claimCandidates,
   finishCandidate,
@@ -90,16 +91,29 @@ export interface EvomiStartReport {
 }
 
 // niche -> discovery terms (hashtags for IG actor, keywords for TT actor).
-function resolveTerms(niche: string | null, app: string, hashtags?: string[]): {
-  hashtags: string[];
-  keywords: string[];
-} {
-  const base = (niche ?? "").trim() || app;
+// Priority: explicit hashtags > typed niche > curated template hashtag pool >
+// app slug. The template pool (klar_app_mail_templates.hashtags, per app+lang)
+// is what the n8n Build-Job-List used — searching the bare app slug surfaces
+// random profiles with ~0% email yield, the curated pool surfaces creators.
+function resolveTerms(
+  niche: string | null,
+  app: string,
+  hashtags?: string[],
+  templateHashtags?: string[] | null,
+): { hashtags: string[]; keywords: string[] } {
+  const clean = (arr: string[]) =>
+    arr.map((h) => h.replace(/^#/, "").replace(/\s+/g, "").toLowerCase()).filter(Boolean);
   if (hashtags && hashtags.length > 0) {
-    const tags = hashtags.map((h) => h.replace(/^#/, "").replace(/\s+/g, "").toLowerCase()).filter(Boolean);
-    return { hashtags: tags, keywords: hashtags.slice() };
+    return { hashtags: clean(hashtags), keywords: hashtags.slice() };
   }
-  return { hashtags: [base.replace(/\s+/g, "").toLowerCase()], keywords: [base] };
+  const typed = (niche ?? "").trim();
+  if (typed) {
+    return { hashtags: [typed.replace(/\s+/g, "").toLowerCase()], keywords: [typed] };
+  }
+  if (templateHashtags && templateHashtags.length > 0) {
+    return { hashtags: clean(templateHashtags), keywords: templateHashtags.slice() };
+  }
+  return { hashtags: [app.replace(/\s+/g, "").toLowerCase()], keywords: [app] };
 }
 
 /** Dedup a platform's discovered handles against existing targets + suppressions.
@@ -148,7 +162,17 @@ export async function startEvomiWave(input: EvomiStartInput): Promise<EvomiStart
     Math.min(Math.max(input.count, 1), Math.floor(settings.max_profiles_per_wave / activePlatforms) || settings.max_profiles_per_wave),
   );
 
-  const { hashtags, keywords } = resolveTerms(input.niche, input.app, input.hashtags);
+  // Curated discovery pool from the app's mail template (n8n parity). Language-
+  // specific first, German fallback (all six apps are seeded in de).
+  const tpl =
+    (await getAppTemplate(input.app, input.language)) ??
+    (input.language !== "de" ? await getAppTemplate(input.app, "de") : null);
+  const { hashtags, keywords } = resolveTerms(
+    input.niche,
+    input.app,
+    input.hashtags,
+    tpl?.hashtags ?? null,
+  );
   // Over-fetch at discovery: IG hashtag posts dedupe heavily to owners, TT keyword
   // results are more unique. We slice to the budget after dedup/suppression.
   const igDiscoverLimit = Math.min(Math.ceil(perPlatformBudget * 3), 90);
