@@ -58,12 +58,13 @@ const EVOMI_ID = "ef44b8c6-20f4-476a-8a18-2d8cd5f9b409";
 const APIFY_ID = "658f655b-11cd-4119-bea0-e6f4e6fc2c4a";
 
 // Per-tick claim budget. TikTok mode=auto renders are the long pole; IG is one
-// Apify batch call. Tuned small so a tick fits the 60s Hobby function ceiling
-// even with retries (external scheduler runs this every ~5 min, so throughput is
-// batch×ticks/hour). Override via env. A killed tick loses nothing — claimed
-// candidates are reclaimed by the stale-reaper.
-const TT_PER_TICK = Number(process.env.EVOMI_TT_PER_TICK ?? 4);
-const IG_PER_TICK = Number(process.env.EVOMI_IG_PER_TICK ?? 8);
+// Apify batch call (cheap to make bigger). The TT batch is claimed OPTIMISTICALLY
+// large: the soft deadline stops starting new renders in time and releases the
+// unprocessed claims back to pending, so a big claim can't blow the 60s ceiling —
+// it just processes as many as fit. Override via env.
+const TT_PER_TICK = Number(process.env.EVOMI_TT_PER_TICK ?? 10);
+const IG_PER_TICK = Number(process.env.EVOMI_IG_PER_TICK ?? 25);
+const TT_CONCURRENCY = Number(process.env.EVOMI_TT_CONCURRENCY ?? 3);
 // Soft wall-clock deadline: stop STARTING new TikTok enrichments past this so an
 // in-flight Evomi render can still finish under the 60s cap. Handles not reached
 // are released back to pending for the next tick.
@@ -333,7 +334,7 @@ export async function drainEvomiQueue(): Promise<DrainReport> {
   const ttDeadline = started + DRAIN_DEADLINE_MS;
   const [ttResults, igResults] = await Promise.all([
     ttClaimed.length > 0 && evomiCreds
-      ? enrichBatch(ttClaimed.map((c) => c.handle), "tiktok", evomiCreds, { concurrency: 2, deadlineMs: ttDeadline })
+      ? enrichBatch(ttClaimed.map((c) => c.handle), "tiktok", evomiCreds, { concurrency: TT_CONCURRENCY, deadlineMs: ttDeadline })
       : Promise.resolve(ttClaimed.map(() => ({ profile: null, status: 0, reason: "error" as const }))),
     igClaimed.length > 0 && apifyCreds
       ? enrichInstagramApify(igClaimed.map((c) => c.handle), apifyCreds)

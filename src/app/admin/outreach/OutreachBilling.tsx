@@ -8,6 +8,12 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export interface OutreachBillingData {
+  evomi: {
+    ok: boolean;
+    reason: string; // live | no-key | unauthorized | http-error | exception
+    credits: number | null;
+    concurrency: number | null;
+  };
   apify: {
     ok: boolean;
     reason: string;
@@ -82,12 +88,51 @@ const Metric = ({ value, label, accent }: { value: ReactNode; label: string; acc
 );
 
 export default function OutreachBilling({ data }: { data: OutreachBillingData }) {
-  const { apify, brevo, waves } = data;
+  const { evomi, apify, brevo, waves } = data;
   const apifyT = tone(apify.pct ?? 0);
   const brevoT = tone(brevo.pct);
+  // Credits have no fixed plan ceiling — tone by absolute remaining instead.
+  const evomiLow = evomi.credits !== null && evomi.credits < 200;
+  const evomiCrit = evomi.credits !== null && evomi.credits < 50;
 
   return (
-    <section className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 mb-6">
+    <section className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3.5 mb-6">
+      {/* ── Evomi credits ── */}
+      <Card className="p-5">
+        <CardHead
+          title="Evomi-Credits"
+          note={evomi.ok ? undefined : `(${evomi.reason})`}
+          right={
+            evomi.ok ? (
+              <Badge tone={evomiCrit ? "danger" : evomiLow ? "warn" : "ok"}>
+                {evomiCrit ? "fast leer" : evomiLow ? "wenig" : "ok"}
+              </Badge>
+            ) : null
+          }
+        />
+        {!evomi.ok ? (
+          <p className="text-fg-3 text-[12.5px] leading-relaxed">
+            {evomi.reason === "no-key"
+              ? "Kein Evomi-Key im Vault gefunden."
+              : evomi.reason === "unauthorized"
+                ? "Der Scraper-Key darf die Public-API nicht lesen. Auf my.evomi.com → Settings → API den Profile-API-Key holen und im Vault als „Evomi Public API“ anlegen (base_url https://api.evomi.com, Header x-apikey) — die Karte findet ihn automatisch."
+                : "Evomi-API antwortet nicht."}
+          </p>
+        ) : (
+          <>
+            <Metric
+              value={evomi.credits !== null ? evomi.credits.toLocaleString("de-CH") : "—"}
+              label="Scraper-Credits übrig"
+              accent
+            />
+            <p className="[font-family:var(--font-mono)] text-[10.5px] text-fg-3 mt-3 leading-relaxed">
+              TikTok-Anreicherung: ~2 Credits (request) bis ~6 (Browser-Render) pro Profil
+              {evomi.concurrency !== null ? ` · Concurrency ${evomi.concurrency}` : ""}
+            </p>
+          </>
+        )}
+      </Card>
+
       {/* ── Apify billing ── */}
       <Card className="p-5 lg:col-span-1">
         <CardHead

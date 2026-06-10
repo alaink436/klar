@@ -36,6 +36,7 @@ import {
   type SuppressionRow,
 } from "../../../lib/outreachStore";
 import { getApifyAccountStatus } from "../../../lib/apifyAccount";
+import { getEvomiAccountStatus } from "../../../lib/evomiAccount";
 import { getBrevoQuota } from "../../../lib/brevoQuota";
 import { KLAR_APPS } from "../../../lib/klarApps";
 import OutreachKpis, { type OutreachStatsLite } from "./OutreachKpis";
@@ -120,13 +121,14 @@ async function outreachMain(
   const size = (["nano", "micro", "mid", "macro"].includes(filterSize) ? filterSize : "all") as SizeBucket | "all";
   const q = query.trim().slice(0, 80);
 
-  const [stats, rowsRaw, runs, costSummary, allTargets, apifyAccount, brevoQuota, suppressions] = await Promise.all([
+  const [stats, rowsRaw, runs, costSummary, allTargets, apifyAccount, evomiAccount, brevoQuota, suppressions] = await Promise.all([
     getOutreachStats(),
     listOutreachTargets({ platform, status, app, size, query: q, limit: 200 }),
     listOutreachRuns(10),
     getOutreachCostSummary(),
     listOutreachTargets({ platform: "all", status: "all", app: "all", limit: 500 }),
     getApifyAccountStatus(),
+    getEvomiAccountStatus(),
     getBrevoQuota(),
     listSuppressions(20),
   ]);
@@ -393,6 +395,12 @@ getklar.org`;
     ? Math.round((costSummary.month_apify_actual_usd / costSummary.month_apify_estimate_usd) * 100)
     : null;
   const billing: OutreachBillingData = {
+    evomi: {
+      ok: evomiAccount.ok,
+      reason: evomiAccount.reason,
+      credits: evomiAccount.credits,
+      concurrency: evomiAccount.concurrency,
+    },
     apify: {
       ok: apifyAccount.ok,
       reason: apifyAccount.reason,
