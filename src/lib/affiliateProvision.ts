@@ -24,11 +24,12 @@ export const APP_TO_BRAND: Record<string, BrandKey> = {
   kelva: "kelva",
   trubel: "trubel",
   myloo: "myloo",
+  promillio: "promillio",
 };
 
 // Apps deren Tracking über eine influencer_codes-Zeile läuft (Shape B). Muss
 // mit der Auto-Mint-Bedingung in api/affiliate/complete übereinstimmen.
-export const SHAPE_B_APPS = new Set(["yarn-stash", "moto", "kelva"]);
+export const SHAPE_B_APPS = new Set(["yarn-stash", "moto", "kelva", "promillio"]);
 
 // Deterministischer interner Code aus dem Handle (gleiche Ableitung wie der
 // Auto-Mint in api/affiliate/complete, damit beide idempotent dieselbe Zeile

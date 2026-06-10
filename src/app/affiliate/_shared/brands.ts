@@ -78,7 +78,7 @@ export function brandText(brand: Brand, key: keyof BrandI18n, lang: "de" | "en" 
   return brand[key] as string;
 }
 
-export type BrandKey = "yarnstash" | "throttleup" | "wavelength" | "kelva" | "trubel" | "myloo";
+export type BrandKey = "yarnstash" | "throttleup" | "wavelength" | "kelva" | "trubel" | "myloo" | "promillio";
 
 // Source-of-truth for the public tracking-landing host per app. The Step 4
 // "Live" panel in the onboarding reads this, AND the server-side
@@ -98,6 +98,7 @@ export const TRACKING_HOST_BY_BRAND: Record<BrandKey, (slug: string) => string> 
   kelva:      (s) => `https://kelva.space/r/${encodeURIComponent(s)}`,
   trubel:     (s) => `https://trubel.space/i/${encodeURIComponent(s)}`,
   myloo:      (s) => `https://myloo.org/i/${encodeURIComponent(s)}`,
+  promillio:  (s) => `https://getklar.org/i/promillio/${encodeURIComponent(s)}`,
 };
 
 export function getTrackingUrl(brand: BrandKey, slug: string): string {
@@ -415,6 +416,59 @@ export const BRANDS: Record<BrandKey, Brand> = {
         pdfTitle: "Quiet Creator Brief",
         pdfHint: "Cadrage pour sujets sensibles, scripts day-in-life, fiche claims privacy",
         vibe: "Éditorial léger, privacy-first, propre style Apple Health",
+      },
+    },
+  },
+  promillio: {
+    key: "promillio",
+    name: "Promillo",
+    short: "Promillo",
+    accent: "Rot",
+    vibe: "Splash party, balloon red, 3D animal crew",
+    productLine: "Party + drinking games on one phone",
+    audience: "Party creators, students, Gen-Z nightlife",
+    painpoint: "macht aus jedem Vorglühen sofort ein Partyspiel: 7 Spiele auf einem Handy, ohne Material, ohne Vorbereitung",
+    productPrice: "4,99 €/mo",
+    productPriceShort: "4,99 €",
+    commissionPct: 50,
+    attributionMonths: 24,
+    streamLabel: "Premium-Abos",
+    iconUrl: "/icons/promillio.png",
+    assetsDriveUrl: null,
+    mascot: "/affiliate-mascots/promillio/unicorn.png",
+    glyph: { letter: "P", italic: false },
+    pdfTitle: "Party Playbook",
+    pdfHint: "Party-Hooks, POV-Reels-Skripte, Vorglüh-Szenen",
+    domain: "getklar.org/promillo",
+    handTagline: "lass laufen 🎉",
+    i18n: {
+      en: {
+        handTagline: "lets party 🎉",
+        pdfTitle: "Party Playbook",
+        pdfHint: "Party hooks, POV reel scripts, pregame scenes",
+        vibe: "Splash party, balloon red, 3D animal crew",
+        painpoint: "turns any pregame into a party game: 7 games on one phone, no gear, no prep",
+      },
+      es: {
+        handTagline: "a darle 🎉",
+        pdfTitle: "Party Playbook",
+        pdfHint: "Hooks de fiesta, scripts de reels POV, escenas de previa",
+        vibe: "Splash party, rojo globo, crew de animales 3D",
+        painpoint: "convierte cualquier previa en un juego de fiesta: 7 juegos en un móvil, sin material, sin preparación",
+      },
+      it: {
+        handTagline: "si parte 🎉",
+        pdfTitle: "Party Playbook",
+        pdfHint: "Hook da festa, script di reel POV, scene di pregame",
+        vibe: "Splash party, rosso palloncino, crew di animali 3D",
+        painpoint: "trasforma ogni pregame in un party game: 7 giochi su un telefono, senza materiale, senza preparazione",
+      },
+      fr: {
+        handTagline: "que la fête commence 🎉",
+        pdfTitle: "Party Playbook",
+        pdfHint: "Hooks de fête, scripts de reels POV, scènes de before",
+        vibe: "Splash party, rouge ballon, crew d'animaux 3D",
+        painpoint: "transforme chaque before en jeu de fête : 7 jeux sur un téléphone, sans matériel, sans préparation",
       },
     },
   },

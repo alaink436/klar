@@ -22,6 +22,7 @@ export const APP_TO_BRAND: Record<string, BrandKey> = {
   kelva: "kelva",
   trubel: "trubel",
   myloo: "myloo",
+  promillio: "promillio",
 };
 
 // Reverse of APP_TO_BRAND. The agreement-pdf download route only receives the
@@ -34,6 +35,7 @@ export const BRAND_TO_APP: Record<BrandKey, string> = {
   kelva: "kelva",
   trubel: "trubel",
   myloo: "myloo",
+  promillio: "promillio",
 };
 
 // Per-app metadata the confirmation email composer + the agreement PDF need.
@@ -49,4 +51,5 @@ export const APP_META: Record<string, { appName: string; commissionPct: number; 
   kelva:        { appName: "Kelva",      commissionPct: 50, attributionMonths: 24 },
   trubel:       { appName: "Trubel",     commissionPct: 50, attributionMonths: 24 },
   myloo:        { appName: "MyLoo",      commissionPct: 50, attributionMonths: 24 },
+  promillio:    { appName: "Promillo",   commissionPct: 50, attributionMonths: 24 },
 };

@@ -344,9 +344,9 @@ export async function POST(req: NextRequest): Promise<Response> {
   // working without surfacing the code anywhere user-facing — the Affiliate
   // only ever sees the tracking link, the code is just an internal slug.
   // Trubel matches on referrals.influencer_handle directly, so it doesn't
-  // need this. The other apps (wavelength, kelva, myloo) are skipped until
+  // need this. The other apps (wavelength, myloo) are skipped until
   // their app-side capture is wired up.
-  if (!finalPromo && (appSlug === "yarn-stash" || appSlug === "moto" || appSlug === "kelva")) {
+  if (!finalPromo && (appSlug === "yarn-stash" || appSlug === "moto" || appSlug === "kelva" || appSlug === "promillio")) {
     // The RPC enforces uppercase A-Z 0-9 _ . - and a 2-32 length window.
     // Trim down handles that overflow so the regex passes; reject < 2.
     const autoCode = handle
