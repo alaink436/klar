@@ -42,7 +42,6 @@ import OutreachKpis, { type OutreachStatsLite } from "./OutreachKpis";
 import OutreachBilling, { type OutreachBillingData } from "./OutreachBilling";
 import OutreachTabs, { type OutreachTab } from "./OutreachTabs";
 import OutreachEvomiTrial from "./OutreachEvomiTrial";
-import OutreachScrapeSettings, { type ScrapeSettingsView } from "./OutreachScrapeSettings";
 import { getScrapeSettings } from "../../../lib/scrapeSettings";
 import OutreachFilters, { type OutreachFilterState } from "./OutreachFilters";
 import OutreachRuns, { type RunRowData, type RunBadgeTone } from "./OutreachRuns";
@@ -499,15 +498,10 @@ export default async function OutreachPage({
 
   const result = await outreachMain(filterPlatform, filterStatus, filterApp, filterSize, query, autoRefresh, showTests);
   const scrapeSettings = await getScrapeSettings();
-  const scrapeSettingsView: ScrapeSettingsView = {
-    wave_backend: scrapeSettings.wave_backend,
-    tiktok_backend: scrapeSettings.tiktok_backend,
-    max_profiles_per_wave: scrapeSettings.max_profiles_per_wave,
-    updated_at: scrapeSettings.updated_at,
-  };
 
-  // Sub-menu: ?tab= drives which panel renders. Unknown/missing -> pipeline.
-  const OUTREACH_TABS = ["pipeline", "abrechnung", "sperrliste", "scrape"] as const;
+  // Sub-menu: ?tab= drives which panel renders. Unknown/missing -> pipeline
+  // (incl. legacy ?tab=scrape links — the Evomi tab merged into Pipeline).
+  const OUTREACH_TABS = ["pipeline", "abrechnung", "sperrliste"] as const;
   const tab: OutreachTab = (OUTREACH_TABS as readonly string[]).includes(sp.tab ?? "")
     ? (sp.tab as OutreachTab)
     : "pipeline";
@@ -538,6 +532,7 @@ export default async function OutreachPage({
                 sizes={result.wave.sizes}
                 defaultSubject={result.wave.defaultSubject}
                 defaultBody={result.wave.defaultBody}
+                scrape={{ backend: scrapeSettings.wave_backend, maxProfiles: scrapeSettings.max_profiles_per_wave }}
               />
               <div dangerouslySetInnerHTML={{ __html: result.midTopHtml }} />
               <OutreachRuns runs={result.runs} hasRunningWave={result.hasRunningWave} />
@@ -547,6 +542,19 @@ export default async function OutreachPage({
               <OutreachFilters {...result.filter} />
               <div dangerouslySetInnerHTML={{ __html: result.bottomHeadHtml }} />
               <OutreachTargets targets={result.rows} filterActive={result.filterActive} />
+
+              {/* Evomi test bench — diagnostic dry-run against the trial engine,
+                  collapsed by default. Inserts only isolated trial rows. */}
+              <details className="mt-8 border border-line rounded-[var(--radius)] bg-surface-2">
+                <summary className="cursor-pointer px-4 py-3 text-[13px] font-semibold text-fg-2 select-none">
+                  Evomi-Testlauf <span className="text-fg-4 font-normal text-[11px] ml-1">(Dry-Run-Diagnose, legt keine echten Targets an)</span>
+                </summary>
+                <div className="p-4 pt-1">
+                  <OutreachEvomiTrial
+                    appsLive={KLAR_APPS.filter((a) => a.status === "LIVE").map((a) => ({ slug: a.slug, name: a.name }))}
+                  />
+                </div>
+              </details>
             </div>
 
             {/* ABRECHNUNG */}
@@ -559,21 +567,6 @@ export default async function OutreachPage({
               <OutreachSuppressions rows={result.suppressionRows} />
             </div>
 
-            {/* EVOMI (n8n-frei) */}
-            <div hidden={tab !== "scrape"}>
-              <p className="text-[12.5px] text-fg-3 max-w-[80ch] mt-2 mb-3">
-                n8n-frei: Kandidaten kommen aus Apify, die Anreicherung läuft in-app — TikTok über
-                die Evomi-Scraper-API, Instagram über den Apify-Profil-Scraper (liefert
-                business_email). Mit dem Backend-Schalter <strong>evomi</strong> nutzt der echte
-                &bdquo;Welle starten&ldquo;-Button im Pipeline-Tab diesen Pfad; der Cron reichert an und der
-                Mailer kontaktiert automatisch. Der Test-Bereich unten bleibt isoliert (Trial-Rows,
-                nie gemailt).
-              </p>
-              <OutreachScrapeSettings settings={scrapeSettingsView} />
-              <OutreachEvomiTrial
-                appsLive={KLAR_APPS.filter((a) => a.status === "LIVE").map((a) => ({ slug: a.slug, name: a.name }))}
-              />
-            </div>
           </>
         ) : (
           <div dangerouslySetInnerHTML={{ __html: flash + result.html }} />

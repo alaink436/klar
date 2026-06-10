@@ -18,8 +18,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function back(req: NextRequest, msg: string): Response {
+  // Evomi tab merged into Pipeline — flash messages land there now.
   return NextResponse.redirect(
-    new URL(`/admin?view=outreach&tab=scrape&msg=${encodeURIComponent(msg.slice(0, 300))}`, req.url),
+    new URL(`/admin?view=outreach&msg=${encodeURIComponent(msg.slice(0, 300))}`, req.url),
     303,
   );
 }

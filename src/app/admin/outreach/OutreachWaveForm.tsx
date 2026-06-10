@@ -27,11 +27,24 @@ import {
 export interface WaveFormApp { slug: string; name: string }
 export interface WaveRegion { value: string; label: string; flag: string; market: string }
 export interface WaveSize { value: string; label: string; range: string }
+export type WaveBackend = "n8n" | "evomi";
+export interface WaveScrapeSettings { backend: WaveBackend; maxProfiles: number }
 
 // Cost constants mirror start/route.ts (Apify pricing 2026-05, S41 cost-cut).
 const COST_CONFIRM_USD = 2.0;
 const IG_ITEM_USD = 0.0023;
 const TT_RUN_USD = 0.3;
+
+const BACKEND_META: Record<WaveBackend, { title: string; desc: string }> = {
+  n8n: {
+    title: "n8n (klassisch)",
+    desc: "Welle feuert den n8n-Workflow: Apify scraped Discovery + Profile, Targets landen direkt in der Pipeline.",
+  },
+  evomi: {
+    title: "Evomi (in-app)",
+    desc: "Discovery via Apify, dann Warteschlange: der 15-Minuten-Takt reichert an (TikTok via Evomi, Instagram via Apify) und legt mailbare Targets ab.",
+  },
+};
 
 function Chip({
   name,
@@ -84,12 +97,14 @@ export default function OutreachWaveForm({
   sizes: sizeOpts,
   defaultSubject,
   defaultBody,
+  scrape,
 }: {
   apps: WaveFormApp[];
   regions: WaveRegion[];
   sizes: WaveSize[];
   defaultSubject: string;
   defaultBody: string;
+  scrape: WaveScrapeSettings;
 }) {
   const [apps, setApps] = useState<string[]>([]);
   const [platforms, setPlatforms] = useState<string[]>(["tiktok", "instagram"]);
@@ -107,9 +122,46 @@ export default function OutreachWaveForm({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
+  // Scrape backend switch lives IN the wave form (it decides what "Welle
+  // starten" does) and persists immediately on click via the existing
+  // scrape-settings POST — no separate tab, no extra save button.
+  const [backend, setBackend] = useState<WaveBackend>(scrape.backend);
+  const [maxProfiles, setMaxProfiles] = useState(scrape.maxProfiles);
+  const [scrapeStatus, setScrapeStatus] = useState<"" | "saving" | "saved" | "error">("");
+
+  async function persistScrape(next: { backend?: WaveBackend; maxProfiles?: number }) {
+    const b = next.backend ?? backend;
+    const m = next.maxProfiles ?? maxProfiles;
+    setScrapeStatus("saving");
+    try {
+      const fd = new FormData();
+      fd.set("wave_backend", b);
+      fd.set("tiktok_backend", "apify");
+      fd.set("max_profiles_per_wave", String(m));
+      const res = await fetch("/admin/outreach/scrape-settings", {
+        method: "POST",
+        body: fd,
+        credentials: "same-origin",
+        redirect: "follow", // route 303s back to the admin page; ok/redirected = saved
+      });
+      setScrapeStatus(res.ok || res.redirected ? "saved" : "error");
+    } catch {
+      setScrapeStatus("error");
+    }
+  }
+
+  function pickBackend(b: WaveBackend) {
+    if (b === backend) return;
+    setBackend(b);
+    void persistScrape({ backend: b });
+  }
+
   const toggle = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
 
-  // Live cost estimate — same arithmetic as the old calc() / start/route.ts.
+  // Live cost estimate. n8n path: same arithmetic as the old calc() /
+  // start/route.ts. evomi path: Apify discovery (3× over-fetch) + IG profile
+  // enrichment items; TikTok enrichment runs on Evomi credits (flagged in the
+  // summary line, not priced here).
   const cost = useMemo(() => {
     const nApps = apps.length;
     const ig = platforms.includes("instagram");
@@ -117,12 +169,18 @@ export default function OutreachWaveForm({
     const plats = (ig ? 1 : 0) + (tt ? 1 : 0);
     const total = nApps * plats * count; // profiles (single region)
     const smallBucket = sizes.length > 0 && sizes.every((b) => b === "nano" || b === "micro");
+    if (backend === "evomi") {
+      const igUsd = ig ? Math.min(Math.ceil(count * 3), 90) * IG_ITEM_USD + count * IG_ITEM_USD : 0;
+      const ttUsd = tt ? 0.05 : 0; // apidojo discovery, pay-per-result
+      const usd = nApps * (igUsd + ttUsd);
+      return { total, usd, waves: nApps, smallBucket, evomiCredits: tt };
+    }
     const scrape = smallBucket ? Math.min(Math.ceil(count * 1.8), 45) : Math.min(Math.ceil(count * 1.2), 30);
     const igUsd = ig ? scrape * IG_ITEM_USD + Math.ceil(scrape * 0.7) * IG_ITEM_USD : 0;
     const ttUsd = tt ? TT_RUN_USD : 0;
     const usd = nApps * (igUsd + ttUsd);
-    return { total, usd, waves: nApps, scrape, smallBucket };
-  }, [apps, platforms, sizes, count]);
+    return { total, usd, waves: nApps, smallBucket, evomiCredits: false };
+  }, [apps, platforms, sizes, count, backend]);
 
   // Template loader: only when exactly one app is picked (single region already).
   // Skips while the admin has manually edited the mail (mailDirty). Status + the
@@ -172,11 +230,57 @@ export default function OutreachWaveForm({
     <Card className="p-6 mb-8">
       <div className="mb-1 [font-family:var(--font-display)] font-extrabold text-[22px] tracking-[-0.02em] text-fg">Welle starten</div>
       <p className="text-[13px] text-fg-3 mb-6 max-w-[80ch]">
-        Apify scraped die gewählten Plattformen, Apps und Größen, schickt Mail-1 via Brevo, trackt alles in der DB.
+        {BACKEND_META[backend].desc} Der Mailer kontaktiert mailbare Targets automatisch (Cap greift).
         Templates pro App lädst du automatisch (eine App + Region gewählt) oder bearbeitest sie unten.
       </p>
 
       <form ref={formRef} method="POST" action="/admin/outreach/start" onSubmit={onSubmit} className="flex flex-col gap-6">
+        {/* Scraping backend — decides which engine "Welle starten" runs. Persists
+            on click (no separate tab/save), the description above follows. */}
+        <WaveSection
+          title="Scraper"
+          hint={
+            scrapeStatus === "saving" ? "speichert …"
+            : scrapeStatus === "saved" ? "✓ gespeichert"
+            : scrapeStatus === "error" ? "⚠️ Speichern fehlgeschlagen"
+            : "sofort gespeichert"
+          }
+        >
+          <div className="flex flex-wrap gap-3 items-stretch">
+            {(Object.keys(BACKEND_META) as WaveBackend[]).map((b) => (
+              <button
+                key={b}
+                type="button"
+                onClick={() => pickBackend(b)}
+                aria-pressed={backend === b}
+                className={cn(
+                  "flex-1 min-w-[240px] max-w-[420px] text-left px-4 py-3 border rounded-[var(--radius-sm)] transition-colors",
+                  backend === b
+                    ? "border-fg bg-surface-2"
+                    : "border-line bg-surface hover:border-line-strong",
+                )}
+              >
+                <span className={cn("block text-[13px] font-semibold", backend === b ? "text-fg" : "text-fg-2")}>
+                  {backend === b ? "● " : "○ "}{BACKEND_META[b].title}
+                </span>
+                <span className="block text-[11.5px] text-fg-4 mt-1 leading-snug">{BACKEND_META[b].desc}</span>
+              </button>
+            ))}
+            <label className="flex flex-col justify-center gap-1 px-4 py-3 border border-line rounded-[var(--radius-sm)] bg-surface">
+              <span className="[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.1em] text-fg-4">Max/Welle</span>
+              <input
+                type="number"
+                min={5}
+                max={200}
+                value={maxProfiles}
+                onChange={(e) => setMaxProfiles(Math.min(200, Math.max(5, Number(e.target.value) || 5)))}
+                onBlur={() => void persistScrape({ maxProfiles })}
+                className="w-20 px-2 py-1 text-sm bg-bg text-fg border border-line-strong rounded-[var(--radius-sm)] [font-family:var(--font-mono)] focus:border-fg focus:outline-none"
+              />
+            </label>
+          </div>
+        </WaveSection>
+
         <WaveSection title="Apps" hint="Multi-Select, nur LIVE">
           <div className="flex flex-wrap gap-2">
             {appOpts.map((a) => (
@@ -254,6 +358,7 @@ export default function OutreachWaveForm({
               <>
                 {cost.waves} {cost.waves === 1 ? "Welle" : "Wellen"} · ~{cost.total.toLocaleString("de-CH")} Profile ·{" "}
                 <strong className={cn(cost.usd >= COST_CONFIRM_USD && "text-warning")}>≈ ${cost.usd.toFixed(2)}</strong> Apify
+                {cost.evomiCredits && <span className="text-fg-4"> + Evomi-Credits (TikTok)</span>}
               </>
             )}
           </div>

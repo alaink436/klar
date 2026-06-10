@@ -10,13 +10,14 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { OutreachFilterState } from "./OutreachFilters";
 
-export type OutreachTab = "pipeline" | "abrechnung" | "sperrliste" | "scrape";
+// "scrape" (Evomi) merged into Pipeline 2026-06-10: the backend switch lives in
+// the wave form, the trial card is a collapsed test bench below the targets.
+export type OutreachTab = "pipeline" | "abrechnung" | "sperrliste";
 
 const TABS: { id: OutreachTab; label: string }[] = [
   { id: "pipeline", label: "Pipeline" },
   { id: "abrechnung", label: "Abrechnung" },
   { id: "sperrliste", label: "Sperrliste" },
-  { id: "scrape", label: "Evomi" },
 ];
 
 export default function OutreachTabs({
