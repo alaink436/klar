@@ -311,7 +311,7 @@ function AppMailEditor({
       <Field label="Subject">
         <input className="kr-input" style={{ padding: "7px 10px", fontSize: 13 }} value={m1s} maxLength={200} onChange={(e) => setM1s(e.target.value)} />
       </Field>
-      <Field label="Body · {{NAME}} / {{HANDLE}} / {DRIVE_LINK}">
+      <Field label="Body · {{NAME}} / {{HANDLE}}">
         <textarea className="kr-input" style={{ padding: "9px 11px", fontSize: 13, minHeight: 150, resize: "vertical" }} rows={8} value={m1b} maxLength={10000} onChange={(e) => setM1b(e.target.value)} />
       </Field>
       <div style={{ ...lbl, marginTop: 6 }}>Mail 2 · Pitch mit Painpoint (Reply-Auto)</div>

@@ -129,7 +129,22 @@ textarea.kr-input{resize:vertical;line-height:1.5}
 [data-theme="dark"] .retro-send:active{box-shadow:0 0 0 0 rgba(250,250,250,0)}
 .kr-listscroll::-webkit-scrollbar,.kr-thread::-webkit-scrollbar{width:8px}
 .kr-listscroll::-webkit-scrollbar-thumb,.kr-thread::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
-@media(max-width:760px){.kr-handle{display:none}.kr-list{border-right:0;width:100%!important}.kr-detail{width:100%}}
+/* Filter chips wrap instead of overflowing — the list panel can be as narrow
+   as ~25% of the viewport even on desktop, where one chip row never fits. */
+.kr-list .seg{display:flex;flex-wrap:wrap;row-gap:4px}
+@media(max-width:760px){
+  .kr-handle{display:none}
+  .kr-list{border-right:0;width:100%!important}
+  .kr-detail{width:100%}
+  /* Tighter chrome on phones: less padding everywhere, bubbles use almost the
+     full width, header + composer shrink so the thread keeps the space. */
+  .kr-header{padding:10px 12px!important}
+  .kr-thread{padding:12px 10px;gap:11px}
+  .kr-bubble{max-width:94%}
+  .kr-composer{padding:10px 12px!important}
+  .kr-composer textarea.kr-input{min-height:120px!important}
+  .kr-item{padding:11px 12px}
+}
 `;
 
 function pickLang(raw: string): ReplyLang {
@@ -769,7 +784,7 @@ export default function MailClient({
           ) : (
             <>
               {/* Header */}
-              <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 10 }}>
+              <div className="kr-header" style={{ padding: "16px 24px", borderBottom: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 11, flexWrap: "wrap" }}>
                   {narrow && (
                     <button className="kr-mini" onClick={() => setSelectedId(null)}>← Liste</button>
@@ -1046,7 +1061,7 @@ export default function MailClient({
               </div>
 
               {/* Composer — collapsed to a click-bar until opened */}
-              <div style={{ borderTop: "1px solid var(--line)", padding: "14px 24px", display: "flex", flexDirection: "column", gap: 9, background: "var(--surface)" }}>
+              <div className="kr-composer" style={{ borderTop: "1px solid var(--line)", padding: "14px 24px", display: "flex", flexDirection: "column", gap: 9, background: "var(--surface)" }}>
                 {!composerOpen ? (
                   <button
                     type="button"
