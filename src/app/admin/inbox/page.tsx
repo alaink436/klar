@@ -26,6 +26,7 @@ import {
 import { KLAR_APPS } from "../../../lib/klarApps";
 import { getReplyTemplates } from "../../../lib/replyTemplateStore";
 import { loadAffiliateChatInbox } from "../../../lib/affiliateChatStore";
+import { listStarredIds } from "../../../lib/inboxStars";
 import MailClient, {
   type Conversation,
   type ThreadMessage,
@@ -388,9 +389,10 @@ export default async function InboxPage({
     };
   });
 
-  const conversations: Conversation[] = [...inquiryConvs, ...dedupedOutreach, ...chatConvs].sort(
-    (a, b) => (b.lastActivityAt || "").localeCompare(a.lastActivityAt || ""),
-  );
+  const starredIds = await listStarredIds();
+  const conversations: Conversation[] = [...inquiryConvs, ...dedupedOutreach, ...chatConvs]
+    .sort((a, b) => (b.lastActivityAt || "").localeCompare(a.lastActivityAt || ""))
+    .map((c) => (starredIds.has(c.id) ? { ...c, starred: true } : c));
 
   // ── Mailer drawer data ───────────────────────────────────────────────────
   const dueMail1 = (await listTargetsForMail1(500)).length;

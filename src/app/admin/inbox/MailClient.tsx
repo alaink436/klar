@@ -56,6 +56,8 @@ export interface Conversation {
   // Source of the conversation. "outreach" = scraped target thread (default,
   // also covers awaiting), "inquiry" = website contact-form request.
   kind?: "outreach" | "inquiry" | "affiliate-chat";
+  // Admin star (klar_inbox_stars). Toggled optimistically in the client.
+  starred?: boolean;
   // Present when kind === "inquiry": the website request + approve/decline state.
   inquiry?: InquiryMeta;
 }
@@ -236,10 +238,19 @@ export default function MailClient({
     setTplMap(templates);
   }
   const [tplOpen, setTplOpen] = useState(false);
+  // Per-app outreach mails (Mail-1/Mail-2) in state so the in-inbox editor can
+  // mutate them live (composer dropdown inserts the fresh text). Same re-seed
+  // pattern as the reply templates above.
+  const [appMailRows, setAppMailRows] = useState(appMail);
+  const [appMailSeededFrom, setAppMailSeededFrom] = useState(appMail);
+  if (appMailSeededFrom !== appMail) {
+    setAppMailSeededFrom(appMail);
+    setAppMailRows(appMail);
+  }
 
   const [selectedId, setSelectedId] = useState<string | null>(conversations[0]?.id ?? null);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "inquiry" | "replied" | "converted" | "open">("all");
+  const [filter, setFilter] = useState<"all" | "starred" | "inquiry" | "replied" | "converted" | "open">("all");
   const [sizeFilter, setSizeFilter] = useState<SizeBucket | "all">("all");
   const [narrow, setNarrow] = useState(false);
   const [mailerOpen, setMailerOpen] = useState(false);
@@ -348,9 +359,32 @@ export default function MailClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
+  // Toggle the star on a conversation: optimistic flip, revert on error.
+  const toggleStar = useCallback(
+    async (id: string) => {
+      const cur = convs.find((c) => c.id === id);
+      if (!cur) return;
+      const next = !cur.starred;
+      setConvs((prev) => prev.map((c) => (c.id === id ? { ...c, starred: next } : c)));
+      try {
+        const res = await fetch("/admin/inbox/star", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, on: next }),
+        });
+        const j = (await res.json().catch(() => ({ ok: false }))) as { ok?: boolean };
+        if (!res.ok || !j.ok) throw new Error("star failed");
+      } catch {
+        setConvs((prev) => prev.map((c) => (c.id === id ? { ...c, starred: !next } : c)));
+      }
+    },
+    [convs],
+  );
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return convs.filter((c) => {
+      if (filter === "starred" && !c.starred) return false;
       if (filter === "inquiry" && c.kind !== "inquiry") return false;
       if (filter === "replied" && (c.kind === "inquiry" || c.awaiting || c.status !== "replied")) return false;
       if (filter === "converted" && c.status !== "converted") return false;
@@ -553,8 +587,8 @@ export default function MailClient({
   const showDetail = !narrow || !!sel;
   const convApp = sel?.apps?.[0] ?? "";
   const appMailRow = useMemo(
-    () => (sel && convApp ? appMail.find((m) => m.app_slug === convApp && m.language === pickLang(sel.language)) ?? null : null),
-    [appMail, sel, convApp],
+    () => (sel && convApp ? appMailRows.find((m) => m.app_slug === convApp && m.language === pickLang(sel.language)) ?? null : null),
+    [appMailRows, sel, convApp],
   );
   const baseTpls = sel ? tplMap[lang] ?? tplMap.de ?? [] : [];
   // If this conversation's app has a full Mail-2 pitch (with painpoint), show it
@@ -600,14 +634,15 @@ export default function MailClient({
               onChange={(e) => setQuery(e.target.value)}
             />
             <div className="seg" style={{ alignSelf: "flex-start" }}>
-              {(["all", "inquiry", "replied", "open", "converted"] as const).map((f) => (
+              {(["all", "starred", "inquiry", "replied", "open", "converted"] as const).map((f) => (
                 <a
                   key={f}
                   className={filter === f ? "on" : ""}
                   style={{ cursor: "pointer" }}
+                  title={f === "starred" ? "Nur mit Stern markierte" : undefined}
                   onClick={() => setFilter(f)}
                 >
-                  {f === "all" ? "Alle" : f === "inquiry" ? "Anfragen" : f === "replied" ? "Antworten" : f === "open" ? "Offen" : "Angenommen"}
+                  {f === "all" ? "Alle" : f === "starred" ? "★" : f === "inquiry" ? "Anfragen" : f === "replied" ? "Antworten" : f === "open" ? "Offen" : "Angenommen"}
                 </a>
               ))}
             </div>
@@ -680,6 +715,15 @@ export default function MailClient({
                       <span className="muted" suppressHydrationWarning style={{ fontSize: 10.5, fontFamily: "var(--font-mono)", whiteSpace: "nowrap" }}>
                         {rel(c.lastInboundAt || c.lastActivityAt)}
                       </span>
+                      <span
+                        role="button"
+                        aria-label={c.starred ? "Stern entfernen" : "Mit Stern markieren"}
+                        title={c.starred ? "Stern entfernen" : "Mit Stern markieren"}
+                        onClick={(e) => { e.stopPropagation(); void toggleStar(c.id); }}
+                        style={{ flexShrink: 0, fontSize: 14, lineHeight: 1, cursor: "pointer", color: c.starred ? "var(--warning)" : "var(--fg-4)", padding: "0 1px" }}
+                      >
+                        {c.starred ? "★" : "☆"}
+                      </span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
                       {firstApp && (
@@ -737,6 +781,15 @@ export default function MailClient({
                     <div style={{ display: "flex", alignItems: "baseline", gap: 9, flexWrap: "wrap" }}>
                       <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 19, letterSpacing: "-0.01em", color: "var(--fg)" }}>
                         {sel.displayName || `@${sel.handle}`}
+                      </span>
+                      <span
+                        role="button"
+                        aria-label={sel.starred ? "Stern entfernen" : "Mit Stern markieren"}
+                        title={sel.starred ? "Stern entfernen" : "Mit Stern markieren"}
+                        onClick={() => void toggleStar(sel.id)}
+                        style={{ fontSize: 17, lineHeight: 1, cursor: "pointer", color: sel.starred ? "var(--warning)" : "var(--fg-4)" }}
+                      >
+                        {sel.starred ? "★" : "☆"}
                       </span>
                       {sel.profileUrl ? (
                         <a className="applink" href={sel.profileUrl} target="_blank" rel="noopener" style={{ fontSize: 12.5 }}>
@@ -1035,6 +1088,15 @@ export default function MailClient({
                     <button type="button" className="kr-mini" onClick={() => setTplOpen(true)} title="Vorlagen verwalten">
                       Vorlagen ✎
                     </button>
+                    <button
+                      type="button"
+                      className="kr-mini"
+                      onClick={() => setComposerOpen(false)}
+                      title="Schreibfeld einklappen (Entwurf bleibt erhalten)"
+                      aria-label="Schreibfeld einklappen"
+                    >
+                      ✕
+                    </button>
                   </div>
                 </div>
                 <input
@@ -1119,6 +1181,16 @@ export default function MailClient({
               baseMap={tplMap}
               onClose={() => setTplOpen(false)}
               onMapChange={(m) => setTplMap(m)}
+              appMail={appMailRows}
+              appSlugs={appSlugs}
+              appNames={Object.fromEntries(appSlugs.map((s) => [s, appMeta[s]?.name ?? s]))}
+              initialApp={convApp || undefined}
+              onAppMailSaved={(row) =>
+                setAppMailRows((prev) => {
+                  const i = prev.findIndex((r) => r.app_slug === row.app_slug && r.language === row.language);
+                  return i >= 0 ? prev.map((r, idx) => (idx === i ? row : r)) : [...prev, row];
+                })
+              }
             />
           </div>
         </div>

@@ -1,14 +1,16 @@
 "use client";
 
-// In-inbox reply-template manager. Opens as a drawer from the composer so Alain
-// can edit / add / delete the canned replies without leaving the mailbox. CRUD
-// goes against /admin/reply-templates/api (JSON); every change rebuilds the
-// grouped template map and hands it back to MailClient via onMapChange, so the
-// composer dropdown reflects edits instantly (no reload). The standalone
-// /admin/reply-templates page stays for full-screen editing.
+// In-inbox template manager. Opens as a drawer from the composer so Alain can
+// edit the canned replies AND the per-app outreach mails (Mail-1 / Mail-2)
+// without leaving the mailbox. Reply CRUD goes against /admin/reply-templates/api,
+// the outreach mails against /admin/templates/api (both JSON); every change is
+// handed back to MailClient (onMapChange / onAppMailSaved), so the composer
+// dropdown reflects edits instantly (no reload). The standalone
+// /admin/reply-templates and /admin/templates pages stay for full-screen editing.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReplyLang, ReplyTemplate } from "@/lib/replyTemplates";
+import type { AppMailTemplate } from "@/lib/outreachStore";
 
 const LANGS: ReplyLang[] = ["de", "en", "es", "it", "fr"];
 const LANG_NAME: Record<ReplyLang, string> = {
@@ -231,20 +233,139 @@ function AddCard({ lang, onAdd }: { lang: ReplyLang; onAdd: (r: { template_key: 
   );
 }
 
+// Editor for one app x language outreach template: both mail variants (Mail-1
+// Erstkontakt + Mail-2 Pitch) editable side by side. Saves via
+// /admin/templates/api and hands the fresh row up so the composer dropdown
+// inserts the new text immediately.
+function AppMailEditor({
+  app,
+  appName,
+  lang,
+  row,
+  onSaved,
+}: {
+  app: string;
+  appName: string;
+  lang: ReplyLang;
+  row: AppMailTemplate | null;
+  onSaved: (row: AppMailTemplate) => void;
+}) {
+  const [m1s, setM1s] = useState(row?.mail1_subject ?? "");
+  const [m1b, setM1b] = useState(row?.mail1_body ?? "");
+  const [m2s, setM2s] = useState(row?.mail2_subject ?? "");
+  const [m2b, setM2b] = useState(row?.mail2_body ?? "");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  // Re-seed when switching app/lang or after a save round-trip.
+  useEffect(() => {
+    setM1s(row?.mail1_subject ?? "");
+    setM1b(row?.mail1_body ?? "");
+    setM2s(row?.mail2_subject ?? "");
+    setM2b(row?.mail2_body ?? "");
+    setErr(null);
+  }, [app, lang, row?.updated_at]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const dirty =
+    m1s !== (row?.mail1_subject ?? "") ||
+    m1b !== (row?.mail1_body ?? "") ||
+    m2s !== (row?.mail2_subject ?? "") ||
+    m2b !== (row?.mail2_body ?? "");
+
+  const save = useCallback(async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch("/admin/templates/api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          app_slug: app,
+          language: lang,
+          mail1_subject: m1s,
+          mail1_body: m1b,
+          mail2_subject: m2s,
+          mail2_body: m2b,
+        }),
+      });
+      const j = (await res.json()) as { ok?: boolean; row?: AppMailTemplate; error?: string };
+      if (res.ok && j.ok && j.row) onSaved(j.row);
+      else setErr(j.error || "Speichern fehlgeschlagen.");
+    } catch {
+      setErr("Netzwerkfehler beim Speichern.");
+    } finally {
+      setBusy(false);
+    }
+  }, [app, lang, m1s, m1b, m2s, m2b, onSaved]);
+
+  return (
+    <div style={card}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontWeight: 700, fontSize: 14 }}>{appName}</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: 5, padding: "1px 7px" }}>
+          {app} · {lang}
+        </span>
+        {!row && <span className="muted" style={{ fontSize: 11.5 }}>noch kein Template — Speichern legt es an</span>}
+      </div>
+      <div style={lbl}>Mail 1 · Erstkontakt</div>
+      <Field label="Subject">
+        <input className="kr-input" style={{ padding: "7px 10px", fontSize: 13 }} value={m1s} maxLength={200} onChange={(e) => setM1s(e.target.value)} />
+      </Field>
+      <Field label="Body · {{NAME}} / {{HANDLE}} / {DRIVE_LINK}">
+        <textarea className="kr-input" style={{ padding: "9px 11px", fontSize: 13, minHeight: 150, resize: "vertical" }} rows={8} value={m1b} maxLength={10000} onChange={(e) => setM1b(e.target.value)} />
+      </Field>
+      <div style={{ ...lbl, marginTop: 6 }}>Mail 2 · Pitch mit Painpoint (Reply-Auto)</div>
+      <Field label="Subject · leer = „Re: …“ vom Reply-Tracker">
+        <input className="kr-input" style={{ padding: "7px 10px", fontSize: 13 }} value={m2s} maxLength={200} onChange={(e) => setM2s(e.target.value)} />
+      </Field>
+      <Field label="Body">
+        <textarea className="kr-input" style={{ padding: "9px 11px", fontSize: 13, minHeight: 150, resize: "vertical" }} rows={8} value={m2b} maxLength={10000} onChange={(e) => setM2b(e.target.value)} />
+      </Field>
+      {err && <span style={{ fontSize: 12, color: "var(--danger)" }}>{err}</span>}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <button
+          className="retro-send"
+          style={{ padding: "7px 16px", fontSize: 12.5 }}
+          disabled={!dirty || busy}
+          onClick={() => void save()}
+        >
+          {busy ? "Speichere…" : dirty ? "Speichern" : "Gespeichert"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function TemplateManager({
   lang,
   baseMap,
   onClose,
   onMapChange,
+  appMail,
+  appSlugs,
+  appNames,
+  initialApp,
+  onAppMailSaved,
 }: {
   lang: ReplyLang;
   baseMap: MapT;
   onClose: () => void;
   onMapChange: (m: MapT) => void;
+  appMail: AppMailTemplate[];
+  appSlugs: string[];
+  appNames: Record<string, string>;
+  initialApp?: string;
+  onAppMailSaved: (row: AppMailTemplate) => void;
 }) {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [active, setActive] = useState<ReplyLang>(lang);
   const [loadErr, setLoadErr] = useState<string | null>(null);
+  // Which template family is being edited: canned replies or the per-app
+  // outreach mails (Mail-1 / Mail-2).
+  const [view, setView] = useState<"replies" | "appmail">("replies");
+  const [activeApp, setActiveApp] = useState<string>(
+    initialApp && appSlugs.includes(initialApp) ? initialApp : appSlugs[0] ?? "",
+  );
 
   useEffect(() => {
     let alive = true;
@@ -320,10 +441,23 @@ export default function TemplateManager({
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "18px 22px 14px", borderBottom: "1px solid var(--line)" }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--fg)" }}>Antwort-Vorlagen</div>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--fg)" }}>Vorlagen</div>
           <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>Änderungen wirken sofort im Composer.</div>
         </div>
         <button className="kr-mini" onClick={onClose}>Schließen</button>
+      </div>
+
+      <div style={{ display: "flex", gap: 6, padding: "12px 22px 0", flexWrap: "wrap" }}>
+        {([["replies", "Antworten"], ["appmail", "Outreach Mail 1+2"]] as const).map(([v, label]) => (
+          <button
+            key={v}
+            className="kr-mini"
+            onClick={() => setView(v)}
+            style={view === v ? { background: "var(--fg)", color: "var(--bg)", borderColor: "var(--fg)", fontWeight: 600 } : undefined}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       <div style={{ display: "flex", gap: 6, padding: "12px 22px", borderBottom: "1px solid var(--line)", flexWrap: "wrap" }}>
@@ -335,11 +469,44 @@ export default function TemplateManager({
             style={active === l ? { background: "var(--fg)", color: "var(--bg)", borderColor: "var(--fg)", fontWeight: 600 } : undefined}
           >
             {LANG_NAME[l]}
-            <span style={{ marginLeft: 6, opacity: 0.6, fontSize: 10.5 }}>{(rows ?? []).filter((r) => r.language === l).length}</span>
+            {view === "replies" ? (
+              <span style={{ marginLeft: 6, opacity: 0.6, fontSize: 10.5 }}>{(rows ?? []).filter((r) => r.language === l).length}</span>
+            ) : (
+              <span style={{ marginLeft: 6, opacity: 0.6, fontSize: 10.5 }}>
+                {appMail.some((m) => m.app_slug === activeApp && m.language === l && (m.mail1_body || m.mail2_body)) ? "●" : "○"}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
+      {view === "appmail" ? (
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {appSlugs.map((s) => (
+              <button
+                key={s}
+                className="kr-mini"
+                onClick={() => setActiveApp(s)}
+                style={activeApp === s ? { background: "var(--fg)", color: "var(--bg)", borderColor: "var(--fg)", fontWeight: 600 } : undefined}
+              >
+                {appNames[s] ?? s}
+              </button>
+            ))}
+          </div>
+          {activeApp ? (
+            <AppMailEditor
+              app={activeApp}
+              appName={appNames[activeApp] ?? activeApp}
+              lang={active}
+              row={appMail.find((m) => m.app_slug === activeApp && m.language === active) ?? null}
+              onSaved={onAppMailSaved}
+            />
+          ) : (
+            <div className="muted" style={{ fontSize: 13 }}>Keine Apps konfiguriert.</div>
+          )}
+        </div>
+      ) : (
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
         {loadErr ? (
           <div style={{ color: "var(--danger)", fontSize: 13 }}>{loadErr}</div>
@@ -363,6 +530,7 @@ export default function TemplateManager({
           </>
         )}
       </div>
+      )}
     </div>
   );
 }
