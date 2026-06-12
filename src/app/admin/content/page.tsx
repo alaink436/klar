@@ -1,11 +1,12 @@
 // Klar Control · Content — Blotato posting-pipeline dashboard.
 //
 // Server component, same 2FA gate as the rest of /admin. Shows what goes out
-// through Blotato: posts per connected channel, schedule/failure status and the
-// recent post history. Data comes from lib/blotato.ts (key from the vault,
-// provider "blotato"); no DB tables involved — Blotato's post list IS the state.
+// through Blotato: posts + views per connected channel, a published-over-time
+// chart, top posts by views and the post history. Data comes from
+// lib/blotato.ts (key from the vault, provider "blotato"); views/likes come
+// from GET /v2/analytics (lifetime metrics of posts created in the range).
 //
-// Note: GET /v2/posts has no accountId field, so per-channel counts group by
+// Note: GET /v2/posts has no accountId field, so per-channel numbers group by
 // platform. With one account per platform (current setup) that is identical;
 // if a second account on the same platform is ever connected, mirror posts into
 // a klar table at publish time to keep exact per-account counts.
@@ -15,11 +16,17 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ICON, readCookieFromString, fmtRelative } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
-import { getBlotatoOverview, type BlotatoAccount, type BlotatoPost } from "../../../lib/blotato";
+import {
+  getBlotatoOverview,
+  type BlotatoAccount,
+  type BlotatoAnalyticsItem,
+  type BlotatoPost,
+} from "../../../lib/blotato";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import ContentChart, { type ContentChartRow } from "./ContentChart";
 import type { ReactNode } from "react";
 
 export const dynamic = "force-dynamic";
@@ -82,18 +89,25 @@ function platformMeta(p: string): { label: string; icon: ReactNode } {
   );
 }
 
+// ---------- formatting ----------
+
 // fmtRelative is past-only; scheduled posts sit in the future.
 function fmtWhen(ts: string): string {
   const d = new Date(ts);
   if (isNaN(d.getTime())) return "—";
   const diff = d.getTime() - Date.now();
   if (diff > 0) {
-    const days = Math.ceil(diff / 86_400_000);
     if (diff < 3_600_000) return `in ${Math.max(1, Math.round(diff / 60_000))}min`;
     if (diff < 86_400_000) return `in ${Math.round(diff / 3_600_000)}h`;
-    return `in ${days}d`;
+    return `in ${Math.ceil(diff / 86_400_000)}d`;
   }
   return fmtRelative(ts);
+}
+
+function fmtCompact(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1).replace(/\.0$/, "") + "M";
+  if (n >= 1_000) return (n / 1_000).toFixed(n >= 10_000 ? 0 : 1).replace(/\.0$/, "") + "k";
+  return String(n);
 }
 
 // ---------- presentational bits ----------
@@ -103,35 +117,55 @@ function Kpi({ k, v, s }: { k: string; v: ReactNode; s: ReactNode }) {
     <Card className="px-5 py-4">
       <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">{k}</div>
       <div className="[font-family:var(--font-display)] font-extrabold text-[32px] leading-none tracking-[-0.03em] text-fg mt-2 [font-variant-numeric:tabular-nums]">{v}</div>
-      <div className="text-[13px] text-fg-3 mt-2 font-medium">{s}</div>
+      <div className="text-[12.5px] text-fg-3 mt-2 font-medium truncate">{s}</div>
     </Card>
   );
 }
 
 function SectionHead({ children }: { children: ReactNode }) {
   return (
-    <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.16em] text-fg-3 mb-3 mt-8 flex items-center gap-2.5 after:content-[''] after:flex-1 after:h-px after:bg-line">
+    <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.16em] text-fg-3 mb-3 mt-9 flex items-center gap-2.5 after:content-[''] after:flex-1 after:h-px after:bg-line">
       {children}
     </div>
   );
 }
 
-function RangeChips({ active }: { active: RangeKey }) {
+function RangeSegment({ active }: { active: RangeKey }) {
   return (
-    <div className="flex flex-wrap gap-1.5 mb-6">
+    <div className="inline-flex items-center gap-0.5 rounded-full border border-line bg-surface p-1 shadow-[var(--shadow-sm)]">
       {RANGES.map((r) => (
         <Link
           key={r.key}
           href={`/admin/content?range=${r.key}`}
-          className={`[font-family:var(--font-mono)] text-[11px] px-3 py-1.5 rounded-full border transition-colors ${
+          className={`[font-family:var(--font-mono)] text-[10.5px] uppercase tracking-[0.06em] px-3 py-1.5 rounded-full border transition-colors ${
             active === r.key
               ? "border-line-strong bg-surface-2 text-fg font-semibold"
-              : "border-line text-fg-3 hover:text-fg hover:bg-surface-2"
+              : "border-transparent text-fg-3 hover:text-fg"
           }`}
         >
           {r.label}
         </Link>
       ))}
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <div className="[font-family:var(--font-mono)] text-[9px] uppercase tracking-[0.12em] text-fg-4">{label}</div>
+      <div className="[font-family:var(--font-display)] font-extrabold text-[22px] leading-none tracking-[-0.02em] text-fg mt-1.5 [font-variant-numeric:tabular-nums]">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="w-14 text-right">
+      <div className="text-[13px] font-semibold text-fg [font-variant-numeric:tabular-nums]">{value}</div>
+      <div className="[font-family:var(--font-mono)] text-[8.5px] uppercase tracking-[0.1em] text-fg-4 mt-0.5">{label}</div>
     </div>
   );
 }
@@ -144,38 +178,111 @@ const STATE_BADGE: Record<BlotatoPost["state"]["type"], { tone: "ok" | "info" | 
 
 function ChannelCard({
   account,
-  inRange,
-  total,
+  posts,
+  views,
+  likes,
   lastPost,
-  rangeLabel,
 }: {
   account: BlotatoAccount;
-  inRange: number;
-  total: number;
+  posts: number;
+  views: number;
+  likes: number;
   lastPost: string | null;
-  rangeLabel: string;
 }) {
   const meta = platformMeta(account.platform);
   return (
-    <Card className="px-5 py-4 flex items-start gap-4">
-      <div className="size-10 shrink-0 rounded-[var(--radius-sm)] border border-line bg-surface-2 text-fg-2 p-2.5">
-        {meta.icon}
+    <Card className="px-5 py-4">
+      <div className="flex items-center gap-3">
+        <div className="size-9 shrink-0 rounded-[var(--radius-sm)] border border-line bg-surface-2 text-fg-2 p-2">{meta.icon}</div>
+        <div className="min-w-0">
+          <div className="font-semibold text-fg text-[14px] leading-tight truncate">@{account.username || account.id}</div>
+          <div className="[font-family:var(--font-mono)] text-[9px] uppercase tracking-[0.14em] text-fg-4 mt-0.5">{meta.label}</div>
+        </div>
+        <span className="ml-auto text-[11px] text-fg-4 whitespace-nowrap">
+          {lastPost ? `letzter ${fmtRelative(lastPost)}` : "noch kein Post"}
+        </span>
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          <span className="font-semibold text-fg text-[14px] truncate">@{account.username || account.id}</span>
-          <span className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.12em] text-fg-4">{meta.label}</span>
-        </div>
-        <div className="[font-family:var(--font-display)] font-extrabold text-[28px] leading-none tracking-[-0.03em] text-fg mt-2 [font-variant-numeric:tabular-nums]">
-          {inRange}
-        </div>
-        <div className="text-[12px] text-fg-3 mt-1.5">
-          Posts ({rangeLabel}) · {total} gesamt
-          {lastPost ? <span className="text-fg-4"> · letzter {fmtRelative(lastPost)}</span> : null}
-        </div>
+      <div className="grid grid-cols-3 gap-2 mt-4 pt-3.5 border-t border-line">
+        <Stat label="Posts" value={posts} />
+        <Stat label="Views" value={fmtCompact(views)} />
+        <Stat label="Likes" value={fmtCompact(likes)} />
       </div>
     </Card>
   );
+}
+
+// ---------- chart bucketing ----------
+
+function buildChart(
+  published: BlotatoPost[],
+  rangeKey: RangeKey,
+  sinceMs: number,
+): { rows: ContentChartRow[]; categories: string[]; unitLabel: string } {
+  const now = Date.now();
+  const DAY = 86_400_000;
+  let buckets: { start: number; end: number; label: string }[] = [];
+  let unitLabel: string;
+  const dayLabel = (t: number) => {
+    const d = new Date(t);
+    return `${d.getDate()}.${d.getMonth() + 1}.`;
+  };
+  if (rangeKey === "7d") {
+    unitLabel = "Tag";
+    for (let i = 6; i >= 0; i--) {
+      const start = now - i * DAY;
+      buckets.push({ start: start - DAY, end: start, label: dayLabel(start) });
+    }
+  } else if (rangeKey === "all") {
+    unitLabel = "Monat";
+    const first = published.length ? new Date(published[published.length - 1].postTime) : new Date(now);
+    const cur = new Date(first.getFullYear(), first.getMonth(), 1);
+    const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+    while (cur.getTime() <= now) {
+      const next = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+      buckets.push({ start: cur.getTime(), end: next.getTime(), label: `${MONTHS[cur.getMonth()]} ${String(cur.getFullYear()).slice(2)}` });
+      cur.setMonth(cur.getMonth() + 1);
+    }
+    buckets = buckets.slice(-12); // newest 12 months
+  } else {
+    unitLabel = "Woche";
+    const weeks = rangeKey === "30d" ? 5 : 13;
+    for (let i = weeks - 1; i >= 0; i--) {
+      const end = now - i * 7 * DAY;
+      buckets.push({ start: end - 7 * DAY, end, label: dayLabel(end - 7 * DAY) });
+    }
+  }
+
+  const inRange = published.filter((p) => new Date(p.postTime).getTime() >= sinceMs);
+  const platforms = [...new Set(inRange.map((p) => platformMeta(p.platform).label))];
+  const totals = new Map<string, number>(platforms.map((pl) => [pl, 0]));
+  const rows: ContentChartRow[] = buckets.map((b) => {
+    const row: ContentChartRow = { label: b.label };
+    for (const pl of platforms) row[pl] = 0;
+    for (const p of inRange) {
+      const t = new Date(p.postTime).getTime();
+      if (t >= b.start && t < b.end) {
+        const pl = platformMeta(p.platform).label;
+        row[pl] = (row[pl] as number) + 1;
+        totals.set(pl, (totals.get(pl) ?? 0) + 1);
+      }
+    }
+    return row;
+  });
+  // 3 chart tokens available — order by volume, fold the tail into "Andere".
+  const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]).map(([pl]) => pl);
+  let categories = ranked;
+  if (ranked.length > 3) {
+    categories = [...ranked.slice(0, 2), "Andere"];
+    for (const row of rows) {
+      let rest = 0;
+      for (const pl of ranked.slice(2)) {
+        rest += (row[pl] as number) ?? 0;
+        delete row[pl];
+      }
+      row["Andere"] = rest;
+    }
+  }
+  return { rows, categories, unitLabel };
 }
 
 // ---------- page ----------
@@ -200,7 +307,7 @@ export default async function ContentPage({
   const range = RANGES.find((r) => r.key === sp.range) ?? RANGES[1]; // default 30d
   const sinceMs = range.days == null ? 0 : Date.now() - range.days * 86_400_000;
 
-  const data = await getBlotatoOverview();
+  const data = await getBlotatoOverview(range.days == null ? undefined : new Date(sinceMs).toISOString());
 
   const topbar = `
     <span class="crumb"><b>Content</b>${ICON.chevron}<span>Klar Control</span></span>
@@ -219,18 +326,58 @@ export default async function ContentPage({
     .filter((p) => new Date(p.postTime).getTime() > Date.now())
     .sort((a, b) => (a.postTime > b.postTime ? 1 : -1))[0];
 
+  // Metrics (lifetime values of posts created in the range, from /v2/analytics).
+  const analytics = data.analytics.filter((a) => !a.createdAt || new Date(a.createdAt).getTime() >= sinceMs);
+  const sum = (f: (a: BlotatoAnalyticsItem) => number) => analytics.reduce((acc, a) => acc + f(a), 0);
+  const viewsTotal = sum((a) => a.metrics.views);
+  const likesTotal = sum((a) => a.metrics.likes);
+  const commentsTotal = sum((a) => a.metrics.comments);
+  const sharesTotal = sum((a) => a.metrics.shares);
+  const engagementTotal = likesTotal + commentsTotal + sharesTotal;
+
+  const byId = new Map(analytics.map((a) => [a.id, a]));
+  const byUrl = new Map(analytics.filter((a) => a.postUrl).map((a) => [a.postUrl as string, a]));
+  const metricsFor = (p: BlotatoPost): BlotatoAnalyticsItem | undefined =>
+    byId.get(p.id) ?? (p.state.postUrl ? byUrl.get(p.state.postUrl) : undefined);
+
   const perPlatform = (platform: string) => {
     const all = published.filter((p) => p.platform === platform);
+    const a = analytics.filter((x) => x.platform === platform);
     return {
-      total: all.length,
       inRange: all.filter((p) => new Date(p.postTime).getTime() >= sinceMs).length,
+      views: a.reduce((acc, x) => acc + x.metrics.views, 0),
+      likes: a.reduce((acc, x) => acc + x.metrics.likes, 0),
       lastPost: all[0]?.postTime ?? null,
     };
   };
 
+  const topPosts = analytics
+    .filter((a) => a.metrics.views + a.metrics.likes + a.metrics.comments > 0)
+    .sort((a, b) => b.metrics.views - a.metrics.views)
+    .slice(0, 5);
+
+  const chart = buildChart(published, range.key, sinceMs);
   const recentPosts = data.posts
     .filter((p) => p.state.type === "scheduled" || new Date(p.postTime).getTime() >= sinceMs)
     .slice(0, 30);
+
+  const stand = new Intl.DateTimeFormat("de-CH", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Zurich",
+  }).format(new Date(data.fetched_at));
+
+  const viewsSub =
+    viewsTotal > 0
+      ? [...new Set(analytics.map((a) => a.platform))]
+          .map((pl) => ({ pl, v: analytics.filter((a) => a.platform === pl).reduce((acc, a) => acc + a.metrics.views, 0) }))
+          .sort((a, b) => b.v - a.v)
+          .slice(0, 2)
+          .map(({ pl, v }) => `${platformMeta(pl).label} ${fmtCompact(v)}`)
+          .join(" · ")
+      : publishedInRange.length > 0
+        ? "Blotato sammelt Metriken nach"
+        : "kommt mit dem ersten Post";
 
   return (
     <>
@@ -238,11 +385,11 @@ export default async function ContentPage({
       <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
       <div className="content">
         <PageHeader eyebrow="Posting-Pipeline" title="Content">
-          Was über Blotato rausgeht: Posts pro Kanal, Zeitplan und Status, direkt aus der Blotato-API.
+          Posts, Views und Zeitplan aller Blotato-Kanäle.
         </PageHeader>
 
         {!data.ok ? (
-          <Card className="px-6 py-5 border-danger/40">
+          <Card className="px-6 py-5">
             <div className="font-semibold text-fg text-[14px] mb-1.5">Blotato nicht erreichbar</div>
             <p className="text-[13px] text-fg-3 m-0 leading-relaxed">
               {data.reason === "no-key" ? (
@@ -259,53 +406,124 @@ export default async function ContentPage({
           </Card>
         ) : (
           <>
-            <RangeChips active={range.key} />
-
-            <div className="grid gap-3 mb-7 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
-              <Kpi
-                k={`Published (${range.label})`}
-                v={publishedInRange.length}
-                s={`${published.length} gesamt${data.truncated ? " (letzte 2000)" : ""}`}
-              />
-              <Kpi
-                k="Geplant"
-                v={scheduled.length}
-                s={nextScheduled ? `nächster ${fmtWhen(nextScheduled.postTime)}` : "nichts in der Queue"}
-              />
-              <Kpi k={`Failed (${range.label})`} v={failedInRange.length} s={failedInRange.length ? "Fehler unten in der Liste" : "keine Fehler"} />
-              <Kpi
-                k="Kanäle"
-                v={data.accounts.length}
-                s={data.accounts.length ? data.accounts.map((a) => platformMeta(a.platform).label).join(" · ") : "keine verbunden"}
-              />
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+              <RangeSegment active={range.key} />
+              <span className="[font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.1em] text-fg-4">
+                Stand {stand}
+              </span>
             </div>
 
-            <SectionHead>Kanäle</SectionHead>
-            {data.accounts.length === 0 ? (
-              <Card className="px-6 py-5">
-                <p className="text-[13px] text-fg-3 m-0">
-                  Keine Social-Accounts mit Blotato verbunden. In der Blotato-App unter Accounts verbinden.
-                </p>
-              </Card>
-            ) : (
-              <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
-                {data.accounts.map((a) => {
-                  const agg = perPlatform(a.platform);
-                  return (
-                    <ChannelCard
-                      key={a.id}
-                      account={a}
-                      inRange={agg.inRange}
-                      total={agg.total}
-                      lastPost={agg.lastPost}
-                      rangeLabel={range.label}
-                    />
-                  );
-                })}
-              </div>
-            )}
+            <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(165px,1fr))]">
+              <Kpi k="Published" v={publishedInRange.length} s={`${published.length} gesamt${data.truncated ? " (letzte 2000)" : ""}`} />
+              <Kpi k="Views" v={fmtCompact(viewsTotal)} s={viewsSub} />
+              <Kpi
+                k="Engagement"
+                v={fmtCompact(engagementTotal)}
+                s={
+                  engagementTotal > 0
+                    ? `${fmtCompact(likesTotal)} Likes · ${fmtCompact(commentsTotal)} Komm. · ${fmtCompact(sharesTotal)} Shares`
+                    : "Likes, Kommentare und Shares"
+                }
+              />
+              <Kpi k="Geplant" v={scheduled.length} s={nextScheduled ? `nächster ${fmtWhen(nextScheduled.postTime)}` : "nichts in der Queue"} />
+            </div>
 
-            <SectionHead>Posts ({range.label} + geplant)</SectionHead>
+            {failedInRange.length > 0 ? (
+              <div className="mt-3 px-4 py-3 rounded-[var(--radius-sm)] border border-red-500/25 bg-red-500/5 text-[12.5px] text-fg-2">
+                <span className="font-semibold text-danger">
+                  {failedInRange.length} {failedInRange.length === 1 ? "Post" : "Posts"} fehlgeschlagen
+                </span>{" "}
+                im Zeitraum, Details unten in der Historie.
+              </div>
+            ) : null}
+
+            <SectionHead>Kanäle &amp; Verlauf</SectionHead>
+            <div className="grid gap-3 lg:[grid-template-columns:minmax(300px,5fr)_7fr]">
+              <div className="grid gap-3 content-start">
+                {data.accounts.length === 0 ? (
+                  <Card className="px-5 py-4">
+                    <p className="text-[13px] text-fg-3 m-0">
+                      Keine Social-Accounts mit Blotato verbunden. In der Blotato-App unter Accounts verbinden.
+                    </p>
+                  </Card>
+                ) : (
+                  data.accounts.map((a) => {
+                    const agg = perPlatform(a.platform);
+                    return (
+                      <ChannelCard
+                        key={a.id}
+                        account={a}
+                        posts={agg.inRange}
+                        views={agg.views}
+                        likes={agg.likes}
+                        lastPost={agg.lastPost}
+                      />
+                    );
+                  })
+                )}
+              </div>
+              <Card className="px-5 py-4">
+                <div className="flex items-baseline justify-between mb-4">
+                  <span className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">
+                    Published pro {chart.unitLabel}
+                  </span>
+                  <span className="text-[11px] text-fg-4">{publishedInRange.length} Posts ({range.label})</span>
+                </div>
+                {publishedInRange.length > 0 ? (
+                  <ContentChart data={chart.rows} categories={chart.categories} />
+                ) : (
+                  <div className="h-56 flex items-center justify-center text-[12.5px] text-fg-4 italic">
+                    Noch keine veröffentlichten Posts im Zeitraum
+                  </div>
+                )}
+              </Card>
+            </div>
+
+            {topPosts.length > 0 ? (
+              <>
+                <SectionHead>Top Posts</SectionHead>
+                <Card className="p-0 overflow-hidden">
+                  {topPosts.map((t, i) => (
+                    <div key={t.id} className="flex items-center gap-4 px-5 py-3 border-t border-line first:border-t-0">
+                      <span className="[font-family:var(--font-display)] font-extrabold text-[20px] leading-none text-fg-4 w-6 text-right shrink-0 [font-variant-numeric:tabular-nums]">
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[13px] text-fg font-medium">
+                          {t.content || <span className="text-fg-4 italic">ohne Text</span>}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="size-3 text-fg-3">{platformMeta(t.platform).icon}</span>
+                          <span className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-fg-4">
+                            {platformMeta(t.platform).label}
+                          </span>
+                          {t.createdAt ? <span className="text-[11px] text-fg-4">{fmtRelative(t.createdAt)}</span> : null}
+                        </div>
+                      </div>
+                      <div className="hidden sm:flex gap-4 shrink-0">
+                        <MiniStat value={fmtCompact(t.metrics.views)} label="Views" />
+                        <MiniStat value={fmtCompact(t.metrics.likes)} label="Likes" />
+                        <MiniStat value={fmtCompact(t.metrics.comments)} label="Komm." />
+                      </div>
+                      {t.postUrl ? (
+                        <a
+                          href={t.postUrl}
+                          target="_blank"
+                          rel="noopener"
+                          className="shrink-0 text-[12px] font-semibold text-fg-2 border-b border-line-strong hover:border-fg hover:text-fg"
+                        >
+                          ↗
+                        </a>
+                      ) : (
+                        <span className="shrink-0 w-3" />
+                      )}
+                    </div>
+                  ))}
+                </Card>
+              </>
+            ) : null}
+
+            <SectionHead>Historie</SectionHead>
             {recentPosts.length === 0 ? (
               <Card className="px-6 py-6">
                 <div className="font-semibold text-fg text-[14px] mb-1.5">Noch keine Posts über Blotato</div>
@@ -322,6 +540,7 @@ export default async function ContentPage({
                     <TableHead>Wann</TableHead>
                     <TableHead>Kanal</TableHead>
                     <TableHead>Text</TableHead>
+                    <TableHead className="text-right">Views</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Link</TableHead>
                   </TableRow>
@@ -329,6 +548,7 @@ export default async function ContentPage({
                 <TableBody>
                   {recentPosts.map((p) => {
                     const badge = STATE_BADGE[p.state.type];
+                    const m = metricsFor(p);
                     return (
                       <TableRow key={p.id}>
                         <TableCell className="whitespace-nowrap text-fg-3 text-[11px]" title={p.postTime}>
@@ -342,7 +562,7 @@ export default async function ContentPage({
                             </span>
                           </span>
                         </TableCell>
-                        <TableCell className="max-w-[420px]">
+                        <TableCell className="max-w-[380px]">
                           <span className="block truncate text-[12.5px] text-fg-2" title={p.text}>
                             {p.text || <span className="text-fg-4 italic">ohne Text</span>}
                           </span>
@@ -351,6 +571,9 @@ export default async function ContentPage({
                               {p.state.errorMessage}
                             </span>
                           ) : null}
+                        </TableCell>
+                        <TableCell className="text-right text-[12.5px] [font-variant-numeric:tabular-nums]">
+                          {p.state.type === "published" ? (m ? fmtCompact(m.metrics.views) : "—") : ""}
                         </TableCell>
                         <TableCell>
                           <Badge tone={badge.tone}>{badge.label}</Badge>
@@ -361,9 +584,10 @@ export default async function ContentPage({
                               href={p.state.postUrl}
                               target="_blank"
                               rel="noopener"
-                              className="text-[12px] font-semibold text-fg-2 border-b border-line-strong hover:border-fg hover:text-fg"
+                              title="Post öffnen"
+                              className="text-[13px] font-semibold text-fg-2 hover:text-fg"
                             >
-                              öffnen ↗
+                              ↗
                             </a>
                           ) : (
                             <span className="text-fg-4 text-[12px]">—</span>

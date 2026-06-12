@@ -34,17 +34,36 @@ export interface BlotatoPost {
   state: { type: BlotatoPostStateType; postUrl?: string; errorMessage?: string };
 }
 
+export interface BlotatoPostMetrics {
+  views: number;
+  likes: number;
+  comments: number;
+  shares: number;
+}
+
+// One row from GET /v2/analytics (top posts incl. latest metrics). `id` matches
+// the post id from GET /v2/posts; postUrl is the live social-media URL.
+export interface BlotatoAnalyticsItem {
+  id: string;
+  content: string;
+  postUrl: string | null;
+  platform: string;
+  createdAt: string;
+  metrics: BlotatoPostMetrics;
+}
+
 export interface BlotatoOverview {
   ok: boolean;
   reason: "live" | "no-key" | "http-error" | "exception";
   accounts: BlotatoAccount[];
   posts: BlotatoPost[]; // newest first, all states
+  analytics: BlotatoAnalyticsItem[]; // top posts by views within the requested window
   truncated: boolean; // post history hit the page cap
   fetched_at: string;
 }
 
 function fallback(reason: BlotatoOverview["reason"]): BlotatoOverview {
-  return { ok: false, reason, accounts: [], posts: [], truncated: false, fetched_at: new Date().toISOString() };
+  return { ok: false, reason, accounts: [], posts: [], analytics: [], truncated: false, fetched_at: new Date().toISOString() };
 }
 
 // Vault is the single source of truth for the key (entry provider "blotato");
@@ -86,18 +105,59 @@ function parsePost(raw: unknown): BlotatoPost | null {
   };
 }
 
-export async function getBlotatoOverview(): Promise<BlotatoOverview> {
+// Count metrics arrive as strings ("12453"); rate metrics as numbers. Views
+// falls back to playsCount (TikTok uses plays for some formats).
+function num(v: unknown): number {
+  const n = typeof v === "string" ? parseInt(v, 10) : typeof v === "number" ? v : NaN;
+  return Number.isFinite(n) ? n : 0;
+}
+
+function parseAnalyticsItem(raw: unknown): BlotatoAnalyticsItem | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const m = ((r.latestMetrics as Record<string, unknown> | undefined)?.metrics ?? {}) as Record<string, unknown>;
+  return {
+    id: String(r.id ?? ""),
+    content: String(r.content ?? ""),
+    postUrl: typeof r.postUrl === "string" ? r.postUrl : null,
+    platform: String(r.platform ?? "other"),
+    createdAt: String(r.createdAt ?? ""),
+    metrics: {
+      views: num(m.viewsCount) || num(m.playsCount),
+      likes: num(m.likesCount),
+      comments: num(m.commentsCount) + num(m.repliesCount),
+      shares: num(m.sharesCount),
+    },
+  };
+}
+
+// sinceIso bounds the analytics window (post-creation time; metrics themselves
+// are lifetime values). Blotato defaults to 30 days, so "Gesamt" passes an
+// explicit early date. Capped at 100 items by the API — top posts by views.
+export async function getBlotatoOverview(sinceIso?: string): Promise<BlotatoOverview> {
   const key = await getBlotatoKey();
   if (!key) return fallback("no-key");
   const auth = { "blotato-api-key": key };
   try {
-    // Accounts change rarely — 5-min revalidate. Posts drive the dashboard
-    // numbers — 60s keeps them fresh without hammering the API on every render.
-    const accountsRes = await fetch(`${BLOTATO_BASE}/users/me/accounts`, {
-      headers: auth,
-      next: { revalidate: 300 },
-    });
+    // Accounts change rarely — 5-min revalidate. Posts + analytics drive the
+    // dashboard numbers — 60s keeps them fresh without hammering the API.
+    const analyticsQs = new URLSearchParams({ sortBy: "views_count", limit: "100" });
+    analyticsQs.set("since", sinceIso ?? "2024-01-01T00:00:00.000Z");
+    const [accountsRes, analyticsRes] = await Promise.all([
+      fetch(`${BLOTATO_BASE}/users/me/accounts`, { headers: auth, next: { revalidate: 300 } }),
+      // Best-effort: a failing analytics call must not kill the dashboard.
+      fetch(`${BLOTATO_BASE}/analytics?${analyticsQs}`, { headers: auth, next: { revalidate: 60 } }).catch(() => null),
+    ]);
     if (!accountsRes.ok) return fallback("http-error");
+    let analytics: BlotatoAnalyticsItem[] = [];
+    if (analyticsRes?.ok) {
+      try {
+        const json = (await analyticsRes.json()) as { items?: unknown[] };
+        analytics = (json.items ?? []).map(parseAnalyticsItem).filter((x): x is BlotatoAnalyticsItem => x !== null);
+      } catch {
+        /* malformed analytics — dashboard renders without metrics */
+      }
+    }
     const accountsJson = (await accountsRes.json()) as { items?: unknown[] };
     const accounts: BlotatoAccount[] = (accountsJson.items ?? []).flatMap((raw) => {
       if (!raw || typeof raw !== "object") return [];
@@ -132,7 +192,7 @@ export async function getBlotatoOverview(): Promise<BlotatoOverview> {
     }
     posts.sort((a, b) => (a.postTime < b.postTime ? 1 : -1));
 
-    return { ok: true, reason: "live", accounts, posts, truncated, fetched_at: new Date().toISOString() };
+    return { ok: true, reason: "live", accounts, posts, analytics, truncated, fetched_at: new Date().toISOString() };
   } catch {
     return fallback("exception");
   }
