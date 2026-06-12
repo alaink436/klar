@@ -36,6 +36,8 @@ export const ICON: Record<string, string> = {
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v13"/><path d="M3 5.5C3 4.7 3.7 4 4.5 4H9a3 3 0 0 1 3 3 3 3 0 0 1 3-3h4.5c.8 0 1.5.7 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5H15a3 3 0 0 0-3 1.5 3 3 0 0 0-3-1.5H4.5A1.5 1.5 0 0 1 3 18z"/></svg>`,
   reply:
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>`,
+  content:
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 4"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>`,
   send:
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>`,
 };
