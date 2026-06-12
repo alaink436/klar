@@ -124,7 +124,7 @@ function Body({ result }: { result: BookingsResult }) {
         <a className="btn pop" href="https://cal.getklar.org/event-types" target="_blank" rel="noopener">
           Cal Admin öffnen ↗
         </a>
-        <a className="btn ghost" href="https://cal.getklar.org/klar/affiliate-intro" target="_blank" rel="noopener">
+        <a className="btn ghost" href="https://cal.getklar.org/klar" target="_blank" rel="noopener">
           Booking-Seite ansehen ↗
         </a>
         <a className="btn ghost" href="https://cal.getklar.org/bookings/upcoming" target="_blank" rel="noopener">

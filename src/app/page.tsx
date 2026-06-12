@@ -412,7 +412,7 @@ export default async function Home() {
                     to jam if the brief is sharp.
                   </p>
                   <ConsultingForm />
-                  <CalEmbed slug="consulting" label="Oder direkt einen 30-Min-Call picken" />
+                  <CalEmbed slug="klar/30min" label="Oder direkt einen 30-Min-Call picken" />
                 </div>
                 <div id="coaching" className="scroll-mt-16">
                   <p className="label mb-2">coaching · you build it</p>
@@ -426,7 +426,7 @@ export default async function Home() {
                     the messy 0 → 1 part. Honest take first.
                   </p>
                   <CoachingForm />
-                  <CalEmbed slug="coaching" label="Oder direkt einen 30-Min-Call picken" />
+                  <CalEmbed slug="klar/30min" label="Oder direkt einen 30-Min-Call picken" />
                 </div>
               </div>
             </div>

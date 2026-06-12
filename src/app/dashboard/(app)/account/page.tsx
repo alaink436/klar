@@ -66,7 +66,7 @@ export default async function AccountPage() {
             Stuck on tracking, need a different commission split, want feedback on a Reel? Book a 15-min call or just send an email.
           </p>
           <a
-            href="https://cal.getklar.org/alain/affiliate-intro"
+            href="https://cal.getklar.org/klar/15min"
             target="_blank"
             rel="noopener noreferrer"
             style={primaryButton}
