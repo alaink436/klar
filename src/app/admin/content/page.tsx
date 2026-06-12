@@ -22,6 +22,7 @@ import {
   type BlotatoAnalyticsItem,
   type BlotatoPost,
 } from "../../../lib/blotato";
+import { KLAR_APPS } from "../../../lib/klarApps";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -89,6 +90,45 @@ function platformMeta(p: string): { label: string; icon: ReactNode } {
   );
 }
 
+// ---------- app attribution ----------
+// Blotato posts carry no app field, so posts are attributed by app mentions in
+// the post text (names, slugs, store aliases — hashtags match too since they
+// contain the name). Unmatched posts land in the "Studio" bucket. Once the
+// posting pipeline writes its own posted_content table, swap this heuristic
+// for the explicit app column.
+
+const APP_EXTRA_ALIASES: Record<string, string[]> = {
+  "yarn-stash": ["yarn stash", "yarnstash"],
+  moto: ["throttleup", "throttle up"],
+  promillio: ["promillo"],
+  wavelength: ["thinq"],
+  myloo: ["my loo"],
+};
+
+interface AppBucketMeta {
+  slug: string;
+  label: string;
+  icon: string;
+}
+
+const STUDIO_BUCKET: AppBucketMeta = { slug: "studio", label: "Studio", icon: "/logo/klar-symbol.png" };
+const APP_BUCKETS: AppBucketMeta[] = [
+  ...KLAR_APPS.map((a) => ({ slug: a.slug, label: a.name, icon: a.icon })),
+  STUDIO_BUCKET,
+];
+const bucketMeta = (slug: string): AppBucketMeta =>
+  APP_BUCKETS.find((b) => b.slug === slug) ?? STUDIO_BUCKET;
+
+const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const APP_MATCHERS = KLAR_APPS.map((a) => {
+  const aliases = [...new Set([a.slug, a.name.toLowerCase(), ...(APP_EXTRA_ALIASES[a.slug] ?? [])])];
+  return { slug: a.slug, re: new RegExp(`\\b(${aliases.map(escRe).join("|")})\\b`, "i") };
+});
+function detectApp(text: string): string {
+  for (const m of APP_MATCHERS) if (m.re.test(text)) return m.slug;
+  return "studio";
+}
+
 // ---------- formatting ----------
 
 // fmtRelative is past-only; scheduled posts sit in the future.
@@ -130,13 +170,13 @@ function SectionHead({ children }: { children: ReactNode }) {
   );
 }
 
-function RangeSegment({ active }: { active: RangeKey }) {
+function RangeSegment({ active, hideParam }: { active: RangeKey; hideParam: string }) {
   return (
     <div className="inline-flex items-center gap-0.5 rounded-full border border-line bg-surface p-1 shadow-[var(--shadow-sm)]">
       {RANGES.map((r) => (
         <Link
           key={r.key}
-          href={`/admin/content?range=${r.key}`}
+          href={`/admin/content?range=${r.key}${hideParam ? `&hide=${hideParam}` : ""}`}
           className={`[font-family:var(--font-mono)] text-[10.5px] uppercase tracking-[0.06em] px-3 py-1.5 rounded-full border transition-colors ${
             active === r.key
               ? "border-line-strong bg-surface-2 text-fg font-semibold"
@@ -290,7 +330,7 @@ function buildChart(
 export default async function ContentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; hide?: string }>;
 }) {
   // Auth — identical gate to outreach/brain/cal/bookings (device cookie + admin session).
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
@@ -314,12 +354,22 @@ export default async function ContentPage({
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;
 
+  // App attribution + visibility: ?hide=slug,slug blendet App-Buckets aus.
+  // Chip counts use the unfiltered sets so hidden apps stay toggleable.
+  const hidden = new Set((sp.hide ?? "").split(",").filter((s) => APP_BUCKETS.some((b) => b.slug === s)));
+  const appOfPost = new Map(data.posts.map((p) => [p.id, detectApp(p.text)]));
+  const appOfItem = (a: BlotatoAnalyticsItem) => detectApp(a.content);
+  const posts = data.posts.filter((p) => !hidden.has(appOfPost.get(p.id) ?? "studio"));
+  const analyticsAllInRange = data.analytics.filter(
+    (a) => !a.createdAt || new Date(a.createdAt).getTime() >= sinceMs,
+  );
+
   // Aggregation: published is range-filtered, scheduled is inherently "future",
   // failed is range-filtered (a failure 3 months ago is not actionable today).
-  const published = data.posts.filter((p) => p.state.type === "published");
+  const published = posts.filter((p) => p.state.type === "published");
   const publishedInRange = published.filter((p) => new Date(p.postTime).getTime() >= sinceMs);
-  const scheduled = data.posts.filter((p) => p.state.type === "scheduled");
-  const failedInRange = data.posts.filter(
+  const scheduled = posts.filter((p) => p.state.type === "scheduled");
+  const failedInRange = posts.filter(
     (p) => p.state.type === "failed" && new Date(p.postTime).getTime() >= sinceMs,
   );
   const nextScheduled = scheduled
@@ -327,7 +377,41 @@ export default async function ContentPage({
     .sort((a, b) => (a.postTime > b.postTime ? 1 : -1))[0];
 
   // Metrics (lifetime values of posts created in the range, from /v2/analytics).
-  const analytics = data.analytics.filter((a) => !a.createdAt || new Date(a.createdAt).getTime() >= sinceMs);
+  const analytics = analyticsAllInRange.filter((a) => !hidden.has(appOfItem(a)));
+
+  // Per-app buckets (range window, pre-hide for the chips, sorted by views).
+  interface BucketStats { meta: AppBucketMeta; posts: number; views: number; likes: number; engagement: number }
+  const bucketMap = new Map<string, BucketStats>();
+  const bucketFor = (slug: string): BucketStats => {
+    let b = bucketMap.get(slug);
+    if (!b) {
+      b = { meta: bucketMeta(slug), posts: 0, views: 0, likes: 0, engagement: 0 };
+      bucketMap.set(slug, b);
+    }
+    return b;
+  };
+  for (const p of data.posts) {
+    if (p.state.type !== "published" || new Date(p.postTime).getTime() < sinceMs) continue;
+    bucketFor(appOfPost.get(p.id) ?? "studio").posts++;
+  }
+  for (const a of analyticsAllInRange) {
+    const b = bucketFor(appOfItem(a));
+    b.views += a.metrics.views;
+    b.likes += a.metrics.likes;
+    b.engagement += a.metrics.likes + a.metrics.comments + a.metrics.shares;
+  }
+  const bucketStats = [...bucketMap.values()].sort((x, y) => y.views - x.views || y.posts - x.posts);
+  const visibleBuckets = bucketStats.filter((b) => !hidden.has(b.meta.slug) && (b.posts > 0 || b.views > 0));
+  const maxBucketViews = Math.max(1, ...visibleBuckets.map((b) => b.views));
+
+  const toggleHref = (slug: string): string => {
+    const h = new Set(hidden);
+    if (h.has(slug)) h.delete(slug);
+    else h.add(slug);
+    const qs = new URLSearchParams({ range: range.key });
+    if (h.size) qs.set("hide", [...h].join(","));
+    return `/admin/content?${qs.toString()}`;
+  };
   const sum = (f: (a: BlotatoAnalyticsItem) => number) => analytics.reduce((acc, a) => acc + f(a), 0);
   const viewsTotal = sum((a) => a.metrics.views);
   const likesTotal = sum((a) => a.metrics.likes);
@@ -357,7 +441,7 @@ export default async function ContentPage({
     .slice(0, 5);
 
   const chart = buildChart(published, range.key, sinceMs);
-  const recentPosts = data.posts
+  const recentPosts = posts
     .filter((p) => p.state.type === "scheduled" || new Date(p.postTime).getTime() >= sinceMs)
     .slice(0, 30);
 
@@ -406,12 +490,44 @@ export default async function ContentPage({
           </Card>
         ) : (
           <>
-            <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
-              <RangeSegment active={range.key} />
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
+              <RangeSegment active={range.key} hideParam={[...hidden].join(",")} />
               <span className="[font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.1em] text-fg-4">
                 Stand {stand}
               </span>
             </div>
+
+            {bucketStats.length > 0 ? (
+              <div className="flex items-center flex-wrap gap-1.5 mb-6">
+                <span className="[font-family:var(--font-mono)] text-[9.5px] font-semibold uppercase tracking-[0.14em] text-fg-4 mr-1">
+                  Apps
+                </span>
+                {bucketStats.map((b) => {
+                  const off = hidden.has(b.meta.slug);
+                  return (
+                    <Link
+                      key={b.meta.slug}
+                      href={toggleHref(b.meta.slug)}
+                      title={off ? `${b.meta.label} einblenden` : `${b.meta.label} ausblenden`}
+                      className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border transition-all ${
+                        off
+                          ? "border-line text-fg-4 opacity-50 hover:opacity-80"
+                          : "border-line-strong bg-surface text-fg-2 hover:text-fg"
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={b.meta.icon} alt="" width={14} height={14} className="size-3.5 rounded-[4px]" />
+                      <span className={off ? "line-through" : "font-medium"}>{b.meta.label}</span>
+                      <span className="[font-family:var(--font-mono)] text-[9px] text-fg-4 [font-variant-numeric:tabular-nums]">
+                        {b.posts}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="mb-6" />
+            )}
 
             <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(165px,1fr))]">
               <Kpi k="Published" v={publishedInRange.length} s={`${published.length} gesamt${data.truncated ? " (letzte 2000)" : ""}`} />
@@ -479,6 +595,42 @@ export default async function ContentPage({
               </Card>
             </div>
 
+            {visibleBuckets.length > 0 ? (
+              <>
+                <SectionHead>Apps im Vergleich</SectionHead>
+                <Card className="p-0 overflow-hidden">
+                  {visibleBuckets.map((b, i) => (
+                    <div key={b.meta.slug} className="flex items-center gap-4 px-5 py-3 border-t border-line first:border-t-0">
+                      <span className="[font-family:var(--font-display)] font-extrabold text-[20px] leading-none text-fg-4 w-6 text-right shrink-0 [font-variant-numeric:tabular-nums]">
+                        {i + 1}
+                      </span>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={b.meta.icon} alt="" width={28} height={28} className="size-7 shrink-0 rounded-[7px] border border-line" />
+                      <div className="w-32 shrink-0 min-w-0">
+                        <div className="font-semibold text-fg text-[13px] leading-tight truncate">{b.meta.label}</div>
+                        <div className="[font-family:var(--font-mono)] text-[9px] uppercase tracking-[0.1em] text-fg-4 mt-0.5">
+                          {b.posts} {b.posts === 1 ? "Post" : "Posts"}
+                        </div>
+                      </div>
+                      <div className="flex-1 hidden md:block">
+                        <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-[var(--chart-1)]"
+                            style={{ width: `${Math.max(2, Math.round((b.views / maxBucketViews) * 100))}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-4 shrink-0 ml-auto">
+                        <MiniStat value={fmtCompact(b.views)} label="Views" />
+                        <MiniStat value={fmtCompact(b.posts > 0 ? Math.round(b.views / b.posts) : b.views)} label="Ø/Post" />
+                        <MiniStat value={fmtCompact(b.likes)} label="Likes" />
+                      </div>
+                    </div>
+                  ))}
+                </Card>
+              </>
+            ) : null}
+
             {topPosts.length > 0 ? (
               <>
                 <SectionHead>Top Posts</SectionHead>
@@ -496,6 +648,11 @@ export default async function ContentPage({
                           <span className="size-3 text-fg-3">{platformMeta(t.platform).icon}</span>
                           <span className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-fg-4">
                             {platformMeta(t.platform).label}
+                          </span>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={bucketMeta(appOfItem(t)).icon} alt="" width={12} height={12} className="size-3 rounded-[3px]" />
+                          <span className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-fg-4">
+                            {bucketMeta(appOfItem(t)).label}
                           </span>
                           {t.createdAt ? <span className="text-[11px] text-fg-4">{fmtRelative(t.createdAt)}</span> : null}
                         </div>
@@ -539,6 +696,7 @@ export default async function ContentPage({
                   <TableRow>
                     <TableHead>Wann</TableHead>
                     <TableHead>Kanal</TableHead>
+                    <TableHead>App</TableHead>
                     <TableHead>Text</TableHead>
                     <TableHead className="text-right">Views</TableHead>
                     <TableHead>Status</TableHead>
@@ -559,6 +717,21 @@ export default async function ContentPage({
                             <span className="size-3.5 text-fg-3">{platformMeta(p.platform).icon}</span>
                             <span className="[font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.08em] text-fg-2">
                               {platformMeta(p.platform).label}
+                            </span>
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center gap-1.5">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={bucketMeta(appOfPost.get(p.id) ?? "studio").icon}
+                              alt=""
+                              width={14}
+                              height={14}
+                              className="size-3.5 rounded-[4px]"
+                            />
+                            <span className="[font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.08em] text-fg-2">
+                              {bucketMeta(appOfPost.get(p.id) ?? "studio").label}
                             </span>
                           </span>
                         </TableCell>
