@@ -125,6 +125,22 @@ const APPS: App[] = [
     buildNote: "in review",
     icon: "/icons/moto.webp",
   },
+  {
+    slug: "promillio",
+    name: "Promillo",
+    pitch: "one phone. one party. seven games.",
+    description:
+      "Party and drinking games on a single phone: Imposter, Never Have I Ever, Who's More Likely and more. Pass the phone around, laugh, drink who's guilty. No materials, no prep, in five languages. 16+, drink responsibly.",
+    business: {
+      free: "All 7 games free to play, 5 categories each",
+      paid: "Promillo PRO unlocks all premium categories with hundreds of extra cards",
+      price: "monthly · yearly · lifetime",
+    },
+    status: "LIVE",
+    buildNote: "live · launch",
+    appStoreUrl: "https://apps.apple.com/app/id6773104290",
+    icon: "/icons/promillio.png",
+  },
 ];
 
 const GITHUB_PROFILE = "https://github.com/alaink436";

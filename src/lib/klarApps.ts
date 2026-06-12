@@ -33,7 +33,7 @@ export const KLAR_APPS: KlarAppMeta[] = [
   },
   { slug: "kelva", name: "Kelva", icon: "/icons/kelva.webp", status: "LIVE", affiliatePathPrefix: "/i/kelva" },
   { slug: "moto", name: "ThrottleUp", icon: "/icons/moto.webp", status: "LIVE", affiliatePathPrefix: "/i/throttleup" },
-  { slug: "promillio", name: "Promillo", icon: "/icons/promillio.png", status: "BETA", affiliatePathPrefix: "/i/promillio" },
+  { slug: "promillio", name: "Promillo", icon: "/icons/promillio.png", status: "LIVE", affiliatePathPrefix: "/i/promillio" },
 ];
 
 export function findKlarApp(slug: string): KlarAppMeta | undefined {
