@@ -22,6 +22,7 @@ import {
   type BlotatoAnalyticsItem,
   type BlotatoPost,
 } from "../../../lib/blotato";
+import { getNativeCounts, type NativeCount } from "../../../lib/contentWarmup";
 import { KLAR_APPS } from "../../../lib/klarApps";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
@@ -251,6 +252,54 @@ function ChannelCard({
   );
 }
 
+// ---------- warm / cold accounts ----------
+// Which accounts are already "warm" (organic activity, safe for the Blotato
+// auto-pipeline) vs still "cold" (must be warmed by posting manually first, so
+// the platform does not bot-flag them). SoT for this list lives in the AI-Brain
+// (Projects/Inbound-Strategy/PROGRESS.md) — keep it in sync. Anything NOT listed
+// here is treated as cold: a freshly connected account always needs warming.
+const WARM_USERNAMES = new Set(["clairmentklarclear", "kelvaapp"]);
+const isWarmAccount = (a: BlotatoAccount): boolean => WARM_USERNAMES.has((a.username || "").toLowerCase());
+
+function ChannelSubhead({ children }: { children: ReactNode }) {
+  return (
+    <div className="[font-family:var(--font-mono)] text-[9px] font-semibold uppercase tracking-[0.14em] text-fg-4 px-1 pt-1 first:pt-0">
+      {children}
+    </div>
+  );
+}
+
+// Cold accounts read their post count straight off the public profile (Evomi),
+// since Blotato never sees a manually posted warm-up post.
+function ColdChannelCard({ account, native }: { account: BlotatoAccount; native?: NativeCount }) {
+  const meta = platformMeta(account.platform);
+  const posts = native?.posts ?? null;
+  const followers = native?.followers ?? null;
+  return (
+    <Card className="px-5 py-4 border-amber-500/30">
+      <div className="flex items-center gap-3">
+        <div className="size-9 shrink-0 rounded-[var(--radius-sm)] border border-line bg-surface-2 text-fg-2 p-2">{meta.icon}</div>
+        <div className="min-w-0">
+          <div className="font-semibold text-fg text-[14px] leading-tight truncate">@{account.username || account.id}</div>
+          <div className="[font-family:var(--font-mono)] text-[9px] uppercase tracking-[0.14em] text-fg-4 mt-0.5">{meta.label}</div>
+        </div>
+        <span className="ml-auto [font-family:var(--font-mono)] text-[9px] uppercase tracking-[0.1em] text-amber-600 dark:text-amber-400 border border-amber-500/40 rounded-full px-2 py-0.5">
+          Kalt
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 mt-4 pt-3.5 border-t border-line">
+        <Stat label="Posts (Profil)" value={posts === null ? "—" : posts} />
+        <Stat label="Follower" value={followers === null ? "—" : fmtCompact(followers)} />
+      </div>
+      <p className="text-[11px] text-fg-4 mt-3 leading-relaxed m-0">
+        {posts === null
+          ? "Profil gerade nicht lesbar — Postzahl lädt beim nächsten Aufruf."
+          : "Native Postzahl vom Profil. Manuell weiter aufwärmen, dann auf Auto-Pipeline."}
+      </p>
+    </Card>
+  );
+}
+
 // ---------- chart bucketing ----------
 
 function buildChart(
@@ -348,6 +397,15 @@ export default async function ContentPage({
   const sinceMs = range.days == null ? 0 : Date.now() - range.days * 86_400_000;
 
   const data = await getBlotatoOverview(range.days == null ? undefined : new Date(sinceMs).toISOString());
+
+  // Warm/cold split + native profile post counts for the cold accounts. Blotato
+  // can't report manual warm-up posts, so cold accounts read their count straight
+  // off the public profile (Evomi) — bounded + cached in lib/contentWarmup.
+  const warmAccounts = data.accounts.filter(isWarmAccount);
+  const coldAccounts = data.accounts.filter((a) => !isWarmAccount(a));
+  const nativeCounts = await getNativeCounts(
+    coldAccounts.map((a) => ({ platform: a.platform, username: a.username })),
+  );
 
   const topbar = `
     <span class="crumb"><b>Content</b>${ICON.chevron}<span>Klar Control</span></span>
@@ -563,19 +621,38 @@ export default async function ContentPage({
                     </p>
                   </Card>
                 ) : (
-                  data.accounts.map((a) => {
-                    const agg = perPlatform(a.platform);
-                    return (
-                      <ChannelCard
-                        key={a.id}
-                        account={a}
-                        posts={agg.inRange}
-                        views={agg.views}
-                        likes={agg.likes}
-                        lastPost={agg.lastPost}
-                      />
-                    );
-                  })
+                  <>
+                    {warmAccounts.length > 0 ? (
+                      <>
+                        <ChannelSubhead>Warm · Auto-Pipeline</ChannelSubhead>
+                        {warmAccounts.map((a) => {
+                          const agg = perPlatform(a.platform);
+                          return (
+                            <ChannelCard
+                              key={a.id}
+                              account={a}
+                              posts={agg.inRange}
+                              views={agg.views}
+                              likes={agg.likes}
+                              lastPost={agg.lastPost}
+                            />
+                          );
+                        })}
+                      </>
+                    ) : null}
+                    {coldAccounts.length > 0 ? (
+                      <>
+                        <ChannelSubhead>Kalt · Warm-up (manuell posten)</ChannelSubhead>
+                        {coldAccounts.map((a) => (
+                          <ColdChannelCard
+                            key={a.id}
+                            account={a}
+                            native={nativeCounts.get((a.username || "").toLowerCase())}
+                          />
+                        ))}
+                      </>
+                    ) : null}
+                  </>
                 )}
               </div>
               <Card className="px-5 py-4">

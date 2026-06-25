@@ -187,7 +187,7 @@ export async function enrichInstagram(
 // ---- TikTok: GET realtime, mode=auto, parse __UNIVERSAL_DATA_FOR_REHYDRATION__ ----
 // We extract the JSON from the <script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"> tag
 // WITHOUT cheerio (no DOM dep in the route) via a tolerant regex, then JSON.parse.
-function extractUniversalData(html: string): unknown | null {
+export function extractUniversalData(html: string): unknown | null {
   const m = html.match(
     /<script[^>]*id=["']__UNIVERSAL_DATA_FOR_REHYDRATION__["'][^>]*>([\s\S]*?)<\/script>/i,
   );
