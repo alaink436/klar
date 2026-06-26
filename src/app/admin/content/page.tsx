@@ -223,14 +223,22 @@ function ChannelCard({
   views,
   likes,
   lastPost,
+  native,
 }: {
   account: BlotatoAccount;
   posts: number;
   views: number;
   likes: number;
   lastPost: string | null;
+  native?: NativeCount;
 }) {
   const meta = platformMeta(account.platform);
+  // The native profile count is the real lifetime total (manual + pipeline posts).
+  // Blotato `posts` only sees pipeline posts in the range, so a warm account that
+  // is still posted to manually reads 0 there — prefer the profile count, fall
+  // back to the Blotato number only when the scrape was not readable.
+  const profilePosts = native?.posts ?? null;
+  const followers = native?.followers ?? null;
   return (
     <Card className="px-5 py-4">
       <div className="flex items-center gap-3">
@@ -240,11 +248,15 @@ function ChannelCard({
           <div className="[font-family:var(--font-mono)] text-[9px] uppercase tracking-[0.14em] text-fg-4 mt-0.5">{meta.label}</div>
         </div>
         <span className="ml-auto text-[11px] text-fg-4 whitespace-nowrap">
-          {lastPost ? `letzter ${fmtRelative(lastPost)}` : "noch kein Post"}
+          {followers !== null
+            ? `${fmtCompact(followers)} Follower`
+            : lastPost
+              ? `letzter ${fmtRelative(lastPost)}`
+              : "noch kein Post"}
         </span>
       </div>
       <div className="grid grid-cols-3 gap-2 mt-4 pt-3.5 border-t border-line">
-        <Stat label="Posts" value={posts} />
+        <Stat label={profilePosts !== null ? "Posts (Profil)" : "Posts"} value={profilePosts ?? posts} />
         <Stat label="Views" value={fmtCompact(views)} />
         <Stat label="Likes" value={fmtCompact(likes)} />
       </div>
@@ -398,13 +410,15 @@ export default async function ContentPage({
 
   const data = await getBlotatoOverview(range.days == null ? undefined : new Date(sinceMs).toISOString());
 
-  // Warm/cold split + native profile post counts for the cold accounts. Blotato
-  // can't report manual warm-up posts, so cold accounts read their count straight
-  // off the public profile (Evomi) — bounded + cached in lib/contentWarmup.
+  // Warm/cold split + native profile post counts. Blotato only knows posts IT
+  // published, but warm accounts are still posted to MANUALLY, so their real post
+  // count lives on the public profile too — not just for cold accounts. Read it
+  // for every account off the profile (Evomi) — bounded + cached in
+  // lib/contentWarmup.
   const warmAccounts = data.accounts.filter(isWarmAccount);
   const coldAccounts = data.accounts.filter((a) => !isWarmAccount(a));
   const nativeCounts = await getNativeCounts(
-    coldAccounts.map((a) => ({ platform: a.platform, username: a.username })),
+    data.accounts.map((a) => ({ platform: a.platform, username: a.username })),
   );
 
   const topbar = `
@@ -635,6 +649,7 @@ export default async function ContentPage({
                               views={agg.views}
                               likes={agg.likes}
                               lastPost={agg.lastPost}
+                              native={nativeCounts.get((a.username || "").toLowerCase())}
                             />
                           );
                         })}
