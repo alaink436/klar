@@ -63,6 +63,7 @@ const CATEGORY_SUGGESTIONS = [
   "Social / Marketing",
   "Scraping",
   "Mobile / Stores",
+  "TMDB",
   "Infrastruktur",
   "Sonstiges",
 ];
@@ -98,6 +99,7 @@ const CATEGORY_EXAMPLES: Record<string, CategoryExample> = {
   Automation: { label: "n8n Cloud API", provider: "n8n", baseUrl: "https://<konto>.app.n8n.cloud/api/v1", baseUrlFill: "", key: "eyJ… (JWT)" },
   "Social / Marketing": { label: "Blotato", provider: "blotato", baseUrl: "https://backend.blotato.com", baseUrlFill: "https://backend.blotato.com", key: "Blotato API-Key" },
   "Mobile / Stores": { label: "App Store Connect API", provider: "apple", baseUrl: "leer lassen = nur speichern (.p8 / JSON)", baseUrlFill: "", key: "-----BEGIN PRIVATE KEY----- (.p8)" },
+  TMDB: { label: "TMDB Read Access Token (v4)", provider: "tmdb", baseUrl: "https://api.themoviedb.org", baseUrlFill: "https://api.themoviedb.org", key: "eyJ… (v4 Bearer) / 32-Hex (v3)" },
   Infrastruktur: { label: "Vercel Token", provider: "vercel", baseUrl: "https://api.vercel.com", baseUrlFill: "https://api.vercel.com", key: "Bearer-Token …" },
   Sonstiges: DEFAULT_EXAMPLE,
 };
@@ -195,6 +197,10 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   // Mobile / Stores
   { id: "appstore", label: "App Store Connect (.p8)", category: "Mobile / Stores", provider: "apple", baseUrl: "", authHeader: "authorization", authScheme: "Bearer ", keyExample: "-----BEGIN PRIVATE KEY----- (.p8)", labelExample: "App Store Connect API" },
   { id: "expo", label: "Expo / EAS", category: "Mobile / Stores", provider: "expo", baseUrl: "https://api.expo.dev", authHeader: "authorization", authScheme: "Bearer ", keyExample: "Expo Access-Token", labelExample: "Expo EAS" },
+  // TMDB (eigene Kategorie) — v4-Token läuft als Bearer über den Proxy; der
+  // v3-Key wird als ?api_key= Query-Param übergeben und ist daher store-only.
+  { id: "tmdb-v4", label: "TMDB Read Access Token (v4, Proxy)", category: "TMDB", provider: "tmdb", baseUrl: "https://api.themoviedb.org", authHeader: "authorization", authScheme: "Bearer ", keyExample: "eyJhbGci… (v4 JWT)", labelExample: "TMDB Read Access Token (v4)" },
+  { id: "tmdb-v3", label: "TMDB API Key (v3, nur speichern)", category: "TMDB", provider: "tmdb", baseUrl: "", authHeader: "authorization", authScheme: "Bearer ", keyExample: "32-stelliger Hex-Key (v3)", labelExample: "TMDB API Key (v3)" },
   // Infrastruktur
   { id: "vercel", label: "Vercel", category: "Infrastruktur", provider: "vercel", baseUrl: "https://api.vercel.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "Bearer-Token …", labelExample: "Vercel Token" },
   { id: "github", label: "GitHub", category: "Infrastruktur", provider: "github", baseUrl: "https://api.github.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "ghp_… / github_pat_…", labelExample: "GitHub PAT" },
