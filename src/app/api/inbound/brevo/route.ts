@@ -23,6 +23,7 @@ import {
   recordInboundReply,
   findTargetByEmail,
 } from "@/lib/outreachStore";
+import { collabRouteForRecipient, insertCollabMessage, type CollabRoute } from "@/lib/collabStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -71,12 +72,17 @@ function isoOrNull(raw: string | undefined): string | null {
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-// Pull a target id out of a reply+<uuid>@… subaddress in any recipient field.
-function targetIdFromRecipients(item: BrevoItem): string | null {
+function recipientAddresses(item: BrevoItem): string[] {
   const addrs: string[] = [];
   for (const m of item.To ?? []) if (m.Address) addrs.push(m.Address);
   for (const m of item.Cc ?? []) if (m.Address) addrs.push(m.Address);
   for (const r of item.Recipients ?? []) if (r) addrs.push(r);
+  return addrs;
+}
+
+// Pull a target id out of a reply+<uuid>@… subaddress in any recipient field.
+function targetIdFromRecipients(item: BrevoItem): string | null {
+  const addrs = recipientAddresses(item);
   for (const a of addrs) {
     const plus = a.split("@")[0] ?? "";
     if (plus.includes("+")) {
@@ -103,6 +109,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   const items = Array.isArray(payload.items) ? payload.items : [];
   let matched = 0;
+  let collab = 0;
   let skipped = 0;
 
   for (const item of items) {
@@ -115,9 +122,35 @@ export async function POST(req: NextRequest): Promise<Response> {
       "";
     const sentAt = isoOrNull(item.SentAtDate);
 
-    // Match: explicit reply+<id> subaddress first (survives a different
-    // sender address), else the known contact_email.
+    // Match-Reihenfolge: (1) explizites reply+<id>-Subaddress (übersteht einen
+    // anderen Absender), (2) Collab-Alias im Empfänger — wer die öffentliche
+    // App-Adresse anschreibt, meint das Collab-Postfach, auch wenn er zufällig
+    // schon Outreach-Target ist —, (3) bekannte contact_email des Absenders.
     let targetId = targetIdFromRecipients(item);
+    if (!targetId && from) {
+      let route: CollabRoute | null = null;
+      for (const addr of recipientAddresses(item)) {
+        route = collabRouteForRecipient(addr);
+        if (route) break;
+      }
+      if (route) {
+        await insertCollabMessage({
+          app: route.app,
+          alias: route.alias,
+          contact_email: from,
+          contact_name: (item.From?.Name ?? "").trim() || null,
+          direction: "in",
+          subject,
+          body,
+          provider: "brevo-inbound",
+          external_id: (item.MessageId ?? "").trim() || null,
+          spam_score: typeof item.SpamScore === "number" ? item.SpamScore : null,
+          sent_at: sentAt,
+        });
+        collab++;
+        continue;
+      }
+    }
     if (!targetId && from) {
       const t = await findTargetByEmail(from);
       if (t) targetId = t.id;
@@ -144,7 +177,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   // Always 200 on a well-formed payload so Brevo does not retry-storm; the
   // matched/skipped counts make debugging visible without a retry.
-  return NextResponse.json({ ok: true, processed: items.length, matched, skipped });
+  return NextResponse.json({ ok: true, processed: items.length, matched, collab, skipped });
 }
 
 // Lightweight connectivity check (Brevo / manual curl) — never leaks data.

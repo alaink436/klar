@@ -54,12 +54,15 @@ export interface Conversation {
   // detail pane shows a "waiting" state and the composer reads "Nachfassen".
   awaiting?: boolean;
   // Source of the conversation. "outreach" = scraped target thread (default,
-  // also covers awaiting), "inquiry" = website contact-form request.
-  kind?: "outreach" | "inquiry" | "affiliate-chat";
+  // also covers awaiting), "inquiry" = website contact-form request,
+  // "collab" = mail to a public per-app address (TikTok-Bio).
+  kind?: "outreach" | "inquiry" | "affiliate-chat" | "collab";
   // Admin star (klar_inbox_stars). Toggled optimistically in the client.
   starred?: boolean;
   // Present when kind === "inquiry": the website request + approve/decline state.
   inquiry?: InquiryMeta;
+  // Present when kind === "collab": which public mailbox the thread belongs to.
+  collab?: { app: string; alias: string; address: string | null };
 }
 
 // Website contact-form request folded into the inbox. Affiliate inquiries carry
@@ -265,7 +268,7 @@ export default function MailClient({
 
   const [selectedId, setSelectedId] = useState<string | null>(conversations[0]?.id ?? null);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "starred" | "inquiry" | "replied" | "converted" | "open">("all");
+  const [filter, setFilter] = useState<"all" | "starred" | "inquiry" | "collab" | "replied" | "converted" | "open">("all");
   const [sizeFilter, setSizeFilter] = useState<SizeBucket | "all">("all");
   const [narrow, setNarrow] = useState(false);
   const [mailerOpen, setMailerOpen] = useState(false);
@@ -363,8 +366,15 @@ export default function MailClient({
     const who = sel.displayName || sel.handle;
     // Default to an empty draft — no template auto-applied. Picking one from the
     // dropdown is opt-in; the subject still gets a neutral reply default so the
-    // message stays sendable without typing one.
-    setComposer({ subject: `Re: Klar x ${who}`, body: "" });
+    // message stays sendable without typing one. Collab-Threads antworten auf
+    // den Betreff der eingegangenen Mail ("Re: …") statt mit dem Outreach-Default.
+    const lastIn = [...sel.messages].reverse().find((m) => m.direction === "in");
+    const collabSubject = lastIn?.subject
+      ? /^re:/i.test(lastIn.subject.trim())
+        ? lastIn.subject.trim()
+        : `Re: ${lastIn.subject.trim()}`
+      : `Re: Collab ${who}`;
+    setComposer({ subject: sel.kind === "collab" ? collabSubject : `Re: Klar x ${who}`, body: "" });
     setComposerOpen(false);
     setSendMsg(null);
     setAcceptOpen(false);
@@ -401,6 +411,7 @@ export default function MailClient({
     return convs.filter((c) => {
       if (filter === "starred" && !c.starred) return false;
       if (filter === "inquiry" && c.kind !== "inquiry") return false;
+      if (filter === "collab" && c.kind !== "collab") return false;
       if (filter === "replied" && (c.kind === "inquiry" || c.awaiting || c.status !== "replied")) return false;
       if (filter === "converted" && c.status !== "converted") return false;
       if (filter === "open" && !c.awaiting) return false;
@@ -472,6 +483,61 @@ export default function MailClient({
       } catch {
         setConvs((prev) => prev.map((c) => (c.id === sel.id ? { ...c, messages: c.messages.filter((m) => m.id !== localId) } : c)));
         setComposer((c) => ({ ...c, body: chatBody }));
+        setSendMsg({ ok: false, text: "Netzwerkfehler beim Senden." });
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+    // Collab-Postfach: Antwort geht per Brevo über /admin/collab/reply raus,
+    // replyTo = die Alias-Adresse, damit die Gegenantwort im Thread bleibt.
+    if (sel.kind === "collab") {
+      if (!sel.collab || !sel.contactEmail) {
+        setSendMsg({ ok: false, text: "Collab-Postfach unvollständig — kein Empfänger." });
+        return;
+      }
+      if (!composer.subject.trim() || !composer.body.trim()) {
+        setSendMsg({ ok: false, text: "Betreff und Nachricht dürfen nicht leer sein." });
+        return;
+      }
+      const sentSubject = composer.subject;
+      const sentBody = composer.body;
+      const now = new Date().toISOString();
+      const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const optimistic: ThreadMessage = { id: localId, direction: "out", subject: sentSubject, body: sentBody, at: now, provider: "brevo" };
+      setConvs((prev) =>
+        prev.map((c) => (c.id === sel.id ? { ...c, messages: [...c.messages, optimistic], lastActivityAt: now } : c)),
+      );
+      setComposer((c) => ({ ...c, body: "" }));
+      setSending(true);
+      setSendMsg(null);
+      try {
+        const fd = new URLSearchParams();
+        fd.set("app", sel.collab.app);
+        fd.set("alias", sel.collab.alias);
+        fd.set("to", sel.contactEmail);
+        fd.set("subject", sentSubject);
+        fd.set("body", sentBody);
+        const res = await fetch("/admin/collab/reply?json=1", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: fd.toString(),
+        });
+        const j = (await res.json().catch(() => ({ ok: false, msg: "Antwort unlesbar" }))) as { ok?: boolean; msg?: string };
+        if (res.ok && j.ok) {
+          setSendMsg({ ok: true, text: j.msg || "Antwort gesendet." });
+        } else {
+          setConvs((prev) =>
+            prev.map((c) => (c.id === sel.id ? { ...c, messages: c.messages.filter((m) => m.id !== localId) } : c)),
+          );
+          setComposer((c) => ({ ...c, body: sentBody }));
+          setSendMsg({ ok: false, text: j.msg || "Senden fehlgeschlagen." });
+        }
+      } catch {
+        setConvs((prev) =>
+          prev.map((c) => (c.id === sel.id ? { ...c, messages: c.messages.filter((m) => m.id !== localId) } : c)),
+        );
+        setComposer((c) => ({ ...c, body: sentBody }));
         setSendMsg({ ok: false, text: "Netzwerkfehler beim Senden." });
       } finally {
         setSending(false);
@@ -649,15 +715,15 @@ export default function MailClient({
               onChange={(e) => setQuery(e.target.value)}
             />
             <div className="seg" style={{ alignSelf: "flex-start" }}>
-              {(["all", "starred", "inquiry", "replied", "open", "converted"] as const).map((f) => (
+              {(["all", "starred", "inquiry", "collab", "replied", "open", "converted"] as const).map((f) => (
                 <a
                   key={f}
                   className={filter === f ? "on" : ""}
                   style={{ cursor: "pointer" }}
-                  title={f === "starred" ? "Nur mit Stern markierte" : undefined}
+                  title={f === "starred" ? "Nur mit Stern markierte" : f === "collab" ? "Mails an die öffentlichen App-Adressen (TikTok-Bio)" : undefined}
                   onClick={() => setFilter(f)}
                 >
-                  {f === "all" ? "Alle" : f === "starred" ? "★" : f === "inquiry" ? "Anfragen" : f === "replied" ? "Antworten" : f === "open" ? "Offen" : "Angenommen"}
+                  {f === "all" ? "Alle" : f === "starred" ? "★" : f === "inquiry" ? "Anfragen" : f === "collab" ? "Collabs" : f === "replied" ? "Antworten" : f === "open" ? "Offen" : "Angenommen"}
                 </a>
               ))}
             </div>
@@ -834,7 +900,7 @@ export default function MailClient({
                         </span>
                       )}
                       <span className="muted" suppressHydrationWarning style={{ fontSize: 11.5, fontFamily: "var(--font-mono)" }} title={abs(sel.awaiting ? sel.lastActivityAt : sel.lastInboundAt)}>
-                        {sel.kind === "inquiry" ? `Anfrage ${rel(sel.lastInboundAt)}` : sel.awaiting ? `kontaktiert ${rel(sel.lastActivityAt)}` : `antwortete ${rel(sel.lastInboundAt)}`}
+                        {sel.kind === "inquiry" || sel.kind === "collab" ? `Anfrage ${rel(sel.lastInboundAt)}` : sel.awaiting ? `kontaktiert ${rel(sel.lastActivityAt)}` : `antwortete ${rel(sel.lastInboundAt)}`}
                       </span>
                       {sel.kind === "outreach" && (
                         <label
@@ -863,6 +929,13 @@ export default function MailClient({
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
                     <span className="kr-chip">Creator-Chat</span>
                     <span className="muted" style={{ fontSize: 12 }}>Antwort geht direkt ins Dashboard des Creators.</span>
+                  </div>
+                ) : sel.kind === "collab" ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
+                    <span className="kr-chip">Collab-Anfrage</span>
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      Eingegangen über {sel.collab?.address ?? "die öffentliche App-Adresse"} — deine Antwort geht per Mail raus und läuft über dieselbe Adresse zurück in diesen Thread.
+                    </span>
                   </div>
                 ) : sel.kind === "inquiry" && sel.inquiry ? (
                   (() => {

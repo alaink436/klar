@@ -27,6 +27,7 @@ import { KLAR_APPS } from "../../../lib/klarApps";
 import { getReplyTemplates } from "../../../lib/replyTemplateStore";
 import { loadAffiliateChatInbox } from "../../../lib/affiliateChatStore";
 import { listStarredIds } from "../../../lib/inboxStars";
+import { listCollabThreads, COLLAB_ALIASES } from "../../../lib/collabStore";
 import MailClient, {
   type Conversation,
   type ThreadMessage,
@@ -106,6 +107,11 @@ export default async function InboxPage({
 
   const appMeta: AppMeta = {};
   for (const a of KLAR_APPS) appMeta[a.slug] = { name: a.name, icon: a.icon };
+  // Collab-Postfächer können Apps ohne Affiliate-Schema abdecken (AnimeVault) —
+  // Namen aus der Alias-Map nachtragen, damit ihre Badges nicht als Slug rendern.
+  for (const meta of Object.values(COLLAB_ALIASES)) {
+    if (!appMeta[meta.app]) appMeta[meta.app] = { name: meta.name, icon: "" };
+  }
   const appSlugs = KLAR_APPS.map((a) => a.slug);
 
   // ── Outreach side: targets + threads + awaiting (same logic as the old
@@ -389,8 +395,44 @@ export default async function InboxPage({
     };
   });
 
+  // ── Collab side: mail to the public per-app addresses (TikTok-Bio) ───────
+  const collabThreads = await listCollabThreads();
+  const collabConvs: Conversation[] = collabThreads.map((t): Conversation => {
+    const messages: ThreadMessage[] = t.messages.map((m) => ({
+      id: m.id,
+      direction: m.direction,
+      subject: m.subject,
+      body: m.body,
+      at: m.sent_at || m.created_at,
+      provider: m.provider,
+    }));
+    const inbound = messages.filter((m) => m.direction === "in");
+    return {
+      id: `collab:${t.app}:${t.contactEmail}`,
+      handle: t.contactEmail.split("@")[0] || t.contactEmail,
+      displayName: t.contactName,
+      platform: "",
+      profileUrl: null,
+      contactEmail: t.contactEmail,
+      // Die Adressen stehen auf englischsprachigen App-Kanälen — Vorlagen
+      // defaulten auf EN, umstellen geht im Composer-Dropdown.
+      language: "en",
+      apps: [t.app],
+      status: "new",
+      followerEstimate: null,
+      mailsSent: 0,
+      mailStatus: null,
+      messages,
+      replyCount: inbound.length,
+      lastInboundAt: inbound.length > 0 ? inbound[inbound.length - 1].at : null,
+      lastActivityAt: t.lastActivityAt,
+      kind: "collab",
+      collab: { app: t.app, alias: t.alias, address: t.address },
+    };
+  });
+
   const starredIds = await listStarredIds();
-  const conversations: Conversation[] = [...inquiryConvs, ...dedupedOutreach, ...chatConvs]
+  const conversations: Conversation[] = [...inquiryConvs, ...dedupedOutreach, ...chatConvs, ...collabConvs]
     .sort((a, b) => (b.lastActivityAt || "").localeCompare(a.lastActivityAt || ""))
     .map((c) => (starredIds.has(c.id) ? { ...c, starred: true } : c));
 
