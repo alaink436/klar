@@ -537,13 +537,17 @@ export default async function OutreachPage({
     collabAliases.push({ appName: meta.name, address, general: meta.app === "studio" });
   }
   collabAliases.sort((a, b) => Number(b.general ?? false) - Number(a.general ?? false));
+  // App-Slug → Anzeigename (aus der Alias-Map; deckt auch AnimeVault + Studio
+  // ab). Threads tragen den ggf. per Text-Erkennung zugeordneten App-Slug.
+  const collabAppNames: Record<string, string> = {};
+  for (const meta of Object.values(COLLAB_ALIASES)) collabAppNames[meta.app] = meta.name;
   const collabRows: CollabThreadRow[] = collabThreads.map((t) => {
     const last = t.messages[t.messages.length - 1];
     const snippet = (last?.body ?? "").replace(/\s+/g, " ").trim().slice(0, 140);
     return {
       contactEmail: t.contactEmail,
       contactName: t.contactName,
-      appName: COLLAB_ALIASES[t.alias]?.name ?? t.app,
+      appName: collabAppNames[t.app] ?? t.app,
       address: t.address,
       lastSubject: last?.subject ?? null,
       lastSnippet: snippet,

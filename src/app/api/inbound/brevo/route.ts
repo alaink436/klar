@@ -23,7 +23,12 @@ import {
   recordInboundReply,
   findTargetByEmail,
 } from "@/lib/outreachStore";
-import { collabRouteForRecipient, insertCollabMessage, type CollabRoute } from "@/lib/collabStore";
+import {
+  collabRouteForRecipient,
+  insertCollabMessage,
+  detectCollabApp,
+  type CollabRoute,
+} from "@/lib/collabStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -134,8 +139,12 @@ export async function POST(req: NextRequest): Promise<Response> {
         if (route) break;
       }
       if (route) {
+        // Allgemeine Adresse (collab@ → studio): nennt der Text genau EINE App,
+        // wird der Thread ihr zugeordnet; alias bleibt collab (Reply-Absender).
+        const detectedApp =
+          route.app === "studio" ? detectCollabApp(`${subject ?? ""}\n${body}`) : null;
         await insertCollabMessage({
-          app: route.app,
+          app: detectedApp ?? route.app,
           alias: route.alias,
           contact_email: from,
           contact_name: (item.From?.Name ?? "").trim() || null,

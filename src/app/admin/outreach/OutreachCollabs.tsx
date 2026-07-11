@@ -76,7 +76,8 @@ export default function OutreachCollabs({
             </span>
             <CopyAddress address={aliases.find((a) => a.general)!.address} />
             <span className="text-fg-4 text-[11px]">
-              Eine Adresse für jede Bio; Anfragen laufen unter „Klar&#8220; auf.
+              Eine Adresse für jede Bio. Nennt die Mail eine App (z.B. „MyLoo&#8220;), wird sie
+              ihr automatisch zugeordnet — sonst läuft sie unter „Klar&#8220; auf.
             </span>
           </div>
         )}
