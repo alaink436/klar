@@ -218,7 +218,7 @@ export async function listCollabThreads(limit = 800): Promise<CollabThread[]> {
     const rows = (await res.json()) as CollabMessage[];
     const byThread = new Map<string, CollabMessage[]>();
     for (const m of rows) {
-      const key = `${m.app} ${m.contact_email}`;
+      const key = `${m.app}\u0000${m.contact_email}`;
       const arr = byThread.get(key);
       if (arr) arr.push(m);
       else byThread.set(key, [m]);
