@@ -533,8 +533,10 @@ export default async function OutreachPage({
     const address = collabAddressFor(alias);
     if (!address) continue; // KLAR_INBOUND_DOMAIN fehlt → keine Adressen anzeigbar
     seenAliasApps.add(meta.app);
-    collabAliases.push({ appName: meta.name, address });
+    // "studio" (collab@) ist die App-übergreifende Adresse für alle Bios.
+    collabAliases.push({ appName: meta.name, address, general: meta.app === "studio" });
   }
+  collabAliases.sort((a, b) => Number(b.general ?? false) - Number(a.general ?? false));
   const collabRows: CollabThreadRow[] = collabThreads.map((t) => {
     const last = t.messages[t.messages.length - 1];
     const snippet = (last?.body ?? "").replace(/\s+/g, " ").trim().slice(0, 140);

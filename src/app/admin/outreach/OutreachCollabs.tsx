@@ -16,6 +16,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export interface CollabAliasRow {
   appName: string;
   address: string;
+  /** true = App-übergreifende Adresse (collab@…) — für alle Bios geeignet. */
+  general?: boolean;
 }
 
 export interface CollabThreadRow {
@@ -67,8 +69,19 @@ export default function OutreachCollabs({
           Diese Adressen gehören in die TikTok/IG-Bios. Eingehende Mails landen automatisch hier
           und in der Inbox unter „Collabs&#8220;. Klick auf eine Adresse kopiert sie.
         </p>
+        {aliases.some((a) => a.general) && (
+          <div className="mb-4 p-3 border border-line-strong rounded-[var(--radius-sm)] bg-surface-2 flex items-center gap-3 flex-wrap">
+            <span className="[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.1em] text-fg">
+              Allgemein — alle Apps
+            </span>
+            <CopyAddress address={aliases.find((a) => a.general)!.address} />
+            <span className="text-fg-4 text-[11px]">
+              Eine Adresse für jede Bio; Anfragen laufen unter „Klar&#8220; auf.
+            </span>
+          </div>
+        )}
         <div className="flex flex-wrap gap-x-5 gap-y-3">
-          {aliases.map((a) => (
+          {aliases.filter((a) => !a.general).map((a) => (
             <div key={a.address} className="flex items-center gap-2">
               <span className="[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.1em] text-fg-3">
                 {a.appName}
