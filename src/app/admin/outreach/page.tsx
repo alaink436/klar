@@ -52,6 +52,8 @@ import OutreachWaveForm, { type WaveFormApp, type WaveRegion, type WaveSize } fr
 import OutreachAddForm, { type AddFormApp } from "./OutreachAddForm";
 import OutreachSuppressions, { type SuppressionRowData } from "./OutreachSuppressions";
 import OutreachTargets from "./OutreachTargets";
+import OutreachCollabs, { type CollabAliasRow, type CollabThreadRow } from "./OutreachCollabs";
+import { listCollabThreads, COLLAB_ALIASES, collabAddressFor } from "../../../lib/collabStore";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -519,9 +521,40 @@ export default async function OutreachPage({
   const result = await outreachMain(filterPlatform, filterStatus, filterApp, filterSize, query, autoRefresh, showTests);
   const scrapeSettings = await getScrapeSettings();
 
+  // ── Collabs: Mail an die öffentlichen per-App Adressen (TikTok-Bio) ────────
+  // Immer laden (ein PostgREST-Call, fail-soft zu []), damit der Tab-Badge die
+  // offenen Anfragen auch auf den anderen Tabs zeigt. Antworten bleibt in der
+  // Inbox — die Zeilen deep-linken dorthin (?f=collab&sel=<thread-id>).
+  const collabThreads = await listCollabThreads();
+  const seenAliasApps = new Set<string>();
+  const collabAliases: CollabAliasRow[] = [];
+  for (const [alias, meta] of Object.entries(COLLAB_ALIASES)) {
+    if (seenAliasApps.has(meta.app)) continue; // wavelength/thinq etc. → 1 Adresse pro App
+    const address = collabAddressFor(alias);
+    if (!address) continue; // KLAR_INBOUND_DOMAIN fehlt → keine Adressen anzeigbar
+    seenAliasApps.add(meta.app);
+    collabAliases.push({ appName: meta.name, address });
+  }
+  const collabRows: CollabThreadRow[] = collabThreads.map((t) => {
+    const last = t.messages[t.messages.length - 1];
+    const snippet = (last?.body ?? "").replace(/\s+/g, " ").trim().slice(0, 140);
+    return {
+      contactEmail: t.contactEmail,
+      contactName: t.contactName,
+      appName: COLLAB_ALIASES[t.alias]?.name ?? t.app,
+      address: t.address,
+      lastSubject: last?.subject ?? null,
+      lastSnippet: snippet,
+      inboundCount: t.messages.filter((m) => m.direction === "in").length,
+      unanswered: last?.direction === "in",
+      whenRel: t.lastActivityAt ? fmtRelative(t.lastActivityAt) : "—",
+      inboxHref: `/admin/inbox?f=collab&sel=${encodeURIComponent(`collab:${t.app}:${t.contactEmail}`)}`,
+    };
+  });
+
   // Sub-menu: ?tab= drives which panel renders. Unknown/missing -> pipeline
   // (incl. legacy ?tab=scrape links — the Evomi tab merged into Pipeline).
-  const OUTREACH_TABS = ["pipeline", "abrechnung", "sperrliste"] as const;
+  const OUTREACH_TABS = ["pipeline", "collabs", "abrechnung", "sperrliste"] as const;
   const tab: OutreachTab = (OUTREACH_TABS as readonly string[]).includes(sp.tab ?? "")
     ? (sp.tab as OutreachTab)
     : "pipeline";
@@ -541,7 +574,11 @@ export default async function OutreachPage({
         {result.configured ? (
           <>
             <div dangerouslySetInnerHTML={{ __html: flash + result.topHtml }} />
-            <OutreachTabs active={tab} filterParams={result.filter} />
+            <OutreachTabs
+              active={tab}
+              filterParams={result.filter}
+              collabOpen={collabRows.filter((r) => r.unanswered).length}
+            />
 
             {/* PIPELINE */}
             <div hidden={tab !== "pipeline"}>
@@ -575,6 +612,11 @@ export default async function OutreachPage({
                   />
                 </div>
               </details>
+            </div>
+
+            {/* COLLABS */}
+            <div hidden={tab !== "collabs"}>
+              <OutreachCollabs aliases={collabAliases} threads={collabRows} />
             </div>
 
             {/* ABRECHNUNG */}

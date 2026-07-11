@@ -29,6 +29,8 @@ import { loadAffiliateChatInbox } from "../../../lib/affiliateChatStore";
 import { listStarredIds } from "../../../lib/inboxStars";
 import { listCollabThreads, COLLAB_ALIASES } from "../../../lib/collabStore";
 import MailClient, {
+  INBOX_FILTERS,
+  type InboxFilter,
   type Conversation,
   type ThreadMessage,
   type AppMeta,
@@ -92,9 +94,15 @@ function inquiryBody(r: Inquiry): string {
 export default async function InboxPage({
   searchParams,
 }: {
-  searchParams: Promise<{ msg?: string }>;
+  searchParams: Promise<{ msg?: string; f?: string; sel?: string }>;
 }) {
-  const flashMsg = ((await searchParams).msg ?? "").slice(0, 300);
+  const sp = await searchParams;
+  const flashMsg = (sp.msg ?? "").slice(0, 300);
+  // Deep-Link (z.B. aus Outreach → Collabs): ?f= Startfilter, ?sel= Konversation.
+  const initialFilter: InboxFilter | undefined = (INBOX_FILTERS as readonly string[]).includes(sp.f ?? "")
+    ? (sp.f as InboxFilter)
+    : undefined;
+  const initialSelId = (sp.sel ?? "").slice(0, 200) || undefined;
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
   const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
   const TOTP = process.env.KLAR_TOTP_SECRET ?? "";
@@ -463,6 +471,8 @@ export default async function InboxPage({
         templates={replyTemplates}
         appMail={appMail}
         mailer={{ dueMail1, senderEnabled, cronSet, inboundSet }}
+        initialFilter={initialFilter}
+        initialSelId={initialSelId}
       />
     </>
   );

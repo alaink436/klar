@@ -33,6 +33,11 @@ export interface ThreadMessage {
   provider: string | null;
 }
 
+// List filter chips. Exported so InboxPage can validate a ?f= deep-link param
+// (e.g. /admin/inbox?f=collab from the Outreach-Collabs tab) against the union.
+export const INBOX_FILTERS = ["all", "starred", "inquiry", "collab", "replied", "converted", "open"] as const;
+export type InboxFilter = (typeof INBOX_FILTERS)[number];
+
 export interface Conversation {
   id: string;
   handle: string;
@@ -224,6 +229,8 @@ export default function MailClient({
   templates,
   appMail,
   mailer,
+  initialFilter,
+  initialSelId,
 }: {
   conversations: Conversation[];
   appMeta: AppMeta;
@@ -231,6 +238,11 @@ export default function MailClient({
   templates: TemplatesMap;
   appMail: AppMailTemplate[];
   mailer: { dueMail1: number; senderEnabled: boolean; cronSet: boolean; inboundSet: boolean };
+  /** Deep-Link-Support (?f= / ?sel= auf /admin/inbox): Startfilter + vorselektierte
+   *  Konversation, z.B. aus dem Outreach-Collabs-Tab. Nur Startwerte — danach
+   *  übernimmt der Client-State wie bisher. */
+  initialFilter?: InboxFilter;
+  initialSelId?: string;
 }) {
   const [convs, setConvs] = useState<Conversation[]>(conversations);
   // Re-seed the list whenever the server hands us fresh data. The conversations
@@ -266,9 +278,13 @@ export default function MailClient({
     setAppMailRows(appMail);
   }
 
-  const [selectedId, setSelectedId] = useState<string | null>(conversations[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialSelId && conversations.some((c) => c.id === initialSelId)
+      ? initialSelId
+      : conversations[0]?.id ?? null,
+  );
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "starred" | "inquiry" | "collab" | "replied" | "converted" | "open">("all");
+  const [filter, setFilter] = useState<InboxFilter>(initialFilter ?? "all");
   const [sizeFilter, setSizeFilter] = useState<SizeBucket | "all">("all");
   const [narrow, setNarrow] = useState(false);
   const [mailerOpen, setMailerOpen] = useState(false);
