@@ -29,13 +29,15 @@ import { loadAffiliateChatInbox } from "../../../lib/affiliateChatStore";
 import { listStarredIds } from "../../../lib/inboxStars";
 import { listCollabThreads, COLLAB_ALIASES } from "../../../lib/collabStore";
 import MailClient, {
-  INBOX_FILTERS,
-  type InboxFilter,
   type Conversation,
   type ThreadMessage,
   type AppMeta,
   type InquiryMeta,
 } from "./MailClient";
+// Value-import aus einem eigenen Nicht-Client-Modul — NICHT aus MailClient:
+// Client-Modul-Exports erreichen Server-Komponenten nur als Referenz-Proxies
+// (Laufzeit-TypeError bei .includes), tsc/build merken davon nichts.
+import { INBOX_FILTERS, type InboxFilter } from "./inboxFilters";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

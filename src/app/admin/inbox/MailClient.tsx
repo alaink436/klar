@@ -21,6 +21,7 @@ import TemplateManager from "./TemplateManager";
 import type { ReplyLang, ReplyTemplate } from "@/lib/replyTemplates";
 import type { AppMailTemplate } from "@/lib/outreachStore";
 import { sizeOf, SIZE_BUCKETS, type SizeBucket } from "@/lib/sizeBuckets";
+import type { InboxFilter } from "./inboxFilters";
 
 export type Direction = "in" | "out";
 
@@ -32,11 +33,6 @@ export interface ThreadMessage {
   at: string | null;
   provider: string | null;
 }
-
-// List filter chips. Exported so InboxPage can validate a ?f= deep-link param
-// (e.g. /admin/inbox?f=collab from the Outreach-Collabs tab) against the union.
-export const INBOX_FILTERS = ["all", "starred", "inquiry", "collab", "replied", "converted", "open"] as const;
-export type InboxFilter = (typeof INBOX_FILTERS)[number];
 
 export interface Conversation {
   id: string;
