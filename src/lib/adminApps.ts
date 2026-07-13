@@ -20,6 +20,12 @@ export interface AdminApp {
   adminKey: string;
 }
 
+// promillio's Supabase project (cmhxvhmxansithjjajld) was recycled to
+// Expo-Anime-Vault on 2026-06-30, so the numbers this backend reports belong
+// to AnimeVault now. The entry stays connected under its historical slug
+// (metrics history, routes, env keys unchanged) — the ANALYTICS display layer
+// relabels the card via APP_ANALYTICS_DISPLAY in admin/analytics/page.tsx.
+
 export function getApps(): AdminApp[] {
   try {
     const arr = JSON.parse(process.env.KLAR_ADMIN_APPS ?? "[]");

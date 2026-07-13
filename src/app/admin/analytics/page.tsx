@@ -317,6 +317,19 @@ async function fetchAppInstallsAndPremiums(
   }
 }
 
+// Analytics-Anzeigenamen, wo das Backend nicht mehr zur KLAR_APPS-Marke gehört:
+// promillios Supabase-Projekt wurde 2026-06-30 zu Expo-Anime-Vault recycelt —
+// User-/Funnel-/Chart-Zahlen aus diesem Backend sind AnimeVault-Zahlen und
+// werden auch so beschriftet. Slug bleibt "promillio" (Metrik-Historie, env,
+// Routen); Pageviews der /promillo-Website-Seite bleiben unter "Promillo".
+const APP_ANALYTICS_DISPLAY: Record<string, { name: string; icon: string }> = {
+  promillio: { name: "AnimeVault", icon: "/icons/animevault.png" },
+};
+const displayName = (m: { slug: string; name: string }): string =>
+  APP_ANALYTICS_DISPLAY[m.slug]?.name ?? m.name;
+const displayIcon = (m: { slug: string; icon: string }): string =>
+  APP_ANALYTICS_DISPLAY[m.slug]?.icon ?? m.icon;
+
 async function buildFunnel(
   rows: RawPageview[],
   since: string,
@@ -332,7 +345,7 @@ async function buildFunnel(
       if (!backend) {
         return {
           slug,
-          name: meta.name,
+          name: displayName(meta),
           hasBackend: false,
           clicks,
           installs: 0,
@@ -346,7 +359,7 @@ async function buildFunnel(
       const premiumRate = r.installs > 0 ? r.premiums / r.installs : 0;
       return {
         slug,
-        name: meta.name,
+        name: displayName(meta),
         hasBackend: true,
         clicks,
         installs: r.installs,
@@ -384,8 +397,8 @@ async function buildApps(): Promise<AppsPayload> {
       ]);
       return {
         slug: meta.slug,
-        name: meta.name,
-        icon: meta.icon,
+        name: displayName(meta),
+        icon: displayIcon(meta),
         hasBackend: !!backend,
         usersTotal: stats?.usersTotal ?? null,
         usersNew30d: stats?.usersNew30d ?? null,
@@ -504,13 +517,14 @@ async function buildAppsChart(
     for (const m of selApps) {
       const s = seriesBySlug.get(m.slug);
       if (!s) continue; // no backend / failed → no line
-      categories.push(m.name);
+      const label = displayName(m);
+      categories.push(label);
       colors.push(colorForSlug(m.slug));
       const newByKey = new Map(s.buckets.map((b) => [b.b, b.n]));
       let cum = s.baseline;
       timeline.forEach((t, i) => {
         cum += newByKey.get(t.key) ?? 0;
-        data[i][m.name] = cum;
+        data[i][label] = cum;
       });
     }
   } else {
@@ -525,13 +539,14 @@ async function buildAppsChart(
       valBySlugKey.set(`${r.app_slug}|${key}`, r.mrr_cents !== null ? Number(r.mrr_cents) / 100 : 0);
     }
     for (const m of selApps) {
-      categories.push(m.name);
+      const label = displayName(m);
+      categories.push(label);
       colors.push(colorForSlug(m.slug));
       let last = 0;
       timeline.forEach((t, i) => {
         const v = valBySlugKey.get(`${m.slug}|${t.key}`);
         if (v !== undefined) last = v;
-        data[i][m.name] = last;
+        data[i][label] = last;
       });
     }
   }
@@ -549,7 +564,7 @@ async function buildAppsChart(
     data,
     apps: KLAR_APPS.map((m) => ({
       slug: m.slug,
-      name: m.name,
+      name: displayName(m),
       on: selected.has(m.slug),
       color: colorForSlug(m.slug),
     })),
