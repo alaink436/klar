@@ -13,6 +13,16 @@ import { clientIp, rateLimit } from "@/lib/apiGuards";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+// Without this the route inherits Vercel's 10s Hobby default, which kills the
+// function mid-flight on slower provider endpoints (e.g. Blotato POST /posts
+// submitting a 7-image carousel) — the caller then sees a hang, not an error.
+// 60s is the Hobby ceiling.
+export const maxDuration = 60;
+
+// Abort the upstream call before the function itself is killed, so a slow
+// provider returns a clean 504 instead of a dead connection. Cleared as soon as
+// the response headers arrive — streaming the body is bounded by maxDuration.
+const UPSTREAM_TIMEOUT_MS = 50_000;
 
 function json(obj: unknown, status = 200): Response {
   return new Response(JSON.stringify(obj), {
@@ -82,6 +92,9 @@ async function handle(
   const method = req.method.toUpperCase();
   const hasBody = method !== "GET" && method !== "HEAD";
 
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), UPSTREAM_TIMEOUT_MS);
+
   let upstream: Response;
   try {
     upstream = await fetch(target, {
@@ -90,10 +103,17 @@ async function handle(
       body: hasBody ? await req.arrayBuffer() : undefined,
       redirect: "manual",
       cache: "no-store",
+      signal: ac.signal,
     });
-  } catch {
-    return json({ error: "upstream request failed" }, 502);
+  } catch (err) {
+    clearTimeout(timer);
+    const timedOut = err instanceof Error && err.name === "AbortError";
+    return timedOut
+      ? json({ error: "upstream timeout", timeoutMs: UPSTREAM_TIMEOUT_MS }, 504)
+      : json({ error: "upstream request failed" }, 502);
   }
+  // Headers are in; let the body stream without the abort timer racing it.
+  clearTimeout(timer);
 
   const respHeaders = new Headers();
   for (const h of ["content-type", "content-disposition", "x-request-id"]) {
