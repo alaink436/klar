@@ -2,7 +2,7 @@
 //
 // Config via env KLAR_ADMIN_APPS = JSON array, one entry per connected app:
 //   [{
-//     "slug":"wavelength","name":"Wavelength",
+//     "slug":"wavelength","name":"Basalt",   // display name lives in the env var, not in code
 //     "supabaseUrl":"https://yxhzwzgnbmpjztkvdudr.supabase.co",
 //     "serviceKey":"<service-role key>",
 //     "functionsBase":"https://yxhzwzgnbmpjztkvdudr.supabase.co/functions/v1",

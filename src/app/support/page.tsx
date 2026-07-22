@@ -13,7 +13,7 @@ const APPS = [
   { name: "Promillo", note: "party games" },
   { name: "Trubel", note: "geo photo albums" },
   { name: "MyLoo", note: "bristol-scale tracking" },
-  { name: "Wavelength", note: "group planning" },
+  { name: "Basalt", note: "goal enforcement" },
   { name: "Yarn-Stash", note: "yarn inventory" },
 ];
 

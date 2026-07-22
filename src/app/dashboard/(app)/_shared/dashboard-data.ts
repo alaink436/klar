@@ -6,7 +6,7 @@ import { serviceSupabase } from "@/lib/supabaseAuth";
 import { getApp, sbGet } from "@/lib/adminApps";
 
 export const APP_NAME: Record<string, string> = {
-  wavelength: "Wavelength",
+  wavelength: "Basalt",
   kelva: "Kelva",
   trubel: "Trubel",
   myloo: "MyLoo",

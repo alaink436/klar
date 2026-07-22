@@ -60,13 +60,13 @@ const APPS: App[] = [
   },
   {
     slug: "wavelength",
-    name: "Wavelength",
-    pitch: "plan smarter, together.",
+    name: "Basalt",
+    pitch: "one goal, actually finished.",
     description:
-      "Personal calendar plus voting tool for friend groups and sport teams. Heatmap availability voting, vision-OCR for paper schedules, sport-specific lineups for 8 sports. The group plan that doesn't annoy.",
+      "Pick one goal and the app enforces it. Quitting something blocks the apps and sites in the way via the iOS Screen Time API; building something generates a plan you export to Apple Calendar. Every goal has an end date, so it finishes instead of billing you forever.",
     business: {
-      free: "2 groups, 5 events per group, manual block creation",
-      paid: "Unlimited groups + events, vision-OCR import, calendar auto-sync, boost",
+      free: "One goal, daily check-in, streak, panic button",
+      paid: "Hard block, strict mode, plan export, accountability partner",
       price: "tbd",
     },
     status: "BUILD",

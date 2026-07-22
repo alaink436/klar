@@ -47,7 +47,7 @@ export const BRAND_TO_APP: Record<BrandKey, string> = {
 export const APP_META: Record<string, { appName: string; commissionPct: number; attributionMonths: number }> = {
   "yarn-stash": { appName: "Yarn-Stash", commissionPct: 50, attributionMonths: 24 },
   moto:         { appName: "ThrottleUp", commissionPct: 50, attributionMonths: 24 },
-  wavelength:   { appName: "Wavelength", commissionPct: 50, attributionMonths: 24 },
+  wavelength:   { appName: "Basalt", commissionPct: 50, attributionMonths: 24 },
   kelva:        { appName: "Kelva",      commissionPct: 50, attributionMonths: 24 },
   trubel:       { appName: "Trubel",     commissionPct: 50, attributionMonths: 24 },
   myloo:        { appName: "MyLoo",      commissionPct: 50, attributionMonths: 24 },

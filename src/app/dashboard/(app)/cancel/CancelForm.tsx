@@ -11,7 +11,7 @@ import Link from "next/link";
 import { AuthShell, buttonStyle, errorStyle, inputStyle, labelStyle } from "../../_shared/auth-shell";
 
 const APP_NAME: Record<string, string> = {
-  wavelength: "Wavelength",
+  wavelength: "Basalt",
   kelva: "Kelva",
   trubel: "Trubel",
   myloo: "MyLoo",

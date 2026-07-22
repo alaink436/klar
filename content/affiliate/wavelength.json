@@ -1,13 +1,14 @@
 {
   "app": {
     "key": "wavelength",
-    "name": "On Wavelength",
+    "name": "Basalt",
     "domain": "onwavelength.space",
-    "platforms": "iOS + Android",
+    "platforms": "iOS",
     "premium_price_eur_monthly": 5,
     "premium_price_eur_yearly": 40,
     "monetisation": "single recurring subscription",
-    "audience_constraint": "INT — no platform restriction"
+    "audience_constraint": "INT — no platform restriction",
+    "status_note": "NOT YET IN THE STORE. The bundle com.wavelenght.app is live, but with the old Wavelength calendar app. Basalt has not been submitted."
   },
   "brief": {
     "en": {
@@ -380,12 +381,30 @@
       "conversion_math": "50% rev share, 24 months per attributed user. Premium ~5 EUR/m or ~40 EUR/y. Coach reel (50k followers): 30,000 views x 1.2% CTR = 360 clicks, 40% install = 144 installs, 5% to Premium = 7 subs, ~300-400 EUR over 12-24 months from one reel. Productivity reel (100k): 60,000 views x 1.5% CTR = 900 clicks, 35% install = 315 installs, 4% conversion = 12 subs, ~360-450 EUR over 12 months. Drill TikToker (250k): 180,000 views x 0.8% CTR = 1,440 clicks, 30% install = 432 installs, 6% conversion = 26 subs, ~1,500 EUR over 12 months from a single reel. Meme account (500k+): 800k views x 0.4% CTR = 3,200 clicks, 25% install = 800 installs, 2% conversion = 16 subs, ~600 EUR but huge spike in brand awareness.",
       "brand_assets": "Logo, app screenshots, B-roll footage, colour palette and ready-made caption snippets: getklar.org/i/wavelength/brand-assets (link goes live with your onboarding mail).",
       "faq": [
-        ["I want Free Lifetime Premium but I don't want to post.", "That's fine. Premium is sent anyway. We never market in your name. Your link stays ready in case you change your mind."],
-        ["Can I use the link in multiple posts?", "Yes. It's your link, for 24 months per converted user. More posts = more conversions = more payout. No volume cap."],
-        ["What if I lose interest after 6 months?", "We let it rest. Subs that came in during those 6 months continue paying out until each user reaches the 24-month mark."],
-        ["Can I negotiate a flat fee on top of rev share?", "Yes. Mid-tier creators $150-800 per post, macros $800+ (DACH CPMs are typically lower). Rev share stays on top."],
-        ["What happens if Premium pricing changes?", "You earn 50% on the then-current price."],
-        ["Disclosure obligation?", "Yes. Rev share counts as a paid recommendation. Use #ad / #sponsored / IG \"Paid Partnership\"."]
+        [
+          "I want Free Lifetime Premium but I don't want to post.",
+          "That's fine. Premium is sent anyway. We never market in your name. Your link stays ready in case you change your mind."
+        ],
+        [
+          "Can I use the link in multiple posts?",
+          "Yes. It's your link, for 24 months per converted user. More posts = more conversions = more payout. No volume cap."
+        ],
+        [
+          "What if I lose interest after 6 months?",
+          "We let it rest. Subs that came in during those 6 months continue paying out until each user reaches the 24-month mark."
+        ],
+        [
+          "Can I negotiate a flat fee on top of rev share?",
+          "Yes. Mid-tier creators $150-800 per post, macros $800+ (DACH CPMs are typically lower). Rev share stays on top."
+        ],
+        [
+          "What happens if Premium pricing changes?",
+          "You earn 50% on the then-current price."
+        ],
+        [
+          "Disclosure obligation?",
+          "Yes. Rev share counts as a paid recommendation. Use #ad / #sponsored / IG \"Paid Partnership\"."
+        ]
       ],
       "closing": "Honest read: if your audience plans things together — sport, flatshare, classroom, friend group — Wavelength fits. If they don't, no script makes this work. We'd rather have 20 well-fit creators than 200 random ones, so if you got to the bottom of this and shrugged, that's a real answer too. Reply to Mail 2 either way — yes, no, or \"maybe, let's chat\". A 15-minute call goes a long way and we don't push."
     },
@@ -512,12 +531,30 @@
       "conversion_math": "50% Rev-Share, 24 Monate pro attribuiertem User. Premium ~5 EUR/m oder ~40 EUR/y. Coach-Reel (50k Follower): 30.000 Views x 1,2% CTR = 360 Clicks, 40% Install = 144 Installs, 5% zu Premium = 7 Subs, ~300-400 EUR über 12-24 Monate aus einem Reel. Produktivitäts-Reel (100k): 60.000 Views x 1,5% CTR = 900 Clicks, 35% Install = 315 Installs, 4% Conversion = 12 Subs, ~360-450 EUR über 12 Monate. Drill-TikToker (250k): 180.000 Views x 0,8% CTR = 1.440 Clicks, 30% Install = 432 Installs, 6% Conversion = 26 Subs, ~1.500 EUR über 12 Monate aus EINEM Reel. Meme-Account (500k+): 800k Views x 0,4% CTR = 3.200 Clicks, 25% Install = 800 Installs, 2% Conversion = 16 Subs, ~600 EUR aber großer Brand-Awareness-Spike.",
       "brand_assets": "Logo, App-Screenshots, B-Roll-Footage, Farbpalette und fertige Caption-Snippets: getklar.org/i/wavelength/brand-assets (Link wird mit deinem Onboarding-Mail aktiv).",
       "faq": [
-        ["Ich will Free Lifetime Premium aber nichts posten.", "Passt. Premium kommt trotzdem. Wir vermarkten nicht in deinem Namen. Dein Link bleibt bereit falls du es dir anders überlegst."],
-        ["Kann ich den Link in mehreren Posts nutzen?", "Ja. Dein Link, 24 Monate pro Conversion. Mehr Posts = mehr Conversions = mehr Payout. Kein Volume-Cap."],
-        ["Was wenn ich nach 6 Monaten Interesse verliere?", "Wir lassen es ruhen. Subs die in den 6 Monaten reinkamen zahlen weiter aus bis jeder User seine 24 Monate erreicht."],
-        ["Kann ich Flat-Fee on-top verhandeln?", "Ja. Mid-Tier-Creator 150-800 EUR pro Post, Macros 800+ (DACH-CPMs niedriger). Rev-Share bleibt obendrauf."],
-        ["Was wenn sich Premium-Pricing ändert?", "Du verdienst weiter 50% auf den jeweils aktuellen Preis."],
-        ["Kennzeichnungspflicht?", "Ja. Rev-Share zählt als bezahlte Empfehlung. Nutze #ad / #Werbung / IG \"Paid Partnership\"."]
+        [
+          "Ich will Free Lifetime Premium aber nichts posten.",
+          "Passt. Premium kommt trotzdem. Wir vermarkten nicht in deinem Namen. Dein Link bleibt bereit falls du es dir anders überlegst."
+        ],
+        [
+          "Kann ich den Link in mehreren Posts nutzen?",
+          "Ja. Dein Link, 24 Monate pro Conversion. Mehr Posts = mehr Conversions = mehr Payout. Kein Volume-Cap."
+        ],
+        [
+          "Was wenn ich nach 6 Monaten Interesse verliere?",
+          "Wir lassen es ruhen. Subs die in den 6 Monaten reinkamen zahlen weiter aus bis jeder User seine 24 Monate erreicht."
+        ],
+        [
+          "Kann ich Flat-Fee on-top verhandeln?",
+          "Ja. Mid-Tier-Creator 150-800 EUR pro Post, Macros 800+ (DACH-CPMs niedriger). Rev-Share bleibt obendrauf."
+        ],
+        [
+          "Was wenn sich Premium-Pricing ändert?",
+          "Du verdienst weiter 50% auf den jeweils aktuellen Preis."
+        ],
+        [
+          "Kennzeichnungspflicht?",
+          "Ja. Rev-Share zählt als bezahlte Empfehlung. Nutze #ad / #Werbung / IG \"Paid Partnership\"."
+        ]
       ],
       "closing": "Ehrlich gesagt: wenn deine Audience zusammen plant — Sport, WG, Klasse, Freundeskreis — passt Wavelength. Wenn nicht, macht kein Skript das wett. Wir wollen lieber 20 well-fit Creator als 200 random ones, also wenn du das hier durchgelesen hast und mit den Schultern gezuckt hast, ist das auch eine ehrliche Antwort. Antworte auf Mail 2 entweder so oder so — ja, nein, oder \"vielleicht, lass mal reden\". Ein 15-Minuten-Call hilft und wir drängen nicht."
     },
@@ -533,12 +570,42 @@
       ],
       "creator_types_intro": "Usa questa tabella come primo match. Trova la riga che ti somiglia, vedi quale percorso (UGC vs faceless) converte storicamente meglio per quell'archetipo.",
       "creator_types_table": [
-        {"type": "Coach (sport amatoriale)", "path": "UGC primario", "hooks": "Sepoltura lavagna; \"5 min con 'chi manca'\"; time-lapse pianificazione stagione; POV coach assistente", "expected_conversion": "3-5% view→install, ~7-12 Premium per reel 50k"},
-        {"type": "Atleta / Sport-influencer", "path": "UGC + faceless mix", "hooks": "Vlog giorno allenamento; demo libreria esercizi; \"il mio coach lo usa\"; prep pre-match", "expected_conversion": "1-2% view→install, reach compensa"},
-        {"type": "Meme / sport-humor", "path": "Faceless", "hooks": "\"POV: chat di gruppo infernale\"; chaos-cut alla heatmap; parodia lavagna coach", "expected_conversion": "0,5-1% per view, massive reach"},
-        {"type": "Coinquilini / lifestyle", "path": "UGC primario", "hooks": "\"Come la mia coabitazione ha smesso di litigare per le date\"; story planning weekend", "expected_conversion": "1-2% in nicchia coinquilini"},
-        {"type": "Produttività faceless", "path": "Faceless", "hooks": "Time-lapse pianificazione stagione; listicle \"5 strumenti per ogni coach\"; demo screen-rec silenzioso", "expected_conversion": "0,5-1% per view ma posting ricorrente scala"},
-        {"type": "Study-with-me / studio di gruppo", "path": "Faceless o UGC light", "hooks": "Heatmap blocchi studio; pianificatore sessioni di gruppo; \"come coordiniamo la settimana esami\"", "expected_conversion": "1-2% in nicchie studenti"}
+        {
+          "type": "Coach (sport amatoriale)",
+          "path": "UGC primario",
+          "hooks": "Sepoltura lavagna; \"5 min con 'chi manca'\"; time-lapse pianificazione stagione; POV coach assistente",
+          "expected_conversion": "3-5% view→install, ~7-12 Premium per reel 50k"
+        },
+        {
+          "type": "Atleta / Sport-influencer",
+          "path": "UGC + faceless mix",
+          "hooks": "Vlog giorno allenamento; demo libreria esercizi; \"il mio coach lo usa\"; prep pre-match",
+          "expected_conversion": "1-2% view→install, reach compensa"
+        },
+        {
+          "type": "Meme / sport-humor",
+          "path": "Faceless",
+          "hooks": "\"POV: chat di gruppo infernale\"; chaos-cut alla heatmap; parodia lavagna coach",
+          "expected_conversion": "0,5-1% per view, massive reach"
+        },
+        {
+          "type": "Coinquilini / lifestyle",
+          "path": "UGC primario",
+          "hooks": "\"Come la mia coabitazione ha smesso di litigare per le date\"; story planning weekend",
+          "expected_conversion": "1-2% in nicchia coinquilini"
+        },
+        {
+          "type": "Produttività faceless",
+          "path": "Faceless",
+          "hooks": "Time-lapse pianificazione stagione; listicle \"5 strumenti per ogni coach\"; demo screen-rec silenzioso",
+          "expected_conversion": "0,5-1% per view ma posting ricorrente scala"
+        },
+        {
+          "type": "Study-with-me / studio di gruppo",
+          "path": "Faceless o UGC light",
+          "hooks": "Heatmap blocchi studio; pianificatore sessioni di gruppo; \"come coordiniamo la settimana esami\"",
+          "expected_conversion": "1-2% in nicchie studenti"
+        }
       ],
       "ugc_strategy": {
         "archetype": "Tu davanti alla camera. Coach in setting sportivo. Coinquilini in cucina vera. Il prodotto è un beat 5-10 secondi DENTRO la tua storia. Sokolova e Kefi (2020): la fiducia parasociale è ciò che muove davvero la gente a installare e pagare.",
@@ -612,12 +679,30 @@
       "conversion_math": "50% rev-share, 24 mesi per utente attribuito. Premium ~5 EUR/m o ~40 EUR/y. Coach-reel (50k follower): 30.000 view x 1,2% CTR = 360 clic, 40% install = 144 install, 5% Premium = 7 abbonati, ~300-400 EUR su 12-24 mesi. Reel produttività (100k): 60.000 view x 1,5% CTR = 900 clic, 35% install = 315 install, 4% conversione = 12 abbonati, ~360-450 EUR su 12 mesi. TikToker esercizi (250k): 180.000 view x 0,8% CTR = 1.440 clic, 30% install = 432 install, 6% conversione = 26 abbonati, ~1.500 EUR su 12 mesi.",
       "brand_assets": "Logo, screenshot app, footage B-roll, palette colori e snippet caption pronti: getklar.org/i/wavelength/brand-assets.",
       "faq": [
-        ["Voglio Premium gratis a vita ma non pubblicare.", "Tutto ok. Premium arriva comunque. Non facciamo marketing in tuo nome. Il tuo link resta pronto."],
-        ["Posso usare il link in più post?", "Sì. Tuo link, 24 mesi per conversione. Più post = più conversioni. Nessun limite di volume."],
-        ["E se dopo 6 mesi perdo interesse?", "Lo lasciamo riposare. Abbonamenti già arrivati continuano fino ai 24 mesi."],
-        ["Compenso fisso in aggiunta?", "Sì. Mid-tier 150-800 EUR a post, macro 800+. Rev-share resta sopra."],
-        ["Cambio di prezzo Premium?", "Guadagni il 50% sul prezzo del momento."],
-        ["Obbligo di trasparenza?", "Sì. #ad / #adv / IG \"Paid Partnership\"."]
+        [
+          "Voglio Premium gratis a vita ma non pubblicare.",
+          "Tutto ok. Premium arriva comunque. Non facciamo marketing in tuo nome. Il tuo link resta pronto."
+        ],
+        [
+          "Posso usare il link in più post?",
+          "Sì. Tuo link, 24 mesi per conversione. Più post = più conversioni. Nessun limite di volume."
+        ],
+        [
+          "E se dopo 6 mesi perdo interesse?",
+          "Lo lasciamo riposare. Abbonamenti già arrivati continuano fino ai 24 mesi."
+        ],
+        [
+          "Compenso fisso in aggiunta?",
+          "Sì. Mid-tier 150-800 EUR a post, macro 800+. Rev-share resta sopra."
+        ],
+        [
+          "Cambio di prezzo Premium?",
+          "Guadagni il 50% sul prezzo del momento."
+        ],
+        [
+          "Obbligo di trasparenza?",
+          "Sì. #ad / #adv / IG \"Paid Partnership\"."
+        ]
       ],
       "closing": "Onestà: se la tua audience pianifica cose insieme — sport, coinquilini, classe, gruppo amici — Wavelength va bene. Se no, nessun copione lo fa funzionare. Preferiamo 20 creator ben-fit a 200 random. Rispondi alla Mail 2 in ogni caso — sì, no, o \"forse, parliamone\"."
     },
@@ -633,12 +718,42 @@
       ],
       "creator_types_intro": "Utilise ce tableau comme premier match. Trouve la ligne qui te ressemble, vois quelle voie (UGC vs faceless) convertit historiquement le mieux pour cet archétype.",
       "creator_types_table": [
-        {"type": "Coach (sport amateur)", "path": "UGC primaire", "hooks": "Enterrement du tableau blanc ; \"5 min à demander 'qui manque'\" ; time-lapse plan de saison ; POV coach adjoint", "expected_conversion": "3-5% vues→install, ~7-12 Premium par reel 50k"},
-        {"type": "Athlète / Sport-influenceur", "path": "UGC + faceless mix", "hooks": "Vlog jour d'entraînement ; demo bibliothèque exercices ; \"mon coach l'utilise\" ; prep match", "expected_conversion": "1-2% vues→install, reach compense"},
-        {"type": "Meme / sport-humour", "path": "Faceless", "hooks": "\"POV : chat de groupe infernal\" ; chaos-cut vers heatmap ; parodie tableau coach", "expected_conversion": "0,5-1% par vue, massive reach"},
-        {"type": "Coloc / lifestyle", "path": "UGC primaire", "hooks": "\"Comment ma coloc a arrêté de se battre pour les dates\" ; story planification week-end", "expected_conversion": "1-2% en niche coloc"},
-        {"type": "Productivité faceless", "path": "Faceless", "hooks": "Time-lapse plan saison ; listicle \"5 outils pour chaque coach\" ; demo screen-rec silencieux", "expected_conversion": "0,5-1% par vue mais posting récurrent scale"},
-        {"type": "Study-with-me / étude de groupe", "path": "Faceless ou UGC léger", "hooks": "Heatmap blocs d'étude ; planificateur sessions de groupe ; \"comment on coordonne la semaine d'exams\"", "expected_conversion": "1-2% en niches étudiantes"}
+        {
+          "type": "Coach (sport amateur)",
+          "path": "UGC primaire",
+          "hooks": "Enterrement du tableau blanc ; \"5 min à demander 'qui manque'\" ; time-lapse plan de saison ; POV coach adjoint",
+          "expected_conversion": "3-5% vues→install, ~7-12 Premium par reel 50k"
+        },
+        {
+          "type": "Athlète / Sport-influenceur",
+          "path": "UGC + faceless mix",
+          "hooks": "Vlog jour d'entraînement ; demo bibliothèque exercices ; \"mon coach l'utilise\" ; prep match",
+          "expected_conversion": "1-2% vues→install, reach compense"
+        },
+        {
+          "type": "Meme / sport-humour",
+          "path": "Faceless",
+          "hooks": "\"POV : chat de groupe infernal\" ; chaos-cut vers heatmap ; parodie tableau coach",
+          "expected_conversion": "0,5-1% par vue, massive reach"
+        },
+        {
+          "type": "Coloc / lifestyle",
+          "path": "UGC primaire",
+          "hooks": "\"Comment ma coloc a arrêté de se battre pour les dates\" ; story planification week-end",
+          "expected_conversion": "1-2% en niche coloc"
+        },
+        {
+          "type": "Productivité faceless",
+          "path": "Faceless",
+          "hooks": "Time-lapse plan saison ; listicle \"5 outils pour chaque coach\" ; demo screen-rec silencieux",
+          "expected_conversion": "0,5-1% par vue mais posting récurrent scale"
+        },
+        {
+          "type": "Study-with-me / étude de groupe",
+          "path": "Faceless ou UGC léger",
+          "hooks": "Heatmap blocs d'étude ; planificateur sessions de groupe ; \"comment on coordonne la semaine d'exams\"",
+          "expected_conversion": "1-2% en niches étudiantes"
+        }
       ],
       "ugc_strategy": {
         "archetype": "Toi devant la caméra. Coach dans son setting sportif. Coloc dans sa vraie cuisine. Le produit est un beat de 5-10 secondes DANS ta story. Sokolova et Kefi (2020) : la confiance parasociale c'est ce qui pousse vraiment les gens à installer et payer.",
@@ -712,12 +827,30 @@
       "conversion_math": "50% rev-share, 24 mois par utilisateur attribué. Premium ~5 EUR/m ou ~40 EUR/y. Coach-reel (50k abonnés) : 30 000 vues x 1,2% CTR = 360 clics, 40% install = 144 installs, 5% Premium = 7 abonnés, ~300-400 EUR sur 12-24 mois. Reel productivité (100k) : 60 000 vues x 1,5% CTR = 900 clics, 35% install = 315 installs, 4% conversion = 12 abonnés, ~360-450 EUR sur 12 mois. TikToker drills (250k) : 180 000 vues x 0,8% CTR = 1 440 clics, 30% install = 432 installs, 6% conversion = 26 abonnés, ~1 500 EUR sur 12 mois.",
       "brand_assets": "Logo, captures app, footage B-roll, palette de couleurs et snippets caption prêts : getklar.org/i/wavelength/brand-assets.",
       "faq": [
-        ["Je veux Premium gratuit à vie mais sans poster.", "Pas de souci. Premium arrive quand même. On ne fait pas de marketing en ton nom. Ton lien reste prêt."],
-        ["Je peux utiliser le lien dans plusieurs posts ?", "Oui. Ton lien, 24 mois par conversion. Plus de posts = plus de conversions. Pas de cap de volume."],
-        ["Et si après 6 mois je perds l'intérêt ?", "On laisse reposer. Abonnements déjà arrivés continuent jusqu'à 24 mois."],
-        ["Compensation fixe en plus ?", "Oui. Mid-tier 150-800 EUR par post, macros 800+. Rev-share reste par-dessus."],
-        ["Changement de prix Premium ?", "Tu touches 50% sur le prix du moment."],
-        ["Obligation de mention ?", "Oui. #ad / #sponsorisé / IG \"Paid Partnership\"."]
+        [
+          "Je veux Premium gratuit à vie mais sans poster.",
+          "Pas de souci. Premium arrive quand même. On ne fait pas de marketing en ton nom. Ton lien reste prêt."
+        ],
+        [
+          "Je peux utiliser le lien dans plusieurs posts ?",
+          "Oui. Ton lien, 24 mois par conversion. Plus de posts = plus de conversions. Pas de cap de volume."
+        ],
+        [
+          "Et si après 6 mois je perds l'intérêt ?",
+          "On laisse reposer. Abonnements déjà arrivés continuent jusqu'à 24 mois."
+        ],
+        [
+          "Compensation fixe en plus ?",
+          "Oui. Mid-tier 150-800 EUR par post, macros 800+. Rev-share reste par-dessus."
+        ],
+        [
+          "Changement de prix Premium ?",
+          "Tu touches 50% sur le prix du moment."
+        ],
+        [
+          "Obligation de mention ?",
+          "Oui. #ad / #sponsorisé / IG \"Paid Partnership\"."
+        ]
       ],
       "closing": "Honnêtement : si ton audience planifie des choses ensemble — sport, coloc, classe, groupe d'amis — Wavelength colle. Sinon, aucun script ne fait marcher ça. On préfère 20 créateurs bien-fit à 200 random. Réponds à la Mail 2 dans tous les cas — oui, non, ou \"peut-être, on en parle\"."
     },
@@ -733,12 +866,42 @@
       ],
       "creator_types_intro": "Usa esta tabla como primer match. Encuentra la fila que se parece a ti, ve qué camino (UGC vs faceless) convierte históricamente mejor para ese arquetipo.",
       "creator_types_table": [
-        {"type": "Entrenador (deporte amateur)", "path": "UGC primario", "hooks": "Entierro de pizarra; \"5 min preguntando 'quién no está'\"; time-lapse plan de temporada; POV segundo entrenador", "expected_conversion": "3-5% vistas→instalación, ~7-12 Premium por reel 50k"},
-        {"type": "Atleta / Sport-influencer", "path": "UGC + faceless mix", "hooks": "Vlog día de entrenamiento; demo biblioteca ejercicios; \"mi entrenador la usa\"; prep partido", "expected_conversion": "1-2% vistas→instalación, alcance compensa"},
-        {"type": "Meme / sport-humor", "path": "Faceless", "hooks": "\"POV: chat de grupo infernal\"; chaos-cut a heatmap; parodia pizarra entrenador", "expected_conversion": "0,5-1% por vista, alcance masivo"},
-        {"type": "Piso compartido / lifestyle", "path": "UGC primario", "hooks": "\"Cómo mi piso dejó de pelear por las fechas\"; story planificación fin de semana", "expected_conversion": "1-2% en nicho piso compartido"},
-        {"type": "Productividad faceless", "path": "Faceless", "hooks": "Time-lapse plan temporada; listicle \"5 herramientas para cada entrenador\"; demo screen-rec silencioso", "expected_conversion": "0,5-1% por vista pero posting recurrente escala"},
-        {"type": "Study-with-me / estudio en grupo", "path": "Faceless o UGC ligero", "hooks": "Heatmap bloques estudio; planificador sesiones grupo; \"cómo coordinamos la semana de exámenes\"", "expected_conversion": "1-2% en nichos estudiantes"}
+        {
+          "type": "Entrenador (deporte amateur)",
+          "path": "UGC primario",
+          "hooks": "Entierro de pizarra; \"5 min preguntando 'quién no está'\"; time-lapse plan de temporada; POV segundo entrenador",
+          "expected_conversion": "3-5% vistas→instalación, ~7-12 Premium por reel 50k"
+        },
+        {
+          "type": "Atleta / Sport-influencer",
+          "path": "UGC + faceless mix",
+          "hooks": "Vlog día de entrenamiento; demo biblioteca ejercicios; \"mi entrenador la usa\"; prep partido",
+          "expected_conversion": "1-2% vistas→instalación, alcance compensa"
+        },
+        {
+          "type": "Meme / sport-humor",
+          "path": "Faceless",
+          "hooks": "\"POV: chat de grupo infernal\"; chaos-cut a heatmap; parodia pizarra entrenador",
+          "expected_conversion": "0,5-1% por vista, alcance masivo"
+        },
+        {
+          "type": "Piso compartido / lifestyle",
+          "path": "UGC primario",
+          "hooks": "\"Cómo mi piso dejó de pelear por las fechas\"; story planificación fin de semana",
+          "expected_conversion": "1-2% en nicho piso compartido"
+        },
+        {
+          "type": "Productividad faceless",
+          "path": "Faceless",
+          "hooks": "Time-lapse plan temporada; listicle \"5 herramientas para cada entrenador\"; demo screen-rec silencioso",
+          "expected_conversion": "0,5-1% por vista pero posting recurrente escala"
+        },
+        {
+          "type": "Study-with-me / estudio en grupo",
+          "path": "Faceless o UGC ligero",
+          "hooks": "Heatmap bloques estudio; planificador sesiones grupo; \"cómo coordinamos la semana de exámenes\"",
+          "expected_conversion": "1-2% en nichos estudiantes"
+        }
       ],
       "ugc_strategy": {
         "archetype": "Tú frente a la cámara. Entrenador en setting deportivo. Piso compartido desde tu cocina real. El producto es un beat de 5-10 segundos DENTRO de tu story. Sokolova y Kefi (2020): la confianza parasocial es lo que realmente mueve a la gente a instalar y pagar.",
@@ -812,14 +975,33 @@
       "conversion_math": "50% rev-share, 24 meses por usuario atribuido. Premium ~5 EUR/m o ~40 EUR/y. Coach-reel (50k seguidores): 30.000 vistas x 1,2% CTR = 360 clics, 40% install = 144 instalaciones, 5% Premium = 7 suscriptores, ~300-400 EUR en 12-24 meses. Reel productividad (100k): 60.000 vistas x 1,5% CTR = 900 clics, 35% install = 315 instalaciones, 4% conversión = 12 suscriptores, ~360-450 EUR en 12 meses. TikToker ejercicios (250k): 180.000 vistas x 0,8% CTR = 1.440 clics, 30% install = 432 instalaciones, 6% conversión = 26 suscriptores, ~1.500 EUR en 12 meses.",
       "brand_assets": "Logo, capturas app, footage B-roll, paleta de color y snippets caption listos: getklar.org/i/wavelength/brand-assets.",
       "faq": [
-        ["Quiero Premium gratis de por vida pero no publicar.", "Vale. Premium llega igual. No hacemos marketing en tu nombre. Tu enlace queda listo."],
-        ["¿Puedo usar el enlace en varios posts?", "Sí. Tu enlace, 24 meses por conversión. Más posts = más conversiones. Sin cap de volumen."],
-        ["¿Y si después de 6 meses pierdo interés?", "Lo dejamos reposar. Suscriptores ya llegados siguen hasta los 24 meses."],
-        ["¿Fee fijo encima?", "Sí. Mid-tier 150-800 EUR por post, macros 800+. Rev-share sigue encima."],
-        ["¿Cambio de precio Premium?", "Ganas el 50% sobre el precio del momento."],
-        ["¿Obligación de mención?", "Sí. #ad / #publi / IG \"Paid Partnership\"."]
+        [
+          "Quiero Premium gratis de por vida pero no publicar.",
+          "Vale. Premium llega igual. No hacemos marketing en tu nombre. Tu enlace queda listo."
+        ],
+        [
+          "¿Puedo usar el enlace en varios posts?",
+          "Sí. Tu enlace, 24 meses por conversión. Más posts = más conversiones. Sin cap de volumen."
+        ],
+        [
+          "¿Y si después de 6 meses pierdo interés?",
+          "Lo dejamos reposar. Suscriptores ya llegados siguen hasta los 24 meses."
+        ],
+        [
+          "¿Fee fijo encima?",
+          "Sí. Mid-tier 150-800 EUR por post, macros 800+. Rev-share sigue encima."
+        ],
+        [
+          "¿Cambio de precio Premium?",
+          "Ganas el 50% sobre el precio del momento."
+        ],
+        [
+          "¿Obligación de mención?",
+          "Sí. #ad / #publi / IG \"Paid Partnership\"."
+        ]
       ],
       "closing": "Honestamente: si tu audiencia planifica cosas juntos — deporte, piso compartido, clase, grupo de amigos — Wavelength encaja. Si no, ningún guión lo hace funcionar. Preferimos 20 creators bien-fit a 200 random. Responde al Mail 2 sí o sí — sí, no, o \"quizás, hablemos\"."
     }
-  }
+  },
+  "_stale_brief_warning": "⚠️ Every brief.* text below still describes the OLD Wavelength calendar app (heatmap voting, sport lineups, drill library). Basalt is a goal app with a Screen-Time hard block and calendar plan export. DO NOT generate affiliate PDFs from this file until the briefs are rewritten. Pricing lines are wrong too: Basalt has no final price yet."
 }

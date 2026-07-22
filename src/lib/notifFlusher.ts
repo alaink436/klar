@@ -25,7 +25,7 @@ const APP_LABEL: Record<string, string> = {
   "yarn-stash": "Yarn-Stash",
   trubel: "Trubel",
   myloo: "MyLoo",
-  wavelength: "Wavelength",
+  wavelength: "Basalt",
   kelva: "Kelva",
   moto: "ThrottleUp",
 };

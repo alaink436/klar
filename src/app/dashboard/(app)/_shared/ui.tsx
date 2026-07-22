@@ -198,7 +198,7 @@ export function AppBadges({
   handles: Record<string, string>;
 }) {
   const APP_NAME: Record<string, string> = {
-    wavelength: "Wavelength",
+    wavelength: "Basalt",
     kelva: "Kelva",
     trubel: "Trubel",
     myloo: "MyLoo",

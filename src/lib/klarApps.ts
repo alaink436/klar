@@ -23,7 +23,11 @@ export interface KlarAppMeta {
 export const KLAR_APPS: KlarAppMeta[] = [
   { slug: "trubel", name: "Trubel", icon: "/icons/trubel.webp", status: "LIVE", affiliatePathPrefix: "/i/trubel" },
   { slug: "myloo", name: "MyLoo", icon: "/icons/myloo.webp", status: "LIVE", affiliatePathPrefix: "/i/myloo" },
-  { slug: "wavelength", name: "Wavelength", icon: "/icons/wavelength.webp", status: "LIVE", affiliatePathPrefix: "/i/wavelength" },
+    // slug stays "wavelength": it is the key into the affiliate schema, the
+  // Supabase project and referrals.app. Only the display name changed.
+  // BUILD, not LIVE: what is live in the App Store under this bundle is still
+  // the old Wavelength calendar app. Basalt has not been submitted yet.
+  { slug: "wavelength", name: "Basalt", icon: "/icons/wavelength.webp", status: "BUILD", affiliatePathPrefix: "/i/wavelength" },
   {
     slug: "yarn-stash",
     name: "Yarn-Stash",

@@ -21,7 +21,7 @@ const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "app", "d
 const APP_REPOS = {
   trubel: "Trubel",
   myloo: "MyLoo",
-  wavelength: "Thinq",
+  wavelength: "Unhook", // Basalt ships from the Unhook tree; Thinq is the archived calendar app
   "yarn-stash": "Yarn-Stash",
   kelva: "universal-life-hub",
   moto: "Moto-Maintenance",

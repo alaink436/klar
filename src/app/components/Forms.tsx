@@ -188,7 +188,7 @@ const TARGET_APPS: readonly AppOption[] = [
   { value: "yarn-stash",  label: "Yarn-Stash · knit/crochet",      status: "LIVE" },
   { value: "trubel",      label: "Trubel · group photos",          status: "LIVE" },
   { value: "myloo",       label: "MyLoo · gut tracking",           status: "LIVE" },
-  { value: "wavelength",  label: "Wavelength · focus/teams",       status: "LIVE" },
+  { value: "wavelength",  label: "Basalt · goals/blocking",         status: "BUILD" },
   { value: "kelva",       label: "Kelva · cycle literacy",         status: "LIVE" },
   { value: "moto",        label: "ThrottleUp · moto",              status: "LIVE" },
 ];

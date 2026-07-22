@@ -40,8 +40,11 @@ export const COLLAB_ALIASES: Record<string, CollabAliasMeta> = {
   animevault: { app: "animevault", name: "AnimeVault" },
   trubel: { app: "trubel", name: "Trubel" },
   myloo: { app: "myloo", name: "MyLoo" },
-  wavelength: { app: "wavelength", name: "Wavelength" },
-  thinq: { app: "wavelength", name: "Wavelength" },
+  // slug stays "wavelength" (it is the affiliate key); "wavelength" and "thinq"
+  // stay as aliases so older mails still route to the right app.
+  basalt: { app: "wavelength", name: "Basalt" },
+  wavelength: { app: "wavelength", name: "Basalt" },
+  thinq: { app: "wavelength", name: "Basalt" },
   yarnstash: { app: "yarn-stash", name: "Yarn-Stash" },
   kelva: { app: "kelva", name: "Kelva" },
   throttleup: { app: "moto", name: "ThrottleUp" },
