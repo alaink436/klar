@@ -4,10 +4,9 @@
 // activity across all wired-up apps, then renders the app-tab strip, an
 // attention strip, KPI cards, a server-rendered SVG bar chart, funnel +
 // activity cards and a per-app table. Same STYLE/ICON chrome and 2FA gate as
-// the rest of /admin. Inner content is built as an HTML string (reusing the
-// shared barChart/eur/esc/fmtRelative helpers) and injected, so output stays
-// byte-identical to the old route.ts overview(). Bare /admin and ?view=overview
-// 303-redirect here.
+// the rest of /admin. Inner content reuses the shared eur/esc/fmtRelative
+// helpers; the bar chart is the React <MonthlyBarChart> component. Bare /admin
+// and ?view=overview 303-redirect here.
 //
 // Env: KLAR_ADMIN_KEY, KLAR_DEVICE_SECRET, KLAR_TOTP_SECRET (+ per-app Supabase
 //      keys via sbGet, and KLAR_INBOX_* for the activity feed).

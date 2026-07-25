@@ -68,46 +68,6 @@ export const money = (c: number | null | undefined) =>
 // Back-compat alias so existing eur() callsites stay valid.
 export const eur = money;
 
-// Server-rendered SVG grouped bar chart. series: [{label, gross, payout}] in cents.
-// Colours reference --chart-* CSS vars so the chart adapts to light/dark theme.
-// Shared by /admin overview + revenue + payouts so the chart stays identical.
-export function barChart(series: { label: string; gross: number; payout: number }[]): string {
-  if (series.length === 0)
-    return `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="13" y="7" width="3" height="10" rx="1"/></svg><div class="empty-title">Noch keine Einnahmen-Daten</div><div class="empty-sub">Sobald Affiliate-Umsatz verbucht wird, erscheint hier der Monatsverlauf.</div></div>`;
-  // Tremor-style grouped bar chart: horizontal hairline grid only, rounded
-  // bar tops, two monochrome series, native <title> tooltips + CSS hover.
-  const W = 1000, H = 260, padL = 56, padB = 34, padT = 16, padR = 14;
-  const cw = (W - padL - padR) / series.length;
-  const max = Math.max(1, ...series.map((d) => Math.max(d.gross, d.payout)));
-  const niceMax = Math.ceil(max / 100) * 100;
-  const y = (v: number) => padT + (H - padT - padB) * (1 - v / niceMax);
-  const base = y(0);
-  const fmt = (cents: number) => (cents / 100).toLocaleString("de-CH");
-  const gridLines = [0, 0.25, 0.5, 0.75, 1].map((f) => {
-    const val = niceMax * f, yy = y(val);
-    return `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="var(--line)" stroke-width="1" stroke-dasharray="2 4"/>
-      <text x="${padL - 10}" y="${yy + 3}" text-anchor="end" font-family="'JetBrains Mono',monospace" font-size="9" fill="var(--fg-4)">${(val / 100).toFixed(0)}</text>`;
-  }).join("");
-  // Rounded top: rect with rx, but only the visible top should round. With thin
-  // bars an rx that exceeds half the height looks off, so clamp per-bar.
-  const barRect = (x: number, top: number, bw: number, cls: string, fill: string, title: string) => {
-    const h = Math.max(0, base - top);
-    const r = Math.min(4, bw / 2, h);
-    return `<rect class="${cls}" x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="${r.toFixed(1)}" fill="${fill}"><title>${title}</title></rect>`;
-  };
-  const bars = series.map((d, i) => {
-    const x0 = padL + i * cw;
-    const bw = Math.max(6, Math.min(26, cw * 0.30));
-    const gx = x0 + cw / 2 - bw - 3, px = x0 + cw / 2 + 3;
-    return `${barRect(gx, y(Math.max(0, d.gross)), bw, "bar", "var(--chart-1)", `${esc(d.label)} · Umsatz ${fmt(d.gross)} ${esc(REPORTING_CURRENCY)}`)}
-      ${barRect(px, y(Math.max(0, d.payout)), bw, "bar", "var(--chart-2)", `${esc(d.label)} · Auszahlung ${fmt(d.payout)} ${esc(REPORTING_CURRENCY)}`)}
-      <text x="${(x0 + cw / 2).toFixed(1)}" y="${H - padB + 16}" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="var(--fg-3)">${esc(d.label)}</text>`;
-  }).join("");
-  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Einnahmen pro Monat">
-    ${gridLines}<line x1="${padL}" y1="${base}" x2="${W - padR}" y2="${base}" stroke="var(--line-strong)" stroke-width="1"/>${bars}</svg>
-    <div class="legend"><span><i style="background:var(--chart-1)"></i>Affiliate-Umsatz</span><span><i style="background:var(--chart-2)"></i>Auszahlung an Affiliates</span><span>${esc(REPORTING_CURRENCY)} pro Monat</span></div></div>`;
-}
-
 // Hardened auth:
 //   1) klar_device cookie must verify against KLAR_DEVICE_SECRET (HMAC).
 //      Without it, the browser is unknown and gets redirected to login.
@@ -176,45 +136,6 @@ export const ICON: Record<string, string> = {
   content:
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 4"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>`,
 };
-
-// Shared admin sidebar — single source of truth for the nav, used by route.ts
-// (HTML views) AND every React admin page (analytics, brain, settings, …) so
-// the rail stays byte-identical everywhere and a view migration only touches
-// ONE link here. Returns the inner HTML of <aside class="side">; callers wrap
-// it (route.ts inlines it, React pages use dangerouslySetInnerHTML).
-//   active: the current view key (marks the matching item ".on")
-//   apps:   the app registry (per-app links); pass getApps()
-export function adminSidebar(
-  active: string,
-  apps: { slug: string; name: string }[],
-): string {
-  const item = (v: string, label: string, icon: string, href?: string) =>
-    `<a class="nav ${active === v ? "on" : ""}" href="${href ?? `/admin?view=${encodeURIComponent(v)}`}"><span class="d">${icon}</span>${esc(label)}</a>`;
-  const appNav = apps.map((a) => item(a.slug, a.name, ICON.app)).join("");
-  return `
-    <a class="brand" href="/admin/overview" aria-label="Klar Control Home">
-      <span class="brand-mark"><img src="/logo/klar-symbol.png" alt="" width="40" height="40"/></span>
-      <span class="brand-text"><span class="brand-name">Klar</span><span class="brand-sub">Control</span></span>
-    </a>
-    <div class="navsec">Studio</div>
-    ${item("overview", "Übersicht", ICON.overview, "/admin/overview")}
-    ${item("inbox", "Inbox", ICON.inbox, "/admin/inbox")}
-    ${item("outreach", "Outreach", ICON.outreach, "/admin/outreach")}
-    ${item("bookings", "Bookings", ICON.calendar, "/admin/bookings")}
-    ${item("cal", "Cal Admin", ICON.calendar, "/admin/cal")}
-    ${item("analytics", "Analytics", ICON.analytics, "/admin/analytics")}
-    ${item("brain", "AI-Brain", ICON.brain, "/admin/brain")}
-    ${item("vault", "Vault", ICON.key, "/admin/vault")}
-    <div class="navsec">Affiliate</div>
-    ${item("revenue", "Einnahmen", ICON.revenue, "/admin/revenue")}
-    ${item("payouts", "Auszahlungen", ICON.payouts, "/admin/payouts")}
-    ${appNav || `<span class="nav muted"><span class="d">${ICON.app}</span>keine Apps</span>`}
-    <div class="spacer"></div>
-    <a class="nav" href="https://cal.getklar.org" target="_blank" rel="noopener"><span class="d">${ICON.calendar}</span>Cal in neuem Tab <span style="margin-left:auto;font-size:10px;opacity:.6">↗</span></a>
-    ${item("settings", "Einstellungen", ICON.lock, "/admin/settings")}
-    <a class="nav logout" href="/admin/logout"><span class="d">${ICON.logout}</span>Logout</a>
-  `;
-}
 
 // Shared CSS for /admin and /admin/analytics. Light by default, dark via
 // prefers-color-scheme or [data-theme]. Inlined as a <style> tag in both

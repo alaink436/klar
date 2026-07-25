@@ -2,10 +2,9 @@
 //
 // Server component. Aggregates affiliate-attributed revenue per app and month
 // from each app's Supabase (referral_revenue_events + influencer_claimable),
-// renders summary cards + a server-rendered SVG bar chart + a per-app table.
+// renders summary cards + the React <MonthlyBarChart> + a per-app table.
 // Same STYLE/ICON chrome and 2FA gate as the rest of /admin. The inner content
-// is built as an HTML string (reusing the shared eur/barChart helpers) and
-// injected, so output stays byte-identical to the old route.ts revenueView.
+// reuses the shared eur helper.
 //
 // Env: KLAR_ADMIN_KEY, KLAR_DEVICE_SECRET, KLAR_TOTP_SECRET (+ per-app Supabase
 //      keys consumed by sbGet via the app registry).
