@@ -15,6 +15,7 @@ import {
   readCookieFromString,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
+import CalendarTabs from "../bookings/CalendarTabs";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -40,7 +41,11 @@ export default async function CalPage() {
       <title>Cal Admin · Klar Control</title>
       <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
       <div className="content">
-        <div style={{ margin: "-24px -28px -28px -28px", height: "calc(100vh - 56px)", position: "relative" }}>
+        <CalendarTabs active="cal" />
+        {/* Negative margins pull the iframe out to the content padding; the tab
+            strip above keeps its own spacing, so the height budget loses the
+            strip's row as well as the topbar's. */}
+        <div style={{ margin: "0 -28px -28px -28px", height: "calc(100vh - 130px)", position: "relative" }}>
           <iframe
             src="https://cal.getklar.org"
             title="Cal Admin"

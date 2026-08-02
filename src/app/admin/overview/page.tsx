@@ -26,6 +26,9 @@ import { listOutreachTargets, type OutreachTarget } from "../../../lib/outreachS
 import { KLAR_APPS, type KlarAppMeta } from "../../../lib/klarApps";
 import OverviewAffiliateTable, { type OverviewRow } from "./OverviewAffiliateTable";
 import MonthlyBarChart from "../MonthlyBarChart";
+import CreatorFunnelCard from "../creators/CreatorFunnelCard";
+import { listCreators, getCreatorFunnel } from "../../../lib/creatorStore";
+import type { CreatorFunnel } from "../../../lib/creatorTypes";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -57,18 +60,28 @@ function appTabStrip(connectedSlugs: Set<string>): string {
 async function overviewMain(apps: AdminApp[]): Promise<{
   htmlTop: string;
   series: { label: string; gross: number; payout: number }[];
+  activityCard: string;
   htmlMid: string;
   tableRows: OverviewRow[];
+  creatorFunnel: CreatorFunnel;
 }> {
   const connected = new Set(apps.map((a) => a.slug));
   const tabs = appTabStrip(connected);
+
+  // Creator-Engine: der Funnel ersetzt die Outreach-Karte, die Signups laufen
+  // im Activity-Feed mit. Fail-soft — vor Migration 0014 kommen leere Listen.
+  const creators = await listCreators({ limit: 1000 });
+  const creatorsWaiting = creators.filter((c) => c.status === "applied").length;
+  const creatorFunnel = await getCreatorFunnel();
 
   if (apps.length === 0) {
     return {
       htmlTop: `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick. Klick eine verdrahtete App fürs Affiliate-Detail; die anderen tauchen auf, sobald sie ein Schema in <code>KLAR_ADMIN_APPS</code> bekommen.</p>${tabs}`,
       series: [],
+      activityCard: "",
       htmlMid: "",
       tableRows: [],
+      creatorFunnel,
     };
   }
 
@@ -138,7 +151,8 @@ async function overviewMain(apps: AdminApp[]): Promise<{
   const totalActive = rows.reduce((s, r) => s + r.active, 0);
   const totalAngefragt = rows.reduce((s, r) => s + r.angefragt, 0);
   const totalReply = rows.reduce((s, r) => s + r.reply, 0);
-  const totalAngenommen = rows.reduce((s, r) => s + r.angenommen, 0);
+  // Die Angenommen-Summe hing an der entfernten Outreach-Funnel-Karte; pro App
+  // steht die Zahl weiter in der Tabelle unten (OverviewRow.angenommen).
 
   // Monats-Serie (letzte 12) + Monat-über-Monat-Vergleich für die Delta-Tags.
   const series = [...monthly.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-12)
@@ -161,6 +175,7 @@ async function overviewMain(apps: AdminApp[]): Promise<{
     check: `<path d="M20 6 9 17l-5-5"/>`,
     inbox: `<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/>`,
     doc: `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>`,
+    signup: `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/>`,
   };
   const deltaTag = (cur: number, prev: number): string => {
     if (prev === 0 && cur === 0) return `<span class="delta flat">keine Vormonatsdaten</span>`;
@@ -174,10 +189,15 @@ async function overviewMain(apps: AdminApp[]): Promise<{
   // Zahl. Nur was offen ist, jeweils mit Direkt-Link.
   const attn = (n: number, label: string, href: string, glyph: string, accent: string): string =>
     n > 0 ? `<a href="${href}" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius-sm);padding:8px 13px;font-size:12.5px;color:var(--fg)"><span style="display:inline-flex;color:${accent}">${gi(glyph, 15)}</span><span style="font-weight:600">${esc(label)}</span><span style="font-family:var(--font-mono);font-weight:700;color:${accent}">${n}</span></a>` : "";
+  // Direkt auf die echten Routen zeigen: /admin/replies redirectet nur noch auf
+  // die Inbox, und /admin?view=… läuft über einen 303 in admin/route.ts. Beides
+  // kostete auf der meistgeklickten Seite einen unnötigen Hop und machte die
+  // SPA-Navigation der Sidebar an genau dieser Stelle zunichte.
   const attnItems = [
-    attn(totalReply, "Offene Antworten", "/admin/replies", G.reply, "var(--warning)"),
-    attn(inquiriesNew, "Neue Anfragen", "/admin?view=inbox", G.inbox, "var(--info)"),
-    attn(totalAngefragt, "Wartet auf Antwort", "/admin?view=outreach", G.send, "var(--fg-3)"),
+    attn(creatorsWaiting, "Creator freischalten", "/admin/creators", G.signup, "var(--info)"),
+    attn(totalReply, "Offene Antworten", "/admin/inbox", G.reply, "var(--warning)"),
+    attn(inquiriesNew, "Neue Anfragen", "/admin/inbox", G.inbox, "var(--info)"),
+    attn(totalAngefragt, "Wartet auf Antwort", "/admin/outreach", G.send, "var(--fg-3)"),
   ].filter(Boolean).join("");
   const attnStrip = attnItems
     ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 20px"><span class="muted" style="font-size:10px;text-transform:uppercase;letter-spacing:.14em;font-family:var(--font-mono);margin-right:4px">Braucht Aufmerksamkeit</span>${attnItems}</div>`
@@ -191,33 +211,28 @@ async function overviewMain(apps: AdminApp[]): Promise<{
     <div class="card"><div class="k">Affiliates</div><div class="v">${totalAff}</div><div class="s">${totalActive} aktiv · ${rows.filter(r=>r.onboarded).length}/${KLAR_APPS.length} Apps verdrahtet</div></div>
   </div>`;
 
-  // Funnel-Card: dünne, scharfkantige Balken (kein candy-radius), monochrome
-  // Verjüngung, nur "Angenommen" im Success-Grün als Endstufe.
-  const funnelMax = Math.max(1, totalAngefragt, totalReply, totalAngenommen);
-  const frow = (glyph: string, label: string, n: number, color: string): string =>
-    `<div style="display:flex;align-items:center;gap:11px;margin:9px 0">
-      <span style="display:inline-flex;color:var(--fg-3)">${gi(glyph, 15)}</span>
-      <span style="min-width:104px;font-size:12.5px;color:var(--fg-2)">${esc(label)}</span>
-      <div style="flex:1;background:var(--surface-2);height:10px;overflow:hidden"><div style="width:${Math.min(100, (n / funnelMax) * 100).toFixed(1)}%;height:100%;background:${color}"></div></div>
-      <span style="min-width:32px;text-align:right;font-family:var(--font-mono);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">${n}</span>
-    </div>`;
-  const funnelCard = `<div class="card" style="padding:20px 22px;display:block">
-    <div class="k" style="margin-bottom:14px">Outreach-Funnel · alle Apps</div>
-    ${frow(G.send, "Angefragt", totalAngefragt, "var(--fg)")}
-    ${frow(G.reply, "Antwort", totalReply, "color-mix(in oklab,var(--fg) 50%,var(--surface-2))")}
-    ${frow(G.check, "Angenommen", totalAngenommen, "var(--success)")}
-  </div>`;
+  // Die Outreach-Funnel-Card stand hier bis 2026-08-02 als prominenteste Karte
+  // der Landing-Seite — und zeigte eingefrorene Zahlen, seit Cold-Outreach mit
+  // dem Inbound-Pivot (2026-06-25) dormant ist. An ihre Stelle tritt der
+  // Creator-Funnel (React-Komponente, in der Page gerendert); die
+  // Outreach-Zahlen bleiben pro App in der Tabelle unten und vollständig auf
+  // /admin/outreach. Siehe AI-Brain `Projects/Klar/DASHBOARD-REVIEW.md`.
 
   // Activity-Feed: jüngste Replies + Conversions + neue Anfragen, gemischt.
   // efferd-Muster: Hairline-Divider, Icon im quadratischen Rahmen, Titel + Zeit.
   const acts: Array<{ t: number; glyph: string; accent: string; text: string; href: string }> = [];
   for (const t of allTargets) {
     const who = t.display_name || t.handle;
-    if (t.status === "replied" && t.last_message_at) acts.push({ t: Date.parse(t.last_message_at), glyph: G.reply, accent: "var(--warning)", text: `${who} hat geantwortet`, href: "/admin?view=outreach" });
-    if (t.status === "converted" && t.converted_at) acts.push({ t: Date.parse(t.converted_at), glyph: G.check, accent: "var(--success)", text: `${who} als Affiliate angenommen`, href: "/admin?view=outreach" });
+    if (t.status === "replied" && t.last_message_at) acts.push({ t: Date.parse(t.last_message_at), glyph: G.reply, accent: "var(--warning)", text: `${who} hat geantwortet`, href: "/admin/outreach" });
+    if (t.status === "converted" && t.converted_at) acts.push({ t: Date.parse(t.converted_at), glyph: G.check, accent: "var(--success)", text: `${who} als Affiliate angenommen`, href: "/admin/outreach" });
   }
   for (const r of recentInquiries) {
-    if (r.created_at) acts.push({ t: Date.parse(String(r.created_at)), glyph: r.type === "affiliate" ? G.inbox : G.doc, accent: "var(--info)", text: `Neue ${r.type === "affiliate" ? "Affiliate" : "Consulting"}-Anfrage: ${r.handle || r.email || "?"}`, href: "/admin?view=inbox" });
+    if (r.created_at) acts.push({ t: Date.parse(String(r.created_at)), glyph: r.type === "affiliate" ? G.inbox : G.doc, accent: "var(--info)", text: `Neue ${r.type === "affiliate" ? "Affiliate" : "Consulting"}-Anfrage: ${r.handle || r.email || "?"}`, href: "/admin/inbox" });
+  }
+  // Creator-Signups laufen im selben Feed mit — sie sind der Zufluss, den die
+  // Seite ab jetzt misst.
+  for (const c of creators) {
+    if (c.applied_at) acts.push({ t: Date.parse(c.applied_at), glyph: G.signup, accent: "var(--info)", text: `Neuer Creator: @${c.handle}${c.source ? ` (${c.source})` : ""}`, href: "/admin/creators" });
   }
   const actsSorted = acts.filter((a) => !isNaN(a.t)).sort((a, b) => b.t - a.t).slice(0, 7);
   const actRow = (a: { glyph: string; accent: string; text: string; href: string; t: number }): string =>
@@ -251,9 +266,10 @@ async function overviewMain(apps: AdminApp[]): Promise<{
     ${attnStrip}
     ${cards}
     <h2>Affiliate-Umsatz pro Monat</h2>`;
-  const htmlMid = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:14px 0 8px">${funnelCard}${activityCard}</div>
-    <h2>Affiliate-Stand · Outreach-Funnel pro App</h2>`;
-  return { htmlTop, series, htmlMid, tableRows };
+  // Das Grid mit Creator-Funnel + Activity baut die Page in JSX, weil der
+  // Funnel eine React-Komponente ist; hier bleibt nur die Überschrift danach.
+  const htmlMid = `<h2>Affiliate-Stand · Outreach-Funnel pro App</h2>`;
+  return { htmlTop, series, activityCard, htmlMid, tableRows, creatorFunnel };
 }
 
 export default async function OverviewPage({
@@ -274,7 +290,8 @@ export default async function OverviewPage({
 
   const sp = await searchParams;
   const apps = getApps();
-  const { htmlTop, series, htmlMid, tableRows } = await overviewMain(apps);
+  const { htmlTop, series, activityCard, htmlMid, tableRows, creatorFunnel } =
+    await overviewMain(apps);
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";  const topbar = `
     <span class="crumb"><b>Übersicht</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
@@ -287,6 +304,12 @@ export default async function OverviewPage({
       <div className="content">
         <div dangerouslySetInnerHTML={{ __html: flash + htmlTop }} />
         {series.length ? <MonthlyBarChart series={series} currency={REPORTING_CURRENCY} /> : null}
+        {activityCard ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 14, margin: "14px 0 8px" }}>
+            <CreatorFunnelCard funnel={creatorFunnel} href="/admin/creators" />
+            <div dangerouslySetInnerHTML={{ __html: activityCard }} />
+          </div>
+        ) : null}
         <div dangerouslySetInnerHTML={{ __html: htmlMid }} />
         {tableRows.length ? <OverviewAffiliateTable rows={tableRows} /> : null}
       </div>
