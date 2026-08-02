@@ -19,6 +19,14 @@
 -- Lives in the anime-vault Klar-Hub Supabase (exiuwektrqxvycclqfdd), next to
 -- klar_outreach_targets / klar_collab_messages. RLS: service-role only, same
 -- posture as its neighbours — the admin reads it with KLAR_INBOX_SERVICE_KEY.
+--
+-- APPLIED 2026-08-02 as `klar_creator_engine_0014`. Verified live: both tables
+-- RLS-on with 0 policies (service-role only, same INFO-level advisor line as
+-- the 21 sibling tables), 5 indexes each, and an e2e pass over every
+-- constraint — case-insensitive duplicate handle+app rejected, same handle for
+-- a second app accepted, bad status rejected, duplicate external_url rejected,
+-- studio post without creator_id accepted, and ON DELETE SET NULL keeps a post
+-- alive when its creator row goes. Test rows removed afterwards.
 
 -- ── Creators ────────────────────────────────────────────────────────────────
 
@@ -66,6 +74,9 @@ create table if not exists public.klar_creators (
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now()
 );
+
+comment on table public.klar_creators is
+  'Creator-Engine (Marketing #3): one row per person promoting one Klar app. `source` records the recruiting channel the signup came from - running several channels only pays off if we can see which one produces creators. Service-role only (RLS no-policy).';
 
 -- One row per (platform, handle, app): the same person may promote two apps,
 -- but not twice the same one.
@@ -118,6 +129,9 @@ create table if not exists public.klar_creator_posts (
   metrics_at    timestamptz,
   created_at    timestamptz not null default now()
 );
+
+comment on table public.klar_creator_posts is
+  'General posted-content log with an EXPLICIT app slug - replaces the text heuristics that guess app attribution today (detectApp in /admin/content, detectCollabApp in lib/collabStore). source=creator for creator posts, studio for our own. asset_id records which variant was handed out, so per-creator uniqueness is provable. Service-role only (RLS no-policy).';
 
 -- Dashboard: recent posts, per app, per creator.
 create index if not exists klar_creator_posts_posted_idx
