@@ -11,14 +11,20 @@ import { AffiliateForm, ConsultingForm, CoachingForm } from "./components/Forms"
 import CalEmbed from "./components/CalEmbed";
 import codebase from "./data/codebase.json";
 import { getAdminSettings } from "@/lib/adminSettings";
+import { PUBLIC_APPS } from "@/lib/klarApps";
 
 const CB_TOTALS = codebase.totals;
 const nf = (n: number) => n.toLocaleString("en-US");
 
-const APPS: App[] = [
+// Marketing prose lives here; status / release / store URL come from
+// lib/klarApps.ts so the page can never drift out of sync again.
+type AppCopy = Omit<App, "status" | "buildNote" | "appStoreUrl" | "icon" | "name"> & {
+  release?: string;
+};
+
+const COPY: AppCopy[] = [
   {
     slug: "trubel",
-    name: "Trubel",
     pitch: "drop a pin. fill it with photos.",
     description:
       "Geo-tagged photo albums with a time window, shared via QR code. Guests shoot with their normal camera during the event. At the host-set trigger time the app scans their camera roll for matching photos and proposes them for upload. Zero friction during the party. All albums land as pins on a world map.",
@@ -27,9 +33,6 @@ const APPS: App[] = [
       paid: "Unlimited albums, 4K downloads, auto-reel highlights, public map visibility",
       price: "tbd",
     },
-    status: "BUILD",
-    buildNote: "build · IAP done",
-    icon: "/icons/trubel.webp",
     screenshots: [
       "/screenshots/trubel/01.jpg",
       "/screenshots/trubel/02.jpg",
@@ -38,7 +41,6 @@ const APPS: App[] = [
   },
   {
     slug: "myloo",
-    name: "MyLoo",
     pitch: "tracking. without the gross.",
     description:
       "Take a photo, Vision AI classifies it on the Bristol Stool Scale. For people with IBS, Crohn's, colitis and parents who track for doctor's visits. No friction, no judgement. Photos stay local on the device by default; cloud sync is opt-in only.",
@@ -47,9 +49,6 @@ const APPS: App[] = [
       paid: "Unlimited scans + history, PDF export for doctors, food-diary correlations, trigger detection, health-app sync",
       price: "$4.99/mo · $29.99/yr",
     },
-    status: "BETA",
-    buildNote: "in review",
-    icon: "/icons/myloo.webp",
     screenshots: [
       "/screenshots/myloo/01.jpg",
       "/screenshots/myloo/02.jpg",
@@ -59,23 +58,18 @@ const APPS: App[] = [
     ],
   },
   {
-    slug: "wavelength",
-    name: "Basalt",
-    pitch: "one goal, actually finished.",
+    slug: "anime-vault",
+    pitch: "every show, tracked.",
     description:
-      "Pick one goal and the app enforces it. Quitting something blocks the apps and sites in the way via the iOS Screen Time API; building something generates a plan you export to Apple Calendar. Every goal has an end date, so it finishes instead of billing you forever.",
+      "Anime tracking and discovery over a catalogue of ~3,600 titles. Keep a watchlist, search by what you actually want to watch next, and pick up where you left off. Built for people who follow a dozen shows at once and lose the thread.",
     business: {
-      free: "One goal, daily check-in, streak, panic button",
-      paid: "Hard block, strict mode, plan export, accountability partner",
-      price: "tbd",
+      free: "5 smart searches / day, full catalogue, watchlist and tracking",
+      paid: "Unlimited smart searches, new-first sorting, supports the build",
+      price: "€4.99/mo · €29.99/yr",
     },
-    status: "BUILD",
-    buildNote: "native build",
-    icon: "/icons/wavelength.webp",
   },
   {
     slug: "yarn-stash",
-    name: "Yarn-Stash",
     pitch: "stash. match. knit.",
     description:
       "Yarn inventory, pattern matching via Ravelry and project tracking for knitters and crocheters. Scan the wrapper, Vision AI extracts everything automatically. Does the work Ravelry forgot.",
@@ -84,10 +78,6 @@ const APPS: App[] = [
       paid: "Unlimited stash, yarn-photo scan, sharing with friends, PDF/CSV export",
       price: "$3.99/mo · $29.99/yr",
     },
-    status: "LIVE",
-    buildNote: "live · 4★+",
-    appStoreUrl: "https://apps.apple.com/app/yarn-stash",
-    icon: "/icons/yarnstash.webp",
     screenshots: [
       "/screenshots/yarn-stash/01.jpg",
       "/screenshots/yarn-stash/02.jpg",
@@ -97,7 +87,6 @@ const APPS: App[] = [
   },
   {
     slug: "kelva",
-    name: "Kelva",
     pitch: "every renewal, before it lapses.",
     description:
       "One place for every piece of life admin: warranties, subscriptions, documents, maintenance and deadlines. Smart reminders before anything expires, photograph every receipt, and let AI auto-file forwarded emails and scanned documents. Built because half of all warranty claims are lost to missing receipts.",
@@ -106,13 +95,9 @@ const APPS: App[] = [
       paid: "Unlimited items, AI auto-capture (email + document scan), 6 household members, 5 aliases, vault + subscription dashboard",
       price: "$3.99/mo · $29.99/yr",
     },
-    status: "BUILD",
-    buildNote: "in review",
-    icon: "/icons/kelva.webp",
   },
   {
     slug: "moto",
-    name: "ThrottleUp",
     pitch: "every service, logged.",
     description:
       "Maintenance and service tracking for motorcycles: oil, chain, tyres and mileage-based reminders, full service history and a shop log. Know exactly when the bike needs what, and prove it when you sell.",
@@ -121,27 +106,41 @@ const APPS: App[] = [
       paid: "Unlimited bikes, cost analysis, full service-history export, fuel log",
       price: "$3.99/mo · $24.99/yr",
     },
-    status: "BUILD",
-    buildNote: "in review",
-    icon: "/icons/moto.webp",
   },
   {
-    slug: "promillio",
-    name: "Promillo",
-    pitch: "one phone. one party. seven games.",
+    slug: "wavelength",
+    pitch: "one goal, actually finished.",
     description:
-      "Party and drinking games on a single phone: Imposter, Never Have I Ever, Who's More Likely and more. Pass the phone around, laugh, drink who's guilty. No materials, no prep, in five languages. 16+, drink responsibly.",
+      "Pick one goal and the app enforces it. Quitting something blocks the apps and sites in the way via the iOS Screen Time API; building something generates a plan you export to Apple Calendar. Every goal has an end date, so it finishes instead of billing you forever.",
     business: {
-      free: "All 7 games free to play, 5 categories each",
-      paid: "Promillo PRO unlocks all premium categories with hundreds of extra cards",
-      price: "monthly · yearly · lifetime",
+      free: "One goal, daily check-in, streak, panic button",
+      paid: "Hard block, strict mode, plan export, accountability partner",
+      price: "tbd",
     },
-    status: "LIVE",
-    buildNote: "live · launch",
-    appStoreUrl: "https://apps.apple.com/app/id6773104290",
-    icon: "/icons/promillio.png",
   },
 ];
+
+// Merge marketing prose with the shipping facts from lib/klarApps.ts.
+// PUBLIC_APPS drives the order and the truth; COPY only supplies the words.
+const APPS: App[] = PUBLIC_APPS.map((meta) => {
+  const copy = COPY.find((c) => c.slug === meta.slug);
+  if (!copy) throw new Error(`No marketing copy for app slug "${meta.slug}"`);
+  return {
+    ...copy,
+    name: meta.name,
+    icon: meta.icon,
+    status: meta.status === "PAUSED" ? "BUILD" : meta.status,
+    release: meta.release,
+    // Header strip inside the app detail card. Never just repeats the status
+    // badge next to it — it says where the app actually is.
+    buildNote: meta.release ?? (meta.status === "LIVE" ? "in the app store" : "not submitted yet"),
+    appStoreUrl: meta.appStoreUrl,
+  } as App;
+});
+
+const LIVE_COUNT = APPS.filter((a) => a.status === "LIVE").length;
+const APP_WORD = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+const liveWord = APP_WORD[LIVE_COUNT] ?? String(LIVE_COUNT);
 
 const GITHUB_PROFILE = "https://github.com/alaink436";
 const GITHUB_NOW = "https://github.com/alaink436/now";
@@ -180,9 +179,9 @@ export default async function Home() {
           </div>
           <div className="flex items-center gap-3 sm:gap-5 md:gap-7">
             <Link href="#apps" className="label hover:text-[var(--fg)] transition">apps</Link>
-            <Link href="#brain" className="label hover:text-[var(--fg)] transition">brain</Link>
+            <Link href="#affiliate" className="label hover:text-[var(--fg)] transition">affiliate</Link>
             <Link href="#zeitraffer" className="label hidden sm:inline hover:text-[var(--fg)] transition">zeitraffer</Link>
-            <Link href="#affiliate" className="label hidden md:inline hover:text-[var(--fg)] transition">affiliate</Link>
+            <Link href="#brain" className="label hidden md:inline hover:text-[var(--fg)] transition">brain</Link>
             <Link href="#code" className="label hidden md:inline hover:text-[var(--fg)] transition">code</Link>
             <Link href="/log" className="label hidden md:inline hover:text-[var(--fg)] transition">log</Link>
             <Link href={GITHUB_PROFILE} target="_blank" className="label hidden md:inline hover:text-[var(--fg)] transition">github ↗</Link>
@@ -219,21 +218,26 @@ export default async function Home() {
               </p>
               <p className="t-body-lg text-[var(--fg-2)] mt-4 max-w-md">
                 no cs degree, no team, no shortcuts. just stubborn, self-taught,
-                and good at this now. six apps live, run out of one obsidian
-                brain. the receipts are right here.
+                and good at this now. {liveWord} apps live in the app store,
+                shipped solo. the receipts are right here.
               </p>
+              {/* One primary action. The page exists to recruit affiliates;
+                  the rest are secondary and styled that way. */}
               <div className="mt-5 flex flex-wrap gap-2.5">
+                {/* Inline style, not utilities: .label-fg sets its own color
+                    and wins over `text-[…]`, which renders the label invisible. */}
+                <Link
+                  href="#affiliate"
+                  className="brut-line label-fg px-4 py-2.5 transition hover:opacity-80"
+                  style={{ background: "var(--fg)", color: "var(--bg)", borderColor: "var(--fg)" }}
+                >
+                  become an affiliate →
+                </Link>
                 <Link href="#apps" className="brut-line label-fg px-4 py-2.5 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition">
                   see the work ↓
                 </Link>
-                <Link href="#consulting" className="brut-line label-fg px-4 py-2.5 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition">
+                <Link href="#consulting" className="brut-line-thin label px-4 py-2.5 hover:text-[var(--fg)] hover:border-[var(--fg)] transition">
                   work with me →
-                </Link>
-                <Link href="#affiliate" className="brut-line-thin label px-4 py-2.5 hover:text-[var(--fg)] hover:border-[var(--fg)] transition">
-                  affiliate →
-                </Link>
-                <Link href="#brain" className="brut-line-thin label px-4 py-2.5 hover:text-[var(--fg)] hover:border-[var(--fg)] transition">
-                  the brain ↓
                 </Link>
               </div>
             </div>
@@ -242,7 +246,7 @@ export default async function Home() {
             <div className="md:col-span-5">
               <div className="brut-line bg-[var(--bg-2)]">
                 {([
-                  [String(CB_TOTALS.apps), "apps shipped"],
+                  [String(LIVE_COUNT), "apps live in the app store"],
                   [nf(CB_TOTALS.lines), "lines of code"],
                   [nf(CB_TOTALS.commits), "commits · build/ship/loop"],
                 ] as [string, string][]).map(([v, k], i) => (
@@ -266,22 +270,13 @@ export default async function Home() {
             className="mt-8 flex items-center gap-3 sm:gap-4 flex-wrap"
             aria-label="see all apps"
           >
-            <span className="label shrink-0">the six ↓</span>
+            <span className="label shrink-0">the shelf ↓</span>
             {APPS.map((a) => (
               <span key={a.slug} className="relative w-10 h-10 sm:w-12 sm:h-12 icon-card">
                 <Image src={a.icon} alt={a.name} fill sizes="48px" className="object-contain" />
               </span>
             ))}
           </Link>
-
-          {/* the brain, in the hero */}
-          <div id="brain" className="mt-8 sm:mt-10 scroll-mt-20">
-            <div className="flex items-baseline justify-between mb-3">
-              <p className="label">the brain · one obsidian vault, in git</p>
-              <p className="label hidden sm:inline">drag · zoom · hover</p>
-            </div>
-            <BrainGraph />
-          </div>
         </section>
 
         {/* ─── BLACK STRIPE ─── */}
@@ -332,7 +327,11 @@ export default async function Home() {
                   >
                     {app.status}
                   </span>
-                  <span className="label hidden md:inline">{app.buildNote}</span>
+                  {app.release && (
+                    <span className="label tabular-nums whitespace-nowrap">
+                      {app.release}
+                    </span>
+                  )}
                   <Link
                     href={`/?app=${app.slug}#affiliate`}
                     className="label brut-line-thin px-2 py-1 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition"
@@ -378,10 +377,16 @@ export default async function Home() {
                   got an audience?{" "}
                   <span className="text-[var(--fg)]">bring it to klar.</span>
                 </p>
+                <p className="t-body-lg text-[var(--fg-2)] mb-3 max-w-2xl">
+                  You promote our apps to your audience and take{" "}
+                  <span className="text-[var(--fg)]">50% of the revenue for 24 months</span>{" "}
+                  on every subscriber you bring. Tracked per install, paid out
+                  monthly.
+                </p>
                 <p className="t-body-lg text-[var(--fg-2)] mb-6 max-w-2xl">
-                  You promote our apps to your audience, you get paid per
-                  install or sub. Niche fits welcome (knitting → yarn-stash,
-                  ibs/health → myloo, sport teams → wavelength, gen-z → trubel).
+                  Niche fits welcome: knitting → yarn-stash, ibs and gut health
+                  → myloo, anime → anime vault, motorcycles → throttleup,
+                  events and gen-z → trubel.
                 </p>
                 <AffiliateForm />
               </div>
@@ -466,11 +471,36 @@ export default async function Home() {
           </details>
         </section>
 
+        {/* Brain — moved out of the hero: it is the how, not the pitch. */}
+        <section id="brain" className="veil-mid relative z-10 scroll-mt-16">
+          <details className="group">
+            <summary className="acc-summary">
+              <span className="acc-tag">007 // brain.</span>
+              <span className="acc-title">brain.</span>
+              <span className="acc-pitch">how one person runs seven apps</span>
+              <span className="acc-toggle" aria-hidden="true" />
+            </summary>
+            <div className="acc-body">
+              <div className="mb-5 sm:mb-7 max-w-3xl">
+                <p className="editorial t-editorial-lg text-[var(--fg-2)]">
+                  every app, spec and decision in one obsidian vault.{" "}
+                  <span className="text-[var(--fg)]">versioned in git.</span>
+                </p>
+                <p className="t-body-lg text-[var(--fg-2)] mt-3 max-w-2xl">
+                  It is the reason a solo studio can keep this many apps moving
+                  without dropping them. Drag it around.
+                </p>
+              </div>
+              <BrainGraph />
+            </div>
+          </details>
+        </section>
+
         {/* Code */}
         <section id="code" className="veil-mid relative z-10 scroll-mt-16">
           <details className="group">
             <summary className="acc-summary">
-              <span className="acc-tag">007 // code.</span>
+              <span className="acc-tag">008 // code.</span>
               <span className="acc-title">code.</span>
               <span className="acc-pitch">the receipts, by the numbers</span>
               <span className="acc-toggle" aria-hidden="true" />
@@ -509,11 +539,11 @@ export default async function Home() {
               <p className="label mb-3">studio</p>
               {[
                 ["#apps", "Apps"],
-                ["#brain", "Brain"],
-                ["#zeitraffer", "Zeitraffer"],
-                ["#consulting", "Work with me"],
                 ["#affiliate", "Affiliate"],
+                ["#consulting", "Work with me"],
+                ["#zeitraffer", "Zeitraffer"],
                 ["#now", "Now"],
+                ["#brain", "Brain"],
                 ["#code", "Code"],
                 ["/log", "Log"],
                 ["mailto:alainkessler04@gmail.com", "alainkessler04@gmail.com"],

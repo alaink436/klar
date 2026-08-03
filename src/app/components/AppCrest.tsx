@@ -77,6 +77,9 @@ export interface App {
   business: { free: string; paid: string; price?: string };
   status: Status;
   buildNote: string;
+  /** Shipped App Store version + build, e.g. "v1.0.6 · build 16". Absent when
+   *  the app has not shipped or its version is not tracked yet. */
+  release?: string;
   appStoreUrl?: string;
   playStoreUrl?: string;
   icon: string;
@@ -156,12 +159,12 @@ export default function AppCrest({ apps }: Props) {
 
   return (
     <>
-      {/* Orbiting crest — 6 icons circling, tap one */}
+      {/* Orbiting crest — one icon per app, tap one */}
       <div
         ref={stageRef}
         className="relative mx-auto w-[min(86vw,520px)] aspect-square"
         role="group"
-        aria-label="the six apps — tap an icon"
+        aria-label={`the ${apps.length} apps — tap an icon`}
       >
         <div ref={ringRef} className="absolute inset-0">
           {apps.map((app, i) => {
@@ -207,7 +210,7 @@ export default function AppCrest({ apps }: Props) {
 
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none w-[46%]">
           <p className="display text-2xl sm:text-3xl md:text-4xl leading-none">
-            {hovered ? hovered.name.toLowerCase() : "the six"}
+            {hovered ? hovered.name.toLowerCase() : "the shelf"}
           </p>
           <p className="label mt-2">
             {hovered ? hovered.pitch : "tap an icon"}

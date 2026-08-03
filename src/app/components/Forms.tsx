@@ -188,10 +188,14 @@ const TARGET_APPS: readonly AppOption[] = [
   { value: "yarn-stash",  label: "Yarn-Stash · knit/crochet",      status: "LIVE" },
   { value: "trubel",      label: "Trubel · group photos",          status: "LIVE" },
   { value: "myloo",       label: "MyLoo · gut tracking",           status: "LIVE" },
-  { value: "wavelength",  label: "Basalt · goals/blocking",         status: "BUILD" },
-  { value: "kelva",       label: "Kelva · cycle literacy",         status: "LIVE" },
+  { value: "kelva",       label: "Kelva · life admin/warranties",  status: "LIVE" },
   { value: "moto",        label: "ThrottleUp · moto",              status: "LIVE" },
+  { value: "wavelength",  label: "Basalt · goals/blocking",        status: "BUILD" },
 ];
+// NOTE: "anime-vault" is deliberately absent. Adding it needs the
+// klar_inquiries_target_app_chk DB constraint widened first, otherwise the
+// insert in /api/inquiry fails. Until then Anime Vault applicants land on
+// "any · let klar decide", which routes to the same inbox.
 
 function normalizeAppSlug(raw: string | null): string {
   if (!raw) return "";
