@@ -15,7 +15,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   ICON,
-  readCookieFromString,  esc,
+  readCookieFromString,
+  esc,
   eur,
   fmtRelative,
   REPORTING_CURRENCY,
@@ -23,7 +24,7 @@ import {
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps, sbGet, type AdminApp } from "../../../lib/adminApps";
 import { listOutreachTargets, type OutreachTarget } from "../../../lib/outreachStore";
-import { KLAR_APPS, type KlarAppMeta } from "../../../lib/klarApps";
+import { LISTED_APPS, resolveBackendKey, type KlarAppMeta } from "../../../lib/klarApps";
 import OverviewAffiliateTable, { type OverviewRow } from "./OverviewAffiliateTable";
 import MonthlyBarChart from "../MonthlyBarChart";
 
@@ -35,12 +36,14 @@ const KLAR_INBOX_URL =
   process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
 const KLAR_INBOX_KEY = process.env.KLAR_INBOX_SERVICE_KEY ?? "";
 
-// Tab strip with all six Klar apps. Apps that are wired up in KLAR_ADMIN_APPS
+// Tab strip over the app roster. Apps that are wired up in KLAR_ADMIN_APPS
 // link to /admin?view=<slug>; the rest are dimmed but still visible so the
-// studio always sees the full portfolio at a glance.
+// studio always sees the full portfolio at a glance. `connected` is checked
+// against the BACKEND key — Anime Vault is wired up under promillio's.
 function appTabStrip(connectedSlugs: Set<string>): string {
-  return `<div class="app-tabs">${KLAR_APPS.map((a: KlarAppMeta) => {
-    const connected = connectedSlugs.has(a.slug);
+  return `<div class="app-tabs">${LISTED_APPS.map((a: KlarAppMeta) => {
+    const backendSlug = resolveBackendKey(a, connectedSlugs);
+    const connected = connectedSlugs.has(backendSlug);
     const badge = a.status === "LIVE"
       ? `<span class="badge live">Live</span>`
       : `<span class="badge">${esc(a.status)}</span>`;
@@ -49,7 +52,7 @@ function appTabStrip(connectedSlugs: Set<string>): string {
       <span class="app-name">${esc(a.name)}</span>
       <span class="app-meta">${connected ? "Affiliate" : "nicht verdrahtet"}</span>`;
     return connected
-      ? `<a class="app-tab" href="/admin?view=${esc(a.slug)}">${inner}</a>`
+      ? `<a class="app-tab" href="/admin?view=${esc(backendSlug)}">${inner}</a>`
       : `<span class="app-tab dim" title="Affiliate-Schema noch nicht verdrahtet">${inner}</span>`;
   }).join("")}</div>`;
 }
@@ -188,7 +191,7 @@ async function overviewMain(apps: AdminApp[]): Promise<{
     <div class="card"><div class="k">Affiliate-Umsatz (Monat)</div><div class="v">${eur(thisM.gross)}</div><div class="s">${deltaTag(thisM.gross, lastM.gross)}</div></div>
     <div class="card"><div class="k">Auszahlung (Monat)</div><div class="v">${eur(thisM.payout)}</div><div class="s">${deltaTag(thisM.payout, lastM.payout)}</div></div>
     <div class="card"><div class="k">Offen gesamt</div><div class="v">${eur(totalOpen)}</div><div class="s">netto, gereift</div></div>
-    <div class="card"><div class="k">Affiliates</div><div class="v">${totalAff}</div><div class="s">${totalActive} aktiv · ${rows.filter(r=>r.onboarded).length}/${KLAR_APPS.length} Apps verdrahtet</div></div>
+    <div class="card"><div class="k">Affiliates</div><div class="v">${totalAff}</div><div class="s">${totalActive} aktiv · ${rows.filter(r=>r.onboarded).length}/${LISTED_APPS.length} Apps verdrahtet</div></div>
   </div>`;
 
   // Funnel-Card: dünne, scharfkantige Balken (kein candy-radius), monochrome
@@ -275,7 +278,8 @@ export default async function OverviewPage({
   const sp = await searchParams;
   const apps = getApps();
   const { htmlTop, series, htmlMid, tableRows } = await overviewMain(apps);
-  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";  const topbar = `
+  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
+  const topbar = `
     <span class="crumb"><b>Übersicht</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;

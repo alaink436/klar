@@ -12,11 +12,11 @@ import type { OutreachFilterState } from "./OutreachFilters";
 
 // "scrape" (Evomi) merged into Pipeline 2026-06-10: the backend switch lives in
 // the wave form, the trial card is a collapsed test bench below the targets.
-export type OutreachTab = "pipeline" | "collabs" | "abrechnung" | "sperrliste";
+// "collabs" moved out to its own page /admin/collabs 2026-08-11.
+export type OutreachTab = "pipeline" | "abrechnung" | "sperrliste";
 
 const TABS: { id: OutreachTab; label: string }[] = [
   { id: "pipeline", label: "Pipeline" },
-  { id: "collabs", label: "Collabs" },
   { id: "abrechnung", label: "Abrechnung" },
   { id: "sperrliste", label: "Sperrliste" },
 ];
@@ -24,12 +24,9 @@ const TABS: { id: OutreachTab; label: string }[] = [
 export default function OutreachTabs({
   active,
   filterParams,
-  collabOpen = 0,
 }: {
   active: OutreachTab;
   filterParams: OutreachFilterState;
-  /** Unbeantwortete Collab-Anfragen — Zähler-Pille am Collabs-Tab. */
-  collabOpen?: number;
 }) {
   // Carry the Pipeline filter params across tab switches so a filtered view
   // survives a round-trip to Abrechnung/Scrape and back.
@@ -63,14 +60,6 @@ export default function OutreachTabs({
           )}
         >
           {t.label}
-          {t.id === "collabs" && collabOpen > 0 && (
-            <span
-              className="inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-bold"
-              style={{ backgroundColor: "var(--danger, #dc2626)", color: "#fff" }}
-            >
-              {collabOpen}
-            </span>
-          )}
         </Link>
       ))}
     </nav>

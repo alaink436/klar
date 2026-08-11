@@ -12,7 +12,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   ICON,
-  readCookieFromString,} from "../_shared";
+  readCookieFromString,
+} from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import {
   getApps,
@@ -27,7 +28,7 @@ import {
   type Bucket,
   type UserSeries,
 } from "../../../lib/appMetrics";
-import { KLAR_APPS, findKlarApp } from "../../../lib/klarApps";
+import { KLAR_APPS, LISTED_APPS, resolveBackendKey, findKlarApp } from "../../../lib/klarApps";
 import AnalyticsClient, {
   type AnalyticsPayload,
   type Period,
@@ -317,35 +318,30 @@ async function fetchAppInstallsAndPremiums(
   }
 }
 
-// Analytics-Anzeigenamen, wo das Backend nicht mehr zur KLAR_APPS-Marke gehört:
-// promillios Supabase-Projekt wurde 2026-06-30 zu Expo-Anime-Vault recycelt —
-// User-/Funnel-/Chart-Zahlen aus diesem Backend sind AnimeVault-Zahlen und
-// werden auch so beschriftet. Slug bleibt "promillio" (Metrik-Historie, env,
-// Routen); Pageviews der /promillo-Website-Seite bleiben unter "Promillo".
-const APP_ANALYTICS_DISPLAY: Record<string, { name: string; icon: string }> = {
-  promillio: { name: "AnimeVault", icon: "/icons/animevault.png" },
-};
-const displayName = (m: { slug: string; name: string }): string =>
-  APP_ANALYTICS_DISPLAY[m.slug]?.name ?? m.name;
-const displayIcon = (m: { slug: string; icon: string }): string =>
-  APP_ANALYTICS_DISPLAY[m.slug]?.icon ?? m.icon;
+// Anime Vault runs on promillio's recycled Supabase project, so its backend
+// numbers arrive under the key `promillio` (see appBackendKey in lib/klarApps).
+// Listing the roster instead of KLAR_APPS keeps the retired Promillo entry out
+// — it used to render a second, empty Anime-Vault row right next to the real
+// one. Pageviews of the /promillo website page still resolve to "Promillo"
+// via findKlarApp, which reads the full roster.
 
 async function buildFunnel(
   rows: RawPageview[],
   since: string,
 ): Promise<FunnelPayload> {
-  const klarApps = KLAR_APPS;
   const backendApps = getApps();
   const bySlug = new Map(backendApps.map((a) => [a.slug, a]));
   const perApp: AppFunnel[] = await Promise.all(
-    klarApps.map(async (meta) => {
+    LISTED_APPS.map(async (meta) => {
       const slug = meta.slug;
+      // Clicks come from /i/<brand-slug> links, installs from the backend the
+      // app actually runs on — those two keys differ for Anime Vault.
       const clicks = clickCountFor(slug, rows);
-      const backend = bySlug.get(slug);
+      const backend = bySlug.get(resolveBackendKey(meta, bySlug));
       if (!backend) {
         return {
           slug,
-          name: displayName(meta),
+          name: meta.name,
           hasBackend: false,
           clicks,
           installs: 0,
@@ -359,7 +355,7 @@ async function buildFunnel(
       const premiumRate = r.installs > 0 ? r.premiums / r.installs : 0;
       return {
         slug,
-        name: displayName(meta),
+        name: meta.name,
         hasBackend: true,
         clicks,
         installs: r.installs,
@@ -388,17 +384,17 @@ async function buildApps(): Promise<AppsPayload> {
   const rcBySlug = new Map(getRcConfigs().map((c) => [c.slug, c]));
 
   const perApp: AppRow[] = await Promise.all(
-    KLAR_APPS.map(async (meta) => {
-      const backend = bySlug.get(meta.slug);
-      const rcCfg = rcBySlug.get(meta.slug);
+    LISTED_APPS.map(async (meta) => {
+      const backend = bySlug.get(resolveBackendKey(meta, bySlug));
+      const rcCfg = rcBySlug.get(resolveBackendKey(meta, rcBySlug));
       const [stats, rc] = await Promise.all([
         backend ? fetchAppUserStats(backend) : Promise.resolve(null),
         rcCfg ? fetchRcOverview(rcCfg) : Promise.resolve(null),
       ]);
       return {
         slug: meta.slug,
-        name: displayName(meta),
-        icon: displayIcon(meta),
+        name: meta.name,
+        icon: meta.icon,
         hasBackend: !!backend,
         usersTotal: stats?.usersTotal ?? null,
         usersNew30d: stats?.usersNew30d ?? null,
@@ -468,7 +464,7 @@ function parseMetric(m: string | undefined): AppsMetric {
 
 // `apps` param = csv of slugs to show. Absent or empty => all apps on.
 function parseSelectedApps(raw: string | undefined): Set<string> {
-  const all = new Set(KLAR_APPS.map((a) => a.slug));
+  const all = new Set(LISTED_APPS.map((a) => a.slug));
   if (!raw) return all;
   const sel = new Set(raw.split(",").map((s) => s.trim()).filter((s) => all.has(s)));
   return sel.size > 0 ? sel : all;
@@ -498,7 +494,7 @@ async function buildAppsChart(
   const { since, bucket } = periodWindow(period);
   const timeline = bucketTimeline(since, bucket);
   const bySlug = new Map(getApps().map((a) => [a.slug, a]));
-  const selApps = KLAR_APPS.filter((m) => selected.has(m.slug));
+  const selApps = LISTED_APPS.filter((m) => selected.has(m.slug));
 
   const data: Record<string, number | string>[] = timeline.map((t) => ({ label: t.label }));
   const categories: string[] = [];
@@ -510,14 +506,14 @@ async function buildAppsChart(
     const seriesBySlug = new Map<string, UserSeries | null>();
     await Promise.all(
       selApps.map(async (m) => {
-        const app = bySlug.get(m.slug);
+        const app = bySlug.get(resolveBackendKey(m, bySlug));
         seriesBySlug.set(m.slug, app ? await fetchAppUserSeries(app, since, bucket) : null);
       }),
     );
     for (const m of selApps) {
       const s = seriesBySlug.get(m.slug);
       if (!s) continue; // no backend / failed → no line
-      const label = displayName(m);
+      const label = m.name;
       categories.push(label);
       colors.push(colorForSlug(m.slug));
       const newByKey = new Map(s.buckets.map((b) => [b.b, b.n]));
@@ -531,20 +527,25 @@ async function buildAppsChart(
     // Revenue = MRR ($) per app, from daily snapshots; carry the last known
     // value forward across buckets without a snapshot.
     const hist = await readMetricsHistory(since);
+    // Snapshots are keyed by the backend the numbers came from, so an app whose
+    // backend was inherited (Anime Vault ← promillio) is read under that key.
+    const histSlugs = new Set(hist.map((r) => r.app_slug));
+    const keyFor = new Map(selApps.map((m) => [m.slug, resolveBackendKey(m, histSlugs)]));
+    const selectedBackends = new Set(keyFor.values());
     const valBySlugKey = new Map<string, number>();
     for (const r of hist) {
-      if (!selected.has(r.app_slug)) continue;
+      if (!selectedBackends.has(r.app_slug)) continue;
       const key = bucket === "day" ? String(r.day).slice(0, 10) : String(r.day).slice(0, 7);
       // rows are day-ascending, so the last write per bucket wins (latest reading)
       valBySlugKey.set(`${r.app_slug}|${key}`, r.mrr_cents !== null ? Number(r.mrr_cents) / 100 : 0);
     }
     for (const m of selApps) {
-      const label = displayName(m);
+      const label = m.name;
       categories.push(label);
       colors.push(colorForSlug(m.slug));
       let last = 0;
       timeline.forEach((t, i) => {
-        const v = valBySlugKey.get(`${m.slug}|${t.key}`);
+        const v = valBySlugKey.get(`${keyFor.get(m.slug)}|${t.key}`);
         if (v !== undefined) last = v;
         data[i][label] = last;
       });
@@ -562,9 +563,9 @@ async function buildAppsChart(
     categories,
     colors,
     data,
-    apps: KLAR_APPS.map((m) => ({
+    apps: LISTED_APPS.map((m) => ({
       slug: m.slug,
-      name: displayName(m),
+      name: m.name,
       on: selected.has(m.slug),
       color: colorForSlug(m.slug),
     })),
@@ -659,7 +660,8 @@ export default async function AnalyticsPage({
   const appsChartPeriod = parsePeriod(sp.p_app);
   const appsSelected = parseSelectedApps(sp.apps);
   const appsChart: AppsChartPayload =
-    tab === "apps" ? await buildAppsChart(appsMetric, appsChartPeriod, appsSelected) : EMPTY_CHART;  const topbar = `
+    tab === "apps" ? await buildAppsChart(appsMetric, appsChartPeriod, appsSelected) : EMPTY_CHART;
+  const topbar = `
     <span class="crumb"><b>Analytics</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;

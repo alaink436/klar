@@ -1,11 +1,13 @@
 "use client";
 
-// Collab-Anfragen im Outreach-Menü: wer schreibt an die öffentlichen per-App
-// Mail-Adressen (TikTok-Bio, z.B. animevault@reply.getklar.org)? Read-only-Sicht
-// auf die klar_collab_messages-Threads (Daten kommen aus page.tsx via
-// listCollabThreads) plus die Adress-Liste zum Kopieren für die Bios.
-// Antworten laufen weiterhin über die Inbox — jede Zeile deep-linkt dorthin
-// (?f=collab&sel=<thread>).
+// /admin/collabs: wer schreibt an die öffentlichen per-App Mail-Adressen
+// (TikTok-Bio, z.B. animevault@reply.getklar.org)? Read-only-Sicht auf die
+// klar_collab_messages-Threads (Daten kommen aus page.tsx via buildCollabView)
+// plus die Adress-Liste zum Kopieren für die Bios. Antworten laufen weiterhin
+// über die Inbox — jede Zeile deep-linkt dorthin (?f=collab&sel=<thread>).
+//
+// Lag bis 2026-08-11 als Tab in /admin/outreach; eingehende Anfragen sind der
+// wichtigere Kanal geworden und waren dort zwei Klicks tief vergraben.
 
 import { useState } from "react";
 import Link from "next/link";
@@ -52,7 +54,7 @@ function CopyAddress({ address }: { address: string }) {
   );
 }
 
-export default function OutreachCollabs({
+export default function CollabsView({
   aliases,
   threads,
 }: {

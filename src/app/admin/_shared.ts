@@ -202,6 +202,22 @@ a{color:inherit;text-decoration:none}
 .navsec{font-family:var(--font-mono);font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:var(--fg-4);padding:0 12px;margin:18px 0 6px;display:flex;align-items:center;gap:8px}
 .navsec::after{content:"";flex:1;height:1px;background:var(--line)}
 
+/* Collapsible nav group (Creator). The section head doubles as the toggle:
+   a caret in front, the "paused" note after the label, the rule filling the
+   rest — same silhouette as a plain .navsec so the sidebar keeps its rhythm. */
+.navgroup{margin:0}
+.navsec-toggle{cursor:pointer;list-style:none;user-select:none}
+.navsec-toggle::-webkit-details-marker{display:none}
+.navsec-toggle::before{content:"";width:0;height:0;border-left:4px solid currentColor;border-top:3px solid transparent;border-bottom:3px solid transparent;transition:transform 120ms cubic-bezier(.2,.6,.3,1);flex-shrink:0}
+.navgroup[open]>.navsec-toggle::before{transform:rotate(90deg)}
+.navsec-toggle:hover{color:var(--fg-2)}
+.navsec-note{font-size:9px;letter-spacing:.08em;color:var(--fg-4);opacity:.75;text-transform:none;font-weight:500}
+
+/* Count pill on a nav row (unanswered collab requests). */
+.nav-badge{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 5px;border-radius:999px;background:var(--danger);color:#fff;font-family:var(--font-mono);font-size:9.5px;font-weight:700;line-height:1;flex-shrink:0}
+.nav.on .nav-badge{background:var(--accent-fg);color:var(--fg)}
+.nav-appicon{width:16px;height:16px;border-radius:4px;object-fit:cover;display:block}
+
 .nav{display:flex;align-items:center;gap:10px;padding:7px 11px;color:var(--fg-3);font-family:var(--font-body);font-size:13px;font-weight:500;border-radius:var(--radius-sm);transition:color 90ms cubic-bezier(.2,.6,.3,1),background 90ms cubic-bezier(.2,.6,.3,1);margin:1px 0}
 .nav .d{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;color:var(--fg-4);flex-shrink:0;transition:color 90ms cubic-bezier(.2,.6,.3,1)}
 .nav .d svg{width:14px;height:14px;stroke-width:1.8;transition:transform 140ms cubic-bezier(.2,.6,.3,1)}
@@ -495,6 +511,10 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
  .side{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px;border-right:0;border-bottom:1px solid var(--line);padding:12px 14px;background:var(--surface)}
  .brand{width:100%;margin-bottom:4px;padding-bottom:8px}
  .navsec{display:none}.spacer{display:none}.logout{border-top:0;margin-top:0;padding-top:7px}
+ /* Section heads are decoration on mobile and get hidden — except the one that
+    is also the toggle, or the collapsed Creator group would have no way open. */
+ .navgroup{width:100%}
+ .navsec-toggle{display:flex;margin:6px 0 2px}
  .topbar{padding:12px 18px}.content{padding:24px 18px}
  h1{font-size:26px}
 }

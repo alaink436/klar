@@ -22,10 +22,12 @@ function activeFromPath(path: string): string {
 export default function AdminShell({
   apps,
   lang,
+  collabOpen,
   children,
 }: {
   apps: { slug: string; name: string }[];
   lang: AdminLang;
+  collabOpen?: number;
   children: ReactNode;
 }) {
   const path = usePathname() || "/admin";
@@ -35,7 +37,7 @@ export default function AdminShell({
 
   return (
     <div className="layout">
-      <AdminSidebar active={activeFromPath(path)} apps={apps} lang={lang} />
+      <AdminSidebar active={activeFromPath(path)} apps={apps} lang={lang} collabOpen={collabOpen} />
       <main className="main">{children}</main>
     </div>
   );

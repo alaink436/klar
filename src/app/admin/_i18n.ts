@@ -39,8 +39,10 @@ const DE = {
   brandHome: "Klar Control Home",
   sectionStudio: "Studio",
   sectionCreator: "Creator",
+  sectionCreatorNote: "pausiert",
   navOverview: "Übersicht",
   navInbox: "Inbox",
+  navCollabs: "Collabs",
   navOutreach: "Outreach",
   navContent: "Content",
   navBookings: "Bookings",
@@ -55,6 +57,9 @@ const DE = {
   navSettings: "Einstellungen",
   navLogout: "Logout",
   themeToggle: "Theme wechseln",
+  collabOpenAria: (n: number) => `${n} unbeantwortete Collab-Anfrage${n === 1 ? "" : "n"}`,
+  collabsSub:
+    "Wer auf die Adressen aus den TikTok- und Instagram-Bios schreibt, landet hier. Geantwortet wird in der Inbox — jede Zeile führt direkt zum Thread.",
 
   // Language switch
   langSection: "Sprache",
@@ -172,8 +177,10 @@ const EN: AdminMessages = {
   brandHome: "Klar Control home",
   sectionStudio: "Studio",
   sectionCreator: "Creator",
+  sectionCreatorNote: "paused",
   navOverview: "Overview",
   navInbox: "Inbox",
+  navCollabs: "Collabs",
   navOutreach: "Outreach",
   navContent: "Content",
   navBookings: "Bookings",
@@ -188,6 +195,9 @@ const EN: AdminMessages = {
   navSettings: "Settings",
   navLogout: "Log out",
   themeToggle: "Switch theme",
+  collabOpenAria: (n: number) => `${n} unanswered collab request${n === 1 ? "" : "s"}`,
+  collabsSub:
+    "Whoever writes to the addresses in the TikTok and Instagram bios shows up here. You reply from the inbox — every row leads straight to the thread.",
 
   langSection: "Language",
   langAria: "Interface language",

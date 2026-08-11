@@ -12,6 +12,7 @@
 import type { ReactNode } from "react";
 import { cookies } from "next/headers";
 import { LANG_COOKIE, normalizeAdminLang } from "./_i18n";
+import { countOpenCollabs } from "@/lib/collabView";
 import {
   STYLE,
   FONTS_LINK,
@@ -29,6 +30,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const apps = getApps();
   // UI language for the whole workspace, read once here and handed down.
   const lang = normalizeAdminLang((await cookies()).get(LANG_COOKIE)?.value);
+  // Sidebar badge. Cached for a minute inside countOpenCollabs, so it does not
+  // add a PostgREST round-trip to every single admin navigation.
+  const collabOpen = await countOpenCollabs();
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -40,7 +44,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <canvas id="klar-smoke-bg" aria-hidden="true" suppressHydrationWarning />
-      <AdminShell apps={apps} lang={lang}>
+      <AdminShell apps={apps} lang={lang} collabOpen={collabOpen}>
         {children}
       </AdminShell>
       {/* Confirm dialog hoisted here so it survives client-side menu switches.

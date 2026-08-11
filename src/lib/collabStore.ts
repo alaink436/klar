@@ -209,13 +209,24 @@ export interface CollabThread {
 }
 
 /** Alle Collab-Threads, jüngste Aktivität zuerst. Gruppiert die letzten
- *  `limit` Nachrichten nach (app, contact_email). Fail-soft zu []. */
-export async function listCollabThreads(limit = 800): Promise<CollabThread[]> {
+ *  `limit` Nachrichten nach (app, contact_email). Fail-soft zu [].
+ *
+ *  `revalidateSeconds` opts into Next's data cache — only for read-only
+ *  consumers like the sidebar badge that run on every page render. The page
+ *  itself stays no-store so a fresh reply is visible immediately. */
+export async function listCollabThreads(
+  limit = 800,
+  opts?: { revalidateSeconds?: number },
+): Promise<CollabThread[]> {
   if (!KLAR_INBOX_KEY) return [];
   try {
+    const cacheOpts =
+      typeof opts?.revalidateSeconds === "number"
+        ? { next: { revalidate: opts.revalidateSeconds } }
+        : { cache: "no-store" as const };
     const res = await fetch(
       `${KLAR_INBOX_URL}/rest/v1/klar_collab_messages?select=*&order=created_at.desc&limit=${limit}`,
-      { headers: hdr(), cache: "no-store" },
+      { headers: hdr(), ...cacheOpts },
     );
     if (!res.ok) return [];
     const rows = (await res.json()) as CollabMessage[];

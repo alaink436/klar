@@ -26,6 +26,19 @@ export interface KlarAppMeta {
   appStoreUrl?: string;
   /** false = kept for data continuity, but never shown on the public site. */
   publicSite?: boolean;
+  /**
+   * Key into KLAR_ADMIN_APPS / KLAR_REVENUECAT_KEYS when the backend was
+   * inherited from another app. Only set when it differs from `slug`: a
+   * recycled Supabase project keeps its historical key everywhere (metrics
+   * history, env, routes) while the brand up front is a different app.
+   */
+  backendSlug?: string;
+  /**
+   * false = the entry exists ONLY so historical rows (outreach, affiliates,
+   * pageviews) still resolve to a name. It is never listed in the admin —
+   * otherwise the app whose backend it handed over shows up twice.
+   */
+  listed?: boolean;
 }
 
 export const KLAR_APPS: KlarAppMeta[] = [
@@ -47,6 +60,8 @@ export const KLAR_APPS: KlarAppMeta[] = [
     appStoreUrl: "https://apps.apple.com/app/id6767200261",
     publicSite: true,
   },
+  // Runs on promillio's old Supabase project (recycled 2026-06-30), so every
+  // backend number — users, funnel, RevenueCat — is keyed `promillio`.
   {
     slug: "anime-vault",
     name: "Anime Vault",
@@ -55,6 +70,7 @@ export const KLAR_APPS: KlarAppMeta[] = [
     release: "v1.1 · build 8",
     appStoreUrl: "https://apps.apple.com/app/id6759915617",
     publicSite: true,
+    backendSlug: "promillio",
   },
   {
     slug: "yarn-stash",
@@ -95,19 +111,51 @@ export const KLAR_APPS: KlarAppMeta[] = [
   },
   // Promillo was paused 2026-06-30 and its Supabase project was recycled for
   // Anime Vault. The slug is kept so historical affiliate, outreach and
-  // analytics rows still resolve to a name — but it is PAUSED, so the outreach
-  // "live apps" filter skips it, and publicSite:false keeps it off getklar.org.
+  // analytics rows still resolve to a name — but `listed: false` keeps it out
+  // of every admin list, because Anime Vault now speaks for that backend and
+  // showing both put two Anime-Vault rows next to each other.
   {
     slug: "promillio",
     name: "Promillo",
     icon: "/icons/promillio.png",
     status: "PAUSED",
     publicSite: false,
+    listed: false,
   },
 ];
 
 /** Apps shown on the public marketing site, in display order. */
 export const PUBLIC_APPS: KlarAppMeta[] = KLAR_APPS.filter((a) => a.publicSite);
+
+/**
+ * The roster the admin shows: one row per app that still stands for itself.
+ * Use this for every list/table/nav; use KLAR_APPS only to resolve a slug that
+ * came out of the database.
+ */
+export const LISTED_APPS: KlarAppMeta[] = KLAR_APPS.filter((a) => a.listed !== false);
+
+/** Which KLAR_ADMIN_APPS / KLAR_REVENUECAT_KEYS entry feeds this app. */
+export function appBackendKey(app: Pick<KlarAppMeta, "slug" | "backendSlug">): string {
+  return app.backendSlug ?? app.slug;
+}
+
+/**
+ * Same question, but answered against the keys that actually exist (an env
+ * map, a Set of configured slugs). The env vars are hand-edited, so a recycled
+ * backend may sit under the historical key OR have been renamed to the brand
+ * slug at some point. Try the historical key, then the brand slug, and fall
+ * back to the historical one so the caller always gets a stable string —
+ * whichever way the env reads, the app is listed exactly once.
+ */
+export function resolveBackendKey(
+  app: Pick<KlarAppMeta, "slug" | "backendSlug">,
+  known: { has(key: string): boolean },
+): string {
+  const historical = appBackendKey(app);
+  if (known.has(historical)) return historical;
+  if (known.has(app.slug)) return app.slug;
+  return historical;
+}
 
 export function findKlarApp(slug: string): KlarAppMeta | undefined {
   return KLAR_APPS.find((a) => a.slug === slug);
