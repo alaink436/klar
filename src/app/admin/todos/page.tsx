@@ -1,13 +1,12 @@
-// Klar Control · To-do — die freie Liste neben der abgeleiteten Arbeitsliste.
+// Klar Control · To-do — Wochenplaner neben der abgeleiteten Arbeitsliste.
 //
 // Server component, 2FA-gated wie der Rest von /admin. Die Übersicht zeigt,
 // was aus Daten folgt (offene Anfragen, fällige Auszahlungen); hier steht,
-// was nur im Kopf ist. Der Zähler offener Punkte taucht als Zeile auf der
-// Übersicht auf, damit die Liste nicht in Vergessenheit gerät.
+// was nur im Kopf ist — und wann es dran ist.
 //
-// Tagesgruppen (überfällig / heute / morgen / …) werden HIER berechnet, nicht
-// im Client: sonst entscheidet die Zeitzone des Browsers, was „heute" ist, und
-// der erste Render weicht vom Server ab.
+// Alle Datums-Entscheidungen fallen HIER, in Europe/Zurich: welcher Tag heute
+// ist, welche Woche gezeigt wird, was überfällig ist. Überliesse man das dem
+// Client, entschiede dessen Zeitzone — und der erste Render wiche vom Server ab.
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -15,33 +14,36 @@ import { ICON, readCookieFromString } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listTodos, todosConfigured } from "@/lib/todoStore";
 import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
-import TodoList, { type TodoBucket, type TodoRow } from "./TodoList";
+import Planner, { type PlannerDay, type PlannerTodo } from "./Planner";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-/** "YYYY-MM-DD" in Schweizer Zeit — der Tag, an dem Alain sitzt. */
-function localDay(offsetDays = 0): string {
-  const now = new Date();
-  const swiss = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Zurich" }));
-  swiss.setDate(swiss.getDate() + offsetDays);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${swiss.getFullYear()}-${p(swiss.getMonth() + 1)}-${p(swiss.getDate())}`;
+const ZONE = "Europe/Zurich";
+
+/** Heutiges Datum in Zürcher Ortszeit als "YYYY-MM-DD". */
+function todayInZurich(): string {
+  // en-CA formatiert als YYYY-MM-DD — genau das Format, das wir brauchen.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: ZONE }).format(new Date());
 }
 
-function bucketFor(due: string | null, today: string, tomorrow: string): TodoBucket {
-  if (!due) return "none";
-  const d = due.slice(0, 10);
-  if (d < today) return "overdue";
-  if (d === today) return "today";
-  if (d === tomorrow) return "tomorrow";
-  // Alles, was innerhalb der nächsten sieben Tage liegt, ist "diese Woche".
-  const limit = new Date(`${today}T12:00:00Z`);
-  limit.setUTCDate(limit.getUTCDate() + 7);
-  return d <= limit.toISOString().slice(0, 10) ? "week" : "later";
+function addDays(iso: string, n: number): string {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
 }
 
-export default async function TodosPage() {
+/** Montag der Woche, in der `iso` liegt. */
+function mondayOf(iso: string): string {
+  const dow = new Date(`${iso}T12:00:00Z`).getUTCDay(); // 0 = Sonntag
+  return addDays(iso, dow === 0 ? -6 : 1 - dow);
+}
+
+export default async function TodosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ w?: string }>;
+}) {
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
   const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
   const TOTP = process.env.KLAR_TOTP_SECRET ?? "";
@@ -54,26 +56,43 @@ export default async function TodosPage() {
 
   const lang = normalizeAdminLang(readCookieFromString(cookieHeader, LANG_COOKIE));
   const t = tAdmin(lang);
-  const today = localDay();
-  const tomorrow = localDay(1);
+  const sp = await searchParams;
+
+  // Wochenversatz aus der URL, hart begrenzt: der Parameter ist frei tippbar.
+  const rawW = Number.parseInt(sp.w ?? "0", 10);
+  const weekOffset = Number.isFinite(rawW) ? Math.max(-52, Math.min(52, rawW)) : 0;
+
+  const today = todayInZurich();
+  const start = addDays(mondayOf(today), weekOffset * 7);
+  const locale = DATE_LOCALE[lang];
+  const days: PlannerDay[] = Array.from({ length: 7 }, (_, i) => {
+    const iso = addDays(start, i);
+    const d = new Date(`${iso}T12:00:00Z`);
+    return {
+      iso,
+      weekday: d.toLocaleDateString(locale, { weekday: "short", timeZone: "UTC" }),
+      dayLabel: d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", timeZone: "UTC" }),
+      isToday: iso === today,
+      isWeekend: i >= 5,
+    };
+  });
+  const weekLabel = `${days[0].dayLabel} – ${days[6].dayLabel}`;
 
   const todos = await listTodos();
-  const rows: TodoRow[] = todos.map((td) => ({
-    id: td.id,
-    title: td.title,
-    done: td.done,
-    doneFmt: td.done_at
-      ? new Date(td.done_at).toLocaleDateString(DATE_LOCALE[lang], { day: "2-digit", month: "2-digit" })
-      : null,
-    due: td.due_on ? td.due_on.slice(0, 10) : "",
-    dueFmt: td.due_on
-      ? new Date(`${td.due_on.slice(0, 10)}T12:00:00Z`).toLocaleDateString(DATE_LOCALE[lang], {
-          day: "2-digit",
-          month: "2-digit",
-        })
-      : null,
-    bucket: bucketFor(td.due_on, today, tomorrow),
-  }));
+  const rows: PlannerTodo[] = todos.map((td) => {
+    const due = td.due_on ? td.due_on.slice(0, 10) : "";
+    return {
+      id: td.id,
+      title: td.title,
+      done: td.done,
+      due,
+      time: td.due_time ? td.due_time.slice(0, 5) : "",
+      doneFmt: td.done_at
+        ? new Date(td.done_at).toLocaleDateString(locale, { day: "2-digit", month: "2-digit" })
+        : null,
+      overdue: !td.done && due !== "" && due < today,
+    };
+  });
   const planned = rows.filter((r) => !r.done && r.due).length;
 
   const topbar = `
@@ -85,7 +104,7 @@ export default async function TodosPage() {
     <>
       <title>To-do · Klar Control</title>
       <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
-      <div className="content">
+      <div className="content" style={{ maxWidth: "none" }}>
         <h1>{t.navTodos}</h1>
         <p className="sub">{t.todoSub}</p>
         {!todosConfigured() ? (
@@ -94,7 +113,7 @@ export default async function TodosPage() {
           </div>
         ) : null}
 
-        <TodoList rows={rows} lang={lang} today={today} tomorrow={tomorrow} />
+        <Planner rows={rows} days={days} lang={lang} weekLabel={weekLabel} weekOffset={weekOffset} />
 
         {/* Kalender-Abo: die Anleitung steht dort, wo die Punkte entstehen. */}
         <div className="card" style={{ marginTop: 16, padding: "18px 22px", display: "block" }}>

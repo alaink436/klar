@@ -30,6 +30,8 @@ export interface Todo {
   done_at: string | null;
   /** Geplanter Tag als "YYYY-MM-DD", oder null für "irgendwann". */
   due_on: string | null;
+  /** Uhrzeit als "HH:MM[:SS]" in Ortszeit Zürich; null = ganztägig. */
+  due_time: string | null;
   position: number;
   created_at: string;
 }
@@ -47,7 +49,7 @@ export async function listTodos(limit = 200): Promise<Todo[]> {
   if (!KEY) return [];
   try {
     const res = await fetch(
-      `${REST}?select=*&order=done.asc,due_on.asc.nullslast,position.asc,created_at.desc&limit=${limit}`,
+      `${REST}?select=*&order=done.asc,due_on.asc.nullslast,due_time.asc.nullslast,position.asc,created_at.desc&limit=${limit}`,
       { headers: hdr(), cache: "no-store" },
     );
     if (!res.ok) return [];
@@ -130,16 +132,28 @@ export async function renameTodo(id: string, title: string): Promise<{ ok: boole
   }
 }
 
-/** Auf einen Tag legen ("YYYY-MM-DD") oder mit null wieder freigeben. */
-export async function setTodoDue(id: string, due: string | null): Promise<{ ok: boolean }> {
+/**
+ * Tag und optional Uhrzeit setzen. `due = null` räumt den Punkt zurück in den
+ * Backlog — und nimmt die Uhrzeit mit, weil eine Uhrzeit ohne Tag nichts
+ * bedeutet und im Feed als verwaister Wert liegen bliebe.
+ */
+export async function setTodoPlan(
+  id: string,
+  due: string | null,
+  time?: string | null,
+): Promise<{ ok: boolean }> {
   if (!KEY || !id) return { ok: false };
-  // Nur echte Kalendertage durchlassen — der Wert kommt aus einem Formular.
+  // Die Werte kommen aus Formularfeldern — Form hier prüfen, nicht vertrauen.
   if (due !== null && !/^\d{4}-\d{2}-\d{2}$/.test(due)) return { ok: false };
+  const t = time === undefined ? undefined : time && /^\d{2}:\d{2}(:\d{2})?$/.test(time) ? time : null;
+  const patch: Record<string, string | null> = { due_on: due };
+  if (due === null) patch.due_time = null;
+  else if (t !== undefined) patch.due_time = t;
   try {
     const res = await fetch(`${REST}?id=eq.${encodeURIComponent(id)}`, {
       method: "PATCH",
       headers: hdr({ Prefer: "return=minimal" }),
-      body: JSON.stringify({ due_on: due }),
+      body: JSON.stringify(patch),
     });
     return { ok: res.ok };
   } catch {
@@ -152,7 +166,7 @@ export async function listPlannedTodos(limit = 500): Promise<Todo[]> {
   if (!KEY) return [];
   try {
     const res = await fetch(
-      `${REST}?select=*&done=is.false&due_on=not.is.null&order=due_on.asc&limit=${limit}`,
+      `${REST}?select=*&done=is.false&due_on=not.is.null&order=due_on.asc,due_time.asc.nullslast&limit=${limit}`,
       { headers: hdr(), cache: "no-store" },
     );
     if (!res.ok) return [];

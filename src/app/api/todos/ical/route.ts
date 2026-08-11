@@ -8,8 +8,8 @@
 // (`todos:ical`), jederzeit widerrufbar unter /admin/brain → Zugang. Wer die
 // URL hat, sieht die Titel der geplanten Punkte — mehr nicht.
 //
-// Ausgegeben werden GANZTÄGIGE Einträge (VALUE=DATE). Eine Uhrzeit würde eine
-// Zeitzone erfinden, die es in den Daten nicht gibt: geplant wird ein Tag.
+// Punkte ohne Uhrzeit werden GANZTÄGIG ausgegeben (VALUE=DATE), Punkte mit
+// Uhrzeit als echter Termin über 30 Minuten.
 
 import { type NextRequest } from "next/server";
 import { verifyToken } from "@/lib/apiTokens";
@@ -17,6 +17,8 @@ import { listPlannedTodos } from "@/lib/todoStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const ZONE = "Europe/Zurich";
 
 /** RFC 5545: Backslash, Semikolon, Komma escapen, Zeilenumbrüche zu \n. */
 function esc(text: string): string {
@@ -45,11 +47,45 @@ function fold(line: string): string {
 
 const stamp = (d: Date): string => `${d.toISOString().replace(/[-:]/g, "").split(".")[0]}Z`;
 const dateOnly = (iso: string): string => iso.slice(0, 10).replace(/-/g, "");
+
 /** DTEND ist bei ganztägigen Einträgen exklusiv — sonst fehlt der Tag im Kalender. */
 function nextDay(iso: string): string {
   const d = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + 1);
   return dateOnly(d.toISOString());
+}
+
+/**
+ * Ortszeit Zürich → UTC-Instant. Der Offset hängt am Datum (MEZ/MESZ), darum
+ * wird er für genau diesen Tag ermittelt statt fest verdrahtet: die naive Zeit
+ * einmal als UTC lesen, schauen, wie dieser Moment in Zürich aussieht, und die
+ * Differenz abziehen. Damit stimmt der Feed auch über die Zeitumstellung.
+ */
+function zurichToUtc(day: string, time: string): Date {
+  const [y, m, d] = day.slice(0, 10).split("-").map(Number);
+  const [hh, mm] = time.slice(0, 5).split(":").map(Number);
+  const naive = Date.UTC(y, m - 1, d, hh, mm);
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: ZONE,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  const p = Object.fromEntries(fmt.formatToParts(new Date(naive)).map((x) => [x.type, x.value]));
+  const asSeenInZurich = Date.UTC(
+    Number(p.year),
+    Number(p.month) - 1,
+    Number(p.day),
+    // Intl liefert Mitternacht je nach Umgebung als "24" — auf 0 normalisieren.
+    Number(p.hour) % 24,
+    Number(p.minute),
+    Number(p.second),
+  );
+  return new Date(naive - (asSeenInZurich - naive));
 }
 
 export async function GET(req: NextRequest): Promise<Response> {
@@ -83,12 +119,15 @@ export async function GET(req: NextRequest): Promise<Response> {
       // auf einen anderen Tag rutscht — sonst dupliziert der Kalender ihn.
       `UID:todo-${t.id}@getklar.org`,
       `DTSTAMP:${now}`,
-      `DTSTART;VALUE=DATE:${dateOnly(t.due_on)}`,
-      `DTEND;VALUE=DATE:${nextDay(t.due_on)}`,
-      fold(`SUMMARY:${esc(t.title)}`),
-      "TRANSP:TRANSPARENT",
-      "END:VEVENT",
     );
+    if (t.due_time) {
+      const start = zurichToUtc(t.due_on, t.due_time);
+      const end = new Date(start.getTime() + 30 * 60_000);
+      lines.push(`DTSTART:${stamp(start)}`, `DTEND:${stamp(end)}`);
+    } else {
+      lines.push(`DTSTART;VALUE=DATE:${dateOnly(t.due_on)}`, `DTEND;VALUE=DATE:${nextDay(t.due_on)}`);
+    }
+    lines.push(fold(`SUMMARY:${esc(t.title)}`), "TRANSP:TRANSPARENT", "END:VEVENT");
   }
   lines.push("END:VCALENDAR");
 

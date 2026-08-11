@@ -61,7 +61,7 @@ const DE = {
   themeToggle: "Theme wechseln",
   navDragHint: "Ziehen, um das Menü umzusortieren",
   todoSub:
-    "Deine eigene Liste. Was sich aus Daten ableiten lässt — offene Anfragen, fällige Auszahlungen — steht auf der Übersicht; hier kommt rein, was sonst nur im Kopf ist.",
+    "Deine eigene Liste, als Wochenplan. Neue Punkte landen links ohne Termin — zieh sie auf einen Tag, setz bei Bedarf eine Uhrzeit. Was sich aus Daten ableiten lässt, steht auf der Übersicht.",
   todoPlaceholder: "Was ist zu tun?",
   todoAdd: "Hinzufügen",
   todoEmpty: "Nichts offen. Schreib den nächsten Punkt oben rein.",
@@ -92,6 +92,12 @@ const DE = {
   todoBucketWeek: "Diese Woche",
   todoBucketLater: "Später",
   todoBucketNone: "Ohne Termin",
+  todoPrevWeek: "Woche zurück",
+  todoNextWeek: "Woche vor",
+  todoThisWeek: "Diese Woche",
+  todoDropHere: "Hier ablegen",
+  todoAllDay: "ganztägig",
+  todoTimeAria: (title: string) => `Uhrzeit für „${title}“`,
   icalTitle: "Im iPhone-Kalender mitlesen",
   icalBody: (n: number) =>
     `Geplante Punkte (aktuell ${n}) lassen sich als Kalender abonnieren — sie erscheinen dann als ganztägige Einträge im iPhone. Der Kalender ist nur zum Lesen: geändert wird hier.`,
@@ -248,7 +254,7 @@ const EN: AdminMessages = {
   themeToggle: "Switch theme",
   navDragHint: "Drag to reorder the menu",
   todoSub:
-    "Your own list. Anything that follows from data — open enquiries, payouts due — lives on the overview; this is for what is otherwise only in your head.",
+    "Your own list, as a week. New items land on the left with no date — drag one onto a day and add a time if it needs one. Anything that follows from data lives on the overview.",
   todoPlaceholder: "What needs doing?",
   todoAdd: "Add",
   todoEmpty: "Nothing open. Write the next one in above.",
@@ -278,6 +284,12 @@ const EN: AdminMessages = {
   todoBucketWeek: "This week",
   todoBucketLater: "Later",
   todoBucketNone: "No date",
+  todoPrevWeek: "Previous week",
+  todoNextWeek: "Next week",
+  todoThisWeek: "This week",
+  todoDropHere: "Drop here",
+  todoAllDay: "all day",
+  todoTimeAria: (title: string) => `Time for “${title}”`,
   icalTitle: "Follow along in the iPhone calendar",
   icalBody: (n: number) =>
     `Planned items (currently ${n}) can be subscribed to as a calendar — they show up as all-day entries on the phone. Read-only: changes happen here.`,
