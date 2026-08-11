@@ -46,10 +46,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      # numpy gehört dazu: networkx' spring_layout rechnet damit. Lokal war es
-      # als Abhängigkeit von etwas anderem schon installiert, auf einem nackten
-      # Runner nicht — der erste CI-Lauf ist genau daran gestorben.
-      - run: pip install networkx numpy
+      # Liste liegt in scripts/requirements-brain.txt, damit lokal und CI
+      # dieselben Pakete installieren. Der Arbeitsplatz hatte numpy und scipy
+      # zufällig schon da, ein nackter Runner nicht — das kostete zwei rote
+      # Läufe, einen pro fehlendem Paket.
+      - run: pip install -r scripts/requirements-brain.txt
 
       - name: Graph neu erzeugen
         env:

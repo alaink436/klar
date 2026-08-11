@@ -1,0 +1,15 @@
+# Was gen-brain-graph.py braucht. Als Datei statt als Zeile im Workflow, damit
+# lokal und CI dieselbe Liste benutzen — die ersten zwei CI-Läufe sind daran
+# gescheitert, dass auf dem Arbeitsplatz zufällig mehr installiert war als auf
+# einem nackten Runner (erst numpy, dann scipy, beide je ein roter Lauf).
+#
+# networkx  — der Graph und das Spring-Layout selbst
+# numpy     — rechnet die Layout-Koordinaten
+# scipy     — networkx nutzt es im spring_layout ab einer gewissen Graphgrösse
+#             (to_scipy_sparse_array); ohne scipy läuft nur der kleine Pfad
+#
+# Absichtlich ohne feste Versionen: der Generator nutzt nur stabile APIs, und
+# ein Pin würde hier still veralten, statt gepflegt zu werden.
+networkx
+numpy
+scipy
