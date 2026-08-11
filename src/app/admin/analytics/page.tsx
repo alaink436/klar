@@ -702,8 +702,8 @@ export default async function AnalyticsPage({
       <div className="content">
         <h1>Analytics</h1>
         <p className="sub">
-          User und Umsatz pro App, plus Web-Besucher, Affiliate-Landings und
-          Conversion-Funnel. App-User aus auth.users, Umsatz aus RevenueCat.
+          App-User kommen aus <code>auth.users</code>, Umsatz aus RevenueCat, Web-Zahlen
+          aus den eigenen Pageviews — drei Quellen, die sich nicht gegenseitig pruefen.
           Web-Tracking ist privacy-friendly, keine Cookies, kein Pixel.
         </p>
         <AnalyticsClient

@@ -241,7 +241,7 @@ async function overviewMain(apps: AdminApp[]): Promise<{ htmlTop: string }> {
       </div>`
     : "";
 
-  const htmlTop = `<h1>Übersicht</h1><p class="sub">Was gerade bei dir liegt und woran du arbeitest. Zahlen stehen unter Einnahmen und Analytics.</p>
+  const htmlTop = `<h1>Übersicht</h1><p class="sub">Projekte und Ziele liest diese Seite live aus dem AI-Brain — geaendert wird dort, nicht hier. Zahlen stehen unter Einnahmen und Analytics.</p>
     ${taskCard}
     ${projectCard}
     ${tabs}`;

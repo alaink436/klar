@@ -157,7 +157,7 @@ async function replyTemplatesMain(): Promise<string> {
   }).join("");
 
   return `<h1>Antwort-Vorlagen</h1>
-    <p class="sub">Vorlagen für den Inbox-Composer (Dropdown &bdquo;Vorlage&ldquo;) &mdash; pro Sprache. <code>{{name}}</code> und <code>{{handle}}</code> werden beim Einsetzen ersetzt. Änderungen wirken sofort im Inbox, kein Deploy nötig.</p>
+    <p class="sub"><code>{{name}}</code> und <code>{{handle}}</code> werden beim Einsetzen ersetzt. Aenderungen wirken sofort im Inbox &mdash; kein Deploy noetig, aber auch kein Zurueck.</p>
     ${sections}`;
 }
 

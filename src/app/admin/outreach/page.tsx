@@ -458,7 +458,7 @@ getklar.org`;
   // add form, target table and suppression list stay as HTML strings (their
   // inline scripts query the document, so splitting the markup is harmless).
   const topHtml = `<h1>Outreach</h1>
-    <p class="sub">Influencer-Outreach-Tracker. <em>Queued → DM gesendet → Antwort → Converted</em>. Auto-Refresh ${autoRefresh ? "alle 15s" : "aus"}, Daten aus Supabase anime-vault.</p>`;
+    <p class="sub"><em>Queued → DM gesendet → Antwort → Converted</em> — eine Antwort ist noch kein Ja, angenommen wird nur ueber den Accept-Knopf. Auto-Refresh ${autoRefresh ? "alle 15s" : "aus"}.</p>`;
 
   const midTopHtml = `<div style="margin:24px 0 16px;border-top:1px solid var(--line)"></div>`;
 

@@ -16,7 +16,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   ICON,
-  readCookieFromString,  esc,
+  readCookieFromString,
+  esc,
   eur,
   fmtRelative,
 } from "../_shared";
@@ -289,7 +290,7 @@ async function appMain(app: AdminApp): Promise<string> {
         ${renderAppBucketCol("Angenommen", appBucket.angenommen, "✓")}
       </div>`;
 
-  return `<h1>${esc(app.name)}</h1><p class="sub">Affiliate-Salden, Auszahlungen und Affiliates für ${esc(app.name)}.</p>${cards}
+  return `<h1>${esc(app.name)}</h1>${cards}
     <form method="POST" action="/admin/reconcile" style="margin:0 0 18px"><input type="hidden" name="app" value="${esc(app.slug)}"/><button class="btn ghost" type="submit">Status aktualisieren · Wise nach DB</button></form>
     ${createAffiliateForm(app)}
     <h2>Affiliates <span class="muted" style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0">${inf.length} Einträge</span></h2>
@@ -327,7 +328,8 @@ export default async function AppDetailPage({
 
   const sp = await searchParams;
   const main = await appMain(appObj);
-  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";  const topbar = `
+  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
+  const topbar = `
     <span class="crumb"><b>${esc(appObj.name)}</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;

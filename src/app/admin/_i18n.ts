@@ -74,7 +74,7 @@ const DE = {
   todoReopenAria: (title: string) => `„${title}“ wieder öffnen`,
   todoNotConfigured: "Kein Schlüssel für die Datenbank gesetzt — die Liste kann nichts speichern.",
   chronikSub:
-    "Was gelaufen ist und was du dir vorgenommen hast — beides direkt aus dem AI-Brain gelesen, nicht hier gepflegt.",
+    "Gelesen aus STATUS.md und den PROGRESS-Dateien im AI-Brain. Hier lässt sich nichts abhaken — was hier steht, änderst du im Vault.",
   chronikGoals: "Vorgenommen",
   chronikGoalsMeta: (open: number, blocked: number) =>
     blocked > 0 ? `${open} offen, davon ${blocked} blockiert` : `${open} offen`,
@@ -114,7 +114,7 @@ const DE = {
   navReset: "Auf Standard zurücksetzen",
   collabOpenAria: (n: number) => `${n} unbeantwortete Collab-Anfrage${n === 1 ? "" : "n"}`,
   collabsSub:
-    "Wer auf die Adressen aus den TikTok- und Instagram-Bios schreibt, landet hier. Geantwortet wird in der Inbox — jede Zeile führt direkt zum Thread.",
+    "Geantwortet wird in der Inbox, nicht hier — jede Zeile führt direkt zum Thread. Wer an eine Bio-Adresse schreibt, landet ausserdem dort unter „Collabs“.",
 
   // Language switch
   langSection: "Sprache",
@@ -123,8 +123,8 @@ const DE = {
 
   // ── Vault page ───────────────────────────────────────────────────────────
   vaultTitle: "Vault",
-  vaultSubA: "Keys werden AES-256-GCM verschlüsselt gespeichert (Master-Key nur in Vercel). Ein Agent mit ",
-  vaultSubB: "-Token nutzt sie über den Proxy, ohne sie je zu sehen. Klartext ist bewusst nicht abrufbar.",
+  vaultSubA: "Der Master-Key liegt nur in Vercel — steht er dort nicht, ist jeder Eintrag hier unlesbar. Ein Agent mit ",
+  vaultSubB: "-Token benutzt Keys über den Proxy, ohne sie je zu sehen; „Key anzeigen“ ist der einzige Weg zum Klartext und nur für dich.",
   vaultInactiveA: "Vault inaktiv: setze ",
   vaultInactiveB: " in Vercel, dann werden Keys ver- und entschlüsselt.",
   statStored: "Gespeicherte Keys",
@@ -267,7 +267,7 @@ const EN: AdminMessages = {
   todoReopenAria: (title: string) => `Reopen “${title}”`,
   todoNotConfigured: "No database key configured — the list cannot save anything.",
   chronikSub:
-    "What happened and what you set out to do — both read straight from the AI-Brain, not maintained here.",
+    "Read from STATUS.md and the PROGRESS files in the AI-Brain. Nothing is editable here — what shows up changes in the vault.",
   chronikGoals: "Set out to do",
   chronikGoalsMeta: (open: number, blocked: number) =>
     blocked > 0 ? `${open} open, ${blocked} blocked` : `${open} open`,
@@ -306,7 +306,7 @@ const EN: AdminMessages = {
   navReset: "Reset to default",
   collabOpenAria: (n: number) => `${n} unanswered collab request${n === 1 ? "" : "s"}`,
   collabsSub:
-    "Whoever writes to the addresses in the TikTok and Instagram bios shows up here. You reply from the inbox — every row leads straight to the thread.",
+    "You reply from the inbox, not here — every row leads straight to the thread. Anything sent to a bio address also lands there under “Collabs”.",
 
   langSection: "Language",
   langAria: "Interface language",
@@ -315,8 +315,8 @@ const EN: AdminMessages = {
   // ── Vault page ───────────────────────────────────────────────────────────
   vaultTitle: "Vault",
   vaultSubA:
-    "Keys are stored AES-256-GCM encrypted (the master key lives in Vercel only). An agent holding a ",
-  vaultSubB: " token uses them through the proxy without ever seeing them. Plaintext is deliberately not retrievable.",
+    "The master key lives in Vercel only — without it every entry here is unreadable. An agent holding a ",
+  vaultSubB: " token uses keys through the proxy without ever seeing them; “Show key” is the only route to plaintext, and it is yours alone.",
   vaultInactiveA: "Vault inactive: set ",
   vaultInactiveB: " in Vercel, then keys get encrypted and decrypted.",
   statStored: "Stored keys",

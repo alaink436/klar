@@ -261,12 +261,12 @@ a{color:inherit;text-decoration:none}
 h1{font-family:var(--font-display);font-weight:800;font-size:clamp(30px,3.4vw,42px);letter-spacing:-.03em;line-height:1.05;margin:0 0 20px;color:var(--fg);display:flex;align-items:baseline;gap:16px}
 h1::after{content:"";flex:1;height:1px;min-width:24px;background:linear-gradient(90deg,var(--line-strong),transparent);transform:translateY(-6px)}
 .sub{font-family:var(--font-body);font-size:16px;line-height:1.55;color:var(--fg-3);margin:0 0 22px;max-width:62ch}
-/* Lede-Absaetze app-weit aus (Alain, 2026-08-11: "die Erklaerung brauche ich
-   nicht, ich weiss ja was die Software macht"). Bewusst hier statt in 14
-   Seiten geloescht: es ist eine Design-Entscheidung, kein Inhaltsproblem —
-   und diese eine Zeile entfernen bringt sie alle zurueck. Warn- und
-   Fehlertexte (.flash) sind nicht betroffen. */
-.sub{display:none}
+/* Lede unter dem Titel. Regel dafuer (2026-08-11): er darf nur stehen, wenn
+   er etwas sagt, das die Seite NICHT zeigt — woher die Zahlen kommen, was sie
+   bewusst nicht enthalten, welcher Schritt von Hand bleibt. Wer den Titel
+   wiederholt oder aufzaehlt was ohnehin darunter steht, wird geloescht statt
+   umformuliert. */
+.sub{font-family:var(--font-editorial);font-style:italic;font-size:16px;line-height:1.5;color:var(--fg-3);margin:-6px 0 26px;max-width:68ch}
 h2{font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-3);margin:32px 0 12px;display:flex;align-items:center;gap:10px}
 h2::after{content:"";flex:1;height:1px;background:var(--line)}
 

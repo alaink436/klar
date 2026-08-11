@@ -77,11 +77,6 @@ export default async function SettingsPage({
       <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
       <div className="content">
         <h1>Einstellungen</h1>
-        <p className="sub">
-          Globale Schalter für das Klar-Studio — Marketing-Shader, Auto-Accept
-          für Affiliate-Inquiries, Benachrichtigungs-Trigger und Einladungen
-          für neue Admin-Geräte.
-        </p>
         {flashRaw ? (
           <div
             className={

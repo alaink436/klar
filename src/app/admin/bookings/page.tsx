@@ -13,7 +13,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   ICON,
-  readCookieFromString,} from "../_shared";
+  readCookieFromString,
+} from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 
 export const dynamic = "force-dynamic";
@@ -119,7 +120,7 @@ function Body({ result }: { result: BookingsResult }) {
 
   return (
     <>
-      <p className="sub">Cal.com-Buchungen, per Webhook live in Supabase. Anstehende oben.</p>
+      <p className="sub">Kommt per Webhook aus Cal.com — faellt der aus, bleibt diese Liste still stehen statt leer.</p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "0 0 16px 0" }}>
         <a className="btn pop" href="https://cal.getklar.org/event-types" target="_blank" rel="noopener">
           Cal Admin öffnen ↗
@@ -214,7 +215,8 @@ export default async function BookingsPage() {
   if (!device) redirect("/admin/login");
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
-  const result = await loadBookings();  const topbar = `
+  const result = await loadBookings();
+  const topbar = `
     <span class="crumb"><b>Bookings</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;

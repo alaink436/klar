@@ -15,7 +15,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   ICON,
-  readCookieFromString,  esc,
+  readCookieFromString,
+  esc,
   eur,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
@@ -136,7 +137,7 @@ async function payoutsMain(apps: AdminApp[]): Promise<string> {
         </tr>`).join("")}</tbody></table>`
     : `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg><div class="empty-title">Noch keine Historie</div><div class="empty-sub">Bezahlte, stornierte und fehlgeschlagene Batches erscheinen hier.</div></div>`;
 
-  return `<h1>Auszahlungen</h1><p class="sub">Alle Affiliate-Auszahlungsbatches über alle verdrahteten Apps hinweg. Bereitstellen läuft pro App über deren Wise-Edge-Function, Funden bleibt manueller Schritt im Wise-Dashboard.</p>
+  return `<h1>Auszahlungen</h1><p class="sub">Bereitstellen laeuft pro App ueber deren Wise-Edge-Function. Das <em>Funden</em> bleibt ein Schritt von Hand im Wise-Dashboard — hier passiert es nicht.</p>
     ${cards}
     <h2>Offen · bereit zum Dispatch</h2>
     ${dispatchAllBtn}
@@ -165,7 +166,8 @@ export default async function PayoutsPage({
   const sp = await searchParams;
   const apps = getApps();
   const main = await payoutsMain(apps);
-  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";  const topbar = `
+  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
+  const topbar = `
     <span class="crumb"><b>Auszahlungen</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;

@@ -13,7 +13,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   ICON,
-  readCookieFromString,  eur,
+  readCookieFromString,
+  eur,
   REPORTING_CURRENCY,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
@@ -89,7 +90,7 @@ async function revenueMain(apps: AdminApp[]): Promise<{
     openFmt: eur(r.open),
   }));
 
-  const htmlTop = `<h1>Einnahmen</h1><p class="sub">Affiliate-attribuierter Umsatz pro App und Monat. Nicht der gesamte App-Umsatz, der bräuchte RevenueCat- und Store-Daten als separate Integration.</p>
+  const htmlTop = `<h1>Einnahmen</h1><p class="sub">Nur <em>affiliate-attribuierter</em> Umsatz — nicht der gesamte App-Umsatz. Der stuende in Analytics und kommt aus einer anderen Quelle.</p>
     ${cards}<h2>Pro Monat</h2>`;
   const htmlMid = `<h2>Pro App</h2>`;
   return { htmlTop, series, htmlMid, tableRows };
@@ -108,7 +109,8 @@ export default async function RevenuePage() {
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
   const apps = getApps();
-  const { htmlTop, series, htmlMid, tableRows } = await revenueMain(apps);  const topbar = `
+  const { htmlTop, series, htmlMid, tableRows } = await revenueMain(apps);
+  const topbar = `
     <span class="crumb"><b>Einnahmen</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;

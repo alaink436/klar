@@ -14,7 +14,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   ICON,
-  readCookieFromString,  esc,
+  readCookieFromString,
+  esc,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listAppTemplates, isOutreachConfigured, type AppMailTemplate } from "../../../lib/outreachStore";
@@ -144,7 +145,7 @@ async function templatesMain(): Promise<string> {
   }).join("");
 
   return `<h1>Templates</h1>
-    <p class="sub">Per-App Outreach-Templates &mdash; Hashtags für Apify-Discovery, Mail-1 + Mail-2 für Brevo-Send. Editierbar pro App × Sprache. Die Wave-Starter-Form lädt diese Defaults automatisch wenn du genau eine App auswählst.</p>
+    <p class="sub">Der Wave-Starter laedt diese Defaults automatisch &mdash; aber nur, wenn genau <em>eine</em> App ausgewaehlt ist.</p>
     ${cards}
     <h2>Templates pro App</h2>
     <table>
@@ -172,7 +173,8 @@ export default async function TemplatesPage({
 
   const sp = await searchParams;
   const main = await templatesMain();
-  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";  const topbar = `
+  const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
+  const topbar = `
     <span class="crumb"><b>Templates</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
   `;
