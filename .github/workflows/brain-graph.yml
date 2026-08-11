@@ -1,0 +1,66 @@
+name: Brain-Graph aktualisieren
+
+# Warum das hier läuft: brainGraph.json ist build-gebacken und wurde einmal am
+# 2026-06-03 von Hand erzeugt — danach nie wieder. Der Brain-Viewer zeigte
+# 630 Knoten, während im Vault 1764 Notizen lagen: zehn Wochen Arbeit waren
+# unsichtbar, ohne dass irgendetwas kaputt aussah. Ein Generator, den man von
+# Hand starten muss, wird genau so vergessen.
+#
+# Läuft täglich und auf Knopfdruck. Commitet nur, wenn sich der Graph wirklich
+# geändert hat — sonst entstünde jeden Tag ein leerer Commit.
+
+on:
+  schedule:
+    # 04:17 UTC — nachts, und nicht auf der vollen Stunde, wo GitHub die
+    # Runner-Warteschlangen am längsten sind.
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: brain-graph
+  cancel-in-progress: true
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Klar auschecken
+        uses: actions/checkout@v4
+
+      - name: AI-Brain auschecken
+        uses: actions/checkout@v4
+        with:
+          repository: alaink436/AI-Brain
+          # Fine-grained PAT auf alaink436/AI-Brain, Contents: Read.
+          # GITHUB_TOKEN reicht NICHT — das gilt nur für dieses Repo.
+          token: ${{ secrets.BRAIN_REPO_TOKEN }}
+          path: .brain-vault
+          # Voller Verlauf: die Anlege-Daten der Notizen kommen aus git log
+          # (--diff-filter=A), ein flacher Klon hätte sie nicht.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install networkx
+
+      - name: Graph neu erzeugen
+        env:
+          BRAIN_VAULT_PATH: ${{ github.workspace }}/.brain-vault
+        run: python scripts/gen-brain-graph.py
+
+      - name: Committen, falls sich etwas geändert hat
+        run: |
+          if git diff --quiet -- src/app/data/brainGraph.json; then
+            echo "Graph unverändert — nichts zu committen."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/data/brainGraph.json
+          git commit -m "chore(brain): regenerate graph from the vault"
+          git push

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "affiliates:setup": "node scripts/setup-affiliates.mjs"
+    "affiliates:setup": "node scripts/setup-affiliates.mjs",
+    "brain:graph": "python scripts/gen-brain-graph.py"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",

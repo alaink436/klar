@@ -18,8 +18,18 @@ from pathlib import Path
 
 import networkx as nx
 
-VAULT = Path(r"C:\Users\Alain Kessler\AI-Brain")
+# Vault-Pfad: per BRAIN_VAULT_PATH überschreibbar, damit derselbe Generator
+# lokal (Windows-Pfad unten) und im CI (geklontes Repo neben dem Checkout)
+# läuft. Der Default bleibt der Arbeitsplatz-Pfad, damit ein Aufruf von Hand
+# ohne Env weiterhin funktioniert.
+VAULT = Path(os.environ.get("BRAIN_VAULT_PATH") or r"C:\Users\Alain Kessler\AI-Brain")
 OUT = Path(__file__).resolve().parent.parent / "src" / "app" / "data" / "brainGraph.json"
+
+if not VAULT.is_dir():
+    raise SystemExit(
+        f"Vault nicht gefunden: {VAULT}\n"
+        "Setze BRAIN_VAULT_PATH auf den Pfad des AI-Brain-Checkouts."
+    )
 
 # Folders that must never reach the public/site graph. Secrets + Credentials
 # hold keys; excluding them here means their note *names* never ship in
