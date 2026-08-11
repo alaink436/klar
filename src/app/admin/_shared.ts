@@ -255,9 +255,18 @@ a{color:inherit;text-decoration:none}
 
 .content{padding:36px;max-width:1180px;width:100%;margin:0 auto}
 
-h1{font-family:var(--font-display);font-weight:800;font-size:clamp(34px,4.6vw,52px);letter-spacing:-.025em;line-height:1.02;margin:0 0 12px;color:var(--fg)}
+/* Seitentitel: etwas kleiner als vorher, dafuer mit einer Haarlinie, die
+   nach rechts auslaeuft — sie fuellt den Platz, den die Lede-Absaetze
+   frueher hatten, und bindet den Titel an die Topbar darueber. */
+h1{font-family:var(--font-display);font-weight:800;font-size:clamp(30px,3.4vw,42px);letter-spacing:-.03em;line-height:1.05;margin:0 0 20px;color:var(--fg);display:flex;align-items:baseline;gap:16px}
+h1::after{content:"";flex:1;height:1px;min-width:24px;background:linear-gradient(90deg,var(--line-strong),transparent);transform:translateY(-6px)}
 .sub{font-family:var(--font-body);font-size:16px;line-height:1.55;color:var(--fg-3);margin:0 0 22px;max-width:62ch}
-.sub{font-family:var(--font-editorial);font-style:italic;font-size:17px;line-height:1.45;color:var(--fg-3);margin:0 0 28px;max-width:62ch}
+/* Lede-Absaetze app-weit aus (Alain, 2026-08-11: "die Erklaerung brauche ich
+   nicht, ich weiss ja was die Software macht"). Bewusst hier statt in 14
+   Seiten geloescht: es ist eine Design-Entscheidung, kein Inhaltsproblem —
+   und diese eine Zeile entfernen bringt sie alle zurueck. Warn- und
+   Fehlertexte (.flash) sind nicht betroffen. */
+.sub{display:none}
 h2{font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-3);margin:32px 0 12px;display:flex;align-items:center;gap:10px}
 h2::after{content:"";flex:1;height:1px;background:var(--line)}
 

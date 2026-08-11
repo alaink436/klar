@@ -93,7 +93,6 @@ export default async function TodosPage({
       overdue: !td.done && due !== "" && due < today,
     };
   });
-  const planned = rows.filter((r) => !r.done && r.due).length;
 
   const topbar = `
     <span class="crumb"><b>${t.navTodos}</b>${ICON.chevron}<span>Klar Control</span></span>
@@ -106,7 +105,6 @@ export default async function TodosPage({
       <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
       <div className="content" style={{ maxWidth: "none" }}>
         <h1>{t.navTodos}</h1>
-        <p className="sub">{t.todoSub}</p>
         {!todosConfigured() ? (
           <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--warning) 35%,var(--line))", color: "var(--warning)" }}>
             {t.todoNotConfigured}
@@ -115,21 +113,6 @@ export default async function TodosPage({
 
         <Planner rows={rows} days={days} lang={lang} weekLabel={weekLabel} weekOffset={weekOffset} />
 
-        {/* Kalender-Abo: die Anleitung steht dort, wo die Punkte entstehen. */}
-        <div className="card" style={{ marginTop: 16, padding: "18px 22px", display: "block" }}>
-          <div className="k" style={{ margin: 0 }}>{t.icalTitle}</div>
-          <p className="s" style={{ maxWidth: "70ch" }}>
-            {t.icalBody(planned)}
-          </p>
-          <ol className="s" style={{ margin: "10px 0 0", paddingLeft: 20, lineHeight: 1.7 }}>
-            <li>{t.icalStep1}</li>
-            <li>
-              {t.icalStep2}{" "}
-              <code className="[font-family:var(--font-mono)]">webcal://getklar.org/api/todos/ical?token=DEIN_TOKEN</code>
-            </li>
-            <li>{t.icalStep3}</li>
-          </ol>
-        </div>
       </div>
     </>
   );

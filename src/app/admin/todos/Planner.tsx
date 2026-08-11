@@ -142,7 +142,7 @@ export default function Planner({
           setDragId(null);
           setOverCol(null);
         }}
-        className="group rounded-[var(--radius-sm)] border bg-surface px-2.5 py-2 cursor-grab active:cursor-grabbing"
+        className="group rounded-[var(--radius-sm)] border bg-surface px-3 py-2.5 cursor-grab active:cursor-grabbing"
         style={{
           borderColor: r.overdue ? "color-mix(in oklab,var(--danger) 45%,var(--line))" : "var(--line)",
           opacity: dragId === r.id ? 0.4 : 1,
@@ -168,7 +168,7 @@ export default function Planner({
             <input
               autoFocus
               defaultValue={r.title}
-              className="flex-1 min-w-0 bg-transparent text-[12.5px] text-fg border-b border-line-strong focus:outline-none focus:border-fg"
+              className="flex-1 min-w-0 bg-transparent text-[13.5px] text-fg border-b border-line-strong focus:outline-none focus:border-fg"
               onBlur={(e) => {
                 const v = e.target.value.trim();
                 setEditing(null);
@@ -184,7 +184,7 @@ export default function Planner({
               type="button"
               onClick={() => setEditing(r.id)}
               title={t.todoEditHint}
-              className={`flex-1 min-w-0 text-left text-[12.5px] leading-snug break-words ${
+              className={`flex-1 min-w-0 text-left text-[13.5px] leading-snug break-words ${
                 r.done ? "text-fg-4 line-through" : "text-fg"
               }`}
             >
@@ -209,7 +209,7 @@ export default function Planner({
               value={r.time}
               onChange={(e) => setTime(r, e.target.value)}
               aria-label={t.todoTimeAria(r.title)}
-              className="h-6 px-1 text-[11px] [font-family:var(--font-mono)] text-fg-2 bg-bg border border-line rounded-[4px] focus:border-fg focus:outline-none"
+              className="h-7 px-1.5 text-[12px] [font-family:var(--font-mono)] text-fg-2 bg-bg border border-line rounded-[4px] focus:border-fg focus:outline-none"
             />
             {r.time ? (
               <button
@@ -245,11 +245,11 @@ export default function Planner({
           setOverCol(null);
           if (id) move(id, key);
         }}
-        className="flex flex-col gap-2 rounded-[var(--radius-sm)] p-2 min-w-[180px] flex-1 transition-colors"
+        className="flex flex-col gap-2 rounded-[var(--radius-sm)] p-2.5 min-w-[230px] flex-1 transition-colors"
         style={{
           background: isOver ? "color-mix(in oklab,var(--fg) 7%,var(--surface-2))" : tint ?? "var(--surface-2)",
           outline: isOver ? "1px dashed var(--fg-3)" : "1px solid transparent",
-          minHeight: 120,
+          minHeight: 220,
         }}
       >
         {head}
@@ -303,11 +303,11 @@ export default function Planner({
         </div>
 
         <div className="p-3 overflow-x-auto">
-          <div className="flex gap-2 items-start" style={{ minWidth: 900 }}>
+          <div className="flex gap-2.5 items-start" style={{ minWidth: 1180 }}>
             {column(
               BACKLOG,
               <div className="flex items-baseline gap-2 px-1 pb-1">
-                <span className="[font-family:var(--font-mono)] text-[9.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">
+                <span className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">
                   {t.todoBucketNone}
                 </span>
                 <span className="[font-family:var(--font-mono)] text-[9.5px] text-fg-4">{backlog.length}</span>
@@ -322,7 +322,7 @@ export default function Planner({
                 d.iso,
                 <div className="flex items-baseline gap-2 px-1 pb-1">
                   <span
-                    className="[font-family:var(--font-mono)] text-[9.5px] font-semibold uppercase tracking-[0.12em]"
+                    className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em]"
                     style={{ color: d.isToday ? "var(--fg)" : "var(--fg-3)" }}
                   >
                     {d.weekday}
