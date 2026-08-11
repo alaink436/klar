@@ -16,6 +16,9 @@ import { addSecret, deleteSecret, rotateSecret, updateSecretMeta } from "@/lib/v
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// msg/err carry a CODE, not prose: /admin/vault renders it through
+// flashText() in the admin UI language (see ../_i18n). Anything that is not a
+// known code (e.g. a technical string from lib/vault) is shown verbatim.
 function backWith(req: NextRequest, params: Record<string, string>): Response {
   const url = new URL("/admin/vault", req.url);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
@@ -38,30 +41,30 @@ export async function POST(req: NextRequest): Promise<Response> {
   try {
     form = await req.formData();
   } catch {
-    return backWith(req, { err: "bad form" });
+    return backWith(req, { err: "bad-form" });
   }
 
   const action = String(form.get("action") ?? "").trim();
 
   if (action === "delete") {
     const id = String(form.get("id") ?? "").trim();
-    if (!id) return backWith(req, { err: "kein Eintrag angegeben" });
+    if (!id) return backWith(req, { err: "no-entry" });
     const ok = await deleteSecret(id);
-    return backWith(req, ok ? { msg: "Vault-Key gelöscht." } : { err: "Löschen fehlgeschlagen." });
+    return backWith(req, ok ? { msg: "deleted" } : { err: "delete-failed" });
   }
 
   if (action === "rotate") {
     const id = String(form.get("id") ?? "").trim();
     const secret = String(form.get("secret") ?? "");
-    if (!id) return backWith(req, { err: "kein Eintrag angegeben" });
-    if (!secret) return backWith(req, { err: "Kein neuer Key angegeben." });
+    if (!id) return backWith(req, { err: "no-entry" });
+    if (!secret) return backWith(req, { err: "no-new-key" });
     const r = await rotateSecret(id, secret);
-    return backWith(req, r.ok ? { msg: "Vault-Key rotiert (neu verschlüsselt)." } : { err: r.error });
+    return backWith(req, r.ok ? { msg: "rotated" } : { err: r.error });
   }
 
   if (action === "edit") {
     const id = String(form.get("id") ?? "").trim();
-    if (!id) return backWith(req, { err: "kein Eintrag angegeben" });
+    if (!id) return backWith(req, { err: "no-entry" });
     const label = String(form.get("label") ?? "").trim();
     const provider = String(form.get("provider") ?? "").trim();
     const category = String(form.get("category") ?? "").trim();
@@ -69,7 +72,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     const auth_header = String(form.get("auth_header") ?? "authorization").trim();
     const auth_scheme = String(form.get("auth_scheme") ?? "Bearer ");
     const r = await updateSecretMeta(id, { label, provider, category, base_url, auth_header, auth_scheme });
-    return backWith(req, r.ok ? { msg: "Vault-Eintrag aktualisiert." } : { err: r.error });
+    return backWith(req, r.ok ? { msg: "updated" } : { err: r.error });
   }
 
   if (action === "add") {
@@ -81,11 +84,11 @@ export async function POST(req: NextRequest): Promise<Response> {
     const auth_scheme = String(form.get("auth_scheme") ?? "Bearer ");
     const auth_in = String(form.get("auth_in") ?? "header").trim() === "query" ? "query" : "header";
     const secret = String(form.get("secret") ?? "");
-    if (!secret) return backWith(req, { err: "Kein Key angegeben." });
+    if (!secret) return backWith(req, { err: "no-key" });
     // base_url is optional: omit it for a store-only secret (reveal only, no proxy).
     const r = await addSecret({ label, provider, category, base_url, auth_header, auth_scheme, auth_in, secret });
-    return backWith(req, r.ok ? { msg: "Vault-Key gespeichert (verschlüsselt)." } : { err: r.error });
+    return backWith(req, r.ok ? { msg: "saved" } : { err: r.error });
   }
 
-  return backWith(req, { err: `unbekannte Aktion: ${action || "(leer)"}` });
+  return backWith(req, { err: "unknown-action" });
 }

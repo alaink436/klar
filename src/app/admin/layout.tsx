@@ -10,6 +10,8 @@
 // their own content (and any page-specific extra <style>, e.g. settings).
 
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
+import { LANG_COOKIE, normalizeAdminLang } from "./_i18n";
 import {
   STYLE,
   FONTS_LINK,
@@ -23,8 +25,10 @@ import {
 import { getApps } from "@/lib/adminApps";
 import AdminShell from "./AdminShell";
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default async function AdminLayout({ children }: { children: ReactNode }) {
   const apps = getApps();
+  // UI language for the whole workspace, read once here and handed down.
+  const lang = normalizeAdminLang((await cookies()).get(LANG_COOKIE)?.value);
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -36,7 +40,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <canvas id="klar-smoke-bg" aria-hidden="true" suppressHydrationWarning />
-      <AdminShell apps={apps}>{children}</AdminShell>
+      <AdminShell apps={apps} lang={lang}>
+        {children}
+      </AdminShell>
       {/* Confirm dialog hoisted here so it survives client-side menu switches.
           MODAL_SCRIPT runs once on first load and keeps a MutationObserver on
           <body>, so it auto-binds any data-klar-confirm form a SPA-navigated

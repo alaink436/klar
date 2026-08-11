@@ -11,6 +11,7 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import AdminSidebar from "./AdminSidebar";
+import type { AdminLang } from "./_i18n";
 
 function activeFromPath(path: string): string {
   // /admin/<seg>/... -> "<seg>"; bare /admin or /admin/ -> "overview".
@@ -20,9 +21,11 @@ function activeFromPath(path: string): string {
 
 export default function AdminShell({
   apps,
+  lang,
   children,
 }: {
   apps: { slug: string; name: string }[];
+  lang: AdminLang;
   children: ReactNode;
 }) {
   const path = usePathname() || "/admin";
@@ -32,7 +35,7 @@ export default function AdminShell({
 
   return (
     <div className="layout">
-      <AdminSidebar active={activeFromPath(path)} apps={apps} />
+      <AdminSidebar active={activeFromPath(path)} apps={apps} lang={lang} />
       <main className="main">{children}</main>
     </div>
   );

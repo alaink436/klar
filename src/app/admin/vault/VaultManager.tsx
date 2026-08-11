@@ -3,6 +3,12 @@
 // Vault management UI, built on the shadcn/ui kit (src/components/ui/*) which is
 // themed to the admin tokens. Plaintext keys are never shown except the explicit
 // "reveal" dialog (admin-only, fetched on demand and cleared on close).
+//
+// UI copy follows the admin language (DE/EN switch in the sidebar) via tAdmin().
+// Vault DATA is not translated: labels, providers and category names are what
+// the admin typed and stay byte-identical in both languages — the category
+// datalist would otherwise write English names into rows that already group
+// under German ones.
 
 import { useState, type ComponentProps } from "react";
 import { MoreHorizontal, Copy, Eye, Pencil, RefreshCw, Trash2, Plus, KeyRound, Search } from "lucide-react";
@@ -37,6 +43,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { loc, tAdmin, type AdminLang, type Localized } from "../_i18n";
 
 export interface VaultRow {
   id: string;
@@ -51,7 +58,8 @@ export interface VaultRow {
 }
 
 // Suggested categories shown in the add form's datalist. Free text: the admin
-// can also type a category that isn't in this list.
+// can also type a category that isn't in this list. Deliberately NOT translated
+// — these are the values that get stored on the row.
 const CATEGORY_SUGGESTIONS = [
   "KI / LLM",
   "Datenbank",
@@ -75,32 +83,55 @@ const CATEGORY_SUGGESTIONS = [
 //   baseUrlFill – the value actually inserted into the field on category pick;
 //                 "" = leave empty (store-only, or account-specific so there is
 //                 no single correct URL to prefill)
+// Fields typed `Localized` read as prose and therefore switch with the UI
+// language; plain strings (URLs, key shapes) are the same in both.
 interface CategoryExample {
-  label: string;
+  label: Localized;
   provider: string;
-  baseUrl: string;
+  baseUrl: Localized;
   baseUrlFill: string;
-  key: string;
+  key: Localized;
 }
 const DEFAULT_EXAMPLE: CategoryExample = {
-  label: "Mein Service",
+  label: { de: "Mein Service", en: "My service" },
   provider: "custom",
-  baseUrl: "https://api.example.com  ·  leer = nur speichern",
+  baseUrl: {
+    de: "https://api.example.com  ·  leer = nur speichern",
+    en: "https://api.example.com  ·  empty = store only",
+  },
   baseUrlFill: "",
-  key: "Key / Token …",
+  key: { de: "Key / Token …", en: "Key / token …" },
 };
 const CATEGORY_EXAMPLES: Record<string, CategoryExample> = {
   "KI / LLM": { label: "OpenAI Prod", provider: "openai", baseUrl: "https://api.openai.com", baseUrlFill: "https://api.openai.com", key: "sk-proj-…  /  sk-ant-…" },
-  Datenbank: { label: "Supabase Service Role – Klar", provider: "supabase", baseUrl: "leer lassen = nur speichern (Service Role)", baseUrlFill: "", key: "eyJhbGci… (JWT)  /  sb_secret_…" },
+  Datenbank: {
+    label: "Supabase Service Role – Klar",
+    provider: "supabase",
+    baseUrl: { de: "leer lassen = nur speichern (Service Role)", en: "leave empty = store only (service role)" },
+    baseUrlFill: "",
+    key: "eyJhbGci… (JWT)  /  sb_secret_…",
+  },
   RevenueCat: { label: "RevenueCat – MyLoo (iOS)", provider: "revenuecat", baseUrl: "https://api.revenuecat.com", baseUrlFill: "https://api.revenuecat.com", key: "sk_… (secret)  /  appl_… (public)" },
   Payment: { label: "Stripe Live", provider: "stripe", baseUrl: "https://api.stripe.com", baseUrlFill: "https://api.stripe.com", key: "sk_live_…" },
-  Email: { label: "Brevo Transaktional", provider: "brevo", baseUrl: "https://api.brevo.com/v3", baseUrlFill: "https://api.brevo.com/v3", key: "xkeysib-…" },
-  Resend: { label: "Resend – Transaktional", provider: "resend", baseUrl: "https://api.resend.com", baseUrlFill: "https://api.resend.com", key: "re_…" },
-  Automation: { label: "n8n Cloud API", provider: "n8n", baseUrl: "https://<konto>.app.n8n.cloud/api/v1", baseUrlFill: "", key: "eyJ… (JWT)" },
-  "Social / Marketing": { label: "Blotato", provider: "blotato", baseUrl: "https://backend.blotato.com", baseUrlFill: "https://backend.blotato.com", key: "Blotato API-Key" },
-  "Mobile / Stores": { label: "App Store Connect API", provider: "apple", baseUrl: "leer lassen = nur speichern (.p8 / JSON)", baseUrlFill: "", key: "-----BEGIN PRIVATE KEY----- (.p8)" },
-  TMDB: { label: "TMDB Read Access Token (v4)", provider: "tmdb", baseUrl: "https://api.themoviedb.org", baseUrlFill: "https://api.themoviedb.org", key: "eyJ… (v4 Bearer) / 32-Hex (v3)" },
-  Infrastruktur: { label: "Vercel Token", provider: "vercel", baseUrl: "https://api.vercel.com", baseUrlFill: "https://api.vercel.com", key: "Bearer-Token …" },
+  Email: { label: { de: "Brevo Transaktional", en: "Brevo transactional" }, provider: "brevo", baseUrl: "https://api.brevo.com/v3", baseUrlFill: "https://api.brevo.com/v3", key: "xkeysib-…" },
+  Resend: { label: { de: "Resend – Transaktional", en: "Resend – transactional" }, provider: "resend", baseUrl: "https://api.resend.com", baseUrlFill: "https://api.resend.com", key: "re_…" },
+  Automation: {
+    label: "n8n Cloud API",
+    provider: "n8n",
+    baseUrl: { de: "https://<konto>.app.n8n.cloud/api/v1", en: "https://<account>.app.n8n.cloud/api/v1" },
+    baseUrlFill: "",
+    key: "eyJ… (JWT)",
+  },
+  "Social / Marketing": { label: "Blotato", provider: "blotato", baseUrl: "https://backend.blotato.com", baseUrlFill: "https://backend.blotato.com", key: { de: "Blotato API-Key", en: "Blotato API key" } },
+  "Mobile / Stores": {
+    label: "App Store Connect API",
+    provider: "apple",
+    baseUrl: { de: "leer lassen = nur speichern (.p8 / JSON)", en: "leave empty = store only (.p8 / JSON)" },
+    baseUrlFill: "",
+    key: "-----BEGIN PRIVATE KEY----- (.p8)",
+  },
+  TMDB: { label: "TMDB Read Access Token (v4)", provider: "tmdb", baseUrl: "https://api.themoviedb.org", baseUrlFill: "https://api.themoviedb.org", key: { de: "eyJ… (v4 Bearer) / 32-Hex (v3)", en: "eyJ… (v4 bearer) / 32-hex (v3)" } },
+  Infrastruktur: { label: "Vercel Token", provider: "vercel", baseUrl: "https://api.vercel.com", baseUrlFill: "https://api.vercel.com", key: { de: "Bearer-Token …", en: "Bearer token …" } },
   Sonstiges: DEFAULT_EXAMPLE,
 };
 
@@ -110,7 +141,7 @@ function exampleFor(category: string): CategoryExample {
 
 // Group rows by category, ordered by the suggestion list, then custom
 // categories alphabetically, with "Sonstiges" always last.
-function groupByCategory(rows: VaultRow[]): Array<{ category: string; rows: VaultRow[] }> {
+function groupByCategory(rows: VaultRow[], lang: AdminLang): Array<{ category: string; rows: VaultRow[] }> {
   const map = new Map<string, VaultRow[]>();
   for (const r of rows) {
     const c = r.category || "Sonstiges";
@@ -124,7 +155,7 @@ function groupByCategory(rows: VaultRow[]): Array<{ category: string; rows: Vaul
     return i === -1 ? 500 : i;
   };
   return [...map.entries()]
-    .sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0], "de"))
+    .sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0], lang))
     .map(([category, rs]) => ({ category, rows: rs }));
 }
 
@@ -156,15 +187,15 @@ interface ProviderPreset {
   authHeader: string;
   authScheme: string;
   authIn?: "header" | "query"; // "query" => authHeader is the query-param name (e.g. Evomi ?api_key=)
-  keyExample: string;
-  labelExample: string;
+  keyExample: Localized;
+  labelExample: Localized;
 }
 const PROVIDER_PRESETS: ProviderPreset[] = [
   // KI / LLM
   { id: "anthropic", label: "Anthropic (Claude)", category: "KI / LLM", provider: "anthropic", baseUrl: "https://api.anthropic.com", authHeader: "x-api-key", authScheme: "", keyExample: "sk-ant-…", labelExample: "Anthropic Prod" },
   { id: "openai", label: "OpenAI", category: "KI / LLM", provider: "openai", baseUrl: "https://api.openai.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sk-proj-… / sk-…", labelExample: "OpenAI Prod" },
   { id: "gemini", label: "Google Gemini", category: "KI / LLM", provider: "google", baseUrl: "https://generativelanguage.googleapis.com", authHeader: "x-goog-api-key", authScheme: "", keyExample: "AIza…", labelExample: "Gemini" },
-  { id: "mistral", label: "Mistral", category: "KI / LLM", provider: "mistral", baseUrl: "https://api.mistral.ai", authHeader: "authorization", authScheme: "Bearer ", keyExample: "API-Key …", labelExample: "Mistral" },
+  { id: "mistral", label: "Mistral", category: "KI / LLM", provider: "mistral", baseUrl: "https://api.mistral.ai", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "API-Key …", en: "API key …" }, labelExample: "Mistral" },
   { id: "groq", label: "Groq", category: "KI / LLM", provider: "groq", baseUrl: "https://api.groq.com/openai/v1", authHeader: "authorization", authScheme: "Bearer ", keyExample: "gsk_…", labelExample: "Groq" },
   { id: "openrouter", label: "OpenRouter", category: "KI / LLM", provider: "openrouter", baseUrl: "https://openrouter.ai/api/v1", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sk-or-…", labelExample: "OpenRouter" },
   { id: "perplexity", label: "Perplexity", category: "KI / LLM", provider: "perplexity", baseUrl: "https://api.perplexity.ai", authHeader: "authorization", authScheme: "Bearer ", keyExample: "pplx-…", labelExample: "Perplexity" },
@@ -178,44 +209,44 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   { id: "stripe", label: "Stripe", category: "Payment", provider: "stripe", baseUrl: "https://api.stripe.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sk_live_…", labelExample: "Stripe Live" },
   { id: "wise", label: "Wise", category: "Payment", provider: "wise", baseUrl: "https://api.wise.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "Personal API Token (UUID)", labelExample: "Wise Payouts" },
   // Email
-  { id: "brevo", label: "Brevo", category: "Email", provider: "brevo", baseUrl: "https://api.brevo.com/v3", authHeader: "api-key", authScheme: "", keyExample: "xkeysib-…", labelExample: "Brevo Transaktional" },
+  { id: "brevo", label: "Brevo", category: "Email", provider: "brevo", baseUrl: "https://api.brevo.com/v3", authHeader: "api-key", authScheme: "", keyExample: "xkeysib-…", labelExample: { de: "Brevo Transaktional", en: "Brevo transactional" } },
   { id: "resend-email", label: "Resend", category: "Email", provider: "resend", baseUrl: "https://api.resend.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "re_…", labelExample: "Resend" },
   { id: "sendgrid", label: "SendGrid", category: "Email", provider: "sendgrid", baseUrl: "https://api.sendgrid.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "SG.…", labelExample: "SendGrid" },
-  { id: "postmark", label: "Postmark", category: "Email", provider: "postmark", baseUrl: "https://api.postmarkapp.com", authHeader: "x-postmark-server-token", authScheme: "", keyExample: "Server-Token …", labelExample: "Postmark" },
+  { id: "postmark", label: "Postmark", category: "Email", provider: "postmark", baseUrl: "https://api.postmarkapp.com", authHeader: "x-postmark-server-token", authScheme: "", keyExample: { de: "Server-Token …", en: "Server token …" }, labelExample: "Postmark" },
   // Resend (eigene Kategorie)
-  { id: "resend", label: "Resend", category: "Resend", provider: "resend", baseUrl: "https://api.resend.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "re_…", labelExample: "Resend Transaktional" },
+  { id: "resend", label: "Resend", category: "Resend", provider: "resend", baseUrl: "https://api.resend.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "re_…", labelExample: { de: "Resend Transaktional", en: "Resend transactional" } },
   // Automation
   { id: "n8n", label: "n8n Cloud", category: "Automation", provider: "n8n", baseUrl: "", authHeader: "x-n8n-api-key", authScheme: "", keyExample: "eyJ… (JWT)", labelExample: "n8n Cloud API" },
   { id: "apify", label: "Apify", category: "Automation", provider: "apify", baseUrl: "https://api.apify.com/v2", authHeader: "authorization", authScheme: "Bearer ", keyExample: "apify_api_…", labelExample: "Apify" },
   // Social / Marketing
-  { id: "blotato", label: "Blotato", category: "Social / Marketing", provider: "blotato", baseUrl: "https://backend.blotato.com/v2", authHeader: "blotato-api-key", authScheme: "", keyExample: "…== (Base64, = gehört dazu)", labelExample: "Blotato" },
+  { id: "blotato", label: "Blotato", category: "Social / Marketing", provider: "blotato", baseUrl: "https://backend.blotato.com/v2", authHeader: "blotato-api-key", authScheme: "", keyExample: { de: "…== (Base64, = gehört dazu)", en: "…== (Base64, the = is part of it)" }, labelExample: "Blotato" },
   // Scraping
-  { id: "evomi", label: "Evomi (Scraper API)", category: "Scraping", provider: "evomi", baseUrl: "https://scrape.evomi.com/api/v1/scraper", authHeader: "api_key", authScheme: "", authIn: "query", keyExample: "Evomi api_key (Query-Param)", labelExample: "Evomi Scraper API" },
+  { id: "evomi", label: "Evomi (Scraper API)", category: "Scraping", provider: "evomi", baseUrl: "https://scrape.evomi.com/api/v1/scraper", authHeader: "api_key", authScheme: "", authIn: "query", keyExample: { de: "Evomi api_key (Query-Param)", en: "Evomi api_key (query param)" }, labelExample: "Evomi Scraper API" },
   // Personal API Key (my.evomi.com → Settings → API) — account-level: balance,
   // credits, proxy data. NOT the scraper key. Feeds the Evomi-Credits billing card.
   { id: "evomi-public", label: "Evomi (Public API / Credits)", category: "Scraping", provider: "evomi", baseUrl: "https://api.evomi.com/public", authHeader: "x-apikey", authScheme: "", keyExample: "Personal API Key (Settings → API)", labelExample: "Evomi Public API" },
   // Mobile / Stores
   { id: "appstore", label: "App Store Connect (.p8)", category: "Mobile / Stores", provider: "apple", baseUrl: "", authHeader: "authorization", authScheme: "Bearer ", keyExample: "-----BEGIN PRIVATE KEY----- (.p8)", labelExample: "App Store Connect API" },
-  { id: "expo", label: "Expo / EAS", category: "Mobile / Stores", provider: "expo", baseUrl: "https://api.expo.dev", authHeader: "authorization", authScheme: "Bearer ", keyExample: "Expo Access-Token", labelExample: "Expo EAS" },
+  { id: "expo", label: "Expo / EAS", category: "Mobile / Stores", provider: "expo", baseUrl: "https://api.expo.dev", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "Expo Access-Token", en: "Expo access token" }, labelExample: "Expo EAS" },
   // TMDB (eigene Kategorie) — v4-Token läuft als Bearer über den Proxy, der
   // v3-Key via Query-Param-Injection (?api_key=…, wie Evomi).
   { id: "tmdb-v4", label: "TMDB Read Access Token (v4, Proxy)", category: "TMDB", provider: "tmdb", baseUrl: "https://api.themoviedb.org", authHeader: "authorization", authScheme: "Bearer ", keyExample: "eyJhbGci… (v4 JWT)", labelExample: "TMDB Read Access Token (v4)" },
-  { id: "tmdb-v3", label: "TMDB API Key (v3, Query-Param)", category: "TMDB", provider: "tmdb", baseUrl: "https://api.themoviedb.org", authHeader: "api_key", authScheme: "", authIn: "query", keyExample: "32-stelliger Hex-Key (v3)", labelExample: "TMDB API Key (v3)" },
+  { id: "tmdb-v3", label: "TMDB API Key (v3, Query-Param)", category: "TMDB", provider: "tmdb", baseUrl: "https://api.themoviedb.org", authHeader: "api_key", authScheme: "", authIn: "query", keyExample: { de: "32-stelliger Hex-Key (v3)", en: "32-character hex key (v3)" }, labelExample: "TMDB API Key (v3)" },
   // Sonstiges
   // Unsplash authenticates public requests with a "Client-ID " scheme on the
   // standard authorization header — not Bearer. The stored key is the ACCESS
   // key (the secret key is only for the OAuth user flow and must not go here).
   // Demo apps get 50 req/h, 1000 after approval; image file downloads from
   // images.unsplash.com do not count against that.
-  { id: "unsplash", label: "Unsplash (Access Key)", category: "Sonstiges", provider: "unsplash", baseUrl: "https://api.unsplash.com", authHeader: "authorization", authScheme: "Client-ID ", keyExample: "Access Key (43 Zeichen, nicht der Secret Key)", labelExample: "Unsplash Access Key" },
+  { id: "unsplash", label: "Unsplash (Access Key)", category: "Sonstiges", provider: "unsplash", baseUrl: "https://api.unsplash.com", authHeader: "authorization", authScheme: "Client-ID ", keyExample: { de: "Access Key (43 Zeichen)", en: "Access key (43 characters)" }, labelExample: "Unsplash Access Key" },
   // Pexels sends the raw key on `authorization` with NO scheme prefix at all —
   // not Bearer, not Client-ID. base_url deliberately without a version segment
   // so both APIs are reachable through one entry: photos live under `v1/…`
   // (e.g. `v1/search?query=roadtrip`), videos under `videos/…`.
   // Limits: 200 req/h and 20'000/month; image/video file downloads don't count.
-  { id: "pexels", label: "Pexels (API Key)", category: "Sonstiges", provider: "pexels", baseUrl: "https://api.pexels.com", authHeader: "authorization", authScheme: "", keyExample: "56-stelliger alphanumerischer Key", labelExample: "Pexels API Key" },
+  { id: "pexels", label: "Pexels (API Key)", category: "Sonstiges", provider: "pexels", baseUrl: "https://api.pexels.com", authHeader: "authorization", authScheme: "", keyExample: { de: "56-stelliger alphanumerischer Key", en: "56-character alphanumeric key" }, labelExample: "Pexels API Key" },
   // Infrastruktur
-  { id: "vercel", label: "Vercel", category: "Infrastruktur", provider: "vercel", baseUrl: "https://api.vercel.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "Bearer-Token …", labelExample: "Vercel Token" },
+  { id: "vercel", label: "Vercel", category: "Infrastruktur", provider: "vercel", baseUrl: "https://api.vercel.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "Bearer-Token …", en: "Bearer token …" }, labelExample: "Vercel Token" },
   { id: "github", label: "GitHub", category: "Infrastruktur", provider: "github", baseUrl: "https://api.github.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "ghp_… / github_pat_…", labelExample: "GitHub PAT" },
 ];
 
@@ -226,7 +257,8 @@ const SELECT_CLASS =
 // Picking a category narrows the provider-preset dropdown; picking a preset
 // auto-fills provider + base URL + the matching auth header/scheme, and the
 // placeholders switch to a fitting example.
-function KeyFields({ includeMeta }: { includeMeta: boolean }) {
+function KeyFields({ includeMeta, lang }: { includeMeta: boolean; lang: AdminLang }) {
+  const t = tAdmin(lang);
   const [category, setCategory] = useState("");
   const [provider, setProvider] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
@@ -237,8 +269,8 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
 
   const catEx = exampleFor(category);
   const preset = PROVIDER_PRESETS.find((p) => p.id === presetId);
-  const keyHint = preset?.keyExample ?? catEx.key;
-  const labelHint = preset?.labelExample ?? catEx.label;
+  const keyHint = loc(preset?.keyExample ?? catEx.key, lang);
+  const labelHint = loc(preset?.labelExample ?? catEx.label, lang);
 
   // Presets for the typed category (exact, case-insensitive). With a match the
   // dropdown lists just those; otherwise it lists all, grouped by category.
@@ -266,13 +298,13 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
     <div className="grid grid-cols-2 gap-3.5">
       {includeMeta && (
         <>
-          <Field name="label" label="Label" required placeholder={`z.B. ${labelHint}`} />
+          <Field name="label" label={t.fieldLabel} required placeholder={t.eg(labelHint)} />
           <Field
             name="category"
-            label="Kategorie"
+            label={t.fieldCategory}
             list="vault-categories"
             autoComplete="off"
-            placeholder="z.B. KI / LLM"
+            placeholder={t.fieldCategoryPlaceholder}
             value={category}
             onChange={(e) => pickCategory(e.target.value)}
           />
@@ -285,7 +317,7 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
           {/* Provider preset — fills provider + URL + auth header/scheme. */}
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label htmlFor="provider-preset">
-              Provider-Vorlage <span className="text-fg-4 font-normal">(füllt URL + Auth automatisch)</span>
+              {t.fieldPreset} <span className="text-fg-4 font-normal">{t.fieldPresetHint}</span>
             </Label>
             <select
               id="provider-preset"
@@ -293,9 +325,7 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
               value={presetId}
               onChange={(e) => pickPreset(e.target.value)}
             >
-              <option value="">
-                {category.trim() ? `— ${category.trim()}-Provider wählen —` : "— Provider wählen (optional) —"}
-              </option>
+              <option value="">{category.trim() ? t.presetPickIn(category.trim()) : t.presetPickAny}</option>
               {showGrouped
                 ? CATEGORY_SUGGESTIONS.map((c) => {
                     const items = PROVIDER_PRESETS.filter((p) => p.category === c);
@@ -320,29 +350,29 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
 
           <Field
             name="provider"
-            label="Provider"
-            placeholder={`z.B. ${preset?.provider ?? catEx.provider}`}
+            label={t.fieldProvider}
+            placeholder={t.eg(preset?.provider ?? catEx.provider)}
             value={provider}
             onChange={(e) => setProvider(e.target.value)}
           />
           <Field
             name="auth_header"
-            label={authIn === "query" ? "Query-Param-Name" : "Auth-Header"}
+            label={authIn === "query" ? t.fieldQueryParam : t.fieldAuthHeader}
             value={authHeader}
             onChange={(e) => setAuthHeader(e.target.value)}
           />
           <Field
             name="base_url"
-            label="Base-URL — leer lassen = nur speichern (kein Proxy)"
+            label={t.fieldBaseUrl}
             type="url"
-            placeholder={preset?.baseUrl || catEx.baseUrl}
+            placeholder={preset?.baseUrl || loc(catEx.baseUrl, lang)}
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
             className="col-span-2"
           />
           <Field
             name="auth_scheme"
-            label="Schema-Prefix (leer bei x-api-key / api-key)"
+            label={t.fieldAuthScheme}
             placeholder="Bearer "
             value={authScheme}
             onChange={(e) => setAuthScheme(e.target.value)}
@@ -350,9 +380,11 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
           />
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label htmlFor="auth_in">
-              Auth-Ort{" "}
+              {t.fieldAuthIn}{" "}
               <span className="text-fg-4 font-normal">
-                (Header = Standard; Query = Key als URL-Parameter, z.B. Evomi <code>?api_key=</code>)
+                {t.fieldAuthInHintA}
+                <code>?api_key=</code>
+                {t.fieldAuthInHintB}
               </span>
             </Label>
             <select
@@ -362,26 +394,26 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
               value={authIn}
               onChange={(e) => setAuthIn(e.target.value === "query" ? "query" : "header")}
             >
-              <option value="header">Header</option>
-              <option value="query">Query-Parameter</option>
+              <option value="header">{t.optHeader}</option>
+              <option value="query">{t.optQuery}</option>
             </select>
           </div>
         </>
       )}
       <div className="col-span-2 flex flex-col gap-1.5">
-        <Label htmlFor="secret">API-Key (wird verschlüsselt, danach nicht mehr lesbar)</Label>
+        <Label htmlFor="secret">{t.fieldSecret}</Label>
         <Input
           id="secret"
           name="secret"
           type="password"
           required
           autoComplete="new-password"
-          placeholder={includeMeta ? keyHint : "neuer Key …"}
+          placeholder={includeMeta ? keyHint : t.secretPlaceholderRotate}
           style={{ fontFamily: "var(--font-mono)" }}
         />
         {includeMeta && (
           <p className="text-[11px] text-fg-4">
-            Beispiel für {preset?.label || category.trim() || "diese Kategorie"}:{" "}
+            {t.exampleFor(preset?.label || category.trim() || t.thisCategory)}{" "}
             <code className="[font-family:var(--font-mono)]">{keyHint}</code>
           </p>
         )}
@@ -393,16 +425,17 @@ function KeyFields({ includeMeta }: { includeMeta: boolean }) {
 // Pre-filled metadata fields for the edit dialog (no key field — the stored key
 // is never touched here). Uncontrolled defaults; the form is remounted per row
 // (key={editRow.id}) so the defaults always reflect the row being edited.
-function MetaFields({ row }: { row: VaultRow }) {
+function MetaFields({ row, lang }: { row: VaultRow; lang: AdminLang }) {
+  const t = tAdmin(lang);
   return (
     <div className="grid grid-cols-2 gap-3.5">
-      <Field name="label" label="Label" required defaultValue={row.label} />
+      <Field name="label" label={t.fieldLabel} required defaultValue={row.label} />
       <Field
         name="category"
-        label="Kategorie"
+        label={t.fieldCategory}
         list="vault-categories-edit"
         autoComplete="off"
-        placeholder="z.B. Datenbank"
+        placeholder={t.eg("Datenbank")}
         defaultValue={row.category === "Sonstiges" ? "" : row.category}
       />
       <datalist id="vault-categories-edit">
@@ -410,22 +443,23 @@ function MetaFields({ row }: { row: VaultRow }) {
           <option key={c} value={c} />
         ))}
       </datalist>
-      <Field name="provider" label="Provider" defaultValue={row.provider} />
-      <Field name="auth_header" label="Auth-Header" defaultValue={row.authHeader || "authorization"} />
+      <Field name="provider" label={t.fieldProvider} defaultValue={row.provider} />
+      <Field name="auth_header" label={t.fieldAuthHeader} defaultValue={row.authHeader || "authorization"} />
       <Field
         name="base_url"
-        label="Base-URL — leer lassen = nur speichern (kein Proxy)"
+        label={t.fieldBaseUrl}
         type="url"
         placeholder="https://api.example.com"
         defaultValue={row.baseUrl}
         className="col-span-2"
       />
-      <Field name="auth_scheme" label="Schema-Prefix" defaultValue={row.authScheme || "Bearer "} className="col-span-2" />
+      <Field name="auth_scheme" label={t.fieldAuthSchemeShort} defaultValue={row.authScheme || "Bearer "} className="col-span-2" />
     </div>
   );
 }
 
-export default function VaultManager({ rows }: { rows: VaultRow[] }) {
+export default function VaultManager({ rows, lang }: { rows: VaultRow[]; lang: AdminLang }) {
+  const t = tAdmin(lang);
   const [rotateRow, setRotateRow] = useState<VaultRow | null>(null);
   const [editRow, setEditRow] = useState<VaultRow | null>(null);
   const [deleteRow, setDeleteRow] = useState<VaultRow | null>(null);
@@ -458,12 +492,12 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
       .then(async (res) => {
         const data = (await res.json().catch(() => ({}))) as { key?: string; error?: string };
         if (!res.ok || typeof data.key !== "string") {
-          setReveal({ loading: false, key: null, error: data.error || `Fehler ${res.status}` });
+          setReveal({ loading: false, key: null, error: data.error || t.revealError(res.status) });
         } else {
           setReveal({ loading: false, key: data.key, error: null });
         }
       })
-      .catch(() => setReveal({ loading: false, key: null, error: "Netzwerkfehler" }));
+      .catch(() => setReveal({ loading: false, key: null, error: t.revealNetworkError }));
   }
 
   function closeReveal() {
@@ -496,14 +530,14 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
           {r.proxy ? (
             <code className="[font-family:var(--font-mono)] text-[11px] text-fg-3 break-all">{r.proxy}…</code>
           ) : (
-            <span className="text-[11px] text-fg-4">Store-only · kein Proxy</span>
+            <span className="text-[11px] text-fg-4">{t.storeOnly}</span>
           )}
         </TableCell>
         <TableCell className="text-right text-fg-3">{r.lastUsed}</TableCell>
         <TableCell className="text-right">
           <div className="flex items-center justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => openReveal(r)}>
-              <Eye /> Key anzeigen
+              <Eye /> {t.showKey}
             </Button>
             {/* modal={false}: a modal dropdown locks body pointer-events while
                 open and, when an item opens a Dialog/AlertDialog, leaves
@@ -512,7 +546,7 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
                 Non-modal here avoids that; the dialogs are modal themselves. */}
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label="Weitere Aktionen">
+                <Button variant="outline" size="icon" aria-label={t.moreActions}>
                   <MoreHorizontal />
                 </Button>
               </DropdownMenuTrigger>
@@ -524,18 +558,18 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
                       copyProxy(r);
                     }}
                   >
-                    <Copy /> {copiedId === r.id ? "Kopiert ✓" : "Proxy-URL kopieren"}
+                    <Copy /> {copiedId === r.id ? t.copied : t.copyProxy}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onSelect={() => setEditRow(r)}>
-                  <Pencil /> Bearbeiten
+                  <Pencil /> {t.edit}
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setRotateRow(r)}>
-                  <RefreshCw /> Key rotieren
+                  <RefreshCw /> {t.rotate}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem danger onSelect={() => setDeleteRow(r)}>
-                  <Trash2 /> Löschen
+                  <Trash2 /> {t.delete}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -553,8 +587,8 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-fg-4 pointer-events-none" />
           <Input
             type="search"
-            placeholder="Suchen: Label, Provider, Kategorie, URL …"
-            aria-label="Vault durchsuchen"
+            placeholder={t.searchPlaceholder}
+            aria-label={t.searchAria}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="pl-9"
@@ -563,26 +597,24 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
         <Dialog>
           <DialogTrigger asChild>
             <Button variant="pop">
-              <Plus /> Key hinzufügen
+              <Plus /> {t.addKey}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>API-Key hinzufügen</DialogTitle>
-              <DialogDescription>
-                Wird server-seitig AES-256-GCM verschlüsselt. Mit Base-URL über den Proxy nutzbar; ohne Base-URL nur gespeichert und per „Key anzeigen“ abrufbar.
-              </DialogDescription>
+              <DialogTitle>{t.addTitle}</DialogTitle>
+              <DialogDescription>{t.addBody}</DialogDescription>
             </DialogHeader>
             <form method="POST" action="/admin/vault/save" autoComplete="off">
               <input type="hidden" name="action" value="add" />
-              <KeyFields includeMeta />
+              <KeyFields includeMeta lang={lang} />
               <DialogFooter>
                 <DialogClose asChild>
                   <Button type="button" variant="ghost">
-                    Abbrechen
+                    {t.cancel}
                   </Button>
                 </DialogClose>
-                <Button type="submit">Verschlüsselt speichern</Button>
+                <Button type="submit">{t.addSubmit}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -592,21 +624,19 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
       {rows.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 text-center px-6 py-10 border border-dashed border-line-strong rounded-[var(--radius)] bg-surface text-fg-3">
           <KeyRound className="size-7 text-fg-4 mb-0.5" strokeWidth={1.5} />
-          <div className="[font-family:var(--font-body)] font-semibold text-sm text-fg-2">Noch keine Keys im Vault</div>
-          <div className="text-[13px] text-fg-3 max-w-[42ch] leading-relaxed">
-            Über „Key hinzufügen“ einen Key ablegen — mit Kategorie. Mit Base-URL über den Proxy nutzbar, ohne nur zum späteren Anzeigen.
-          </div>
+          <div className="[font-family:var(--font-body)] font-semibold text-sm text-fg-2">{t.emptyTitle}</div>
+          <div className="text-[13px] text-fg-3 max-w-[42ch] leading-relaxed">{t.emptyBody}</div>
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 text-center px-6 py-10 border border-dashed border-line-strong rounded-[var(--radius)] bg-surface text-fg-3">
           <Search className="size-7 text-fg-4 mb-0.5" strokeWidth={1.5} />
-          <div className="[font-family:var(--font-body)] font-semibold text-sm text-fg-2">Keine Treffer für „{query.trim()}“</div>
+          <div className="[font-family:var(--font-body)] font-semibold text-sm text-fg-2">{t.noHits(query.trim())}</div>
           <button type="button" onClick={() => setQuery("")} className="text-[13px] text-fg-3 underline underline-offset-2 hover:text-fg">
-            Suche zurücksetzen
+            {t.resetSearch}
           </button>
         </div>
       ) : (
-        groupByCategory(filtered).map(({ category, rows: catRows }) => (
+        groupByCategory(filtered, lang).map(({ category, rows: catRows }) => (
           <section key={category} className="mb-7 last:mb-0">
             <div className="flex items-baseline gap-2 mb-2">
               <h2 className="[font-family:var(--font-mono)] text-[11px] font-semibold uppercase tracking-[0.12em] text-fg-2">
@@ -617,9 +647,9 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Key</TableHead>
-                  <TableHead>Proxy-URL</TableHead>
-                  <TableHead className="text-right">Zuletzt</TableHead>
+                  <TableHead>{t.colKey}</TableHead>
+                  <TableHead>{t.colProxy}</TableHead>
+                  <TableHead className="text-right">{t.colLastUsed}</TableHead>
                   <TableHead className="w-px" />
                 </TableRow>
               </TableHeader>
@@ -633,22 +663,20 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
       <Dialog open={rotateRow !== null} onOpenChange={(o) => !o && setRotateRow(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Key rotieren</DialogTitle>
-            <DialogDescription>
-              Neuer Key für „{rotateRow?.label}“. Der alte wird ersetzt; die Proxy-URL bleibt gleich.
-            </DialogDescription>
+            <DialogTitle>{t.rotateTitle}</DialogTitle>
+            <DialogDescription>{t.rotateBody(rotateRow?.label ?? "")}</DialogDescription>
           </DialogHeader>
           <form method="POST" action="/admin/vault/save" autoComplete="off">
             <input type="hidden" name="action" value="rotate" />
             <input type="hidden" name="id" value={rotateRow?.id ?? ""} />
-            <KeyFields includeMeta={false} />
+            <KeyFields includeMeta={false} lang={lang} />
             <DialogFooter>
               <DialogClose asChild>
                 <Button type="button" variant="ghost">
-                  Abbrechen
+                  {t.cancel}
                 </Button>
               </DialogClose>
-              <Button type="submit">Rotieren</Button>
+              <Button type="submit">{t.rotateSubmit}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -658,23 +686,21 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
       <Dialog open={editRow !== null} onOpenChange={(o) => !o && setEditRow(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Eintrag bearbeiten</DialogTitle>
-            <DialogDescription>
-              Metadaten von „{editRow?.label}“ ändern. Der gespeicherte Key bleibt unverändert (zum Ersetzen „Key rotieren“). Base-URL leeren = nur speichern, kein Proxy; die Proxy-URL/ID bleibt gleich.
-            </DialogDescription>
+            <DialogTitle>{t.editTitle}</DialogTitle>
+            <DialogDescription>{t.editBody(editRow?.label ?? "")}</DialogDescription>
           </DialogHeader>
           {editRow && (
             <form key={editRow.id} method="POST" action="/admin/vault/save" autoComplete="off">
               <input type="hidden" name="action" value="edit" />
               <input type="hidden" name="id" value={editRow.id} />
-              <MetaFields row={editRow} />
+              <MetaFields row={editRow} lang={lang} />
               <DialogFooter>
                 <DialogClose asChild>
                   <Button type="button" variant="ghost">
-                    Abbrechen
+                    {t.cancel}
                   </Button>
                 </DialogClose>
-                <Button type="submit">Speichern</Button>
+                <Button type="submit">{t.editSubmit}</Button>
               </DialogFooter>
             </form>
           )}
@@ -685,11 +711,11 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
       <Dialog open={revealRow !== null} onOpenChange={(o) => !o && closeReveal()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Key anzeigen — {revealRow?.label}</DialogTitle>
-            <DialogDescription>Klartext, nur für dich (Admin). Kopier ihn und schließe das Fenster wieder.</DialogDescription>
+            <DialogTitle>{t.revealTitle(revealRow?.label ?? "")}</DialogTitle>
+            <DialogDescription>{t.revealBody}</DialogDescription>
           </DialogHeader>
           {reveal.loading ? (
-            <p className="text-fg-3 text-sm">Entschlüssele…</p>
+            <p className="text-fg-3 text-sm">{t.revealLoading}</p>
           ) : reveal.error ? (
             <p className="text-danger text-sm">{reveal.error}</p>
           ) : (
@@ -700,7 +726,7 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
               <DialogFooter>
                 <DialogClose asChild>
                   <Button type="button" variant="ghost">
-                    Schließen
+                    {t.close}
                   </Button>
                 </DialogClose>
                 <Button
@@ -717,7 +743,7 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
                     }
                   }}
                 >
-                  {revealCopied ? "✓ Kopiert" : "Key kopieren"}
+                  {revealCopied ? t.copiedKey : t.copyKey}
                 </Button>
               </DialogFooter>
             </>
@@ -729,10 +755,8 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
       <AlertDialog open={deleteRow !== null} onOpenChange={(o) => !o && setDeleteRow(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Vault-Key löschen?</AlertDialogTitle>
-            <AlertDialogDescription>
-              „{deleteRow?.label}“ wird endgültig gelöscht. Agents mit dieser Proxy-URL verlieren den Zugriff. Das lässt sich nicht rückgängig machen.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t.deleteTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{t.deleteBody(deleteRow?.label ?? "")}</AlertDialogDescription>
           </AlertDialogHeader>
           <form method="POST" action="/admin/vault/save">
             <input type="hidden" name="action" value="delete" />
@@ -740,12 +764,12 @@ export default function VaultManager({ rows }: { rows: VaultRow[] }) {
             <AlertDialogFooter>
               <AlertDialogCancel asChild>
                 <Button type="button" variant="ghost">
-                  Abbrechen
+                  {t.cancel}
                 </Button>
               </AlertDialogCancel>
               <AlertDialogAction asChild>
                 <Button type="submit" variant="danger">
-                  Endgültig löschen
+                  {t.deleteSubmit}
                 </Button>
               </AlertDialogAction>
             </AlertDialogFooter>

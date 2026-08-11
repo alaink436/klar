@@ -9,6 +9,8 @@
 
 import Link from "next/link";
 import { ICON } from "./icons";
+import LangSwitch from "./LangSwitch";
+import { tAdmin, type AdminLang } from "./_i18n";
 
 function navItem(active: string, v: string, label: string, icon: string, href: string) {
   return (
@@ -22,13 +24,16 @@ function navItem(active: string, v: string, label: string, icon: string, href: s
 export default function AdminSidebar({
   active,
   apps,
+  lang,
 }: {
   active: string;
   apps: { slug: string; name: string }[];
+  lang: AdminLang;
 }) {
+  const t = tAdmin(lang);
   return (
     <aside className="side">
-      <Link className="brand" href="/admin/overview" aria-label="Klar Control Home">
+      <Link className="brand" href="/admin/overview" aria-label={t.brandHome}>
         <span className="brand-mark">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo/klar-symbol.png" alt="" width={40} height={40} />
@@ -39,41 +44,42 @@ export default function AdminSidebar({
         </span>
       </Link>
 
-      <div className="navsec">Studio</div>
-      {navItem(active, "overview", "Übersicht", ICON.overview, "/admin/overview")}
-      {navItem(active, "inbox", "Inbox", ICON.inbox, "/admin/inbox")}
-      {navItem(active, "outreach", "Outreach", ICON.outreach, "/admin/outreach")}
-      {navItem(active, "content", "Content", ICON.content, "/admin/content")}
-      {navItem(active, "bookings", "Bookings", ICON.calendar, "/admin/bookings")}
-      {navItem(active, "cal", "Cal Admin", ICON.calendar, "/admin/cal")}
-      {navItem(active, "analytics", "Analytics", ICON.analytics, "/admin/analytics")}
-      {navItem(active, "brain", "AI-Brain", ICON.brain, "/admin/brain")}
-      {navItem(active, "vault", "Vault", ICON.key, "/admin/vault")}
+      <div className="navsec">{t.sectionStudio}</div>
+      {navItem(active, "overview", t.navOverview, ICON.overview, "/admin/overview")}
+      {navItem(active, "inbox", t.navInbox, ICON.inbox, "/admin/inbox")}
+      {navItem(active, "outreach", t.navOutreach, ICON.outreach, "/admin/outreach")}
+      {navItem(active, "content", t.navContent, ICON.content, "/admin/content")}
+      {navItem(active, "bookings", t.navBookings, ICON.calendar, "/admin/bookings")}
+      {navItem(active, "cal", t.navCal, ICON.calendar, "/admin/cal")}
+      {navItem(active, "analytics", t.navAnalytics, ICON.analytics, "/admin/analytics")}
+      {navItem(active, "brain", t.navBrain, ICON.brain, "/admin/brain")}
+      {navItem(active, "vault", t.navVault, ICON.key, "/admin/vault")}
 
-      <div className="navsec">Creator</div>
-      {navItem(active, "revenue", "Einnahmen", ICON.revenue, "/admin/revenue")}
-      {navItem(active, "payouts", "Auszahlungen", ICON.payouts, "/admin/payouts")}
+      <div className="navsec">{t.sectionCreator}</div>
+      {navItem(active, "revenue", t.navRevenue, ICON.revenue, "/admin/revenue")}
+      {navItem(active, "payouts", t.navPayouts, ICON.payouts, "/admin/payouts")}
       {apps.length > 0 ? (
         apps.map((a) => navItem(active, a.slug, a.name, ICON.app, `/admin/${a.slug}`))
       ) : (
         <span className="nav muted">
           <span className="d" dangerouslySetInnerHTML={{ __html: ICON.app }} />
-          keine Apps
+          {t.navNoApps}
         </span>
       )}
 
       <div className="spacer" />
+      <LangSwitch lang={lang} />
       <a className="nav" href="https://cal.getklar.org" target="_blank" rel="noopener">
         <span className="d" dangerouslySetInnerHTML={{ __html: ICON.calendar }} />
-        Cal in neuem Tab <span style={{ marginLeft: "auto", fontSize: 10, opacity: 0.6 }}>↗</span>
+        {t.navCalNewTab} <span style={{ marginLeft: "auto", fontSize: 10, opacity: 0.6 }}>↗</span>
       </a>
-      {navItem(active, "settings", "Einstellungen", ICON.lock, "/admin/settings")}
+      {navItem(active, "settings", t.navSettings, ICON.lock, "/admin/settings")}
       {/* /admin/logout is a route handler (clears cookies + redirects), not a
           page — it must do a full navigation, so a plain <a> is intentional. */}
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <a className="nav logout" href="/admin/logout">
         <span className="d" dangerouslySetInnerHTML={{ __html: ICON.logout }} />
-        Logout
+        {t.navLogout}
       </a>
     </aside>
   );
