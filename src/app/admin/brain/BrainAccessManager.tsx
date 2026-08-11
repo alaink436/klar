@@ -331,7 +331,7 @@ export default function BrainAccessManager({
                     <label className={chipCls}>
                       <input type="checkbox" name="scope_vault" className="accent-[var(--accent)]" /> vault:use
                     </label>
-                    <label className="flex items-center gap-2 text-[13px] text-fg-2">
+                    <label className={chipCls}>
                       <input type="checkbox" name="scope_todos" className="accent-[var(--accent)]" /> todos:ical
                     </label>
                   </div>
