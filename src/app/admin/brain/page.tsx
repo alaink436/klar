@@ -18,6 +18,7 @@ import {
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { scopeGraph, hasToken, availableFolders, SHOWCASE_FOLDERS } from "@/lib/brainVault";
+import { readLearnings } from "@/lib/brainStatus";
 import { listTokens } from "@/lib/apiTokens";
 import { listSecrets } from "@/lib/vault";
 import { buildAgentBriefing, buildBrainBriefing } from "@/lib/agentBriefing";
@@ -62,11 +63,13 @@ export default async function BrainPage({
   const graph = scopeGraph(null);
   const tokenReady = hasToken();
 
-  // Zugang-tab data (same sources /admin/settings used before the move).
-  const [tokenRows, memberRows, secretRows] = await Promise.all([
+  // Zugang-tab data (same sources /admin/settings used before the move),
+  // plus the learnings count — read live from the vault, not from the graph.
+  const [tokenRows, memberRows, secretRows, learnings] = await Promise.all([
     listTokens(),
     listBrainMembers(),
     listSecrets(),
+    readLearnings(),
   ]);
 
   // Copyable agent-briefing: a self-contained prompt with the live (proxyable)
@@ -133,6 +136,46 @@ export default async function BrainPage({
           </div>
         )}
         {sp.msg && <div className="flash">{sp.msg}</div>}
+
+        {/* Wächst das Brain? Der Graph darunter zählt DATEIEN, und alle
+            Learnings hängen sich an dieselben fünf an — 60 Erkenntnisse sehen
+            dort aus wie 5 Punkte. Darum hier die Einträge, gezählt. */}
+        {learnings ? (
+          <div className="card" style={{ marginBottom: 16, padding: "18px 22px", display: "block" }}>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 26, flexWrap: "wrap" }}>
+              <div>
+                <div className="k" style={{ margin: 0 }}>Learnings gesamt</div>
+                <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 34, lineHeight: 1.05, letterSpacing: "-.03em", fontVariantNumeric: "tabular-nums", color: "var(--fg)" }}>
+                  {learnings.total}
+                </div>
+              </div>
+              <div>
+                <div className="k" style={{ margin: 0 }}>Diese Woche</div>
+                <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22, lineHeight: 1.4, fontVariantNumeric: "tabular-nums", color: learnings.last7 > 0 ? "var(--success)" : "var(--fg-3)" }}>
+                  +{learnings.last7}
+                </div>
+              </div>
+              <div>
+                <div className="k" style={{ margin: 0 }}>30 Tage</div>
+                <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22, lineHeight: 1.4, fontVariantNumeric: "tabular-nums", color: "var(--fg-2)" }}>
+                  +{learnings.last30}
+                </div>
+              </div>
+              <p className="s" style={{ margin: 0, flex: 1, minWidth: 260, maxWidth: "56ch" }}>
+                Der Graph unten zeigt <b>Dateien</b>. Learnings werden an fünf Dateien angehängt, also
+                bleiben es dort fünf Punkte — gewachsen ist trotzdem, was hier steht.
+              </p>
+            </div>
+            <ul style={{ listStyle: "none", margin: "16px 0 0", padding: 0 }}>
+              {learnings.recent.map((e) => (
+                <li key={`${e.date}-${e.title}`} style={{ display: "flex", gap: 12, alignItems: "baseline", padding: "8px 0", borderTop: "1px solid var(--line)" }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-4)", flexShrink: 0 }}>{e.date}</span>
+                  <span style={{ fontSize: 13, color: "var(--fg-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         <Tabs defaultValue={defaultTab}>
           <TabsList>

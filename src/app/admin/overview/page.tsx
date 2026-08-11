@@ -17,6 +17,7 @@ import { ICON, readCookieFromString, esc, eur } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps, sbGet, fetchAppUserStats, type AdminApp } from "../../../lib/adminApps";
 import { countOpenCollabs } from "@/lib/collabView";
+import { countOpenTodos } from "@/lib/todoStore";
 import { readActiveProjects, type BrainProject } from "@/lib/brainStatus";
 import { LISTED_APPS, resolveBackendKey, type KlarAppMeta } from "../../../lib/klarApps";
 import { listOutreachTargets } from "../../../lib/outreachStore";
@@ -104,8 +105,9 @@ async function overviewMain(apps: AdminApp[]): Promise<{ htmlTop: string }> {
   }
   // Signale, die die Arbeitsliste braucht: wer wartet auf eine Antwort, welche
   // App ist still geworden, und woran arbeite ich gerade laut AI-Brain.
-  const [collabOpen, appStats, projects] = await Promise.all([
+  const [collabOpen, todoOpen, appStats, projects] = await Promise.all([
     countOpenCollabs(),
+    countOpenTodos(),
     Promise.all(apps.map(async (a) => ({ app: a, stats: await fetchAppUserStats(a) }))),
     readActiveProjects(6),
   ]);
@@ -157,6 +159,7 @@ async function overviewMain(apps: AdminApp[]): Promise<{ htmlTop: string }> {
       : "";
   const tasks = [
     taskRow(collabOpen, "Collab-Anfragen beantworten", "Jemand hat an eine Bio-Adresse geschrieben und wartet", "/admin/collabs", G.inbox, "var(--warning)"),
+    taskRow(todoOpen, "Eigene To-dos offen", "Deine Liste, nicht aus Daten abgeleitet", "/admin/todos", G.check, "var(--fg-2)"),
     taskRow(inquiriesNew, "Neue Anfragen in der Inbox", "Bewerbungen und Consulting-Anfragen von der Website", "/admin/inbox", G.doc, "var(--info)"),
     taskRow(totalReply, "Outreach-Antworten offen", "Angeschriebene Creator haben geantwortet", "/admin/outreach", G.reply, "var(--warning)"),
     taskRow(rows.filter((r) => r.open > 0).length, "Auszahlungen fällig", `${eur(totalOpen)} netto und gereift`, "/admin/payouts", G.coin, "var(--fg)"),

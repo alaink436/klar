@@ -27,6 +27,7 @@ export interface NavItemDef {
 
 export const NAV_ITEMS: NavItemDef[] = [
   { id: "overview", labelKey: "navOverview", icon: "overview", href: "/admin/overview", section: "studio" },
+  { id: "todos", labelKey: "navTodos", icon: "check", href: "/admin/todos", section: "studio" },
   { id: "inbox", labelKey: "navInbox", icon: "inbox", href: "/admin/inbox", section: "studio" },
   { id: "collabs", labelKey: "navCollabs", icon: "reply", href: "/admin/collabs", section: "studio" },
   { id: "outreach", labelKey: "navOutreach", icon: "outreach", href: "/admin/outreach", section: "studio" },
