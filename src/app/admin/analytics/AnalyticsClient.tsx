@@ -30,6 +30,11 @@ export interface AppRow {
   usersNew30d: number | null;
   usersNew7d: number | null;
   usersActive30d: number | null;
+  /** New signups in the last 7 days, and in the 7 days before those. */
+  new7d?: number | null;
+  new7dPrev?: number | null;
+  /** New signups per day, oldest first — the sparkline behind the number. */
+  spark?: number[];
   hasRevenueCat: boolean;
   mrr: number | null;
   revenue28d: number | null;
@@ -588,7 +593,66 @@ function MiniStat({
   );
 }
 
+/**
+ * 28 days of daily signups as thin bars. Deliberately unlabelled: it answers
+ * "is this moving and when" at a glance, the exact numbers are underneath.
+ */
+function Sparkline({ values }: { values: number[] }) {
+  const max = Math.max(1, ...values);
+  const cutoff = values.length - 7;
+  return (
+    <div
+      style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 34 }}
+      aria-hidden="true"
+    >
+      {values.map((v, i) => (
+        <span
+          key={i}
+          title={`${v}`}
+          style={{
+            flex: 1,
+            // A zero day still gets a hairline, otherwise the gap reads as
+            // "no data" rather than "nobody signed up".
+            height: `${Math.max(v === 0 ? 1.5 : 8, (v / max) * 100)}%`,
+            background: i >= cutoff ? "var(--fg)" : "color-mix(in oklab,var(--fg) 26%,transparent)",
+            borderRadius: 1,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** The line the card leads with: growth this week, compared to last week. */
+function growthFor(row: AppRow): { headline: string; unit: string; caption: string; tone: string } {
+  if (!row.hasBackend) {
+    return { headline: "—", unit: "", caption: "Kein Backend verdrahtet", tone: "var(--fg-4)" };
+  }
+  const cur = row.new7d ?? row.usersNew7d;
+  if (cur === null || cur === undefined) {
+    return { headline: fmtInt(row.usersTotal), unit: "User", caption: "Kein Verlauf verfügbar", tone: "var(--fg)" };
+  }
+  const prev = row.new7dPrev ?? null;
+  let caption = "neue User · letzte 7 Tage";
+  if (cur === 0) {
+    caption = prev && prev > 0 ? `keine neuen User · Vorwoche ${prev}` : "keine neuen User in 7 Tagen";
+  } else if (prev !== null && prev > 0) {
+    const pct = Math.round(((cur - prev) / prev) * 100);
+    const dir = pct >= 0 ? "↑" : "↓";
+    caption = `neue User · 7 Tage · ${dir} ${Math.abs(pct)}% vs. Vorwoche (${prev})`;
+  } else if (prev === 0) {
+    caption = "neue User · 7 Tage · Vorwoche keine";
+  }
+  return {
+    headline: cur > 0 ? `+${fmtInt(cur)}` : "0",
+    unit: "neu",
+    caption,
+    tone: cur > 0 ? "var(--fg)" : "var(--fg-3)",
+  };
+}
+
 function AppCard({ row }: { row: AppRow }) {
+  const growth = growthFor(row);
   return (
     <div className="card" style={{ padding: 22 }}>
       <div
@@ -640,30 +704,50 @@ function AppCard({ row }: { row: AppRow }) {
         </span>
       </div>
 
-      {/* Users */}
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 6 }}>
-        <span
-          style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 800,
-            fontSize: 38,
-            lineHeight: 1,
-            letterSpacing: "-.03em",
-            fontVariantNumeric: "tabular-nums",
-            color: "var(--fg)",
-          }}
-        >
-          {fmtInt(row.usersTotal)}
-        </span>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--fg-3)" }}>
-          User
-        </span>
-        {row.hasBackend && row.usersNew30d !== null && row.usersNew30d > 0 ? (
-          <span className="delta up" style={{ marginLeft: "auto" }}>
-            +{row.usersNew30d} / 30T
-          </span>
-        ) : null}
+      {/* Users — the movement is the headline, the total is the context. */}
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 18, marginBottom: 12 }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+            <span
+              style={{
+                fontFamily: "var(--font-display)",
+                fontWeight: 800,
+                fontSize: 38,
+                lineHeight: 1,
+                letterSpacing: "-.03em",
+                fontVariantNumeric: "tabular-nums",
+                color: growth.tone,
+              }}
+            >
+              {growth.headline}
+            </span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--fg-3)" }}>
+              {growth.unit}
+            </span>
+          </div>
+          <div style={{ fontSize: 11.5, color: "var(--fg-3)", marginTop: 5 }}>{growth.caption}</div>
+        </div>
+        <div style={{ marginLeft: "auto", textAlign: "right" }}>
+          <div
+            style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 700,
+              fontSize: 20,
+              lineHeight: 1,
+              fontVariantNumeric: "tabular-nums",
+              color: "var(--fg-2)",
+            }}
+          >
+            {fmtInt(row.usersTotal)}
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--fg-4)", marginTop: 4 }}>
+            User gesamt
+          </div>
+        </div>
       </div>
+
+      {row.spark && row.spark.length > 0 ? <Sparkline values={row.spark} /> : null}
+
       <div
         style={{
           display: "grid",

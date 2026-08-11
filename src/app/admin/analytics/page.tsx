@@ -383,14 +383,31 @@ async function buildApps(): Promise<AppsPayload> {
   const bySlug = new Map(backendApps.map((a) => [a.slug, a]));
   const rcBySlug = new Map(getRcConfigs().map((c) => [c.slug, c]));
 
+  // Daily signups for the last 4 weeks: the card shows the movement, not just
+  // the totals, so it needs the shape of the curve plus the week before last
+  // to compare against.
+  const SPARK_DAYS = 28;
+  const sparkSince = daysAgo(SPARK_DAYS);
+
   const perApp: AppRow[] = await Promise.all(
     LISTED_APPS.map(async (meta) => {
       const backend = bySlug.get(resolveBackendKey(meta, bySlug));
       const rcCfg = rcBySlug.get(resolveBackendKey(meta, rcBySlug));
-      const [stats, rc] = await Promise.all([
+      const [stats, rc, series] = await Promise.all([
         backend ? fetchAppUserStats(backend) : Promise.resolve(null),
         rcCfg ? fetchRcOverview(rcCfg) : Promise.resolve(null),
+        backend ? fetchAppUserSeries(backend, sparkSince, "day") : Promise.resolve(null),
       ]);
+      // Fill the window day by day so gaps read as zero instead of collapsing
+      // the curve — a day without signups is information.
+      const spark: number[] = [];
+      if (series) {
+        const byDay = new Map(series.buckets.map((b) => [b.b, b.n]));
+        for (let i = SPARK_DAYS - 1; i >= 0; i--) {
+          spark.push(byDay.get(new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10)) ?? 0);
+        }
+      }
+      const sum = (from: number, to: number) => spark.slice(from, to).reduce((a, b) => a + b, 0);
       return {
         slug: meta.slug,
         name: meta.name,
@@ -400,6 +417,11 @@ async function buildApps(): Promise<AppsPayload> {
         usersNew30d: stats?.usersNew30d ?? null,
         usersNew7d: stats?.usersNew7d ?? null,
         usersActive30d: stats?.usersActive30d ?? null,
+        // Last 7 days vs the 7 before them. null when there is no series at
+        // all, so the card can stay quiet instead of claiming a flat zero.
+        new7d: spark.length ? sum(SPARK_DAYS - 7, SPARK_DAYS) : null,
+        new7dPrev: spark.length ? sum(SPARK_DAYS - 14, SPARK_DAYS - 7) : null,
+        spark,
         hasRevenueCat: !!rc?.ok,
         mrr: rc?.mrr ?? null,
         revenue28d: rc?.revenue28d ?? null,

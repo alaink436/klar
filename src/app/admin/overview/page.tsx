@@ -22,7 +22,9 @@ import {
   REPORTING_CURRENCY,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
-import { getApps, sbGet, type AdminApp } from "../../../lib/adminApps";
+import { getApps, sbGet, fetchAppUserStats, type AdminApp } from "../../../lib/adminApps";
+import { countOpenCollabs } from "@/lib/collabView";
+import { readActiveProjects, type BrainProject } from "@/lib/brainStatus";
 import { listOutreachTargets, type OutreachTarget } from "../../../lib/outreachStore";
 import { LISTED_APPS, resolveBackendKey, type KlarAppMeta } from "../../../lib/klarApps";
 import OverviewAffiliateTable, { type OverviewRow } from "./OverviewAffiliateTable";
@@ -136,6 +138,18 @@ async function overviewMain(apps: AdminApp[]): Promise<{
       /* Feed bleibt ohne Inbox-Items */
     }
   }
+  // Signale, die die Arbeitsliste braucht: wer wartet auf eine Antwort, welche
+  // App ist still geworden, und woran arbeite ich gerade laut AI-Brain.
+  const [collabOpen, appStats, projects] = await Promise.all([
+    countOpenCollabs(),
+    Promise.all(apps.map(async (a) => ({ app: a, stats: await fetchAppUserStats(a) }))),
+    readActiveProjects(6),
+  ]);
+  // "Still" = Backend antwortet, hat User, aber seit 30 Tagen keinen neuen.
+  const silentApps = appStats
+    .filter((a) => a.stats !== null && a.stats.usersTotal > 0 && a.stats.usersNew30d === 0)
+    .map((a) => a.app.name);
+
   const totalOpen = rows.reduce((s, r) => s + r.open, 0);
   const totalAff = rows.reduce((s, r) => s + r.total, 0);
   const totalActive = rows.reduce((s, r) => s + r.active, 0);
@@ -164,6 +178,8 @@ async function overviewMain(apps: AdminApp[]): Promise<{
     check: `<path d="M20 6 9 17l-5-5"/>`,
     inbox: `<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/>`,
     doc: `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>`,
+    coin: `<circle cx="12" cy="12" r="9"/><path d="M12 7v10"/><path d="M14.5 9.5h-4a1.8 1.8 0 0 0 0 3.5h3a1.8 1.8 0 0 1 0 3.5h-4"/>`,
+    pulse: `<path d="M3 12h4l3-8 4 16 3-8h4"/>`,
   };
   const deltaTag = (cur: number, prev: number): string => {
     if (prev === 0 && cur === 0) return `<span class="delta flat">keine Vormonatsdaten</span>`;
@@ -173,18 +189,75 @@ async function overviewMain(apps: AdminApp[]): Promise<{
     return `<span class="delta ${up ? "up" : "down"}">${gi(up ? G.up : G.down, 13)} ${Math.abs(pct).toFixed(0)}%<span class="delta-ref">vs. Vormonat</span></span>`;
   };
 
-  // Aktions-Strip: neutrale Chips (Surface + Hairline), Akzent nur auf Icon +
-  // Zahl. Nur was offen ist, jeweils mit Direkt-Link.
-  const attn = (n: number, label: string, href: string, glyph: string, accent: string): string =>
-    n > 0 ? `<a href="${href}" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius-sm);padding:8px 13px;font-size:12.5px;color:var(--fg)"><span style="display:inline-flex;color:${accent}">${gi(glyph, 15)}</span><span style="font-weight:600">${esc(label)}</span><span style="font-family:var(--font-mono);font-weight:700;color:${accent}">${n}</span></a>` : "";
-  const attnItems = [
-    attn(totalReply, "Offene Antworten", "/admin/replies", G.reply, "var(--warning)"),
-    attn(inquiriesNew, "Neue Anfragen", "/admin?view=inbox", G.inbox, "var(--info)"),
-    attn(totalAngefragt, "Wartet auf Antwort", "/admin?view=outreach", G.send, "var(--fg-3)"),
+  // ── Arbeitsliste ────────────────────────────────────────────────────────
+  // Die Startseite beantwortet zuerst "was liegt bei mir?". Reihenfolge: wer
+  // auf eine Antwort von mir wartet, dann Geld, dann was still geworden ist,
+  // zuletzt was auf ANDERE wartet (informativ, nicht meine Aufgabe).
+  const taskRow = (
+    n: number,
+    title: string,
+    meta: string,
+    href: string,
+    glyph: string,
+    accent: string,
+  ): string =>
+    n > 0
+      ? `<a href="${href}" style="display:flex;align-items:center;gap:13px;padding:13px 22px;text-decoration:none;border-top:1px solid var(--line)">
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid var(--line);color:${accent};flex-shrink:0">${gi(glyph, 15)}</span>
+      <span style="flex:1;min-width:0">
+        <span style="display:block;font-size:13.5px;font-weight:600;color:var(--fg)">${esc(title)}</span>
+        <span style="display:block;font-size:11.5px;color:var(--fg-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(meta)}</span>
+      </span>
+      <span style="font-family:var(--font-mono);font-size:15px;font-weight:700;color:${accent};font-variant-numeric:tabular-nums">${n}</span>
+    </a>`
+      : "";
+  const tasks = [
+    taskRow(collabOpen, "Collab-Anfragen beantworten", "Jemand hat an eine Bio-Adresse geschrieben und wartet", "/admin/collabs", G.inbox, "var(--warning)"),
+    taskRow(inquiriesNew, "Neue Anfragen in der Inbox", "Bewerbungen und Consulting-Anfragen von der Website", "/admin/inbox", G.doc, "var(--info)"),
+    taskRow(totalReply, "Outreach-Antworten offen", "Angeschriebene Creator haben geantwortet", "/admin/outreach", G.reply, "var(--warning)"),
+    taskRow(rows.filter((r) => r.open > 0).length, "Auszahlungen fällig", `${eur(totalOpen)} netto und gereift`, "/admin/payouts", G.coin, "var(--fg)"),
+    taskRow(silentApps.length, "Apps ohne neue User (30 Tage)", silentApps.join(", "), "/admin/analytics", G.pulse, "var(--fg-3)"),
+    taskRow(totalAngefragt, "Wartet auf Antwort", "Rausgeschickt, Ball liegt bei den anderen", "/admin/outreach", G.send, "var(--fg-4)"),
   ].filter(Boolean).join("");
-  const attnStrip = attnItems
-    ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 20px"><span class="muted" style="font-size:10px;text-transform:uppercase;letter-spacing:.14em;font-family:var(--font-mono);margin-right:4px">Braucht Aufmerksamkeit</span>${attnItems}</div>`
-    : `<div class="muted" style="display:flex;align-items:center;gap:8px;margin:0 0 20px;font-size:13px">${gi(G.check, 15)} Nichts Offenes, alle Antworten und Anfragen sind abgearbeitet.</div>`;
+  const taskCard = `<div class="card" style="padding:0;display:block;margin:0 0 14px">
+    <div class="k" style="padding:18px 22px 13px">Was liegt an</div>
+    ${tasks || `<div class="muted" style="display:flex;align-items:center;gap:9px;padding:16px 22px;border-top:1px solid var(--line);font-size:13px">${gi(G.check, 15)} Nichts offen \u2014 keine Anfrage, keine Antwort und keine Auszahlung wartet auf dich.</div>`}
+  </div>`;
+
+  // ── Woran ich gerade arbeite ────────────────────────────────────────────
+  // Gelesen aus AI-Brain/STATUS.md ("Active Now"). Das ist die Tabelle, die
+  // ohnehin nach jeder Session gepflegt wird — hier nur gespiegelt, damit die
+  // Startseite den Stand zeigt statt ihn ein zweites Mal zu verwalten.
+  const projRow = (p: BrainProject): string => {
+    const when = p.daysAgo === null ? "" : p.daysAgo === 0 ? "heute" : p.daysAgo === 1 ? "gestern" : `vor ${p.daysAgo} Tagen`;
+    const openN = p.next.length;
+    const blocked = p.blockers.length > 0;
+    const nextUp = (p.blockers[0] ?? p.next[0] ?? "").replace(/\u{1F534}/gu, "").trim();
+    return `<div style="display:flex;align-items:flex-start;gap:13px;padding:13px 22px;border-top:1px solid var(--line)">
+      <span style="flex:1;min-width:0">
+        <span style="display:flex;align-items:baseline;gap:9px">
+          <span style="font-size:13.5px;font-weight:600;color:var(--fg)">${esc(p.name)}</span>
+          <span class="muted" style="font-size:10.5px;font-family:var(--font-mono)">${esc(when)}</span>
+          ${blocked ? `<span style="font-size:9.5px;font-family:var(--font-mono);font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.1em">blockiert</span>` : ""}
+        </span>
+        <span style="display:block;font-size:11.5px;color:var(--fg-3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.phase)}</span>
+        ${nextUp ? `<span style="display:block;font-size:11.5px;color:var(--fg-2);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="muted" style="font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;margin-right:6px">als n\u00e4chstes</span>${esc(nextUp)}</span>` : ""}
+      </span>
+      <span style="text-align:right;flex-shrink:0">
+        <span style="display:block;font-family:var(--font-mono);font-size:15px;font-weight:700;color:var(--fg);font-variant-numeric:tabular-nums">${openN}</span>
+        <span class="muted" style="font-size:9.5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.1em">offen</span>
+      </span>
+    </div>`;
+  };
+  const projectCard = projects.length
+    ? `<div class="card" style="padding:0;display:block;margin:0 0 20px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:18px 22px 13px">
+          <span class="k" style="margin:0">Woran ich gerade arbeite</span>
+          <a href="/admin/brain" class="applink" style="font-size:11.5px">AI-Brain \u00f6ffnen \u2192</a>
+        </div>
+        ${projects.map(projRow).join("")}
+      </div>`
+    : "";
 
   // KPI-Grid: Umsatz/Auszahlung mit MoM-Delta, Offen, Affiliates.
   const cards = `<div class="cards">
@@ -249,9 +322,11 @@ async function overviewMain(apps: AdminApp[]): Promise<{
     openCents: r.open,
     openFmt: eur(r.open),
   }));
-  const htmlTop = `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick: Affiliate-Umsatz, Outreach-Funnel und was gerade Aufmerksamkeit braucht.</p>
+  const htmlTop = `<h1>Übersicht</h1><p class="sub">Was heute bei dir liegt und woran du gerade arbeitest \u2014 die Zahlen stehen darunter.</p>
+    ${taskCard}
+    ${projectCard}
     ${tabs}
-    ${attnStrip}
+    <h2>Affiliate &amp; Outreach</h2>
     ${cards}
     <h2>Affiliate-Umsatz pro Monat</h2>`;
   const htmlMid = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:14px 0 8px">${funnelCard}${activityCard}</div>
