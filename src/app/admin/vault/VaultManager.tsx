@@ -201,6 +201,19 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   // v3-Key via Query-Param-Injection (?api_key=…, wie Evomi).
   { id: "tmdb-v4", label: "TMDB Read Access Token (v4, Proxy)", category: "TMDB", provider: "tmdb", baseUrl: "https://api.themoviedb.org", authHeader: "authorization", authScheme: "Bearer ", keyExample: "eyJhbGci… (v4 JWT)", labelExample: "TMDB Read Access Token (v4)" },
   { id: "tmdb-v3", label: "TMDB API Key (v3, Query-Param)", category: "TMDB", provider: "tmdb", baseUrl: "https://api.themoviedb.org", authHeader: "api_key", authScheme: "", authIn: "query", keyExample: "32-stelliger Hex-Key (v3)", labelExample: "TMDB API Key (v3)" },
+  // Sonstiges
+  // Unsplash authenticates public requests with a "Client-ID " scheme on the
+  // standard authorization header — not Bearer. The stored key is the ACCESS
+  // key (the secret key is only for the OAuth user flow and must not go here).
+  // Demo apps get 50 req/h, 1000 after approval; image file downloads from
+  // images.unsplash.com do not count against that.
+  { id: "unsplash", label: "Unsplash (Access Key)", category: "Sonstiges", provider: "unsplash", baseUrl: "https://api.unsplash.com", authHeader: "authorization", authScheme: "Client-ID ", keyExample: "Access Key (43 Zeichen, nicht der Secret Key)", labelExample: "Unsplash Access Key" },
+  // Pexels sends the raw key on `authorization` with NO scheme prefix at all —
+  // not Bearer, not Client-ID. base_url deliberately without a version segment
+  // so both APIs are reachable through one entry: photos live under `v1/…`
+  // (e.g. `v1/search?query=roadtrip`), videos under `videos/…`.
+  // Limits: 200 req/h and 20'000/month; image/video file downloads don't count.
+  { id: "pexels", label: "Pexels (API Key)", category: "Sonstiges", provider: "pexels", baseUrl: "https://api.pexels.com", authHeader: "authorization", authScheme: "", keyExample: "56-stelliger alphanumerischer Key", labelExample: "Pexels API Key" },
   // Infrastruktur
   { id: "vercel", label: "Vercel", category: "Infrastruktur", provider: "vercel", baseUrl: "https://api.vercel.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "Bearer-Token …", labelExample: "Vercel Token" },
   { id: "github", label: "GitHub", category: "Infrastruktur", provider: "github", baseUrl: "https://api.github.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "ghp_… / github_pat_…", labelExample: "GitHub PAT" },
