@@ -36,6 +36,7 @@ export const NAV_ITEMS: NavItemDef[] = [
   { id: "cal", labelKey: "navCal", icon: "calendar", href: "/admin/cal", section: "studio" },
   { id: "analytics", labelKey: "navAnalytics", icon: "analytics", href: "/admin/analytics", section: "studio" },
   { id: "brain", labelKey: "navBrain", icon: "brain", href: "/admin/brain", section: "studio" },
+  { id: "chronik", labelKey: "navChronik", icon: "doc", href: "/admin/chronik", section: "studio" },
   { id: "vault", labelKey: "navVault", icon: "key", href: "/admin/vault", section: "studio" },
   { id: "revenue", labelKey: "navRevenue", icon: "revenue", href: "/admin/revenue", section: "creator" },
   { id: "payouts", labelKey: "navPayouts", icon: "payouts", href: "/admin/payouts", section: "creator" },

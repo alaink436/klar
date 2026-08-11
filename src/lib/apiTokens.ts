@@ -13,7 +13,10 @@ const URL_BASE =
   process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
 const KEY = () => process.env.KLAR_INBOX_SERVICE_KEY ?? "";
 
-export type Scope = "brain:read" | "vault:use";
+// "todos:ical" ist absichtlich eng: der Kalender-Feed liegt als URL im
+// iPhone und wird von Apple regelmässig ohne Nachfrage abgerufen — dieser
+// Token darf deshalb nichts ausser den geplanten To-dos lesen.
+export type Scope = "brain:read" | "vault:use" | "todos:ical";
 
 export interface ApiTokenRow {
   id: string;

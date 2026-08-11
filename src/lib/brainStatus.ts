@@ -165,3 +165,107 @@ export async function readLearnings(recentCount = 5): Promise<LearningStats | nu
     oldest: entries[entries.length - 1]?.date ?? null,
   };
 }
+
+// ── Chronik ────────────────────────────────────────────────────────────────
+// "Was habe ich in den Sessions gemacht" + "was habe ich mir vorgenommen".
+// Beides steht schon im Vault: die Sessions als Überschriften in den
+// PROGRESS.md-Dateien, die Ziele als Next-Spalte in STATUS.md. Hier wird nur
+// gelesen und zusammengeführt — eine zweite Pflege wäre eine zweite Wahrheit.
+
+export interface SessionEntry {
+  /** "YYYY-MM-DD"; Einträge ohne erkennbares Datum fallen raus. */
+  date: string;
+  project: string;
+  title: string;
+}
+
+/** Projektname aus STATUS.md → Ordnername im Vault (aus der Registry). */
+async function projectFolders(): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  const note = await fetchNote("Projects/00-Registry.md", null);
+  if (!note.ok) return map;
+  for (const line of note.text.split(/\r?\n/)) {
+    if (!line.trimStart().startsWith("|")) continue;
+    const c = cells(line);
+    if (c.length < 2) continue;
+    const name = plain(c[0]);
+    const link = c[1].match(/\[\[([^\]|]+)/);
+    if (name && link) map.set(name, link[1].trim());
+  }
+  return map;
+}
+
+/**
+ * Überschriften einer PROGRESS.md als Session-Einträge. Erkannt werden beide
+ * Formen, die im Vault vorkommen:
+ *   ## Last Updated (2026-08-11, S84 To-do-Liste …)
+ *   ### S79 Collabs-Tab (verdichtet, 07-11/07-12, prod)
+ * Ein Datum ohne Jahr ("07-11") bekommt das Jahr aus dem Kontext.
+ */
+function parseSessions(text: string, project: string, fallbackYear: number): SessionEntry[] {
+  const out: SessionEntry[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    const m = line.match(/^#{2,3}\s+(.*)$/);
+    if (!m) continue;
+    const head = plain(m[1]);
+    if (!head) continue;
+    const full = head.match(/(\d{4})-(\d{2})-(\d{2})/);
+    const short = full ? null : head.match(/\b(\d{2})-(\d{2})\b/);
+    if (!full && !short) continue;
+    const date = full
+      ? `${full[1]}-${full[2]}-${full[3]}`
+      : `${fallbackYear}-${short![1]}-${short![2]}`;
+    // Titel = Überschrift ohne Datum und ohne die Klammer-Reste, die dabei
+    // entstehen. Die beiden Formen im Vault sehen so aus:
+    //   "Last Updated (2026-08-11, S84 To-do-Liste)" → "S84 To-do-Liste"
+    //   "S83 Menü anpassbar (2026-08-11)"            → "S83 Menü anpassbar"
+    // Erst das Datum raus, dann eine dadurch führende offene bzw. schliessende
+    // Klammer — vorher war der Titel oft komplett leer und fiel auf die rohe
+    // Überschrift zurück.
+    const title = head
+      .replace(/^Last Updated\s*/i, "")
+      .replace(/\d{4}-\d{2}-\d{2}/g, "")
+      // Wortgrenzen: sonst schneidet das Muster mitten in laengeren Zahlen mit.
+      .replace(/\b\d{2}-\d{2}\b/g, "")
+      .replace(/\(\s*\)/g, "")
+      .replace(/^\s*\(\s*[,;—–-]*\s*/, "")
+      .replace(/\s*\)\s*$/, "")
+      .replace(/^[\s,;—–-]+|[\s,;—–-]+$/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    out.push({ date, project, title: (title || head).slice(0, 140) });
+  }
+  return out;
+}
+
+/**
+ * Sessions aller aktiven Projekte, jüngste zuerst. Fehlt eine PROGRESS.md oder
+ * der Token, fehlt schlicht dieses Projekt — die Seite bleibt benutzbar.
+ */
+export async function readSessions(limit = 40): Promise<SessionEntry[]> {
+  const [projects, folders] = await Promise.all([readActiveProjects(20), projectFolders()]);
+  if (projects.length === 0) return [];
+  const year = new Date().getFullYear();
+
+  const perProject = await Promise.all(
+    projects.map(async (p) => {
+      const folder = folders.get(p.name) ?? p.name;
+      const note = await fetchNote(`Projects/${folder}/PROGRESS.md`, null);
+      return note.ok ? parseSessions(note.text, p.name, year) : [];
+    }),
+  );
+
+  const all = perProject.flat();
+  // Gleiche Überschrift zweimal (verdichtete Abschnitte wiederholen sich) nur
+  // einmal zeigen.
+  const seen = new Set<string>();
+  return all
+    .filter((e) => {
+      const k = `${e.project}|${e.date}|${e.title}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    })
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, limit);
+}

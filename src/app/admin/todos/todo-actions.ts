@@ -9,7 +9,7 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { verifyDeviceCookie } from "@/lib/deviceCookie";
-import { addTodo, clearDoneTodos, deleteTodo, renameTodo, setTodoDone } from "@/lib/todoStore";
+import { addTodo, clearDoneTodos, deleteTodo, renameTodo, setTodoDone, setTodoDue } from "@/lib/todoStore";
 
 async function requireAdmin(): Promise<boolean> {
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
@@ -41,6 +41,12 @@ export async function toggleTodo(id: string, done: boolean): Promise<void> {
 export async function editTodo(id: string, title: string): Promise<void> {
   if (!(await requireAdmin())) return;
   await renameTodo(id, title);
+  refresh();
+}
+
+export async function planTodo(id: string, due: string | null): Promise<void> {
+  if (!(await requireAdmin())) return;
+  await setTodoDue(id, due);
   refresh();
 }
 

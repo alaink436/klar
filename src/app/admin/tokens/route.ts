@@ -94,6 +94,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     const scopes: Scope[] = [];
     if (form.get("scope_brain") != null) scopes.push("brain:read");
     if (form.get("scope_vault") != null) scopes.push("vault:use");
+    if (form.get("scope_todos") != null) scopes.push("todos:ical");
     if (scopes.length === 0) return backWith(req, { err: "Mindestens einen Scope wählen." });
     const r = await createToken(label, scopes);
     if (!r.ok) return backWith(req, { err: r.error });

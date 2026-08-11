@@ -28,6 +28,8 @@ export interface Todo {
   title: string;
   done: boolean;
   done_at: string | null;
+  /** Geplanter Tag als "YYYY-MM-DD", oder null für "irgendwann". */
+  due_on: string | null;
   position: number;
   created_at: string;
 }
@@ -36,12 +38,16 @@ export function todosConfigured(): boolean {
   return Boolean(KEY);
 }
 
-/** Offene zuerst (in Sortierreihenfolge), danach erledigte (zuletzt erledigt zuerst). */
+/**
+ * Offene zuerst, darin Geplantes vor Ungeplantem und das früheste Datum oben,
+ * danach die eigene Sortierung. `nullslast` ist der Punkt: ohne das stünden
+ * die ungeplanten Punkte vor dem, was heute dran ist.
+ */
 export async function listTodos(limit = 200): Promise<Todo[]> {
   if (!KEY) return [];
   try {
     const res = await fetch(
-      `${REST}?select=*&order=done.asc,position.asc,created_at.desc&limit=${limit}`,
+      `${REST}?select=*&order=done.asc,due_on.asc.nullslast,position.asc,created_at.desc&limit=${limit}`,
       { headers: hdr(), cache: "no-store" },
     );
     if (!res.ok) return [];
@@ -121,6 +127,39 @@ export async function renameTodo(id: string, title: string): Promise<{ ok: boole
     return { ok: res.ok };
   } catch {
     return { ok: false };
+  }
+}
+
+/** Auf einen Tag legen ("YYYY-MM-DD") oder mit null wieder freigeben. */
+export async function setTodoDue(id: string, due: string | null): Promise<{ ok: boolean }> {
+  if (!KEY || !id) return { ok: false };
+  // Nur echte Kalendertage durchlassen — der Wert kommt aus einem Formular.
+  if (due !== null && !/^\d{4}-\d{2}-\d{2}$/.test(due)) return { ok: false };
+  try {
+    const res = await fetch(`${REST}?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: hdr({ Prefer: "return=minimal" }),
+      body: JSON.stringify({ due_on: due }),
+    });
+    return { ok: res.ok };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** Offene Punkte mit Tag — Quelle für den Kalender-Feed. */
+export async function listPlannedTodos(limit = 500): Promise<Todo[]> {
+  if (!KEY) return [];
+  try {
+    const res = await fetch(
+      `${REST}?select=*&done=is.false&due_on=not.is.null&order=due_on.asc&limit=${limit}`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    const rows = (await res.json()) as Todo[];
+    return Array.isArray(rows) ? rows : [];
+  } catch {
+    return [];
   }
 }
 
