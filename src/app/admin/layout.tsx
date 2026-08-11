@@ -12,6 +12,7 @@
 import type { ReactNode } from "react";
 import { cookies } from "next/headers";
 import { LANG_COOKIE, normalizeAdminLang } from "./_i18n";
+import { NAV_COOKIE, parseNavPrefs } from "./_nav";
 import { countOpenCollabs } from "@/lib/collabView";
 import {
   STYLE,
@@ -29,7 +30,10 @@ import AdminShell from "./AdminShell";
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const apps = getApps();
   // UI language for the whole workspace, read once here and handed down.
-  const lang = normalizeAdminLang((await cookies()).get(LANG_COOKIE)?.value);
+  const jar = await cookies();
+  const lang = normalizeAdminLang(jar.get(LANG_COOKIE)?.value);
+  // Menu order + hidden entries, so the first paint is already the admin's.
+  const navPrefs = parseNavPrefs(jar.get(NAV_COOKIE)?.value);
   // Sidebar badge. Cached for a minute inside countOpenCollabs, so it does not
   // add a PostgREST round-trip to every single admin navigation.
   const collabOpen = await countOpenCollabs();
@@ -44,7 +48,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <div className="klar-aurora" aria-hidden="true" />
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
       <canvas id="klar-smoke-bg" aria-hidden="true" suppressHydrationWarning />
-      <AdminShell apps={apps} lang={lang} collabOpen={collabOpen}>
+      <AdminShell apps={apps} lang={lang} collabOpen={collabOpen} navPrefs={navPrefs}>
         {children}
       </AdminShell>
       {/* Confirm dialog hoisted here so it survives client-side menu switches.

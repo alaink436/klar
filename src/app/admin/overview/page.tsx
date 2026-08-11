@@ -1,34 +1,25 @@
 // Klar Control · Übersicht (overview) — the default landing view.
 //
-// Server component. Aggregates affiliate revenue, outreach funnel and inbox
-// activity across all wired-up apps, then renders the app-tab strip, an
-// attention strip, KPI cards, a server-rendered SVG bar chart, funnel +
-// activity cards and a per-app table. Same STYLE/ICON chrome and 2FA gate as
-// the rest of /admin. Inner content reuses the shared eur/esc/fmtRelative
-// helpers; the bar chart is the React <MonthlyBarChart> component. Bare /admin
-// and ?view=overview 303-redirect here.
+// Server component, and the studio's work list: what is waiting on me, and
+// what am I in the middle of. It reads the same per-app affiliate/outreach
+// data as before, but only to answer "is something open" — the affiliate
+// revenue chart, funnel and per-app table that used to sit underneath were a
+// duplicate of /admin/revenue and are gone (2026-08-11). Same STYLE/ICON
+// chrome and 2FA gate as the rest of /admin. Bare /admin and ?view=overview
+// 303-redirect here.
 //
 // Env: KLAR_ADMIN_KEY, KLAR_DEVICE_SECRET, KLAR_TOTP_SECRET (+ per-app Supabase
 //      keys via sbGet, and KLAR_INBOX_* for the activity feed).
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import {
-  ICON,
-  readCookieFromString,
-  esc,
-  eur,
-  fmtRelative,
-  REPORTING_CURRENCY,
-} from "../_shared";
+import { ICON, readCookieFromString, esc, eur } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps, sbGet, fetchAppUserStats, type AdminApp } from "../../../lib/adminApps";
 import { countOpenCollabs } from "@/lib/collabView";
 import { readActiveProjects, type BrainProject } from "@/lib/brainStatus";
-import { listOutreachTargets, type OutreachTarget } from "../../../lib/outreachStore";
 import { LISTED_APPS, resolveBackendKey, type KlarAppMeta } from "../../../lib/klarApps";
-import OverviewAffiliateTable, { type OverviewRow } from "./OverviewAffiliateTable";
-import MonthlyBarChart from "../MonthlyBarChart";
+import { listOutreachTargets } from "../../../lib/outreachStore";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -59,37 +50,23 @@ function appTabStrip(connectedSlugs: Set<string>): string {
   }).join("")}</div>`;
 }
 
-async function overviewMain(apps: AdminApp[]): Promise<{
-  htmlTop: string;
-  series: { label: string; gross: number; payout: number }[];
-  htmlMid: string;
-  tableRows: OverviewRow[];
-}> {
+async function overviewMain(apps: AdminApp[]): Promise<{ htmlTop: string }> {
   const connected = new Set(apps.map((a) => a.slug));
   const tabs = appTabStrip(connected);
 
-  if (apps.length === 0) {
-    return {
-      htmlTop: `<h1>Übersicht</h1><p class="sub">Alle Klar-Apps auf einen Blick. Klick eine verdrahtete App fürs Affiliate-Detail; die anderen tauchen auf, sobald sie ein Schema in <code>KLAR_ADMIN_APPS</code> bekommen.</p>${tabs}`,
-      series: [],
-      htmlMid: "",
-      tableRows: [],
-    };
-  }
-
-  // Monats-Aggregat (über alle Apps) für Umsatz-Chart + MoM-Delta, plus eine
-  // deduplizierte Target-Liste für den Activity-Feed (ein Target kann via
-  // for_apps[] in mehreren App-Fetches auftauchen).
-  const monthly = new Map<string, { gross: number; payout: number }>();
-  const targetSeen = new Set<string>();
-  const allTargets: OutreachTarget[] = [];
+  // No early return when nothing is wired up: the work list and the project
+  // section do not come from the affiliate backends at all (collab mail, inbox
+  // enquiries, AI-Brain), and bailing out here used to blank both of them and
+  // leave an affiliate-flavoured empty page behind. With apps = [] the
+  // app-derived counters simply come out zero.
 
   const rows = await Promise.all(apps.map(async (app) => {
-    const [inf, claim, outreach, events] = await Promise.all([
+    // Only what the work list needs: open money, open replies, is it wired.
+    // The revenue-event history lives on /admin/revenue now.
+    const [inf, claim, outreach] = await Promise.all([
       sbGet(app, "influencers?select=status", { revalidate: 30 }),
       sbGet(app, "influencer_claimable?select=claimable_eur_cents,unnormalized_events", { revalidate: 30 }),
       listOutreachTargets({ platform: "all", status: "all", app: app.slug, limit: 500 }),
-      sbGet(app, "referral_revenue_events?select=event_at,gross_revenue_cents,share_cents_eur&order=event_at&limit=4000", { revalidate: 30 }),
     ]);
     const onboarded = inf.length > 0 || claim.length > 0 || outreach.length > 0;
     const active = inf.filter((i: any) => i.status === "active").length;
@@ -102,21 +79,8 @@ async function overviewMain(apps: AdminApp[]): Promise<{
       if (t.status === "converted") angenommen++;
       else if (t.status === "replied") reply++;
       else if (t.mail_status === "mail1_sent" || t.mail_status === "mail2_sent" || t.status === "dm_sent") angefragt++;
-      if (t.id && !targetSeen.has(t.id)) { targetSeen.add(t.id); allTargets.push(t); }
     }
-    let gross = 0, payout = 0;
-    for (const e of events) {
-      const g = Number(e.gross_revenue_cents ?? 0);
-      const p = Number(e.share_cents_eur ?? 0);
-      gross += g; payout += p;
-      const mkey = String(e.event_at ?? "").slice(0, 7);
-      if (mkey) {
-        const m = monthly.get(mkey) ?? { gross: 0, payout: 0 };
-        m.gross += g; m.payout += p;
-        monthly.set(mkey, m);
-      }
-    }
-    return { app, onboarded, total: inf.length, active, open, fx, angefragt, reply, angenommen, gross, payout };
+    return { app, onboarded, total: inf.length, active, open, fx, angefragt, reply, angenommen };
   }));
 
   // Inbox-Anfragen einmal laden: neue-Anzahl (Aktions-Strip) + jüngste fürs
@@ -150,29 +114,17 @@ async function overviewMain(apps: AdminApp[]): Promise<{
     .filter((a) => a.stats !== null && a.stats.usersTotal > 0 && a.stats.usersNew30d === 0)
     .map((a) => a.app.name);
 
+  // Nur noch die Summen, die eine Zeile in der Arbeitsliste rechtfertigen.
+  // Affiliate-Bestand und Conversion-Zahlen stehen auf /admin/revenue.
   const totalOpen = rows.reduce((s, r) => s + r.open, 0);
-  const totalAff = rows.reduce((s, r) => s + r.total, 0);
-  const totalActive = rows.reduce((s, r) => s + r.active, 0);
   const totalAngefragt = rows.reduce((s, r) => s + r.angefragt, 0);
   const totalReply = rows.reduce((s, r) => s + r.reply, 0);
-  const totalAngenommen = rows.reduce((s, r) => s + r.angenommen, 0);
 
-  // Monats-Serie (letzte 12) + Monat-über-Monat-Vergleich für die Delta-Tags.
-  const series = [...monthly.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-12)
-    .map(([k, v]) => { const [yy, mm] = k.split("-"); return { label: `${mm}/${yy.slice(2)}`, gross: v.gross, payout: v.payout }; });
-  const now = new Date();
-  const thisYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const lastYm = `${lm.getFullYear()}-${String(lm.getMonth() + 1).padStart(2, "0")}`;
-  const thisM = monthly.get(thisYm) ?? { gross: 0, payout: 0 };
-  const lastM = monthly.get(lastYm) ?? { gross: 0, payout: 0 };
   // Schlanke Inline-SVG-Glyphen (currentColor, 2px stroke) statt Emoji — die
   // Emoji waren der größte "AI-generiert"-Tell. Stil = wie der Login-Chevron.
   const gi = (inner: string, size = 14): string =>
     `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">${inner}</svg>`;
   const G = {
-    up: `<path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/>`,
-    down: `<path d="M3 7l6 6 4-4 8 8"/><path d="M17 17h4v-4"/>`,
     send: `<path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>`,
     reply: `<path d="M9 17l-5-5 5-5"/><path d="M4 12h11a5 5 0 0 1 5 5v1"/>`,
     check: `<path d="M20 6 9 17l-5-5"/>`,
@@ -181,14 +133,6 @@ async function overviewMain(apps: AdminApp[]): Promise<{
     coin: `<circle cx="12" cy="12" r="9"/><path d="M12 7v10"/><path d="M14.5 9.5h-4a1.8 1.8 0 0 0 0 3.5h3a1.8 1.8 0 0 1 0 3.5h-4"/>`,
     pulse: `<path d="M3 12h4l3-8 4 16 3-8h4"/>`,
   };
-  const deltaTag = (cur: number, prev: number): string => {
-    if (prev === 0 && cur === 0) return `<span class="delta flat">keine Vormonatsdaten</span>`;
-    if (prev === 0) return `<span class="delta up">${gi(G.up, 13)} neu</span>`;
-    const pct = ((cur - prev) / prev) * 100;
-    const up = pct >= 0;
-    return `<span class="delta ${up ? "up" : "down"}">${gi(up ? G.up : G.down, 13)} ${Math.abs(pct).toFixed(0)}%<span class="delta-ref">vs. Vormonat</span></span>`;
-  };
-
   // ── Arbeitsliste ────────────────────────────────────────────────────────
   // Die Startseite beantwortet zuerst "was liegt bei mir?". Reihenfolge: wer
   // auf eine Antwort von mir wartet, dann Geld, dann was still geworden ist,
@@ -228,12 +172,12 @@ async function overviewMain(apps: AdminApp[]): Promise<{
   // Gelesen aus AI-Brain/STATUS.md ("Active Now"). Das ist die Tabelle, die
   // ohnehin nach jeder Session gepflegt wird — hier nur gespiegelt, damit die
   // Startseite den Stand zeigt statt ihn ein zweites Mal zu verwalten.
-  const projRow = (p: BrainProject): string => {
+  const projRow = (p: BrainProject, firstInGroup = false): string => {
     const when = p.daysAgo === null ? "" : p.daysAgo === 0 ? "heute" : p.daysAgo === 1 ? "gestern" : `vor ${p.daysAgo} Tagen`;
     const openN = p.next.length;
     const blocked = p.blockers.length > 0;
     const nextUp = (p.blockers[0] ?? p.next[0] ?? "").replace(/\u{1F534}/gu, "").trim();
-    return `<div style="display:flex;align-items:flex-start;gap:13px;padding:13px 22px;border-top:1px solid var(--line)">
+    return `<div style="display:flex;align-items:flex-start;gap:13px;padding:13px 22px;${firstInGroup ? "" : "border-top:1px solid var(--line)"}">
       <span style="flex:1;min-width:0">
         <span style="display:flex;align-items:baseline;gap:9px">
           <span style="font-size:13.5px;font-weight:600;color:var(--fg)">${esc(p.name)}</span>
@@ -249,89 +193,56 @@ async function overviewMain(apps: AdminApp[]): Promise<{
       </span>
     </div>`;
   };
+  // Nach Tagen gruppiert: "heute" und "gestern" sind das, was noch im Kopf
+  // ist, alles darunter ist die Frage "liegt das jetzt brach?".
+  const dayBucket = (d: number | null): string => {
+    if (d === null) return "Ohne Datum";
+    if (d === 0) return "Heute";
+    if (d === 1) return "Gestern";
+    if (d < 7) return "Diese Woche";
+    if (d < 14) return "Letzte Woche";
+    return "L\u00e4nger her";
+  };
+  const dayHead = (label: string, n: number): string =>
+    `<div style="display:flex;align-items:center;gap:8px;padding:11px 22px 7px;border-top:1px solid var(--line);background:var(--surface-2)">
+      <span style="font-family:var(--font-mono);font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:var(--fg-3)">${esc(label)}</span>
+      <span class="muted" style="font-family:var(--font-mono);font-size:9.5px">${n}</span>
+    </div>`;
+  const projectBody = (() => {
+    const perBucket = new Map<string, number>();
+    for (const prj of projects) {
+      const b = dayBucket(prj.daysAgo);
+      perBucket.set(b, (perBucket.get(b) ?? 0) + 1);
+    }
+    const out: string[] = [];
+    let bucket = "";
+    for (const prj of projects) {
+      const b = dayBucket(prj.daysAgo);
+      const firstInGroup = b !== bucket;
+      if (firstInGroup) {
+        bucket = b;
+        out.push(dayHead(b, perBucket.get(b) ?? 0));
+      }
+      // Die Tagesgruppe zieht die Trennlinie, sonst doppelt sie sich.
+      out.push(projRow(prj, firstInGroup));
+    }
+    return out.join("");
+  })();
   const projectCard = projects.length
     ? `<div class="card" style="padding:0;display:block;margin:0 0 20px">
         <div style="display:flex;align-items:baseline;justify-content:space-between;padding:18px 22px 13px">
           <span class="k" style="margin:0">Woran ich gerade arbeite</span>
           <a href="/admin/brain" class="applink" style="font-size:11.5px">AI-Brain \u00f6ffnen \u2192</a>
         </div>
-        ${projects.map(projRow).join("")}
+        ${projectBody}
       </div>`
     : "";
 
-  // KPI-Grid: Umsatz/Auszahlung mit MoM-Delta, Offen, Affiliates.
-  const cards = `<div class="cards">
-    <div class="card"><div class="k">Affiliate-Umsatz (Monat)</div><div class="v">${eur(thisM.gross)}</div><div class="s">${deltaTag(thisM.gross, lastM.gross)}</div></div>
-    <div class="card"><div class="k">Auszahlung (Monat)</div><div class="v">${eur(thisM.payout)}</div><div class="s">${deltaTag(thisM.payout, lastM.payout)}</div></div>
-    <div class="card"><div class="k">Offen gesamt</div><div class="v">${eur(totalOpen)}</div><div class="s">netto, gereift</div></div>
-    <div class="card"><div class="k">Affiliates</div><div class="v">${totalAff}</div><div class="s">${totalActive} aktiv · ${rows.filter(r=>r.onboarded).length}/${LISTED_APPS.length} Apps verdrahtet</div></div>
-  </div>`;
-
-  // Funnel-Card: dünne, scharfkantige Balken (kein candy-radius), monochrome
-  // Verjüngung, nur "Angenommen" im Success-Grün als Endstufe.
-  const funnelMax = Math.max(1, totalAngefragt, totalReply, totalAngenommen);
-  const frow = (glyph: string, label: string, n: number, color: string): string =>
-    `<div style="display:flex;align-items:center;gap:11px;margin:9px 0">
-      <span style="display:inline-flex;color:var(--fg-3)">${gi(glyph, 15)}</span>
-      <span style="min-width:104px;font-size:12.5px;color:var(--fg-2)">${esc(label)}</span>
-      <div style="flex:1;background:var(--surface-2);height:10px;overflow:hidden"><div style="width:${Math.min(100, (n / funnelMax) * 100).toFixed(1)}%;height:100%;background:${color}"></div></div>
-      <span style="min-width:32px;text-align:right;font-family:var(--font-mono);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">${n}</span>
-    </div>`;
-  const funnelCard = `<div class="card" style="padding:20px 22px;display:block">
-    <div class="k" style="margin-bottom:14px">Outreach-Funnel · alle Apps</div>
-    ${frow(G.send, "Angefragt", totalAngefragt, "var(--fg)")}
-    ${frow(G.reply, "Antwort", totalReply, "color-mix(in oklab,var(--fg) 50%,var(--surface-2))")}
-    ${frow(G.check, "Angenommen", totalAngenommen, "var(--success)")}
-  </div>`;
-
-  // Activity-Feed: jüngste Replies + Conversions + neue Anfragen, gemischt.
-  // efferd-Muster: Hairline-Divider, Icon im quadratischen Rahmen, Titel + Zeit.
-  const acts: Array<{ t: number; glyph: string; accent: string; text: string; href: string }> = [];
-  for (const t of allTargets) {
-    const who = t.display_name || t.handle;
-    if (t.status === "replied" && t.last_message_at) acts.push({ t: Date.parse(t.last_message_at), glyph: G.reply, accent: "var(--warning)", text: `${who} hat geantwortet`, href: "/admin?view=outreach" });
-    if (t.status === "converted" && t.converted_at) acts.push({ t: Date.parse(t.converted_at), glyph: G.check, accent: "var(--success)", text: `${who} als Affiliate angenommen`, href: "/admin?view=outreach" });
-  }
-  for (const r of recentInquiries) {
-    if (r.created_at) acts.push({ t: Date.parse(String(r.created_at)), glyph: r.type === "affiliate" ? G.inbox : G.doc, accent: "var(--info)", text: `Neue ${r.type === "affiliate" ? "Affiliate" : "Consulting"}-Anfrage: ${r.handle || r.email || "?"}`, href: "/admin?view=inbox" });
-  }
-  const actsSorted = acts.filter((a) => !isNaN(a.t)).sort((a, b) => b.t - a.t).slice(0, 7);
-  const actRow = (a: { glyph: string; accent: string; text: string; href: string; t: number }): string =>
-    `<a href="${a.href}" style="display:flex;align-items:center;gap:12px;height:54px;text-decoration:none;border-top:1px solid var(--line)">
-      <span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid var(--line);color:${a.accent};flex-shrink:0">${gi(a.glyph, 15)}</span>
-      <span style="flex:1;min-width:0;font-size:13px;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.text)}</span>
-      <span class="muted" style="font-size:11px;font-family:var(--font-mono);white-space:nowrap">${esc(fmtRelative(new Date(a.t).toISOString()))}</span>
-    </a>`;
-  const activityCard = `<div class="card" style="padding:20px 22px 8px;display:block">
-    <div class="k" style="margin-bottom:8px">Letzte Aktivität</div>
-    ${actsSorted.length ? actsSorted.map(actRow).join("") : `<span class="muted" style="font-size:13px;display:block;padding:14px 0">Noch keine Replies, Conversions oder Anfragen.</span>`}
-  </div>`;
-
-  // Per-app rows for the real TanStack table (rendered as a client component
-  // in the page). Serialisable only: raw numbers for sorting + a pre-formatted
-  // money string for display.
-  const tableRows: OverviewRow[] = rows.map((r) => ({
-    slug: r.app.slug,
-    name: r.app.name,
-    onboarded: r.onboarded,
-    total: r.total,
-    active: r.active,
-    angefragt: r.angefragt,
-    reply: r.reply,
-    angenommen: r.angenommen,
-    openCents: r.open,
-    openFmt: eur(r.open),
-  }));
-  const htmlTop = `<h1>Übersicht</h1><p class="sub">Was heute bei dir liegt und woran du gerade arbeitest \u2014 die Zahlen stehen darunter.</p>
+  const htmlTop = `<h1>Übersicht</h1><p class="sub">Was gerade bei dir liegt und woran du arbeitest. Zahlen stehen unter Einnahmen und Analytics.</p>
     ${taskCard}
     ${projectCard}
-    ${tabs}
-    <h2>Affiliate &amp; Outreach</h2>
-    ${cards}
-    <h2>Affiliate-Umsatz pro Monat</h2>`;
-  const htmlMid = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:14px 0 8px">${funnelCard}${activityCard}</div>
-    <h2>Affiliate-Stand · Outreach-Funnel pro App</h2>`;
-  return { htmlTop, series, htmlMid, tableRows };
+    ${tabs}`;
+  return { htmlTop };
 }
 
 export default async function OverviewPage({
@@ -352,7 +263,7 @@ export default async function OverviewPage({
 
   const sp = await searchParams;
   const apps = getApps();
-  const { htmlTop, series, htmlMid, tableRows } = await overviewMain(apps);
+  const { htmlTop } = await overviewMain(apps);
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
   const topbar = `
     <span class="crumb"><b>Übersicht</b>${ICON.chevron}<span>Klar Control</span></span>
@@ -365,9 +276,6 @@ export default async function OverviewPage({
       <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
       <div className="content">
         <div dangerouslySetInnerHTML={{ __html: flash + htmlTop }} />
-        {series.length ? <MonthlyBarChart series={series} currency={REPORTING_CURRENCY} /> : null}
-        <div dangerouslySetInnerHTML={{ __html: htmlMid }} />
-        {tableRows.length ? <OverviewAffiliateTable rows={tableRows} /> : null}
       </div>
     </>
   );

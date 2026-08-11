@@ -57,6 +57,15 @@ const DE = {
   navSettings: "Einstellungen",
   navLogout: "Logout",
   themeToggle: "Theme wechseln",
+  navDragHint: "Ziehen, um das Menü umzusortieren",
+  navSettingsTitle: "Menü",
+  navSettingsBody:
+    "Reihenfolge der Menüeinträge und welche du überhaupt siehst. In der Seitenleiste kannst du die Einträge auch direkt ziehen. Ausgeblendete Seiten bleiben über ihre Adresse erreichbar — sie stehen nur nicht mehr im Menü.",
+  navMoveUp: "Hoch",
+  navMoveDown: "Runter",
+  navHide: "Ausblenden",
+  navShow: "Einblenden",
+  navReset: "Auf Standard zurücksetzen",
   collabOpenAria: (n: number) => `${n} unbeantwortete Collab-Anfrage${n === 1 ? "" : "n"}`,
   collabsSub:
     "Wer auf die Adressen aus den TikTok- und Instagram-Bios schreibt, landet hier. Geantwortet wird in der Inbox — jede Zeile führt direkt zum Thread.",
@@ -195,6 +204,15 @@ const EN: AdminMessages = {
   navSettings: "Settings",
   navLogout: "Log out",
   themeToggle: "Switch theme",
+  navDragHint: "Drag to reorder the menu",
+  navSettingsTitle: "Menu",
+  navSettingsBody:
+    "The order of the menu entries and which ones you see at all. You can also drag them directly in the sidebar. Hidden pages stay reachable by their address — they just leave the menu.",
+  navMoveUp: "Up",
+  navMoveDown: "Down",
+  navHide: "Hide",
+  navShow: "Show",
+  navReset: "Reset to default",
   collabOpenAria: (n: number) => `${n} unanswered collab request${n === 1 ? "" : "s"}`,
   collabsSub:
     "Whoever writes to the addresses in the TikTok and Instagram bios shows up here. You reply from the inbox — every row leads straight to the thread.",

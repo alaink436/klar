@@ -18,6 +18,9 @@ import { ICON, readCookieFromString } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getAdminSettings, listInvites } from "../../../lib/adminSettings";
 import SettingsManager, { type InviteRow } from "./SettingsManager";
+import NavSettings from "./NavSettings";
+import { LANG_COOKIE, normalizeAdminLang } from "../_i18n";
+import { NAV_COOKIE, parseNavPrefs } from "../_nav";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -46,6 +49,8 @@ export default async function SettingsPage({
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
   const sp = await searchParams;
+  const lang = normalizeAdminLang(readCookieFromString(cookieHeader, LANG_COOKIE));
+  const navPrefs = parseNavPrefs(readCookieFromString(cookieHeader, NAV_COOKIE));
   const [settings, invites] = await Promise.all([getAdminSettings(), listInvites()]);
   const origin = originFromHeaders(h);
   const now = Date.now();
@@ -88,6 +93,7 @@ export default async function SettingsPage({
             {flashRaw}
           </div>
         ) : null}
+        <NavSettings lang={lang} prefs={navPrefs} />
         <SettingsManager
           settings={{
             shader_enabled: settings.shader_enabled,

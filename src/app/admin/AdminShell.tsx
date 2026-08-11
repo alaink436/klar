@@ -12,6 +12,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import AdminSidebar from "./AdminSidebar";
 import type { AdminLang } from "./_i18n";
+import { DEFAULT_NAV_PREFS, type NavPrefs } from "./_nav";
 
 function activeFromPath(path: string): string {
   // /admin/<seg>/... -> "<seg>"; bare /admin or /admin/ -> "overview".
@@ -23,11 +24,13 @@ export default function AdminShell({
   apps,
   lang,
   collabOpen,
+  navPrefs = DEFAULT_NAV_PREFS,
   children,
 }: {
   apps: { slug: string; name: string }[];
   lang: AdminLang;
   collabOpen?: number;
+  navPrefs?: NavPrefs;
   children: ReactNode;
 }) {
   const path = usePathname() || "/admin";
@@ -37,7 +40,7 @@ export default function AdminShell({
 
   return (
     <div className="layout">
-      <AdminSidebar active={activeFromPath(path)} apps={apps} lang={lang} collabOpen={collabOpen} />
+      <AdminSidebar active={activeFromPath(path)} apps={apps} lang={lang} collabOpen={collabOpen} prefs={navPrefs} />
       <main className="main">{children}</main>
     </div>
   );

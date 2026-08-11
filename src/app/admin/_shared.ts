@@ -218,6 +218,11 @@ a{color:inherit;text-decoration:none}
 .nav.on .nav-badge{background:var(--accent-fg);color:var(--fg)}
 .nav-appicon{width:16px;height:16px;border-radius:4px;object-fit:cover;display:block}
 
+/* Reorderable rows: the line marks where the dragged entry would land. */
+.nav[draggable="true"]{cursor:grab}
+.nav[draggable="true"]:active{cursor:grabbing}
+.nav-drop{box-shadow:inset 0 2px 0 0 var(--fg)}
+
 .nav{display:flex;align-items:center;gap:10px;padding:7px 11px;color:var(--fg-3);font-family:var(--font-body);font-size:13px;font-weight:500;border-radius:var(--radius-sm);transition:color 90ms cubic-bezier(.2,.6,.3,1),background 90ms cubic-bezier(.2,.6,.3,1);margin:1px 0}
 .nav .d{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;color:var(--fg-4);flex-shrink:0;transition:color 90ms cubic-bezier(.2,.6,.3,1)}
 .nav .d svg{width:14px;height:14px;stroke-width:1.8;transition:transform 140ms cubic-bezier(.2,.6,.3,1)}
