@@ -542,11 +542,17 @@ export default async function ContentPage({
     .filter((p) => p.state.type === "scheduled" || new Date(p.postTime).getTime() >= sinceMs)
     .slice(0, 30);
 
-  const stand = new Intl.DateTimeFormat("de-CH", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Zurich",
-  }).format(new Date(data.fetched_at));
+  // Only the pipeline tab fetches, so on the map `fetched_at` is empty — and
+  // Intl.format throws a RangeError on an invalid date rather than returning
+  // a placeholder. Guard, otherwise the whole page 500s on its landing tab.
+  const fetchedAt = new Date(data.fetched_at);
+  const stand = isNaN(fetchedAt.getTime())
+    ? "—"
+    : new Intl.DateTimeFormat("de-CH", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Europe/Zurich",
+      }).format(fetchedAt);
 
   const viewsSub =
     viewsTotal > 0
