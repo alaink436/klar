@@ -85,6 +85,37 @@ async function getBlotatoKey(): Promise<string> {
   return key;
 }
 
+/**
+ * Just the connected accounts — one request, no post history, no analytics.
+ *
+ * The account map only needs to know which accounts the pipeline can post to.
+ * Going through getBlotatoOverview for that would pull up to eight pages of
+ * post history plus the analytics call, all of it thrown away.
+ */
+export async function getBlotatoAccounts(): Promise<BlotatoAccount[]> {
+  const key = await getBlotatoKey();
+  if (!key) return [];
+  try {
+    const res = await fetch(`${BLOTATO_BASE}/users/me/accounts`, {
+      headers: { "blotato-api-key": key },
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { items?: unknown[] };
+    return (json.items ?? []).map((raw) => {
+      const r = (raw ?? {}) as Record<string, unknown>;
+      return {
+        id: String(r.id ?? ""),
+        platform: String(r.platform ?? ""),
+        username: String(r.username ?? ""),
+        fullname: String(r.fullname ?? ""),
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
 function parsePost(raw: unknown): BlotatoPost | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;

@@ -28,6 +28,7 @@ import { ICON, readCookieFromString, fmtRelative } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import {
   getBlotatoOverview,
+  getBlotatoAccounts,
   type BlotatoAccount,
   type BlotatoAnalyticsItem,
   type BlotatoPost,
@@ -38,7 +39,6 @@ import { ACCOUNTS, reconcile } from "@/lib/socialAccounts";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ContentChart, { type ContentChartRow } from "./ContentChart";
 import AccountBoard from "@/app/components/accounts/AccountBoard";
@@ -419,14 +419,21 @@ export default async function ContentPage({
 
   const sp = await searchParams;
   const tab = sp.tab === "pipeline" ? "pipeline" : "map";
+  const onMap = tab === "map";
   const range = RANGES.find((r) => r.key === sp.range) ?? RANGES[1]; // default 30d
   const sinceMs = range.days == null ? 0 : Date.now() - range.days * 86_400_000;
 
-  const data = await getBlotatoOverview(range.days == null ? undefined : new Date(sinceMs).toISOString());
+  // Each tab pays only for its own data. The map needs one request (which
+  // accounts exist); the pipeline needs the post history, the analytics call
+  // and a profile scrape per account, which is what made this page slow to
+  // open. The tabs are links, not client state, so switching re-runs this.
+  const data = onMap
+    ? { ok: true as const, reason: "live" as const, accounts: [], posts: [], analytics: [], truncated: false, fetched_at: "" }
+    : await getBlotatoOverview(range.days == null ? undefined : new Date(sinceMs).toISOString());
 
   // The map's own source of truth, with Blotato allowed to correct the
   // "can the pipeline post here" flags. An empty live list leaves it untouched.
-  const mapAccounts = reconcile(ACCOUNTS, data.accounts);
+  const mapAccounts = reconcile(ACCOUNTS, onMap ? await getBlotatoAccounts() : data.accounts);
 
   // Warm/cold split + native profile post counts. Blotato only knows posts IT
   // published, but warm accounts are still posted to MANUALLY, so their real post
@@ -435,9 +442,9 @@ export default async function ContentPage({
   // lib/contentWarmup.
   const warmAccounts = data.accounts.filter(isWarmAccount);
   const coldAccounts = data.accounts.filter((a) => !isWarmAccount(a));
-  const nativeCounts = await getNativeCounts(
-    data.accounts.map((a) => ({ platform: a.platform, username: a.username })),
-  );
+  const nativeCounts = onMap
+    ? new Map<string, NativeCount>()
+    : await getNativeCounts(data.accounts.map((a) => ({ platform: a.platform, username: a.username })));
 
   const topbar = `
     <span class="crumb"><b>Content</b>${ICON.chevron}<span>Klar Control</span></span>
@@ -563,18 +570,30 @@ export default async function ContentPage({
           tatsächlich rausgeht.
         </PageHeader>
 
-        <Tabs defaultValue={tab}>
-          <TabsList className="mb-5">
-            <TabsTrigger value="map">Landkarte</TabsTrigger>
-            <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
-          </TabsList>
+        <div className="mb-4 flex items-center gap-1 border-b border-line">
+          {(
+            [
+              { key: "map", label: "Landkarte", href: "/admin/content" },
+              { key: "pipeline", label: "Pipeline", href: `/admin/content?tab=pipeline&range=${range.key}` },
+            ] as const
+          ).map((t) => (
+            <Link
+              key={t.key}
+              href={t.href}
+              className={`-mb-px border-b-2 px-4 py-2.5 text-[13px] transition-colors ${
+                tab === t.key
+                  ? "border-fg font-semibold text-fg"
+                  : "border-transparent text-fg-3 hover:text-fg"
+              }`}
+            >
+              {t.label}
+            </Link>
+          ))}
+        </div>
 
-          <TabsContent value="map">
-            <AccountBoard accounts={mapAccounts} />
-          </TabsContent>
-
-          <TabsContent value="pipeline">
-        {!data.ok ? (
+        {onMap ? (
+          <AccountBoard accounts={mapAccounts} />
+        ) : !data.ok ? (
           <Card className="px-6 py-5">
             <div className="font-semibold text-fg text-[14px] mb-1.5">Blotato nicht erreichbar</div>
             <p className="text-[13px] text-fg-3 m-0 leading-relaxed">
@@ -896,8 +915,6 @@ export default async function ContentPage({
             )}
           </>
         )}
-          </TabsContent>
-        </Tabs>
       </div>
     </>
   );

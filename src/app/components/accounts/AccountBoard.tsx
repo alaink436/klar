@@ -118,8 +118,8 @@ export default function AccountBoard({ accounts }: { accounts: SocialAccount[] }
   );
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <Stat label="Follower gesamt" value={fmt.format(t.followers)} hint="ohne Instagram" />
         <Stat label="Likes gesamt" value={fmt.format(t.likes)} />
         <Stat label="Accounts" value={String(t.accounts)} />
@@ -130,8 +130,8 @@ export default function AccountBoard({ accounts }: { accounts: SocialAccount[] }
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_300px]">
-        <div className="h-[620px] overflow-hidden rounded-[var(--radius-lg)] border border-line bg-surface">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_300px]">
+        <div className="h-[calc(100vh-260px)] min-h-[600px] overflow-hidden rounded-[var(--radius-lg)] border border-line bg-surface">
           <AccountMap accounts={accounts} onSelect={setActive} activeKey={active ? accountKey(active) : null} />
         </div>
 

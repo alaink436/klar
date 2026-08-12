@@ -9,15 +9,17 @@
 // stays stable between renders. Apps sit on a ring around the hub; each app's
 // accounts fan out along its own radial, spread across the arc it owns.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
+  ReactFlowProvider,
   Background,
   BackgroundVariant,
   Controls,
   MiniMap,
   Handle,
   Position,
+  useReactFlow,
   type Node,
   type Edge,
   type NodeProps,
@@ -33,11 +35,23 @@ import {
   type AppMeta,
 } from "@/lib/socialAccounts";
 
-const APP_RING = 780; // hub → app distance
-const ACCT_RING = 340; // app → account row distance
-const ACCT_PITCH = 268; // sideways gap between two accounts of the same app
-const CARD_W = 244;
-const CARD_H = 128;
+const APP_RING = 470; // hub → app distance
+// The ring is drawn as an ellipse, not a circle: a square graph in a wide,
+// short panel forces the fit to zoom out until the cards are unreadable.
+// Only the app centres are stretched — the account clusters keep their own
+// spacing, so nothing inside a cluster is squashed.
+const X_STRETCH = 1.55;
+const Y_STRETCH = 0.82;
+const ACCT_RING = 250; // app → first account row
+const ACCT_PITCH = 226; // sideways step between two accounts in the same row
+// Rows step outward along the app's radial, so on a diagonal arm the step is
+// split across x and y and neither axis gets the full distance. Two boxes only
+// overlap when they overlap on BOTH axes, so this has to clear the card *width*
+// on a near-horizontal arm — the harder of the two constraints.
+const ROW_PITCH = 255;
+const MAX_COLS = 3; // wider than this and neighbouring apps start to collide
+const CARD_W = 214;
+const CARD_H = 108;
 
 const fmt = new Intl.NumberFormat("de-CH");
 const compact = (n: number): string =>
@@ -116,20 +130,20 @@ const CSS = `
 .am-hub-label{font-family:var(--font-display,var(--font-body));font-size:19px;font-weight:700;letter-spacing:-.01em;color:var(--fg)}
 .am-hub-sub{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--fg-4)}
 
-.am-app{width:236px;padding:13px 15px;border-radius:var(--radius-sm,8px);background:var(--surface);border:1px solid;border-left-width:3px;box-shadow:var(--shadow-sm)}
+.am-app{width:224px;padding:12px 14px;border-radius:var(--radius-sm,8px);background:var(--surface);border:1px solid;border-left-width:3px;box-shadow:var(--shadow-sm)}
 .am-app-name{font-size:16px;font-weight:650;letter-spacing:-.01em;color:var(--fg)}
 .am-app-meta{font-family:var(--font-mono);font-size:10px;color:var(--fg-4);margin-top:4px;font-variant-numeric:tabular-nums}
 
-.am-acct{width:${CARD_W}px;box-sizing:border-box;padding:11px 13px;border-radius:var(--radius-sm,8px);background:var(--surface-2,var(--surface));border:1px solid var(--line);display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
+.am-acct{width:${CARD_W}px;box-sizing:border-box;padding:9px 11px;border-radius:var(--radius-sm,8px);background:var(--surface-2,var(--surface));border:1px solid var(--line);display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
 .am-acct:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);border-color:var(--line-strong,var(--line))}
 .am-acct.active{border-color:var(--bx-accent,#74D6C4);box-shadow:0 0 0 2px color-mix(in oklab,var(--bx-accent,#74D6C4) 40%,transparent)}
 .am-acct.flag-warn{border-left:3px solid #d9a45f}
 .am-acct.flag-crit{border-left:3px solid #e8827c}
 .am-acct-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-.am-handle-txt{font-family:var(--font-mono);font-size:11.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.am-handle-txt{font-family:var(--font-mono);font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .am-role{font-family:var(--font-mono);font-size:8.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--fg-4);flex-shrink:0}
-.am-nums{display:flex;gap:14px;font-size:10px;color:var(--fg-4);font-variant-numeric:tabular-nums}
-.am-nums b{display:block;font-size:15px;font-weight:650;color:var(--fg);letter-spacing:-.02em}
+.am-nums{display:flex;gap:12px;font-size:9px;color:var(--fg-4);font-variant-numeric:tabular-nums;text-transform:uppercase;letter-spacing:.08em}
+.am-nums b{display:block;font-size:14px;font-weight:650;color:var(--fg);letter-spacing:-.02em;text-transform:none}
 .am-chips{display:flex;flex-wrap:wrap;gap:4px}
 .am-chip{font-family:var(--font-mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--surface);border:1px solid var(--line);color:var(--fg-3)}
 .am-chip.linked{color:#3fa06a;border-color:color-mix(in oklab,#3fa06a 40%,transparent)}
@@ -138,17 +152,24 @@ const CSS = `
 .am-rf-hint{position:absolute;bottom:10px;left:12px;right:12px;pointer-events:none;font-family:var(--font-body),system-ui,sans-serif;font-size:11px;letter-spacing:.02em;color:var(--fg-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:5}
 `;
 
-export default function AccountMap({
-  accounts,
-  onSelect,
-  activeKey,
-  height = "100%",
-}: {
+type MapProps = {
   accounts: SocialAccount[];
   onSelect?: (a: SocialAccount) => void;
   activeKey?: string | null;
   height?: string;
-}) {
+};
+
+export default function AccountMap(props: MapProps) {
+  // Provider so the inner component can reach the instance via useReactFlow;
+  // also isolates this graph if a second React Flow ever lands on the page.
+  return (
+    <ReactFlowProvider>
+      <AccountMapInner {...props} />
+    </ReactFlowProvider>
+  );
+}
+
+function AccountMapInner({ accounts, onSelect, activeKey, height = "100%" }: MapProps) {
   const [mode, setMode] = useState<ColorMode>("dark");
   useEffect(() => {
     const read = () =>
@@ -160,8 +181,11 @@ export default function AccountMap({
   }, []);
 
   const [hover, setHover] = useState<string | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const framedRef = useRef(false);
+  const { setViewport } = useReactFlow();
 
-  const { nodes, edges } = useMemo(() => {
+  const { nodes, edges, bounds } = useMemo(() => {
     const ns: Node[] = [];
     const es: Edge[] = [];
 
@@ -191,16 +215,16 @@ export default function AccountMap({
       const tx = -uy;
       const ty = ux;
 
-      const appX = ux * APP_RING;
-      const appY = uy * APP_RING;
+      const appX = ux * APP_RING * X_STRETCH;
+      const appY = uy * APP_RING * Y_STRETCH;
       const appId = `app:${g.app.key}`;
 
       ns.push({
         id: appId,
         type: "app",
-        position: { x: appX - 118, y: appY - 30 },
+        position: { x: appX - 112, y: appY - 30 },
         draggable: false,
-        width: 236,
+        width: 224,
         height: 60,
         data: {
           app: g.app,
@@ -217,11 +241,22 @@ export default function AccountMap({
         style: { stroke: g.app.color, strokeWidth: 1.4, opacity: 0.42 },
       });
 
+      // Accounts sit in rows of at most MAX_COLS, stacked outward. A single long
+      // row would run into the neighbouring app's arc as soon as one app has
+      // more than three accounts — MyLoo has six.
       const m = g.list.length;
+      const cols = Math.min(MAX_COLS, m);
+      const rows = Math.ceil(m / cols);
+
       g.list.forEach((a, j) => {
-        const offset = (j - (m - 1) / 2) * ACCT_PITCH;
-        const cx = appX + ux * ACCT_RING + tx * offset;
-        const cy = appY + uy * ACCT_RING + ty * offset;
+        const row = Math.floor(j / cols);
+        const col = j % cols;
+        // The last row is usually short; centre it under the ones above.
+        const inThisRow = row === rows - 1 ? m - row * cols : cols;
+        const along = ACCT_RING + row * ROW_PITCH;
+        const offset = (col - (inThisRow - 1) / 2) * ACCT_PITCH;
+        const cx = appX + ux * along + tx * offset;
+        const cy = appY + uy * along + ty * offset;
         const id = `acct:${accountKey(a)}`;
 
         ns.push({
@@ -254,8 +289,54 @@ export default function AccountMap({
     });
 
     void totalFollowers;
-    return { nodes: ns, edges: es };
+
+    // Bounding box of the laid-out graph. We compute the view from this rather
+    // than calling fitView, so the framing never depends on when React Flow
+    // happens to measure things.
+    const box = ns.reduce(
+      (b, n) => ({
+        minX: Math.min(b.minX, n.position.x),
+        minY: Math.min(b.minY, n.position.y),
+        maxX: Math.max(b.maxX, n.position.x + (n.width ?? 0)),
+        maxY: Math.max(b.maxY, n.position.y + (n.height ?? 0)),
+      }),
+      { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity },
+    );
+
+    return { nodes: ns, edges: es, bounds: box };
   }, [accounts, activeKey]);
+
+  // Frame the graph ourselves. React Flow's own `fitView` never fired here —
+  // on the first paint the wrapper measures 0×0, the fit runs against an empty
+  // box, and the transform is silently left at identity. The graph then sits
+  // off-screen, which reads as "nothing is clickable" because every click lands
+  // on empty pane. Runs once, so a later window resize does not yank the view
+  // back from wherever the reader panned to.
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+
+    const frame = () => {
+      if (framedRef.current) return;
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      const bw = bounds.maxX - bounds.minX;
+      const bh = bounds.maxY - bounds.minY;
+      if (!w || !h || !Number.isFinite(bw) || !Number.isFinite(bh) || bw <= 0 || bh <= 0) return;
+
+      const pad = 40;
+      const zoom = Math.min((w - pad * 2) / bw, (h - pad * 2) / bh, 1.1);
+      const cx = (bounds.minX + bounds.maxX) / 2;
+      const cy = (bounds.minY + bounds.maxY) / 2;
+      setViewport({ x: w / 2 - cx * zoom, y: h / 2 - cy * zoom, zoom });
+      framedRef.current = true;
+    };
+
+    frame();
+    const ro = new ResizeObserver(frame);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [bounds, setViewport]);
 
   const onNodeClick = useCallback(
     (_: unknown, node: Node) => {
@@ -266,15 +347,13 @@ export default function AccountMap({
   );
 
   return (
-    <div className="am-rf" style={{ height }}>
+    <div className="am-rf" style={{ height }} ref={wrapRef}>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
         colorMode={mode}
-        fitView
-        fitViewOptions={{ padding: 0.08 }}
         minZoom={0.1}
         maxZoom={2.5}
         nodesDraggable={false}
