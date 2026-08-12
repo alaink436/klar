@@ -1,10 +1,20 @@
-// Klar Control · Content — Blotato posting-pipeline dashboard.
+// Klar Control · Content — the marketing infrastructure in one place.
 //
-// Server component, same 2FA gate as the rest of /admin. Shows what goes out
-// through Blotato: posts + views per connected channel, a published-over-time
-// chart, top posts by views and the post history. Data comes from
-// lib/blotato.ts (key from the vault, provider "blotato"); views/likes come
-// from GET /v2/analytics (lifetime metrics of posts created in the range).
+// Two tabs. "Landkarte" opens first: every social account across the five apps
+// as a graph (React Flow, same mechanics as the AI-Brain viewer), including the
+// private niche accounts Blotato has never seen. That is the overview question —
+// what do we own and how big is it — and it is the one asked most often.
+//
+// "Pipeline" is the older Blotato dashboard: posts + views per connected
+// channel, a published-over-time chart, top posts by views and the post history.
+// It only ever knew the connected accounts, which is why it is no longer the
+// landing tab. Data comes from lib/blotato.ts (key from the vault, provider
+// "blotato"); views/likes come from GET /v2/analytics (lifetime metrics of posts
+// created in the range).
+//
+// Server component, same 2FA gate as the rest of /admin. The tab lives in
+// `?tab=`, and every link inside the pipeline tab carries it, so filtering
+// there does not bounce back to the map.
 //
 // Note: GET /v2/posts has no accountId field, so per-channel numbers group by
 // platform. With one account per platform (current setup) that is identical;
@@ -24,11 +34,14 @@ import {
 } from "../../../lib/blotato";
 import { getNativeCounts, type NativeCount } from "../../../lib/contentWarmup";
 import { KLAR_APPS } from "../../../lib/klarApps";
+import { ACCOUNTS, reconcile } from "@/lib/socialAccounts";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ContentChart, { type ContentChartRow } from "./ContentChart";
+import AccountBoard from "@/app/components/accounts/AccountBoard";
 import type { ReactNode } from "react";
 
 export const dynamic = "force-dynamic";
@@ -177,7 +190,7 @@ function RangeSegment({ active, hideParam }: { active: RangeKey; hideParam: stri
       {RANGES.map((r) => (
         <Link
           key={r.key}
-          href={`/admin/content?range=${r.key}${hideParam ? `&hide=${hideParam}` : ""}`}
+          href={`/admin/content?tab=pipeline&range=${r.key}${hideParam ? `&hide=${hideParam}` : ""}`}
           className={`[font-family:var(--font-mono)] text-[10.5px] uppercase tracking-[0.06em] px-3 py-1.5 rounded-full border transition-colors ${
             active === r.key
               ? "border-line-strong bg-surface-2 text-fg font-semibold"
@@ -391,7 +404,7 @@ function buildChart(
 export default async function ContentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string; hide?: string }>;
+  searchParams: Promise<{ range?: string; hide?: string; tab?: string }>;
 }) {
   // Auth — identical gate to outreach/brain/cal/bookings (device cookie + admin session).
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
@@ -405,10 +418,15 @@ export default async function ContentPage({
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
   const sp = await searchParams;
+  const tab = sp.tab === "pipeline" ? "pipeline" : "map";
   const range = RANGES.find((r) => r.key === sp.range) ?? RANGES[1]; // default 30d
   const sinceMs = range.days == null ? 0 : Date.now() - range.days * 86_400_000;
 
   const data = await getBlotatoOverview(range.days == null ? undefined : new Date(sinceMs).toISOString());
+
+  // The map's own source of truth, with Blotato allowed to correct the
+  // "can the pipeline post here" flags. An empty live list leaves it untouched.
+  const mapAccounts = reconcile(ACCOUNTS, data.accounts);
 
   // Warm/cold split + native profile post counts. Blotato only knows posts IT
   // published, but warm accounts are still posted to MANUALLY, so their real post
@@ -480,7 +498,7 @@ export default async function ContentPage({
     const h = new Set(hidden);
     if (h.has(slug)) h.delete(slug);
     else h.add(slug);
-    const qs = new URLSearchParams({ range: range.key });
+    const qs = new URLSearchParams({ tab: "pipeline", range: range.key });
     if (h.size) qs.set("hide", [...h].join(","));
     return `/admin/content?${qs.toString()}`;
   };
@@ -540,10 +558,22 @@ export default async function ContentPage({
       <title>Content · Klar Control</title>
       <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
       <div className="content">
-        <PageHeader eyebrow="Posting-Pipeline" title="Content">
-          Posts, Views und Zeitplan aller Blotato-Kanäle.
+        <PageHeader eyebrow="Marketing-Infrastruktur" title="Content">
+          Alle Accounts über die fünf Apps auf einen Blick — und darunter, was über Blotato
+          tatsächlich rausgeht.
         </PageHeader>
 
+        <Tabs defaultValue={tab}>
+          <TabsList className="mb-5">
+            <TabsTrigger value="map">Landkarte</TabsTrigger>
+            <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="map">
+            <AccountBoard accounts={mapAccounts} />
+          </TabsContent>
+
+          <TabsContent value="pipeline">
         {!data.ok ? (
           <Card className="px-6 py-5">
             <div className="font-semibold text-fg text-[14px] mb-1.5">Blotato nicht erreichbar</div>
@@ -866,6 +896,8 @@ export default async function ContentPage({
             )}
           </>
         )}
+          </TabsContent>
+        </Tabs>
       </div>
     </>
   );

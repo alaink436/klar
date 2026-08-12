@@ -32,7 +32,6 @@ export const NAV_ITEMS: NavItemDef[] = [
   { id: "collabs", labelKey: "navCollabs", icon: "reply", href: "/admin/collabs", section: "studio" },
   { id: "outreach", labelKey: "navOutreach", icon: "outreach", href: "/admin/outreach", section: "studio" },
   { id: "content", labelKey: "navContent", icon: "content", href: "/admin/content", section: "studio" },
-  { id: "accounts", labelKey: "navAccounts", icon: "content", href: "/admin/accounts", section: "studio" },
   { id: "bookings", labelKey: "navBookings", icon: "calendar", href: "/admin/bookings", section: "studio" },
   { id: "cal", labelKey: "navCal", icon: "calendar", href: "/admin/cal", section: "studio" },
   { id: "analytics", labelKey: "navAnalytics", icon: "analytics", href: "/admin/analytics", section: "studio" },
