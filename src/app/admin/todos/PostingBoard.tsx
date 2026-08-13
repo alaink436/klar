@@ -47,6 +47,8 @@ export interface BoardAccount {
   rhythm: number[];
   /** Was auf diesem Account rausgeht — steht auch in der Tagesliste. */
   format: string;
+  /** Wo das Material dafür liegt — Ordner, Drive, Link, Anweisung. */
+  material: string;
   note: string;
 }
 
@@ -233,12 +235,18 @@ export default function PostingBoard({
               {dueToday.map((r) => {
                 const ticked = isDone(r.key, todayCol.iso);
                 return (
-                  <button
+                  // Karte statt Knopf: die Materialangabe kann ein Link sein,
+                  // und ein <a> darf nicht in einem <button> stehen. Der
+                  // Abhaken-Bereich bleibt der Knopf, er füllt die Karte.
+                  <div
                     key={r.key}
+                    className="rounded-[var(--radius-sm)] border bg-surface transition-colors hover:border-fg-3"
+                    style={{ borderColor: ticked ? "color-mix(in oklab,var(--fg) 35%,var(--line))" : "var(--line)" }}
+                  >
+                  <button
                     type="button"
                     onClick={() => toggleDone(r, todayCol.iso)}
-                    className="flex items-center gap-2.5 rounded-[var(--radius-sm)] border bg-surface px-3 py-2.5 text-left transition-colors hover:border-fg-3"
-                    style={{ borderColor: ticked ? "color-mix(in oklab,var(--fg) 35%,var(--line))" : "var(--line)" }}
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left"
                   >
                     <span
                       className={`flex items-center justify-center size-[18px] rounded-[4px] border shrink-0 ${
@@ -263,6 +271,8 @@ export default function PostingBoard({
                       </span>
                     </span>
                   </button>
+                  {r.material ? <MaterialHint text={r.material} /> : null}
+                  </div>
                 );
               })}
             </div>
@@ -291,7 +301,7 @@ export default function PostingBoard({
                 Account
               </th>
               <th className={HEAD} style={{ minWidth: 104 }}>Zustand</th>
-              <th className={HEAD} style={{ minWidth: 130 }}>Format</th>
+              <th className={HEAD} style={{ minWidth: 230 }}>Format &amp; Material</th>
               {/* Notiz steht neben dem Format, nicht hinter der Woche: was du
                   dir überlegt hast, gehört neben das, worauf es sich bezieht —
                   sonst liest man es erst, wenn man ganz nach rechts scrollt. */}
@@ -412,6 +422,25 @@ export default function PostingBoard({
                         }}
                         className={`${FIELD} w-full`}
                       />
+                      {/* Woher das Zeug kommt, steht direkt unter dem, was es
+                          ist — beim Posten wird beides in derselben Sekunde
+                          gebraucht, und getrennte Spalten hätten die Zeile
+                          nur breiter gemacht. */}
+                      <div className="mt-1">
+                        <GrowArea
+                          defaultValue={r.material}
+                          placeholder="Material: Ordner, Drive, Link …"
+                          ariaLabel={`Wo das Material für @${r.handle} liegt`}
+                          mono
+                          onCommit={(v) => {
+                            if (v === r.material) return;
+                            startTransition(async () => {
+                              patchRow({ key: r.key, material: v });
+                              await updateAccount(r.key, { material: v });
+                            });
+                          }}
+                        />
+                      </div>
                     </td>
 
                     <td className="px-2.5 py-2 align-top">
@@ -561,6 +590,31 @@ export default function PostingBoard({
 }
 
 /**
+ * Die Materialangabe in der Tagesliste. Ein Link wird ein Link — beim Posten
+ * will man ihn anklicken, nicht abtippen. Ein Ordnerpfad bleibt Text, weil
+ * ihn kein Browser öffnen darf; er steht in Schreibmaschinenschrift und lässt
+ * sich mit einem Doppelklick markieren.
+ */
+function MaterialHint({ text }: { text: string }) {
+  const isLink = /^https?:\/\/\S+$/i.test(text.trim());
+  const base =
+    "block border-t border-line px-3 py-2 [font-family:var(--font-mono)] text-[10.5px] leading-snug break-words";
+  if (isLink) {
+    return (
+      <a
+        href={text.trim()}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`${base} text-fg-2 underline decoration-dotted hover:text-fg`}
+      >
+        {text.trim()}
+      </a>
+    );
+  }
+  return <div className={`${base} text-fg-3 whitespace-pre-wrap`}>{text}</div>;
+}
+
+/**
  * Notizfeld, das beim Schreiben nach unten aufgeht statt in einer Zeile zu
  * scrollen. Eine Notiz, von der man immer nur sieben Wörter sieht, schreibt
  * niemand zu Ende.
@@ -574,11 +628,14 @@ function GrowArea({
   placeholder,
   ariaLabel,
   onCommit,
+  mono,
 }: {
   defaultValue: string;
   placeholder: string;
   ariaLabel: string;
   onCommit: (value: string) => void;
+  /** Für Pfade und Links: Schreibmaschine, damit ein Ordner als Ordner liest. */
+  mono?: boolean;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -602,7 +659,11 @@ function GrowArea({
       aria-label={ariaLabel}
       onInput={fit}
       onBlur={(e) => onCommit(e.target.value.trim())}
-      className="w-full min-w-0 px-2 py-1.5 text-[12px] leading-snug [font-family:var(--font-body)] text-fg bg-bg border border-line rounded-[4px] focus:border-fg focus:outline-none"
+      className={`w-full min-w-0 px-2 py-1.5 leading-snug text-fg bg-bg border border-line rounded-[4px] focus:border-fg focus:outline-none ${
+        mono
+          ? "text-[11px] [font-family:var(--font-mono)] text-fg-2"
+          : "text-[12px] [font-family:var(--font-body)]"
+      }`}
       style={{ resize: "none", overflow: "hidden" }}
     />
   );

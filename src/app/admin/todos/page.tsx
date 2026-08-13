@@ -150,6 +150,7 @@ export default async function TodosPage({
         state: saved?.state ?? (a.role === "legacy" ? "dropped" : "active"),
         rhythm: saved?.rhythm ?? [],
         format: saved?.format ?? "",
+        material: saved?.material ?? "",
         note: saved?.note ?? "",
       };
     }),
@@ -171,6 +172,7 @@ export default async function TodosPage({
         state: s.state,
         rhythm: s.rhythm,
         format: s.format ?? "",
+        material: s.material ?? "",
         note: s.note ?? "",
       };
     });

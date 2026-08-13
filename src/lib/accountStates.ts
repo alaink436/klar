@@ -68,6 +68,8 @@ export interface AccountStatusPatch {
   rhythm?: number[];
   /** Was auf diesem Account rausgeht — steht auch in der Tagesliste. */
   format?: string | null;
+  /** Wo das Material liegt: Ordner, Drive, Link. Steht in der Tagesliste. */
+  material?: string | null;
   note?: string | null;
   /** Nur für selbst angelegte Zeilen — Accounts, die nicht im Code stehen. */
   app?: string | null;
