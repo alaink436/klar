@@ -29,6 +29,12 @@ export function isAccountState(v: unknown): v is AccountState {
  */
 export const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
 
+/**
+ * Einsteuern läuft über drei Runden — der Feed zieht nicht in einer Sitzung in
+ * die Nische. Die Zahl steht hier und nicht verstreut in der Oberfläche.
+ */
+export const STEER_ROUNDS = 3;
+
 export const WEEKDAY_SHORT: Record<number, string> = {
   1: "Mo",
   2: "Di",
@@ -72,8 +78,8 @@ export interface AccountStatusPatch {
   material?: string | null;
   /** Zielnische des Accounts. */
   niche?: string | null;
-  /** Häkchen "in die Nische gesteuert" — setzt bzw. löscht den Zeitstempel. */
-  steered?: boolean;
+  /** Stand des Einsteuerns: 0–3 Runden. Kürzen entfernt die späteren wieder. */
+  steeredRounds?: number;
   note?: string | null;
   /** Nur für selbst angelegte Zeilen — Accounts, die nicht im Code stehen. */
   app?: string | null;

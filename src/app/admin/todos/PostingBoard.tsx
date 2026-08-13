@@ -27,6 +27,7 @@ import {
   ACCOUNT_STATES,
   ACCOUNT_STATE_LABEL,
   FORMAT_HINTS,
+  STEER_ROUNDS,
   WEEKDAYS,
   WEEKDAY_SHORT,
   type AccountState,
@@ -51,8 +52,8 @@ export interface BoardAccount {
   material: string;
   /** Zielnische — wohin der Account zeigen soll. */
   niche: string;
-  /** Wann der Feed dorthin gesteuert wurde (ISO), oder null. */
-  steeredAt: string | null;
+  /** Ein Zeitstempel je erledigter Einsteuer-Runde, höchstens drei. */
+  steeredRounds: string[];
   note: string;
 }
 
@@ -139,6 +140,19 @@ export default function PostingBoard({
     });
   }
 
+  /** Stand der Einsteuer-Runden setzen (0–3), optimistisch wie alles hier. */
+  function setSteered(r: BoardAccount, n: number) {
+    const now = new Date().toISOString();
+    const next =
+      n <= r.steeredRounds.length
+        ? r.steeredRounds.slice(0, n)
+        : [...r.steeredRounds, ...Array.from({ length: n - r.steeredRounds.length }, () => now)];
+    startTransition(async () => {
+      patchRow({ key: r.key, steeredRounds: next });
+      await updateAccount(r.key, { steeredRounds: n });
+    });
+  }
+
   function toggleDone(r: BoardAccount, iso: string) {
     const k = cellKey(r.key, iso);
     const on = !(k in done);
@@ -196,7 +210,7 @@ export default function PostingBoard({
   const byHand = rows.filter((r) => !r.automated && r.state !== "dropped").length;
   // Im Warm-up ist das die Zahl, die den Fortschritt zeigt — nicht die Posts.
   const relevant = rows.filter((r) => r.state !== "dropped");
-  const steered = relevant.filter((r) => r.steeredAt).length;
+  const steered = relevant.filter((r) => r.steeredRounds.length >= STEER_ROUNDS).length;
   const allTime = Object.entries(totals).reduce((sum, [, n]) => sum + n, 0);
 
   return (
@@ -286,9 +300,11 @@ export default function PostingBoard({
                           steht, zu posten heisst, ihn ans falsche Publikum
                           auszuliefern. Das gehört vor den Post, nicht in eine
                           Spalte weit rechts. */}
-                      {!r.steeredAt ? (
+                      {r.steeredRounds.length < STEER_ROUNDS ? (
                         <span className="block [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-warning">
-                          noch nicht eingesteuert
+                          {r.steeredRounds.length === 0
+                            ? "noch nicht eingesteuert"
+                            : `erst ${r.steeredRounds.length} von ${STEER_ROUNDS} Runden`}
                         </span>
                       ) : null}
                     </span>
@@ -447,43 +463,53 @@ export default function PostingBoard({
                         }}
                         className={`${FIELD} w-full`}
                       />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const on = !r.steeredAt;
-                          startTransition(async () => {
-                            patchRow({ key: r.key, steeredAt: on ? new Date().toISOString() : null });
-                            await updateAccount(r.key, { steered: on });
-                          });
-                        }}
-                        aria-pressed={Boolean(r.steeredAt)}
-                        title={
-                          r.steeredAt
-                            ? `Eingesteuert seit ${new Date(r.steeredAt).toLocaleDateString("de-CH")}`
-                            : "Feed noch nicht in die Nische gezogen"
-                        }
-                        className="flex items-center gap-1.5 mt-1.5 group/steer"
-                      >
-                        <span
-                          className={`flex items-center justify-center size-[15px] rounded-[4px] border shrink-0 transition-colors ${
-                            r.steeredAt
-                              ? "bg-fg border-fg text-[var(--accent-fg)]"
-                              : "border-line-strong group-hover/steer:border-fg"
-                          }`}
-                        >
-                          {r.steeredAt ? (
-                            <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M20 6 9 17l-5-5" />
-                            </svg>
-                          ) : null}
-                        </span>
+                      {/* Drei Runden, drei Kästchen. Ein Klick auf das dritte
+                          setzt auch die ersten beiden — nachträglich einzeln
+                          abzuhaken, was ohnehin der Reihe nach passiert, wäre
+                          nur Arbeit. Ein Klick auf ein schon gefülltes nimmt
+                          ab da wieder weg. */}
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <div className="flex gap-[3px]">
+                          {Array.from({ length: STEER_ROUNDS }, (_, i) => {
+                            const n = i + 1;
+                            const filled = r.steeredRounds.length >= n;
+                            const stamp = r.steeredRounds[i];
+                            return (
+                              <button
+                                key={n}
+                                type="button"
+                                onClick={() => setSteered(r, filled && r.steeredRounds.length === n ? n - 1 : n)}
+                                aria-pressed={filled}
+                                aria-label={`Einsteuer-Runde ${n} von ${STEER_ROUNDS} für @${r.handle}`}
+                                title={
+                                  stamp
+                                    ? `${n}. Runde am ${new Date(stamp).toLocaleDateString("de-CH")}`
+                                    : `${n}. Runde noch offen`
+                                }
+                                className={`flex items-center justify-center size-[15px] rounded-[4px] border shrink-0 transition-colors ${
+                                  filled
+                                    ? "bg-fg border-fg text-[var(--accent-fg)]"
+                                    : "border-line-strong hover:border-fg"
+                                }`}
+                              >
+                                {filled ? (
+                                  <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M20 6 9 17l-5-5" />
+                                  </svg>
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </div>
                         <span
                           className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em]"
-                          style={{ color: r.steeredAt ? "var(--fg-2)" : "var(--fg-4)" }}
+                          style={{
+                            color: r.steeredRounds.length >= STEER_ROUNDS ? "var(--fg-2)" : "var(--fg-4)",
+                          }}
                         >
                           eingesteuert
                         </span>
-                      </button>
+                      </div>
                     </td>
 
                     <td className="px-2.5 py-2 align-top">

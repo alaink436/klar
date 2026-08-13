@@ -16,7 +16,12 @@
 //     der Weg für alles, was lib/socialAccounts nicht kennt (YouTube, Threads,
 //     ein zweiter Zweitaccount); vorher brauchte so etwas einen Deploy.
 import "server-only";
-import { isAccountState, type AccountState, type AccountStatusPatch } from "./accountStates";
+import {
+  isAccountState,
+  STEER_ROUNDS,
+  type AccountState,
+  type AccountStatusPatch,
+} from "./accountStates";
 
 export type { AccountState, AccountStatusPatch };
 
@@ -47,8 +52,8 @@ export interface AccountStatus {
   material: string | null;
   /** Zielnische — wohin der Account zeigen soll. */
   niche: string | null;
-  /** Wann der Feed dorthin gesteuert wurde. NULL = noch nicht. */
-  steered_at: string | null;
+  /** Bis zu drei Zeitstempel — einer je Einsteuer-Runde. Länge = Stand. */
+  steered_rounds: string[];
   note: string | null;
   /** Gesetzt nur bei selbst angelegten Accounts. */
   app: string | null;
@@ -119,9 +124,13 @@ export async function saveAccountStatus(
   if (patch.format !== undefined) row.format = clean(patch.format, 60);
   if (patch.material !== undefined) row.material = clean(patch.material, 400);
   if (patch.niche !== undefined) row.niche = clean(patch.niche, 60);
-  // Das Häkchen schreibt einen Zeitstempel, kein Ja/Nein — so steht nebenbei
-  // fest, seit wann der Account in seiner Nische steht.
-  if (patch.steered !== undefined) row.steered_at = patch.steered ? new Date().toISOString() : null;
+  // Jede Runde schreibt ihren eigenen Zeitstempel, statt einen Zähler
+  // hochzusetzen: so sieht man auch, ob die drei Runden über Tage verteilt
+  // waren oder alle in zehn Minuten. Dafür müssen die bisherigen gelesen
+  // werden — PostgREST kann ein Array nicht serverseitig verlängern.
+  if (patch.steeredRounds !== undefined) {
+    row.steered_rounds = await nextRounds(key, patch.steeredRounds);
+  }
   if (patch.note !== undefined) row.note = clean(patch.note, 500);
   if (patch.app !== undefined) row.app = clean(patch.app, 60);
   if (patch.platform !== undefined) row.platform = clean(patch.platform, 40)?.toLowerCase() ?? null;
@@ -236,6 +245,31 @@ export async function setPostDone(
   } catch {
     return { ok: false };
   }
+}
+
+/**
+ * Der neue Stand der Einsteuer-Runden. Kürzen wirft die späteren weg, Erhöhen
+ * hängt für jede neue Runde einen Zeitstempel an; die schon gesetzten bleiben
+ * unangetastet, damit ihr Datum stimmt.
+ */
+async function nextRounds(key: string, target: number): Promise<string[]> {
+  const want = Math.max(0, Math.min(STEER_ROUNDS, Math.round(target)));
+  let current: string[] = [];
+  try {
+    const res = await fetch(
+      `${REST_STATUS}?select=steered_rounds&account_key=eq.${encodeURIComponent(key)}`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (res.ok) {
+      const rows = (await res.json()) as { steered_rounds: string[] | null }[];
+      current = Array.isArray(rows?.[0]?.steered_rounds) ? rows[0].steered_rounds : [];
+    }
+  } catch {
+    current = [];
+  }
+  if (want <= current.length) return current.slice(0, want);
+  const now = new Date().toISOString();
+  return [...current, ...Array.from({ length: want - current.length }, () => now)];
 }
 
 function clean(v: string | null | undefined, max: number): string | null {

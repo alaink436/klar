@@ -152,7 +152,7 @@ export default async function TodosPage({
         format: saved?.format ?? "",
         material: saved?.material ?? "",
         niche: saved?.niche ?? "",
-        steeredAt: saved?.steered_at ?? null,
+        steeredRounds: saved?.steered_rounds ?? [],
         note: saved?.note ?? "",
       };
     }),
@@ -176,7 +176,7 @@ export default async function TodosPage({
         format: s.format ?? "",
         material: s.material ?? "",
         niche: s.niche ?? "",
-        steeredAt: s.steered_at ?? null,
+        steeredRounds: s.steered_rounds ?? [],
         note: s.note ?? "",
       };
     });
