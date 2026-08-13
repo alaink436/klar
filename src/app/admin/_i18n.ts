@@ -60,8 +60,6 @@ const DE = {
   navLogout: "Logout",
   themeToggle: "Theme wechseln",
   navDragHint: "Ziehen, um das Menü umzusortieren",
-  todoSub:
-    "Deine eigene Liste, als Wochenplan. Neue Punkte landen in der Sammelstelle links — zieh sie auf einen Tag oder nimm „Verschieben“ auf der Karte, und jede Karte findet über denselben Weg zurück. Was sich aus Daten ableiten lässt, steht auf der Übersicht.",
   todoPlaceholder: "Was ist zu tun?",
   todoAdd: "Hinzufügen",
   todoDelete: "Löschen",
@@ -110,8 +108,6 @@ const DE = {
   // Umschalter oben auf der To-do-Seite: beide Ansichten zeigen dieselbe Woche.
   todoTabPlanner: "Wochenplan",
   todoTabPosting: "Posting",
-  postingSub:
-    "Was auf welchem Account rausgeht — oben, was heute dran ist, darunter die Woche pro Account. Der Rhythmus benennt Wochentage, der Haken ist deine Auskunft. Was die Plattform selbst zählt, steht auf der Content-Landkarte.",
   icalTitle: "Im iPhone-Kalender mitlesen",
   icalBody: (n: number) =>
     `Geplante Punkte (aktuell ${n}) lassen sich als Kalender abonnieren — sie erscheinen dann als ganztägige Einträge im iPhone. Der Kalender ist nur zum Lesen: geändert wird hier.`,
@@ -267,8 +263,6 @@ const EN: AdminMessages = {
   navLogout: "Log out",
   themeToggle: "Switch theme",
   navDragHint: "Drag to reorder the menu",
-  todoSub:
-    "Your own list, as a week. New items land in the holding pen on the left — drag one onto a day or use “Move” on the card, and every card finds its way back the same way. Anything that follows from data lives on the overview.",
   todoPlaceholder: "What needs doing?",
   todoAdd: "Add",
   todoDelete: "Delete",
@@ -313,8 +307,6 @@ const EN: AdminMessages = {
   todoSearchClear: "Clear filter",
   todoTabPlanner: "Week plan",
   todoTabPosting: "Posting",
-  postingSub:
-    "What goes out on which account — what is due today on top, the week per account below. The rhythm names weekdays, the tick is your own statement. What the platform itself counts lives on the content map.",
   icalTitle: "Follow along in the iPhone calendar",
   icalBody: (n: number) =>
     `Planned items (currently ${n}) can be subscribed to as a calendar — they show up as all-day entries on the phone. Read-only: changes happen here.`,

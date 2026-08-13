@@ -20,12 +20,13 @@
 //     Zelle bekommt ein Textfeld — für die Tage, an denen man wissen will, WAS
 //     rausging, ohne dass die anderen sechs Spalten dafür Platz opfern.
 
-import { Fragment, useOptimistic, useState, useTransition } from "react";
+import { Fragment, useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   ACCOUNT_STATES,
   ACCOUNT_STATE_LABEL,
+  FORMAT_HINTS,
   WEEKDAYS,
   WEEKDAY_SHORT,
   type AccountState,
@@ -44,6 +45,8 @@ export interface BoardAccount {
   custom: boolean;
   state: AccountState;
   rhythm: number[];
+  /** Was auf diesem Account rausgeht — steht auch in der Tagesliste. */
+  format: string;
   note: string;
 }
 
@@ -190,26 +193,7 @@ export default function PostingBoard({
   return (
     <Card className="p-0 overflow-hidden mt-4">
       <div className="px-5 py-3.5 border-b border-line">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="font-semibold text-fg text-[14px]">Posting</div>
-            <p className="text-[12.5px] text-fg-3 m-0 mt-0.5 leading-relaxed max-w-[76ch]">
-              Links steht, was gelten soll, rechts was war. Der Rhythmus benennt Wochentage &mdash; ein
-              Tag l&auml;sst sich anklicken, dann wird seine Spalte breit und nimmt auch auf, was
-              rausging. Ein Haken ist deine Auskunft; die gemessene Postzahl steht auf der
-              Content-Landkarte.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setHideDropped((v) => !v)}
-            className="[font-family:var(--font-mono)] text-[10.5px] uppercase tracking-[0.1em] text-fg-4 hover:text-fg shrink-0"
-          >
-            {hideDropped ? "Aufgegebene zeigen" : "Aufgegebene ausblenden"}
-          </button>
-        </div>
-
-        <div className="flex flex-wrap gap-x-7 gap-y-2 mt-3.5">
+        <div className="flex flex-wrap items-end justify-between gap-x-7 gap-y-3">
           <Stat label="Accounts" value={String(rows.length)} sub={`${byHand} davon von Hand`} />
           <Stat
             label="Zustand"
@@ -218,6 +202,13 @@ export default function PostingBoard({
           />
           <Stat label="Diese Woche" value={`${posted} / ${planned}`} sub={missed > 0 ? `${missed} verpasst` : "nichts verpasst"} danger={missed > 0} />
           <Stat label="Insgesamt gepostet" value={String(allTime)} sub="deine Haken, alle Wochen" />
+          <button
+            type="button"
+            onClick={() => setHideDropped((v) => !v)}
+            className="[font-family:var(--font-mono)] text-[10.5px] uppercase tracking-[0.1em] text-fg-4 hover:text-fg self-end pb-0.5"
+          >
+            {hideDropped ? "Aufgegebene zeigen" : "Aufgegebene ausblenden"}
+          </button>
         </div>
       </div>
 
@@ -264,8 +255,11 @@ export default function PostingBoard({
                       <span className={`block text-[13px] truncate ${ticked ? "text-fg-4 line-through" : "text-fg"}`}>
                         {r.handle ? `@${r.handle}` : "Handle fehlt"}
                       </span>
+                      {/* Das Format steht mit dabei: vor dem Posten ist „was
+                          muss ich dafür produzieren" die eigentliche Frage. */}
                       <span className="block [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-4">
-                        {r.platformLabel} · {r.appLabel} · {r.automated ? "Blotato" : "von Hand"}
+                        {r.platformLabel} · {r.appLabel}
+                        {r.format ? <span className="text-fg-2"> · {r.format}</span> : null}
                       </span>
                     </span>
                   </button>
@@ -283,14 +277,21 @@ export default function PostingBoard({
         </div>
       ) : null}
 
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse" style={{ minWidth: 1120 }}>
-          <thead>
+      {/* Eigene Scroll-Box statt der ganzen Seite: nur so bleiben Kopfzeile und
+          Account-Spalte beim Blättern stehen — sonst verliert man bei zwanzig
+          Zeilen die Zuordnung, welcher Haken zu wem gehört. */}
+      <div className="overflow-auto" style={{ maxHeight: "min(70vh, 760px)" }}>
+        <table className="w-full border-collapse" style={{ minWidth: 1220 }}>
+          <thead className="sticky top-0 z-20" style={{ background: "var(--surface)" }}>
             <tr className="border-b border-line">
-              <th className={`${HEAD} sticky left-0 z-10 bg-surface`} style={{ minWidth: 210 }}>
+              <th
+                className={`${HEAD} sticky left-0 z-30`}
+                style={{ minWidth: 210, background: "var(--surface)" }}
+              >
                 Account
               </th>
               <th className={HEAD} style={{ minWidth: 104 }}>Zustand</th>
+              <th className={HEAD} style={{ minWidth: 130 }}>Format</th>
               <th className={HEAD} style={{ minWidth: 150 }}>Rhythmus</th>
               {days.map((d) => {
                 const { soll, ist } = dayStat(d);
@@ -340,7 +341,7 @@ export default function PostingBoard({
                 <Fragment key={r.key}>
                   {first ? (
                     <tr>
-                      <td colSpan={6 + days.length} className="px-2.5 py-1.5" style={{ background: "var(--surface-2)" }}>
+                      <td colSpan={7 + days.length} className="px-2.5 py-1.5" style={{ background: "var(--surface-2)" }}>
                         <span className="inline-flex items-center gap-2">
                           <span className="size-[8px] rounded-full" style={{ background: r.appColor }} />
                           <span className="[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-2">
@@ -352,7 +353,10 @@ export default function PostingBoard({
                   ) : null}
 
                   <tr className="border-t border-line" style={{ opacity: r.state === "dropped" ? 0.5 : 1 }}>
-                    <td className="px-2.5 py-2 sticky left-0 z-10 bg-surface" style={{ minWidth: 210 }}>
+                    <td
+                      className="px-2.5 py-2 sticky left-0 z-10 align-top"
+                      style={{ minWidth: 210, background: "var(--surface)" }}
+                    >
                       <div className="text-[13px] text-fg">
                         {r.handle ? `@${r.handle}` : <span className="text-fg-4">Handle fehlt</span>}
                       </div>
@@ -389,7 +393,25 @@ export default function PostingBoard({
                       </select>
                     </td>
 
-                    <td className="px-2.5 py-2">
+                    <td className="px-2.5 py-2 align-top">
+                      <input
+                        list="klar-formats"
+                        defaultValue={r.format}
+                        placeholder="Slideshow …"
+                        aria-label={`Format von @${r.handle}`}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          if (v === r.format) return;
+                          startTransition(async () => {
+                            patchRow({ key: r.key, format: v });
+                            await updateAccount(r.key, { format: v });
+                          });
+                        }}
+                        className={`${FIELD} w-full`}
+                      />
+                    </td>
+
+                    <td className="px-2.5 py-2 align-top">
                       <div className="flex gap-[3px]">
                         {WEEKDAYS.map((d) => {
                           const on = r.rhythm.includes(d);
@@ -447,17 +469,14 @@ export default function PostingBoard({
                               ) : null}
                             </button>
                             {open ? (
-                              <input
-                                type="text"
+                              <GrowArea
                                 defaultValue={done[cellKey(r.key, d.iso)] ?? ""}
-                                placeholder="was ging raus?"
-                                aria-label={`Notiz für @${r.handle} am ${d.dayLabel}`}
-                                onBlur={(e) => {
-                                  const v = e.target.value.trim();
+                                placeholder={r.format ? `${r.format} — was ging raus?` : "was ging raus?"}
+                                ariaLabel={`Notiz für @${r.handle} am ${d.dayLabel}`}
+                                onCommit={(v) => {
                                   if (v === (done[cellKey(r.key, d.iso)] ?? "")) return;
                                   setDayNote(r, d.iso, v);
                                 }}
-                                className={`${FIELD} w-full min-w-0`}
                               />
                             ) : null}
                           </div>
@@ -481,21 +500,18 @@ export default function PostingBoard({
                       {totals[r.key] ?? 0}
                     </td>
 
-                    <td className="px-2.5 py-2">
-                      <input
-                        type="text"
+                    <td className="px-2.5 py-2 align-top">
+                      <GrowArea
                         defaultValue={r.note}
                         placeholder="warum, seit wann, was als Nächstes"
-                        aria-label={`Notiz zu @${r.handle}`}
-                        onBlur={(e) => {
-                          const v = e.target.value.trim();
+                        ariaLabel={`Notiz zu @${r.handle}`}
+                        onCommit={(v) => {
                           if (v === r.note) return;
                           startTransition(async () => {
                             patchRow({ key: r.key, note: v });
                             await updateAccount(r.key, { note: v });
                           });
                         }}
-                        className={`${FIELD} w-full`}
                       />
                     </td>
                   </tr>
@@ -504,6 +520,14 @@ export default function PostingBoard({
             })}
           </tbody>
         </table>
+
+        {/* Vorschläge: erst was schon eingetragen ist, dann die Startliste —
+            eigene Bezeichnungen sollen sich durchsetzen, nicht meine. */}
+        <datalist id="klar-formats">
+          {[...new Set([...rows.map((r) => r.format).filter(Boolean), ...FORMAT_HINTS])].map((f) => (
+            <option key={f} value={f} />
+          ))}
+        </datalist>
       </div>
 
       <div className="px-5 py-3 border-t border-line">
@@ -530,6 +554,54 @@ export default function PostingBoard({
         )}
       </div>
     </Card>
+  );
+}
+
+/**
+ * Notizfeld, das beim Schreiben nach unten aufgeht statt in einer Zeile zu
+ * scrollen. Eine Notiz, von der man immer nur sieben Wörter sieht, schreibt
+ * niemand zu Ende.
+ *
+ * Gespeichert wird beim Verlassen des Feldes, nicht bei jedem Zeichen — sonst
+ * schriebe jeder Tastendruck in die Datenbank. `defaultValue` statt `value`:
+ * das Feld gehört dem Browser, bis es fertig ist.
+ */
+function GrowArea({
+  defaultValue,
+  placeholder,
+  ariaLabel,
+  onCommit,
+}: {
+  defaultValue: string;
+  placeholder: string;
+  ariaLabel: string;
+  onCommit: (value: string) => void;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  function fit() {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }
+
+  // Auch beim ersten Zeichnen: ein gespeicherter Dreizeiler muss dreizeilig
+  // ankommen, nicht abgeschnitten.
+  useEffect(fit, []);
+
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      defaultValue={defaultValue}
+      placeholder={placeholder}
+      aria-label={ariaLabel}
+      onInput={fit}
+      onBlur={(e) => onCommit(e.target.value.trim())}
+      className="w-full min-w-0 px-2 py-1.5 text-[12px] leading-snug [font-family:var(--font-body)] text-fg bg-bg border border-line rounded-[4px] focus:border-fg focus:outline-none"
+      style={{ resize: "none", overflow: "hidden" }}
+    />
   );
 }
 

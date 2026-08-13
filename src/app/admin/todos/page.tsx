@@ -149,6 +149,7 @@ export default async function TodosPage({
         // aufgegeben. So stimmt das Board schon beim ersten Öffnen.
         state: saved?.state ?? (a.role === "legacy" ? "dropped" : "active"),
         rhythm: saved?.rhythm ?? [],
+        format: saved?.format ?? "",
         note: saved?.note ?? "",
       };
     }),
@@ -169,6 +170,7 @@ export default async function TodosPage({
         custom: true,
         state: s.state,
         rhythm: s.rhythm,
+        format: s.format ?? "",
         note: s.note ?? "",
       };
     });
@@ -208,9 +210,6 @@ export default async function TodosPage({
       <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
       <div className="content" style={{ maxWidth: "none" }}>
         <h1>{t.navTodos}</h1>
-        <p className="max-w-[70ch] mt-1 mb-5 text-[13.5px] leading-relaxed text-fg-3">
-          {onPosting ? t.postingSub : t.todoSub}
-        </p>
         {!todosConfigured() ? (
           <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--warning) 35%,var(--line))", color: "var(--warning)" }}>
             {t.todoNotConfigured}

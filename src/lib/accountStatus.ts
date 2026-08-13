@@ -41,6 +41,8 @@ export interface AccountStatus {
   state: AccountState;
   /** ISO-Wochentage 1–7. Leer = kein fester Rhythmus. */
   rhythm: number[];
+  /** Was auf diesem Account rausgeht (Slideshow, Fast-Cut …). */
+  format: string | null;
   note: string | null;
   /** Gesetzt nur bei selbst angelegten Accounts. */
   app: string | null;
@@ -108,6 +110,7 @@ export async function saveAccountStatus(
   };
   if (patch.state !== undefined) row.state = normalizeState(patch.state);
   if (patch.rhythm !== undefined) row.rhythm = normalizeRhythm(patch.rhythm);
+  if (patch.format !== undefined) row.format = clean(patch.format, 60);
   if (patch.note !== undefined) row.note = clean(patch.note, 500);
   if (patch.app !== undefined) row.app = clean(patch.app, 60);
   if (patch.platform !== undefined) row.platform = clean(patch.platform, 40)?.toLowerCase() ?? null;

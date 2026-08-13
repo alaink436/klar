@@ -45,10 +45,29 @@ export function rhythmLabel(rhythm: number[]): string {
   return days.length ? days.join(" · ") : "—";
 }
 
+/**
+ * Startvorschläge fürs Format-Feld. Nur ein Anfang: die Liste im Board wird um
+ * alles ergänzt, was schon irgendwo eingetragen ist, damit sich die eigenen
+ * Bezeichnungen von selbst durchsetzen statt gegen eine feste Auswahl zu
+ * kämpfen.
+ */
+export const FORMAT_HINTS = [
+  "Slideshow",
+  "Fast-Cut",
+  "Carousel",
+  "Talking Head",
+  "Pain-Point-Spot",
+  "Reply",
+  "Story",
+  "Foto",
+] as const;
+
 /** Was am Account gepflegt wird. Alles andere ist gemessen, nicht getippt. */
 export interface AccountStatusPatch {
   state?: AccountState;
   rhythm?: number[];
+  /** Was auf diesem Account rausgeht — steht auch in der Tagesliste. */
+  format?: string | null;
   note?: string | null;
   /** Nur für selbst angelegte Zeilen — Accounts, die nicht im Code stehen. */
   app?: string | null;
