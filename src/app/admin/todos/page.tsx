@@ -13,8 +13,11 @@ import { redirect } from "next/navigation";
 import { ICON, readCookieFromString } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listTodos, todosConfigured } from "@/lib/todoStore";
+import { listAccountStatus, listPostLog } from "@/lib/accountStatus";
+import { ACCOUNTS, APPS, PLATFORM_LABEL, accountKey } from "@/lib/socialAccounts";
 import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 import Planner, { type PlannerDay, type PlannerTodo } from "./Planner";
+import PostingBoard, { type BoardAccount, type BoardDay } from "./PostingBoard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -94,6 +97,85 @@ export default async function TodosPage({
     };
   });
 
+  // ── Posting-Board ────────────────────────────────────────────────────────
+  // Die Account-Liste ist die aus dem Code (lib/socialAccounts) plus die selbst
+  // angelegten Zeilen aus der Datenbank — anders liesse sich ein YouTube-Kanal
+  // nur per Deploy eintragen. Blotato wird hier bewusst NICHT gefragt und der
+  // Profil-Scraper nicht angeworfen: diese Seite geht mehrmals täglich auf, und
+  // beides kostet Wartezeit bzw. Guthaben. Was die Plattform selbst zählt,
+  // steht auf /admin/content.
+  const [statusByKey, postLog] = await Promise.all([
+    listAccountStatus(),
+    listPostLog(days[0].iso, days[6].iso),
+  ]);
+
+  const appMeta = new Map(APPS.map((a) => [a.key as string, { label: a.name, color: a.color }]));
+  const OTHER = { label: "Weitere", color: "#8C93A8" };
+
+  const fromCode: BoardAccount[] = APPS.flatMap((app) =>
+    ACCOUNTS.filter((a) => a.app === app.key).map((a) => {
+      const key = accountKey(a);
+      const saved = statusByKey.get(key);
+      return {
+        key,
+        handle: a.handle,
+        platformLabel: PLATFORM_LABEL[a.platform],
+        appLabel: app.name,
+        appColor: app.color,
+        automated: Boolean(a.blotatoId),
+        custom: false,
+        // Ohne gepflegte Zeile entscheidet die Rolle im Code: `legacy` heisst
+        // aufgegeben. So stimmt das Board schon beim ersten Öffnen.
+        state: saved?.state ?? (a.role === "legacy" ? "dropped" : "active"),
+        rhythm: saved?.rhythm ?? [],
+        note: saved?.note ?? "",
+      };
+    }),
+  );
+
+  const codeKeys = new Set(fromCode.map((r) => r.key));
+  const custom: BoardAccount[] = [...statusByKey.values()]
+    .filter((s) => s.handle && s.platform && !codeKeys.has(s.account_key))
+    .map((s) => {
+      const meta = appMeta.get(s.app ?? "") ?? OTHER;
+      return {
+        key: s.account_key,
+        handle: s.handle ?? "",
+        platformLabel: (s.platform ?? "").replace(/^./, (c) => c.toUpperCase()),
+        appLabel: meta.label,
+        appColor: meta.color,
+        automated: false,
+        custom: true,
+        state: s.state,
+        rhythm: s.rhythm,
+        note: s.note ?? "",
+      };
+    });
+
+  // Nach App gruppiert ausliefern, damit das Board seine Trennzeilen setzen kann.
+  const boardAccounts = [...fromCode, ...custom].sort((a, b) =>
+    a.appLabel === b.appLabel ? 0 : a.appLabel < b.appLabel ? -1 : 1,
+  );
+
+  const boardDays: BoardDay[] = days.map((d) => {
+    const dow = new Date(`${d.iso}T12:00:00Z`).getUTCDay();
+    return { ...d, dow: dow === 0 ? 7 : dow }; // ISO: Sonntag ist 7, nicht 0
+  });
+
+  const log: Record<string, string> = {};
+  for (const e of postLog) log[`${e.account_key}|${e.day}`] = e.note ?? "";
+
+  const platformHints = [
+    ...new Set([
+      ...ACCOUNTS.map((a) => a.platform as string),
+      ...[...statusByKey.values()].map((s) => s.platform ?? "").filter(Boolean),
+      "youtube",
+      "threads",
+      "reddit",
+      "pinterest",
+    ]),
+  ];
+
   const topbar = `
     <span class="crumb"><b>${t.navTodos}</b>${ICON.chevron}<span>Klar Control</span></span>
     <button type="button" class="tbtn" aria-label="${t.themeToggle}" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
@@ -120,6 +202,15 @@ export default async function TodosPage({
           weekOffset={weekOffset}
           today={today}
           tomorrow={addDays(today, 1)}
+        />
+
+        <PostingBoard
+          accounts={boardAccounts}
+          days={boardDays}
+          apps={[...APPS.map((a) => ({ key: a.key as string, label: a.name })), { key: "studio", label: "Studio" }]}
+          log={log}
+          platforms={platformHints}
+          today={today}
         />
 
       </div>

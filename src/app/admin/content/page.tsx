@@ -1,17 +1,9 @@
 // Klar Control · Content — the marketing infrastructure in one place.
 //
-// Three tabs. "Landkarte" opens first: every social account across the five apps
+// Two tabs. "Landkarte" opens first: every social account across the five apps
 // as a graph (React Flow, same mechanics as the AI-Brain viewer), including the
 // private niche accounts Blotato has never seen. That is the overview question —
 // what do we own and how big is it — and it is the one asked most often.
-//
-// "Bestand" is the same set of accounts as a ledger instead of a graph, and the
-// only tab that writes: state (running / warming up / paused / given up), a
-// weekly target and a note live in klar_account_status (migration 0017). The
-// numbers next to them stay derived — post count off the public profile,
-// "runs automatically" out of the Blotato link — because a number that can be
-// measured must not also be typed. Only X gets a hand-counted post number,
-// since no scrape reaches it.
 //
 // "Pipeline" is the older Blotato dashboard: posts + views per connected
 // channel, a published-over-time chart, top posts by views and the post history.
@@ -43,15 +35,12 @@ import {
 } from "../../../lib/blotato";
 import { getNativeCounts, type NativeCount } from "../../../lib/contentWarmup";
 import { KLAR_APPS } from "../../../lib/klarApps";
-import { ACCOUNTS, APPS, PLATFORM_LABEL, ROLE_LABEL, accountKey, reconcile } from "@/lib/socialAccounts";
-import { listAccountStatus } from "@/lib/accountStatus";
-import type { AccountState } from "@/lib/accountStates";
+import { ACCOUNTS, reconcile } from "@/lib/socialAccounts";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ContentChart, { type ContentChartRow } from "./ContentChart";
-import AccountLedger, { type LedgerRow } from "./AccountLedger";
 import AccountBoard from "@/app/components/accounts/AccountBoard";
 import type { ReactNode } from "react";
 
@@ -429,10 +418,8 @@ export default async function ContentPage({
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
   const sp = await searchParams;
-  const tab = sp.tab === "pipeline" ? "pipeline" : sp.tab === "bestand" ? "bestand" : "map";
+  const tab = sp.tab === "pipeline" ? "pipeline" : "map";
   const onMap = tab === "map";
-  const onLedger = tab === "bestand";
-  const onPipeline = tab === "pipeline";
   const range = RANGES.find((r) => r.key === sp.range) ?? RANGES[1]; // default 30d
   const sinceMs = range.days == null ? 0 : Date.now() - range.days * 86_400_000;
 
@@ -440,13 +427,13 @@ export default async function ContentPage({
   // accounts exist); the pipeline needs the post history, the analytics call
   // and a profile scrape per account, which is what made this page slow to
   // open. The tabs are links, not client state, so switching re-runs this.
-  const data = onPipeline
-    ? await getBlotatoOverview(range.days == null ? undefined : new Date(sinceMs).toISOString())
-    : { ok: true as const, reason: "live" as const, accounts: [], posts: [], analytics: [], truncated: false, fetched_at: "" };
+  const data = onMap
+    ? { ok: true as const, reason: "live" as const, accounts: [], posts: [], analytics: [], truncated: false, fetched_at: "" }
+    : await getBlotatoOverview(range.days == null ? undefined : new Date(sinceMs).toISOString());
 
   // The map's own source of truth, with Blotato allowed to correct the
   // "can the pipeline post here" flags. An empty live list leaves it untouched.
-  const mapAccounts = reconcile(ACCOUNTS, onPipeline ? data.accounts : await getBlotatoAccounts());
+  const mapAccounts = reconcile(ACCOUNTS, onMap ? await getBlotatoAccounts() : data.accounts);
 
   // Warm/cold split + native profile post counts. Blotato only knows posts IT
   // published, but warm accounts are still posted to MANUALLY, so their real post
@@ -455,53 +442,9 @@ export default async function ContentPage({
   // lib/contentWarmup.
   const warmAccounts = data.accounts.filter(isWarmAccount);
   const coldAccounts = data.accounts.filter((a) => !isWarmAccount(a));
-  //
-  // Der Bestand fragt dieselben Profile, aber für die kuratierte Liste statt
-  // für Blotatos: gerade die von Hand bespielten Accounts kennt Blotato nicht,
-  // und ihre Postzahl ist dort die interessanteste. X fällt raus — dafür gibt
-  // es keinen Scrape, da zählt der Mensch.
-  const nativeCounts = onPipeline
-    ? await getNativeCounts(data.accounts.map((a) => ({ platform: a.platform, username: a.username })))
-    : onLedger
-      ? await getNativeCounts(
-          mapAccounts
-            .filter((a) => a.handle && (a.platform === "tiktok" || a.platform === "instagram"))
-            .map((a) => ({ platform: a.platform, username: a.handle })),
-        )
-      : new Map<string, NativeCount>();
-
-  // Bestand: kuratierte Liste + gemessene Zahlen + der gepflegte Zustand.
-  // Fehlt eine Zeile in der Datenbank, entscheidet die Rolle im Code — `legacy`
-  // heisst aufgegeben. So ist der Bestand beim ersten Aufruf schon richtig.
-  const statusByKey = onLedger ? await listAccountStatus() : new Map();
-  const ledgerRows: LedgerRow[] = onLedger
-    ? APPS.flatMap((app) =>
-        mapAccounts
-          .filter((a) => a.app === app.key)
-          .map((a): LedgerRow => {
-            const key = accountKey(a);
-            const saved = statusByKey.get(key);
-            const native = a.handle ? nativeCounts.get(a.handle.toLowerCase()) : undefined;
-            return {
-              key,
-              handle: a.handle,
-              displayName: a.displayName ?? null,
-              appLabel: app.name,
-              appColor: app.color,
-              platformLabel: PLATFORM_LABEL[a.platform],
-              roleLabel: ROLE_LABEL[a.role],
-              automated: Boolean(a.blotatoId),
-              followers: a.followers ?? null,
-              nativePosts: native?.ok ? native.posts : null,
-              scrapable: a.platform === "tiktok" || a.platform === "instagram",
-              state: saved?.state ?? ((a.role === "legacy" ? "dropped" : "active") as AccountState),
-              targetPerWeek: saved?.target_per_week ?? null,
-              postsManual: saved?.posts_manual ?? null,
-              note: saved?.note ?? "",
-            };
-          }),
-      )
-    : [];
+  const nativeCounts = onMap
+    ? new Map<string, NativeCount>()
+    : await getNativeCounts(data.accounts.map((a) => ({ platform: a.platform, username: a.username })));
 
   const topbar = `
     <span class="crumb"><b>Content</b>${ICON.chevron}<span>Klar Control</span></span>
@@ -637,7 +580,6 @@ export default async function ContentPage({
           {(
             [
               { key: "map", label: "Landkarte", href: "/admin/content" },
-              { key: "bestand", label: "Bestand", href: "/admin/content?tab=bestand" },
               { key: "pipeline", label: "Pipeline", href: `/admin/content?tab=pipeline&range=${range.key}` },
             ] as const
           ).map((t) => (
@@ -657,8 +599,6 @@ export default async function ContentPage({
 
         {onMap ? (
           <AccountBoard accounts={mapAccounts} />
-        ) : onLedger ? (
-          <AccountLedger rows={ledgerRows} />
         ) : !data.ok ? (
           <Card className="px-6 py-5">
             <div className="font-semibold text-fg text-[14px] mb-1.5">Blotato nicht erreichbar</div>

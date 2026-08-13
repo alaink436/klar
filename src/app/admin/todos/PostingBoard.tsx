@@ -1,0 +1,488 @@
+"use client";
+
+// Posting-Board — eine Zeile pro Account, sieben Spalten für die Woche.
+//
+// Es beantwortet genau eine Frage: halte ich meinen Rhythmus? Deshalb steht
+// links, was gelten SOLL (Zustand, an welchen Tagen gepostet wird), und rechts,
+// was WAR (ein Haken pro Tag). Beides in einer Zeile nebeneinander, weil der
+// Vergleich die ganze Information ist — untereinander müsste man ihn im Kopf
+// machen.
+//
+// Drei Entscheidungen, die man der Oberfläche nicht ansieht:
+//   - Der Rhythmus benennt Tage, keine Anzahl. "Dreimal pro Woche" liesse sich
+//     nicht zeichnen; Mo·Mi·Fr schon, und der Kalender folgt daraus, ohne dass
+//     jemand Termine erzeugen muss.
+//   - Ein Haken ist eine Selbstauskunft, keine Messung. Die echte Postzahl liest
+//     der Profil-Scraper auf /admin/content. Der wird hier bewusst NICHT
+//     aufgerufen: er kostet Evomi-Guthaben und bis zu sieben Sekunden pro
+//     Profil, und diese Seite wird mehrmals täglich geöffnet.
+//   - Ein Tag lässt sich aufklappen. Dann wird seine Spalte breit und jede
+//     Zelle bekommt ein Textfeld — für die Tage, an denen man wissen will, WAS
+//     rausging, ohne dass die anderen sechs Spalten dafür Platz opfern.
+
+import { Fragment, useOptimistic, useState, useTransition } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  ACCOUNT_STATES,
+  ACCOUNT_STATE_LABEL,
+  WEEKDAYS,
+  WEEKDAY_SHORT,
+  type AccountState,
+} from "@/lib/accountStates";
+import { addAccount, markPosted, removeAccount, updateAccount } from "./posting-actions";
+
+export interface BoardAccount {
+  key: string;
+  handle: string;
+  platformLabel: string;
+  appLabel: string;
+  appColor: string;
+  /** Blotato kann hier posten — abgeleitet aus der Account-Liste im Code. */
+  automated: boolean;
+  /** Selbst angelegt: lässt sich wieder entfernen, steht nicht im Code. */
+  custom: boolean;
+  state: AccountState;
+  rhythm: number[];
+  note: string;
+}
+
+export interface BoardDay {
+  iso: string;
+  /** ISO-Wochentag 1–7, passend zum Rhythmus. */
+  dow: number;
+  weekday: string;
+  dayLabel: string;
+  isToday: boolean;
+  isWeekend: boolean;
+}
+
+export interface BoardApp {
+  key: string;
+  label: string;
+}
+
+const FIELD =
+  "h-8 px-2 text-[12px] [font-family:var(--font-body)] text-fg bg-bg border border-line rounded-[4px] focus:border-fg focus:outline-none";
+const HEAD =
+  "[font-family:var(--font-mono)] text-[9.5px] font-semibold uppercase tracking-[0.12em] text-fg-4 text-left px-2.5 py-2 whitespace-nowrap";
+
+export default function PostingBoard({
+  accounts,
+  days,
+  apps,
+  log,
+  platforms,
+  today,
+}: {
+  accounts: BoardAccount[];
+  days: BoardDay[];
+  apps: BoardApp[];
+  /** "YYYY-MM-DD" in Europe/Zurich, vom Server — was verpasst ist, hängt daran. */
+  today: string;
+  /** Schlüssel "accountKey|YYYY-MM-DD" → Notiz (leer erlaubt). Vorhanden = gepostet. */
+  log: Record<string, string>;
+  /** Vorschläge fürs Plattform-Feld, aus dem was es schon gibt. */
+  platforms: string[];
+}) {
+  const [, startTransition] = useTransition();
+  const [openDay, setOpenDay] = useState<string | null>(null);
+  const [hideDropped, setHideDropped] = useState(true);
+  const [adding, setAdding] = useState(false);
+
+  const [rows, patchRow] = useOptimistic(
+    accounts,
+    (state: BoardAccount[], p: { key: string } & Partial<BoardAccount>) =>
+      state.map((r) => (r.key === p.key ? { ...r, ...p } : r)),
+  );
+  const [done, patchDone] = useOptimistic(
+    log,
+    (state: Record<string, string>, p: { k: string; on: boolean; note?: string }) => {
+      const next = { ...state };
+      if (p.on) next[p.k] = p.note ?? next[p.k] ?? "";
+      else delete next[p.k];
+      return next;
+    },
+  );
+
+  const cellKey = (accountKey: string, iso: string) => `${accountKey}|${iso}`;
+  const isDone = (accountKey: string, iso: string) => cellKey(accountKey, iso) in done;
+
+  const shown = hideDropped ? rows.filter((r) => r.state !== "dropped") : rows;
+
+  function setState(r: BoardAccount, state: AccountState) {
+    startTransition(async () => {
+      patchRow({ key: r.key, state });
+      await updateAccount(r.key, { state });
+    });
+  }
+
+  function toggleRhythm(r: BoardAccount, dow: number) {
+    const rhythm = r.rhythm.includes(dow)
+      ? r.rhythm.filter((d) => d !== dow)
+      : [...r.rhythm, dow].sort((a, b) => a - b);
+    startTransition(async () => {
+      patchRow({ key: r.key, rhythm });
+      await updateAccount(r.key, { rhythm });
+    });
+  }
+
+  function toggleDone(r: BoardAccount, iso: string) {
+    const k = cellKey(r.key, iso);
+    const on = !(k in done);
+    startTransition(async () => {
+      patchDone({ k, on });
+      await markPosted(r.key, iso, on);
+    });
+  }
+
+  function setDayNote(r: BoardAccount, iso: string, note: string) {
+    const k = cellKey(r.key, iso);
+    startTransition(async () => {
+      patchDone({ k, on: true, note });
+      await markPosted(r.key, iso, true, note);
+    });
+  }
+
+  // Soll und Ist der ganzen Woche — die Zahl, wegen der man das Board aufmacht.
+  const live = rows.filter((r) => r.state === "active" || r.state === "warmup");
+  const planned = live.reduce(
+    (sum, r) => sum + days.filter((d) => r.rhythm.includes(d.dow)).length,
+    0,
+  );
+  const posted = rows.reduce((sum, r) => sum + days.filter((d) => isDone(r.key, d.iso)).length, 0);
+  const missed = live.reduce(
+    (sum, r) =>
+      sum + days.filter((d) => r.rhythm.includes(d.dow) && !isDone(r.key, d.iso) && d.iso < today).length,
+    0,
+  );
+
+  const dayStat = (d: BoardDay) => {
+    const soll = live.filter((r) => r.rhythm.includes(d.dow)).length;
+    const ist = rows.filter((r) => isDone(r.key, d.iso)).length;
+    return { soll, ist };
+  };
+
+  return (
+    <Card className="p-0 overflow-hidden mt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b border-line">
+        <div>
+          <div className="font-semibold text-fg text-[14px]">Posting</div>
+          <p className="text-[12.5px] text-fg-3 m-0 mt-0.5 leading-relaxed max-w-[76ch]">
+            Links steht, was gelten soll, rechts was war. Der Rhythmus benennt Wochentage &mdash; ein Tag
+            l&auml;sst sich anklicken, dann wird seine Spalte breit und nimmt auch auf, was rausging.
+            Ein Haken ist deine Auskunft; die gemessene Postzahl steht auf der Content-Landkarte.
+          </p>
+        </div>
+        <div className="flex items-center gap-4 [font-family:var(--font-mono)] text-[10.5px] uppercase tracking-[0.1em]">
+          <span className="text-fg-3">
+            {posted} / {planned} <span className="text-fg-4">diese Woche</span>
+          </span>
+          {missed > 0 ? <span className="text-danger">{missed} verpasst</span> : null}
+          <button
+            type="button"
+            onClick={() => setHideDropped((v) => !v)}
+            className="text-fg-4 hover:text-fg"
+          >
+            {hideDropped ? "Aufgegebene zeigen" : "Aufgegebene ausblenden"}
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse" style={{ minWidth: 1120 }}>
+          <thead>
+            <tr className="border-b border-line">
+              <th className={`${HEAD} sticky left-0 z-10 bg-surface`} style={{ minWidth: 210 }}>
+                Account
+              </th>
+              <th className={HEAD} style={{ minWidth: 104 }}>Zustand</th>
+              <th className={HEAD} style={{ minWidth: 150 }}>Rhythmus</th>
+              {days.map((d) => {
+                const { soll, ist } = dayStat(d);
+                const open = openDay === d.iso;
+                return (
+                  <th
+                    key={d.iso}
+                    className="px-1.5 py-1.5 align-bottom"
+                    style={{
+                      minWidth: open ? 210 : 60,
+                      background: d.isWeekend ? "color-mix(in oklab,var(--fg) 3%,transparent)" : undefined,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setOpenDay(open ? null : d.iso)}
+                      title={open ? "Tag wieder zuklappen" : "Tag aufklappen"}
+                      className="w-full text-left"
+                    >
+                      <div
+                        className="[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.1em]"
+                        style={{ color: d.isToday ? "var(--fg)" : "var(--fg-3)" }}
+                      >
+                        {d.weekday}
+                      </div>
+                      <div className="[font-family:var(--font-mono)] text-[9px] text-fg-4">{d.dayLabel}</div>
+                      <div
+                        className="[font-family:var(--font-mono)] text-[9px] mt-0.5"
+                        style={{ color: soll > 0 && ist >= soll ? "var(--success,var(--fg-2))" : "var(--fg-4)" }}
+                      >
+                        {ist}/{soll}
+                      </div>
+                    </button>
+                  </th>
+                );
+              })}
+              <th className={HEAD} style={{ minWidth: 180 }}>Notiz</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {shown.map((r, i) => {
+              const first = i === 0 || shown[i - 1].appLabel !== r.appLabel;
+              return (
+                <Fragment key={r.key}>
+                  {first ? (
+                    <tr>
+                      <td colSpan={4 + days.length} className="px-2.5 py-1.5" style={{ background: "var(--surface-2)" }}>
+                        <span className="inline-flex items-center gap-2">
+                          <span className="size-[8px] rounded-full" style={{ background: r.appColor }} />
+                          <span className="[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-2">
+                            {r.appLabel}
+                          </span>
+                        </span>
+                      </td>
+                    </tr>
+                  ) : null}
+
+                  <tr className="border-t border-line" style={{ opacity: r.state === "dropped" ? 0.5 : 1 }}>
+                    <td className="px-2.5 py-2 sticky left-0 z-10 bg-surface" style={{ minWidth: 210 }}>
+                      <div className="text-[13px] text-fg">
+                        {r.handle ? `@${r.handle}` : <span className="text-fg-4">Handle fehlt</span>}
+                      </div>
+                      <div className="[font-family:var(--font-mono)] text-[10px] text-fg-4">
+                        {r.platformLabel}
+                        {r.automated ? " · Blotato" : ""}
+                        {r.custom ? (
+                          <>
+                            {" · "}
+                            <button
+                              type="button"
+                              onClick={() => startTransition(async () => void (await removeAccount(r.key)))}
+                              className="hover:text-danger underline decoration-dotted"
+                            >
+                              entfernen
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
+                    </td>
+
+                    <td className="px-2.5 py-2">
+                      <select
+                        value={r.state}
+                        aria-label={`Zustand von @${r.handle}`}
+                        onChange={(e) => setState(r, e.target.value as AccountState)}
+                        className={`${FIELD} cursor-pointer`}
+                      >
+                        {ACCOUNT_STATES.map((s) => (
+                          <option key={s} value={s}>
+                            {ACCOUNT_STATE_LABEL[s]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+
+                    <td className="px-2.5 py-2">
+                      <div className="flex gap-[3px]">
+                        {WEEKDAYS.map((d) => {
+                          const on = r.rhythm.includes(d);
+                          return (
+                            <button
+                              key={d}
+                              type="button"
+                              onClick={() => toggleRhythm(r, d)}
+                              aria-pressed={on}
+                              aria-label={`${WEEKDAY_SHORT[d]} für @${r.handle} ${on ? "abwählen" : "einplanen"}`}
+                              className={`size-[19px] rounded-[4px] border [font-family:var(--font-mono)] text-[8.5px] uppercase transition-colors ${
+                                on
+                                  ? "bg-fg border-fg text-[var(--accent-fg)]"
+                                  : "border-line text-fg-4 hover:border-fg-3 hover:text-fg-2"
+                              }`}
+                            >
+                              {WEEKDAY_SHORT[d].slice(0, 2)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </td>
+
+                    {days.map((d) => {
+                      const open = openDay === d.iso;
+                      const ticked = isDone(r.key, d.iso);
+                      const due = r.rhythm.includes(d.dow) && r.state !== "dropped" && r.state !== "paused";
+                      return (
+                        <td
+                          key={d.iso}
+                          className="px-1.5 py-2 align-top"
+                          style={{
+                            background: d.isWeekend ? "color-mix(in oklab,var(--fg) 3%,transparent)" : undefined,
+                          }}
+                        >
+                          <div className="flex items-start gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => toggleDone(r, d.iso)}
+                              aria-pressed={ticked}
+                              aria-label={`@${r.handle} am ${d.dayLabel} ${ticked ? "nicht gepostet" : "gepostet"}`}
+                              title={due ? "Eingeplant" : "Nicht eingeplant — Haken geht trotzdem"}
+                              className={`mt-[1px] flex items-center justify-center size-[18px] rounded-[4px] border shrink-0 transition-colors ${
+                                ticked
+                                  ? "bg-fg border-fg text-[var(--accent-fg)]"
+                                  : due
+                                    ? "border-line-strong hover:border-fg"
+                                    : "border-dashed border-line text-fg-4 hover:border-fg-3"
+                              }`}
+                            >
+                              {ticked ? (
+                                <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M20 6 9 17l-5-5" />
+                                </svg>
+                              ) : null}
+                            </button>
+                            {open ? (
+                              <input
+                                type="text"
+                                defaultValue={done[cellKey(r.key, d.iso)] ?? ""}
+                                placeholder="was ging raus?"
+                                aria-label={`Notiz für @${r.handle} am ${d.dayLabel}`}
+                                onBlur={(e) => {
+                                  const v = e.target.value.trim();
+                                  if (v === (done[cellKey(r.key, d.iso)] ?? "")) return;
+                                  setDayNote(r, d.iso, v);
+                                }}
+                                className={`${FIELD} w-full min-w-0`}
+                              />
+                            ) : null}
+                          </div>
+                        </td>
+                      );
+                    })}
+
+                    <td className="px-2.5 py-2">
+                      <input
+                        type="text"
+                        defaultValue={r.note}
+                        placeholder="warum, seit wann, was als Nächstes"
+                        aria-label={`Notiz zu @${r.handle}`}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          if (v === r.note) return;
+                          startTransition(async () => {
+                            patchRow({ key: r.key, note: v });
+                            await updateAccount(r.key, { note: v });
+                          });
+                        }}
+                        className={`${FIELD} w-full`}
+                      />
+                    </td>
+                  </tr>
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="px-5 py-3 border-t border-line">
+        {adding ? (
+          <AddAccountForm
+            apps={apps}
+            platforms={platforms}
+            onCancel={() => setAdding(false)}
+            onSubmit={(app, platform, handle) => {
+              setAdding(false);
+              startTransition(async () => {
+                await addAccount(app, platform, handle);
+              });
+            }}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3 hover:text-fg"
+          >
+            Account hinzuf&uuml;gen
+          </button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * Ein Account, den die Liste im Code nicht kennt — YouTube, Threads, ein
+ * zweiter Zweitaccount. Bis hierher brauchte so etwas einen Deploy.
+ */
+function AddAccountForm({
+  apps,
+  platforms,
+  onSubmit,
+  onCancel,
+}: {
+  apps: BoardApp[];
+  platforms: string[];
+  onSubmit: (app: string, platform: string, handle: string) => void;
+  onCancel: () => void;
+}) {
+  const [app, setApp] = useState(apps[0]?.key ?? "");
+  const [platform, setPlatform] = useState("");
+  const [handle, setHandle] = useState("");
+  const ready = Boolean(app && platform.trim() && handle.trim());
+
+  return (
+    <div className="flex flex-wrap items-end gap-2">
+      <label className="flex flex-col gap-1 [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-fg-4">
+        App
+        <select value={app} onChange={(e) => setApp(e.target.value)} className={`${FIELD} cursor-pointer`}>
+          {apps.map((a) => (
+            <option key={a.key} value={a.key}>
+              {a.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-fg-4">
+        Plattform
+        <input
+          list="klar-platforms"
+          value={platform}
+          onChange={(e) => setPlatform(e.target.value)}
+          placeholder="youtube"
+          className={`${FIELD} w-[140px]`}
+        />
+        <datalist id="klar-platforms">
+          {platforms.map((p) => (
+            <option key={p} value={p} />
+          ))}
+        </datalist>
+      </label>
+      <label className="flex flex-col gap-1 [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-fg-4">
+        Handle
+        <input
+          value={handle}
+          onChange={(e) => setHandle(e.target.value)}
+          placeholder="ohne @"
+          className={`${FIELD} w-[180px]`}
+        />
+      </label>
+      <Button variant="pop" size="sm" disabled={!ready} onClick={() => onSubmit(app, platform, handle)}>
+        Hinzuf&uuml;gen
+      </Button>
+      <Button variant="ghost" size="sm" onClick={onCancel}>
+        Abbrechen
+      </Button>
+    </div>
+  );
+}
