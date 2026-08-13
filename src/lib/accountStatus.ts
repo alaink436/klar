@@ -45,6 +45,10 @@ export interface AccountStatus {
   format: string | null;
   /** Wo das Material dafür liegt — Ordner, Drive, Link, Anweisung. */
   material: string | null;
+  /** Zielnische — wohin der Account zeigen soll. */
+  niche: string | null;
+  /** Wann der Feed dorthin gesteuert wurde. NULL = noch nicht. */
+  steered_at: string | null;
   note: string | null;
   /** Gesetzt nur bei selbst angelegten Accounts. */
   app: string | null;
@@ -114,6 +118,10 @@ export async function saveAccountStatus(
   if (patch.rhythm !== undefined) row.rhythm = normalizeRhythm(patch.rhythm);
   if (patch.format !== undefined) row.format = clean(patch.format, 60);
   if (patch.material !== undefined) row.material = clean(patch.material, 400);
+  if (patch.niche !== undefined) row.niche = clean(patch.niche, 60);
+  // Das Häkchen schreibt einen Zeitstempel, kein Ja/Nein — so steht nebenbei
+  // fest, seit wann der Account in seiner Nische steht.
+  if (patch.steered !== undefined) row.steered_at = patch.steered ? new Date().toISOString() : null;
   if (patch.note !== undefined) row.note = clean(patch.note, 500);
   if (patch.app !== undefined) row.app = clean(patch.app, 60);
   if (patch.platform !== undefined) row.platform = clean(patch.platform, 40)?.toLowerCase() ?? null;

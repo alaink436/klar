@@ -49,6 +49,10 @@ export interface BoardAccount {
   format: string;
   /** Wo das Material dafür liegt — Ordner, Drive, Link, Anweisung. */
   material: string;
+  /** Zielnische — wohin der Account zeigen soll. */
+  niche: string;
+  /** Wann der Feed dorthin gesteuert wurde (ISO), oder null. */
+  steeredAt: string | null;
   note: string;
 }
 
@@ -190,6 +194,9 @@ export default function PostingBoard({
   const doneToday = todayCol ? dueToday.filter((r) => isDone(r.key, todayCol.iso)).length : 0;
 
   const byHand = rows.filter((r) => !r.automated && r.state !== "dropped").length;
+  // Im Warm-up ist das die Zahl, die den Fortschritt zeigt — nicht die Posts.
+  const relevant = rows.filter((r) => r.state !== "dropped");
+  const steered = relevant.filter((r) => r.steeredAt).length;
   const allTime = Object.entries(totals).reduce((sum, [, n]) => sum + n, 0);
 
   return (
@@ -203,6 +210,11 @@ export default function PostingBoard({
             sub={`${rows.filter((r) => r.state === "warmup").length} wärmen auf · ${rows.filter((r) => r.state === "paused").length} pausiert · ${rows.filter((r) => r.state === "dropped").length} aufgegeben`}
           />
           <Stat label="Diese Woche" value={`${posted} / ${planned}`} sub={missed > 0 ? `${missed} verpasst` : "nichts verpasst"} danger={missed > 0} />
+          <Stat
+            label="Eingesteuert"
+            value={`${steered} / ${relevant.length}`}
+            sub={steered === relevant.length ? "alle in ihrer Nische" : `${relevant.length - steered} noch nicht gezogen`}
+          />
           <Stat label="Insgesamt gepostet" value={String(allTime)} sub="deine Haken, alle Wochen" />
           <button
             type="button"
@@ -268,7 +280,17 @@ export default function PostingBoard({
                       <span className="block [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-4">
                         {r.platformLabel} · {r.appLabel}
                         {r.format ? <span className="text-fg-2"> · {r.format}</span> : null}
+                        {r.niche ? <span> · {r.niche}</span> : null}
                       </span>
+                      {/* Auf einen Account, dessen Feed noch nicht in der Nische
+                          steht, zu posten heisst, ihn ans falsche Publikum
+                          auszuliefern. Das gehört vor den Post, nicht in eine
+                          Spalte weit rechts. */}
+                      {!r.steeredAt ? (
+                        <span className="block [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-warning">
+                          noch nicht eingesteuert
+                        </span>
+                      ) : null}
                     </span>
                   </button>
                   {r.material ? <MaterialHint text={r.material} /> : null}
@@ -291,7 +313,7 @@ export default function PostingBoard({
           Account-Spalte beim Blättern stehen — sonst verliert man bei zwanzig
           Zeilen die Zuordnung, welcher Haken zu wem gehört. */}
       <div className="overflow-auto" style={{ maxHeight: "min(70vh, 760px)" }}>
-        <table className="w-full border-collapse" style={{ minWidth: 1320 }}>
+        <table className="w-full border-collapse" style={{ minWidth: 1490 }}>
           <thead className="sticky top-0 z-20" style={{ background: "var(--surface)" }}>
             <tr className="border-b border-line">
               <th
@@ -301,6 +323,9 @@ export default function PostingBoard({
                 Account
               </th>
               <th className={HEAD} style={{ minWidth: 104 }}>Zustand</th>
+              {/* Nische und „eingesteuert" gehören in eine Zelle: das Häkchen
+                  bedeutet nichts ohne das Ziel, auf das es sich bezieht. */}
+              <th className={HEAD} style={{ minWidth: 170 }}>Zielnische</th>
               <th className={HEAD} style={{ minWidth: 230 }}>Format &amp; Material</th>
               {/* Notiz steht neben dem Format, nicht hinter der Woche: was du
                   dir überlegt hast, gehört neben das, worauf es sich bezieht —
@@ -354,7 +379,7 @@ export default function PostingBoard({
                 <Fragment key={r.key}>
                   {first ? (
                     <tr>
-                      <td colSpan={7 + days.length} className="px-2.5 py-1.5" style={{ background: "var(--surface-2)" }}>
+                      <td colSpan={8 + days.length} className="px-2.5 py-1.5" style={{ background: "var(--surface-2)" }}>
                         <span className="inline-flex items-center gap-2">
                           <span className="size-[8px] rounded-full" style={{ background: r.appColor }} />
                           <span className="[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-2">
@@ -404,6 +429,61 @@ export default function PostingBoard({
                           </option>
                         ))}
                       </select>
+                    </td>
+
+                    <td className="px-2.5 py-2 align-top">
+                      <input
+                        list="klar-niches"
+                        defaultValue={r.niche}
+                        placeholder="z. B. Häkeln"
+                        aria-label={`Zielnische von @${r.handle}`}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          if (v === r.niche) return;
+                          startTransition(async () => {
+                            patchRow({ key: r.key, niche: v });
+                            await updateAccount(r.key, { niche: v });
+                          });
+                        }}
+                        className={`${FIELD} w-full`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const on = !r.steeredAt;
+                          startTransition(async () => {
+                            patchRow({ key: r.key, steeredAt: on ? new Date().toISOString() : null });
+                            await updateAccount(r.key, { steered: on });
+                          });
+                        }}
+                        aria-pressed={Boolean(r.steeredAt)}
+                        title={
+                          r.steeredAt
+                            ? `Eingesteuert seit ${new Date(r.steeredAt).toLocaleDateString("de-CH")}`
+                            : "Feed noch nicht in die Nische gezogen"
+                        }
+                        className="flex items-center gap-1.5 mt-1.5 group/steer"
+                      >
+                        <span
+                          className={`flex items-center justify-center size-[15px] rounded-[4px] border shrink-0 transition-colors ${
+                            r.steeredAt
+                              ? "bg-fg border-fg text-[var(--accent-fg)]"
+                              : "border-line-strong group-hover/steer:border-fg"
+                          }`}
+                        >
+                          {r.steeredAt ? (
+                            <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M20 6 9 17l-5-5" />
+                            </svg>
+                          ) : null}
+                        </span>
+                        <span
+                          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em]"
+                          style={{ color: r.steeredAt ? "var(--fg-2)" : "var(--fg-4)" }}
+                        >
+                          eingesteuert
+                        </span>
+                      </button>
                     </td>
 
                     <td className="px-2.5 py-2 align-top">
@@ -558,6 +638,12 @@ export default function PostingBoard({
         <datalist id="klar-formats">
           {[...new Set([...rows.map((r) => r.format).filter(Boolean), ...FORMAT_HINTS])].map((f) => (
             <option key={f} value={f} />
+          ))}
+        </datalist>
+        {/* Nischen bekommen keine Startliste: welche es gibt, weiss nur er. */}
+        <datalist id="klar-niches">
+          {[...new Set(rows.map((r) => r.niche).filter(Boolean))].map((n) => (
+            <option key={n} value={n} />
           ))}
         </datalist>
       </div>

@@ -151,6 +151,8 @@ export default async function TodosPage({
         rhythm: saved?.rhythm ?? [],
         format: saved?.format ?? "",
         material: saved?.material ?? "",
+        niche: saved?.niche ?? "",
+        steeredAt: saved?.steered_at ?? null,
         note: saved?.note ?? "",
       };
     }),
@@ -173,6 +175,8 @@ export default async function TodosPage({
         rhythm: s.rhythm,
         format: s.format ?? "",
         material: s.material ?? "",
+        niche: s.niche ?? "",
+        steeredAt: s.steered_at ?? null,
         note: s.note ?? "",
       };
     });

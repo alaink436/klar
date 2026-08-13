@@ -70,6 +70,10 @@ export interface AccountStatusPatch {
   format?: string | null;
   /** Wo das Material liegt: Ordner, Drive, Link. Steht in der Tagesliste. */
   material?: string | null;
+  /** Zielnische des Accounts. */
+  niche?: string | null;
+  /** Häkchen "in die Nische gesteuert" — setzt bzw. löscht den Zeitstempel. */
+  steered?: boolean;
   note?: string | null;
   /** Nur für selbst angelegte Zeilen — Accounts, die nicht im Code stehen. */
   app?: string | null;
