@@ -107,6 +107,11 @@ const DE = {
   todoSearchAria: "Punkte nach Text filtern",
   todoSearchHits: (shown: number, total: number) => `${shown} von ${total} sichtbar`,
   todoSearchClear: "Filter aufheben",
+  // Umschalter oben auf der To-do-Seite: beide Ansichten zeigen dieselbe Woche.
+  todoTabPlanner: "Wochenplan",
+  todoTabPosting: "Posting",
+  postingSub:
+    "Was auf welchem Account rausgeht — oben, was heute dran ist, darunter die Woche pro Account. Der Rhythmus benennt Wochentage, der Haken ist deine Auskunft. Was die Plattform selbst zählt, steht auf der Content-Landkarte.",
   icalTitle: "Im iPhone-Kalender mitlesen",
   icalBody: (n: number) =>
     `Geplante Punkte (aktuell ${n}) lassen sich als Kalender abonnieren — sie erscheinen dann als ganztägige Einträge im iPhone. Der Kalender ist nur zum Lesen: geändert wird hier.`,
@@ -306,6 +311,10 @@ const EN: AdminMessages = {
   todoSearchAria: "Filter items by text",
   todoSearchHits: (shown: number, total: number) => `${shown} of ${total} shown`,
   todoSearchClear: "Clear filter",
+  todoTabPlanner: "Week plan",
+  todoTabPosting: "Posting",
+  postingSub:
+    "What goes out on which account — what is due today on top, the week per account below. The rhythm names weekdays, the tick is your own statement. What the platform itself counts lives on the content map.",
   icalTitle: "Follow along in the iPhone calendar",
   icalBody: (n: number) =>
     `Planned items (currently ${n}) can be subscribed to as a calendar — they show up as all-day entries on the phone. Read-only: changes happen here.`,

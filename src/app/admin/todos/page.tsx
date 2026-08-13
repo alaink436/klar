@@ -10,14 +10,33 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { ICON, readCookieFromString } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listTodos, todosConfigured } from "@/lib/todoStore";
-import { listAccountStatus, listPostLog, listPostTotals } from "@/lib/accountStatus";
+import {
+  listAccountStatus,
+  listPostLog,
+  listPostTotals,
+  type AccountStatus,
+  type PostLogEntry,
+} from "@/lib/accountStatus";
 import { ACCOUNTS, APPS, PLATFORM_LABEL, accountKey } from "@/lib/socialAccounts";
 import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 import Planner, { type PlannerDay, type PlannerTodo } from "./Planner";
 import PostingBoard, { type BoardAccount, type BoardDay } from "./PostingBoard";
+import WeekNav from "./WeekNav";
+
+/** Beide Ansichten liegen auf derselben Seite und teilen sich `?w=`. */
+type TodoView = "todo" | "posting";
+
+function viewHref(view: TodoView, weekOffset: number): string {
+  const qs = new URLSearchParams();
+  if (view === "posting") qs.set("v", "posting");
+  if (weekOffset !== 0) qs.set("w", String(weekOffset));
+  const s = qs.toString();
+  return s ? `/admin/todos?${s}` : "/admin/todos";
+}
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -45,7 +64,7 @@ function mondayOf(iso: string): string {
 export default async function TodosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ w?: string }>;
+  searchParams: Promise<{ w?: string; v?: string }>;
 }) {
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
   const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
@@ -65,6 +84,12 @@ export default async function TodosPage({
   const rawW = Number.parseInt(sp.w ?? "0", 10);
   const weekOffset = Number.isFinite(rawW) ? Math.max(-52, Math.min(52, rawW)) : 0;
 
+  // Die Ansicht steht in `?v=`, nicht im Client-State: so lässt sie sich
+  // verlinken, überlebt einen Reload, und jede Seite holt nur ihre eigenen
+  // Daten statt beide Hälften bei jedem Aufruf.
+  const view: TodoView = sp.v === "posting" ? "posting" : "todo";
+  const onPosting = view === "posting";
+
   const today = todayInZurich();
   const start = addDays(mondayOf(today), weekOffset * 7);
   const locale = DATE_LOCALE[lang];
@@ -81,7 +106,7 @@ export default async function TodosPage({
   });
   const weekLabel = `${days[0].dayLabel} – ${days[6].dayLabel}`;
 
-  const todos = await listTodos();
+  const todos = onPosting ? [] : await listTodos();
   const rows: PlannerTodo[] = todos.map((td) => {
     const due = td.due_on ? td.due_on.slice(0, 10) : "";
     return {
@@ -104,11 +129,16 @@ export default async function TodosPage({
   // Profil-Scraper nicht angeworfen: diese Seite geht mehrmals täglich auf, und
   // beides kostet Wartezeit bzw. Guthaben. Was die Plattform selbst zählt,
   // steht auf /admin/content.
-  const [statusByKey, postLog, postTotals] = await Promise.all([
-    listAccountStatus(),
-    listPostLog(days[0].iso, days[6].iso),
-    listPostTotals(),
-  ]);
+  let statusByKey = new Map<string, AccountStatus>();
+  let postLog: PostLogEntry[] = [];
+  let postTotals: Record<string, number> = {};
+  if (onPosting) {
+    [statusByKey, postLog, postTotals] = await Promise.all([
+      listAccountStatus(),
+      listPostLog(days[0].iso, days[6].iso),
+      listPostTotals(),
+    ]);
+  }
 
   const appMeta = new Map(APPS.map((a) => [a.key as string, { label: a.name, color: a.color }]));
   const OTHER = { label: "Weitere", color: "#8C93A8" };
@@ -188,33 +218,62 @@ export default async function TodosPage({
       <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
       <div className="content" style={{ maxWidth: "none" }}>
         <h1>{t.navTodos}</h1>
-        <p className="max-w-[70ch] mt-1 mb-5 text-[13.5px] leading-relaxed text-fg-3">{t.todoSub}</p>
+        <p className="max-w-[70ch] mt-1 mb-5 text-[13.5px] leading-relaxed text-fg-3">
+          {onPosting ? t.postingSub : t.todoSub}
+        </p>
         {!todosConfigured() ? (
           <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--warning) 35%,var(--line))", color: "var(--warning)" }}>
             {t.todoNotConfigured}
           </div>
         ) : null}
 
-        <Planner
-          rows={rows}
-          days={days}
-          lang={lang}
-          weekLabel={weekLabel}
-          weekOffset={weekOffset}
-          today={today}
-          tomorrow={addDays(today, 1)}
-        />
+        {/* Umschalter + Wochenzeile: beide Ansichten zeigen dieselbe Woche, also
+            wird sie einmal oben bedient und nicht in jeder Ansicht erneut. */}
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 mb-4 border-b border-line">
+          <div className="flex items-center gap-1">
+            {(
+              [
+                { key: "todo", label: t.todoTabPlanner, href: viewHref("todo", weekOffset) },
+                { key: "posting", label: t.todoTabPosting, href: viewHref("posting", weekOffset) },
+              ] as const
+            ).map((tab) => (
+              <Link
+                key={tab.key}
+                href={tab.href}
+                className={`-mb-px border-b-2 px-4 py-2.5 text-[13px] transition-colors ${
+                  view === tab.key
+                    ? "border-fg font-semibold text-fg"
+                    : "border-transparent text-fg-3 hover:text-fg"
+                }`}
+              >
+                {tab.label}
+              </Link>
+            ))}
+          </div>
+          <div className="pb-2.5">
+            <WeekNav
+              lang={lang}
+              weekLabel={weekLabel}
+              weekOffset={weekOffset}
+              today={today}
+              href={(w) => viewHref(view, w)}
+            />
+          </div>
+        </div>
 
-        <PostingBoard
-          accounts={boardAccounts}
-          days={boardDays}
-          apps={[...APPS.map((a) => ({ key: a.key as string, label: a.name })), { key: "studio", label: "Studio" }]}
-          log={log}
-          totals={postTotals}
-          platforms={platformHints}
-          today={today}
-        />
-
+        {onPosting ? (
+          <PostingBoard
+            accounts={boardAccounts}
+            days={boardDays}
+            apps={[...APPS.map((a) => ({ key: a.key as string, label: a.name })), { key: "studio", label: "Studio" }]}
+            log={log}
+            totals={postTotals}
+            platforms={platformHints}
+            today={today}
+          />
+        ) : (
+          <Planner rows={rows} days={days} lang={lang} today={today} tomorrow={addDays(today, 1)} />
+        )}
       </div>
     </>
   );

@@ -25,8 +25,6 @@
 // auf den Zieltag legen — ohne dass die Karte je unsichtbar wird.
 
 import { useMemo, useRef, useState, useTransition, useOptimistic } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,45 +59,21 @@ const ACTION =
   "[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-fg-4 hover:text-fg focus-visible:text-fg transition-colors";
 const ACTION_SELECT = `${ACTION} h-[18px] max-w-[104px] bg-transparent border-0 p-0 cursor-pointer focus:outline-none focus-visible:underline`;
 
-/** Ein ISO-Tag plus n Tage. Mittags in UTC gerechnet, damit keine Zeitzone kippt. */
-function addDaysIso(iso: string, n: number): string {
-  const d = new Date(`${iso}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-}
-
-/** Montag der Woche, in der `iso` liegt. */
-function mondayOfIso(iso: string): string {
-  const dow = new Date(`${iso}T12:00:00Z`).getUTCDay(); // 0 = Sonntag
-  return addDaysIso(iso, dow === 0 ? -6 : 1 - dow);
-}
-
-/** Ganze Wochen zwischen zwei Montagen — der Wert für `?w=`. */
-function weeksBetween(fromMonday: string, toMonday: string): number {
-  const ms = Date.parse(`${toMonday}T12:00:00Z`) - Date.parse(`${fromMonday}T12:00:00Z`);
-  return Math.round(ms / (7 * 24 * 60 * 60 * 1000));
-}
-
 export default function Planner({
   rows,
   days,
   lang,
-  weekLabel,
-  weekOffset,
   today,
   tomorrow,
 }: {
   rows: PlannerTodo[];
   days: PlannerDay[];
   lang: AdminLang;
-  weekLabel: string;
-  weekOffset: number;
   /** "YYYY-MM-DD" in Europe/Zurich, vom Server. */
   today: string;
   tomorrow: string;
 }) {
   const t = tAdmin(lang);
-  const router = useRouter();
   const [, startTransition] = useTransition();
   const [draft, setDraft] = useState("");
   const [addTarget, setAddTarget] = useState<string>(BACKLOG);
@@ -177,13 +151,6 @@ export default function Planner({
       patch({ id: r.id, done: !r.done });
       await toggleTodo(r.id, !r.done);
     });
-  }
-
-  /** Zu der Woche springen, in der das gewählte Datum liegt. */
-  function jumpTo(iso: string) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
-    const w = weeksBetween(mondayOfIso(today), mondayOfIso(iso));
-    router.push(w === 0 ? "/admin/todos" : `/admin/todos?w=${w}`);
   }
 
   /**
@@ -409,33 +376,9 @@ export default function Planner({
           </Button>
         </div>
 
-        {/* Wochennavigation — der Tag kommt vom Server, gesprungen wird per Link. */}
+        {/* Die Wochenzeile steht über beiden Ansichten (WeekNav) — hier bleibt
+            nur, was den Planer allein betrifft. */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-2.5 border-b border-line">
-          <Link href={`/admin/todos?w=${weekOffset - 1}`} className="applink text-[12px]">
-            ‹ {t.todoPrevWeek}
-          </Link>
-          <span className="[font-family:var(--font-mono)] text-[11px] font-semibold uppercase tracking-[0.1em] text-fg-2">
-            {weekLabel}
-          </span>
-          <Link href={`/admin/todos?w=${weekOffset + 1}`} className="applink text-[12px]">
-            {t.todoNextWeek} ›
-          </Link>
-          {weekOffset !== 0 ? (
-            <Link href="/admin/todos" className="applink text-[12px]">
-              {t.todoThisWeek}
-            </Link>
-          ) : null}
-
-          <label className="flex items-center gap-1.5 [font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.1em] text-fg-4 ml-auto">
-            {t.todoJumpWeek}
-            <input
-              type="date"
-              aria-label={t.todoJumpWeekAria}
-              onChange={(e) => jumpTo(e.target.value)}
-              className="h-8 px-1.5 text-[12px] [font-family:var(--font-mono)] text-fg-2 bg-bg border border-line rounded-[4px] focus:border-fg focus:outline-none"
-            />
-          </label>
-
           <label className="flex items-center gap-1.5 [font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.1em] text-fg-4">
             {t.todoSearch}
             <input
