@@ -9,7 +9,7 @@
 
 import { verifyToken, touchTokenUsed } from "@/lib/apiTokens";
 import { getForProxy, vaultReady, touchSecretUsed } from "@/lib/vault";
-import { clientIp, rateLimit } from "@/lib/apiGuards";
+import { clientIp, rateLimitBurst } from "@/lib/apiGuards";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -23,6 +23,11 @@ export const maxDuration = 60;
 // provider returns a clean 504 instead of a dead connection. Cleared as soon as
 // the response headers arrive — streaming the body is bounded by maxDuration.
 const UPSTREAM_TIMEOUT_MS = 50_000;
+
+// See the rate-limit comment in handle(). BURST is what a single batch may spend
+// at once; REFILL is the sustained ceiling (2/s = 7200/h).
+const PROXY_BURST = 300;
+const PROXY_REFILL_PER_SECOND = 2;
 
 function json(obj: unknown, status = 200): Response {
   return new Response(JSON.stringify(obj), {
@@ -43,7 +48,21 @@ async function handle(
 ): Promise<Response> {
   if (!vaultReady()) return json({ error: "vault not configured" }, 503);
 
-  const rl = rateLimit("vault_proxy", clientIp(req), 120, 60 * 60 * 1000);
+  // Throughput guard. Every caller here holds a vault:use token, so this is not
+  // the security boundary (that is the token check below) — it only stops an
+  // anonymous flood from burning Supabase round-trips before auth runs.
+  //
+  // It used to be 120/hour on a fixed window, which made our own proxy ~15x
+  // stricter than the APIs behind it: Blotato alone allows 30/min on /posts and
+  // 120/min on /media/uploads. A weekly posting batch costs 112 calls (7 uploads
+  // + 1 submit per carousel), so it hit the wall mid-run and, because the window
+  // was fixed, stayed locked for the remaining ~54 minutes.
+  //
+  // Now a refilling bucket sized above the most permissive upstream, so the
+  // proxy is never the bottleneck: BURST covers any single batch outright, and
+  // REFILL sustains 7200/hour — matching Blotato's own ceiling. Going over costs
+  // seconds, not the rest of the hour.
+  const rl = rateLimitBurst("vault_proxy", clientIp(req), PROXY_BURST, PROXY_REFILL_PER_SECOND);
   if (!rl.ok) return json({ error: "rate limited", retryAfterSeconds: rl.retryAfterSeconds }, 429);
 
   const tok = bearer(req);

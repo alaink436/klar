@@ -112,3 +112,59 @@ export function rateLimit(
   cur.count += 1;
   return { ok: true, retryAfterSeconds: 0 };
 }
+
+// Leaky bucket: a burst allowance that refills continuously, for routes where
+// legitimate work arrives in batches.
+//
+// `rateLimit` above uses a FIXED window — resetAt is stamped on the first call
+// and runs the full window. Spend the quota in six minutes and the remaining
+// fifty-four are dead, which is exactly what stalled a Blotato posting batch on
+// 2026-07-30. Refilling removes the lockout: over budget costs a short wait
+// proportional to the overshoot, not the rest of the hour.
+//
+// Same in-memory, per-instance caveat as above — this is flood dampening, not
+// cluster-wide accounting.
+interface Bucket {
+  tokens: number;
+  last: number;
+}
+const LEAKY = new Map<string, Bucket>();
+
+function pruneLeaky(now: number, fullAfterMs: number): void {
+  if (LEAKY.size < MAX_ENTRIES) return;
+  for (const [k, b] of LEAKY) {
+    if (now - b.last >= fullAfterMs) LEAKY.delete(k);
+  }
+}
+
+export function rateLimitBurst(
+  bucket: string,
+  key: string,
+  burst: number,
+  refillPerSecond: number,
+): RateLimitResult {
+  const now = Date.now();
+  const k = `${bucket}|${key}`;
+  const cur = LEAKY.get(k);
+  const fullAfterMs = (burst / refillPerSecond) * 1000;
+
+  if (!cur) {
+    LEAKY.set(k, { tokens: burst - 1, last: now });
+    pruneLeaky(now, fullAfterMs);
+    return { ok: true, retryAfterSeconds: 0 };
+  }
+
+  const gained = ((now - cur.last) / 1000) * refillPerSecond;
+  const tokens = Math.min(burst, cur.tokens + gained);
+  cur.last = now;
+
+  if (tokens < 1) {
+    cur.tokens = tokens;
+    return {
+      ok: false,
+      retryAfterSeconds: Math.max(1, Math.ceil((1 - tokens) / refillPerSecond)),
+    };
+  }
+  cur.tokens = tokens - 1;
+  return { ok: true, retryAfterSeconds: 0 };
+}
