@@ -281,7 +281,7 @@ export default function PostingBoard({
           Account-Spalte beim Blättern stehen — sonst verliert man bei zwanzig
           Zeilen die Zuordnung, welcher Haken zu wem gehört. */}
       <div className="overflow-auto" style={{ maxHeight: "min(70vh, 760px)" }}>
-        <table className="w-full border-collapse" style={{ minWidth: 1220 }}>
+        <table className="w-full border-collapse" style={{ minWidth: 1320 }}>
           <thead className="sticky top-0 z-20" style={{ background: "var(--surface)" }}>
             <tr className="border-b border-line">
               <th
@@ -292,6 +292,10 @@ export default function PostingBoard({
               </th>
               <th className={HEAD} style={{ minWidth: 104 }}>Zustand</th>
               <th className={HEAD} style={{ minWidth: 130 }}>Format</th>
+              {/* Notiz steht neben dem Format, nicht hinter der Woche: was du
+                  dir überlegt hast, gehört neben das, worauf es sich bezieht —
+                  sonst liest man es erst, wenn man ganz nach rechts scrollt. */}
+              <th className={HEAD} style={{ minWidth: 230 }}>Notiz</th>
               <th className={HEAD} style={{ minWidth: 150 }}>Rhythmus</th>
               {days.map((d) => {
                 const { soll, ist } = dayStat(d);
@@ -330,7 +334,6 @@ export default function PostingBoard({
               })}
               <th className={`${HEAD} text-right`} style={{ minWidth: 66 }}>Woche</th>
               <th className={`${HEAD} text-right`} style={{ minWidth: 66 }}>Gesamt</th>
-              <th className={HEAD} style={{ minWidth: 180 }}>Notiz</th>
             </tr>
           </thead>
 
@@ -411,6 +414,20 @@ export default function PostingBoard({
                       />
                     </td>
 
+                    <td className="px-2.5 py-2 align-top">
+                      <GrowArea
+                        defaultValue={r.note}
+                        placeholder="warum, seit wann, was als Nächstes"
+                        ariaLabel={`Notiz zu @${r.handle}`}
+                        onCommit={(v) => {
+                          if (v === r.note) return;
+                          startTransition(async () => {
+                            patchRow({ key: r.key, note: v });
+                            await updateAccount(r.key, { note: v });
+                          });
+                        }}
+                      />
+                    </td>
                     <td className="px-2.5 py-2 align-top">
                       <div className="flex gap-[3px]">
                         {WEEKDAYS.map((d) => {
@@ -500,20 +517,6 @@ export default function PostingBoard({
                       {totals[r.key] ?? 0}
                     </td>
 
-                    <td className="px-2.5 py-2 align-top">
-                      <GrowArea
-                        defaultValue={r.note}
-                        placeholder="warum, seit wann, was als Nächstes"
-                        ariaLabel={`Notiz zu @${r.handle}`}
-                        onCommit={(v) => {
-                          if (v === r.note) return;
-                          startTransition(async () => {
-                            patchRow({ key: r.key, note: v });
-                            await updateAccount(r.key, { note: v });
-                          });
-                        }}
-                      />
-                    </td>
                   </tr>
                 </Fragment>
               );
