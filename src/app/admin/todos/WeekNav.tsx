@@ -12,6 +12,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { tAdmin, type AdminLang } from "../_i18n";
+import { viewHref, type TodoView } from "./views";
 
 function addDaysIso(iso: string, n: number): string {
   const d = new Date(`${iso}T12:00:00Z`);
@@ -36,18 +37,19 @@ export default function WeekNav({
   weekLabel,
   weekOffset,
   today,
-  href,
+  view,
 }: {
   lang: AdminLang;
   weekLabel: string;
   weekOffset: number;
   /** "YYYY-MM-DD" in Europe/Zurich, vom Server. */
   today: string;
-  /** Baut die Ziel-URL und hält dabei die gewählte Ansicht fest. */
-  href: (weekOffset: number) => string;
+  /** Welche Ansicht offen ist — die Links halten sie fest. */
+  view: TodoView;
 }) {
   const t = tAdmin(lang);
   const router = useRouter();
+  const href = (w: number) => viewHref(view, w);
 
   function jumpTo(iso: string) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;

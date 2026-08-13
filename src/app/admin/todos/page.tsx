@@ -26,17 +26,7 @@ import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 import Planner, { type PlannerDay, type PlannerTodo } from "./Planner";
 import PostingBoard, { type BoardAccount, type BoardDay } from "./PostingBoard";
 import WeekNav from "./WeekNav";
-
-/** Beide Ansichten liegen auf derselben Seite und teilen sich `?w=`. */
-type TodoView = "todo" | "posting";
-
-function viewHref(view: TodoView, weekOffset: number): string {
-  const qs = new URLSearchParams();
-  if (view === "posting") qs.set("v", "posting");
-  if (weekOffset !== 0) qs.set("w", String(weekOffset));
-  const s = qs.toString();
-  return s ? `/admin/todos?${s}` : "/admin/todos";
-}
+import { viewHref, type TodoView } from "./views";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -251,12 +241,14 @@ export default async function TodosPage({
             ))}
           </div>
           <div className="pb-2.5">
+            {/* `view` statt einer href-Funktion: Funktionen lassen sich nicht
+                an eine Client-Komponente übergeben. */}
             <WeekNav
               lang={lang}
               weekLabel={weekLabel}
               weekOffset={weekOffset}
               today={today}
-              href={(w) => viewHref(view, w)}
+              view={view}
             />
           </div>
         </div>
