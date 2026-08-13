@@ -26,9 +26,9 @@ function refresh(): void {
   revalidatePath("/admin/overview");
 }
 
-export async function createTodo(title: string): Promise<void> {
+export async function createTodo(title: string, due?: string | null): Promise<void> {
   if (!(await requireAdmin())) return;
-  await addTodo(title);
+  await addTodo(title, due);
   refresh();
 }
 

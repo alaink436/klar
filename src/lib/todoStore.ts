@@ -80,8 +80,16 @@ export async function countOpenTodos(): Promise<number> {
 /**
  * Neuer Punkt ganz oben. `position` wird kleiner als das aktuelle Minimum
  * gewählt, damit Einfügen nie die ganze Liste umschreiben muss.
+ *
+ * `due` ist optional: ohne Tag landet der Punkt in der Sammelstelle, mit Tag
+ * direkt in der Spalte — damit "morgen früh anrufen" nicht erst geschrieben
+ * und dann noch einmal verschoben werden muss. Ein unbrauchbares Datum wird
+ * ignoriert statt abgelehnt; der Punkt selbst darf daran nicht scheitern.
  */
-export async function addTodo(title: string): Promise<{ ok: boolean; error?: string }> {
+export async function addTodo(
+  title: string,
+  due?: string | null,
+): Promise<{ ok: boolean; error?: string }> {
   const clean = title.trim().slice(0, 500);
   if (!KEY) return { ok: false, error: "not configured" };
   if (!clean) return { ok: false, error: "empty" };
@@ -92,10 +100,12 @@ export async function addTodo(title: string): Promise<{ ok: boolean; error?: str
     });
     const first = head.ok ? ((await head.json()) as Todo[])[0] : undefined;
     const position = (first?.position ?? 0) - 1;
+    const row: Record<string, string | number | null> = { title: clean, position };
+    if (due && /^\d{4}-\d{2}-\d{2}$/.test(due)) row.due_on = due;
     const res = await fetch(REST, {
       method: "POST",
       headers: hdr({ Prefer: "return=minimal" }),
-      body: JSON.stringify({ title: clean, position }),
+      body: JSON.stringify(row),
     });
     return res.ok ? { ok: true } : { ok: false, error: `insert ${res.status}` };
   } catch {
