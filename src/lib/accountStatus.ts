@@ -162,6 +162,33 @@ export async function listPostLog(from: string, to: string): Promise<PostLogEntr
 }
 
 /**
+ * Wie viele Haken je Account insgesamt — die Antwort auf „wie viel habe ich
+ * eigentlich schon gepostet".
+ *
+ * Gezählt wird im Node-Prozess statt per SQL-Aggregat: PostgREST liefert
+ * Gruppierungen nur mit eingeschalteten Aggregatfunktionen, und die Tabelle
+ * wächst um höchstens ein paar tausend Zeilen im Jahr. Eine Abfrage, die immer
+ * funktioniert, ist hier mehr wert als eine, die schneller wäre.
+ */
+export async function listPostTotals(): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
+  if (!KEY) return out;
+  try {
+    const res = await fetch(`${REST_LOG}?select=account_key&limit=20000`, {
+      headers: hdr(),
+      cache: "no-store",
+    });
+    if (!res.ok) return out;
+    const rows = (await res.json()) as { account_key: string }[];
+    if (!Array.isArray(rows)) return out;
+    for (const r of rows) out[r.account_key] = (out[r.account_key] ?? 0) + 1;
+    return out;
+  } catch {
+    return out;
+  }
+}
+
+/**
  * Haken setzen oder wegnehmen. `done=false` löscht die Zeile, statt ein Flag
  * umzulegen: ein nicht gesetzter Haken ist die Abwesenheit einer Aussage, und
  * so kann die Tabelle nie von leeren Nein-Zeilen zuwachsen.

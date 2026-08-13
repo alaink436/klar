@@ -72,12 +72,15 @@ export default function PostingBoard({
   days,
   apps,
   log,
+  totals,
   platforms,
   today,
 }: {
   accounts: BoardAccount[];
   days: BoardDay[];
   apps: BoardApp[];
+  /** Haken je Account über alle Zeiten — „wie viel habe ich schon gepostet". */
+  totals: Record<string, number>;
   /** "YYYY-MM-DD" in Europe/Zurich, vom Server — was verpasst ist, hängt daran. */
   today: string;
   /** Schlüssel "accountKey|YYYY-MM-DD" → Notiz (leer erlaubt). Vorhanden = gepostet. */
@@ -163,31 +166,122 @@ export default function PostingBoard({
     return { soll, ist };
   };
 
+  const weekStat = (r: BoardAccount) => ({
+    soll: days.filter((d) => r.rhythm.includes(d.dow)).length,
+    ist: days.filter((d) => isDone(r.key, d.iso)).length,
+  });
+
+  // Solange von Hand gepostet wird, ist das hier die eigentliche Frage: was
+  // steht heute an? Deshalb steht sie oben und nicht als Spalte im Raster.
+  const todayCol = days.find((d) => d.iso === today);
+  const dueToday = todayCol
+    ? shown.filter(
+        (r) => r.rhythm.includes(todayCol.dow) && r.state !== "dropped" && r.state !== "paused",
+      )
+    : [];
+  const extraToday = todayCol
+    ? rows.filter((r) => isDone(r.key, todayCol.iso) && !dueToday.some((x) => x.key === r.key))
+    : [];
+  const doneToday = todayCol ? dueToday.filter((r) => isDone(r.key, todayCol.iso)).length : 0;
+
+  const byHand = rows.filter((r) => !r.automated && r.state !== "dropped").length;
+  const allTime = Object.entries(totals).reduce((sum, [, n]) => sum + n, 0);
+
   return (
     <Card className="p-0 overflow-hidden mt-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b border-line">
-        <div>
-          <div className="font-semibold text-fg text-[14px]">Posting</div>
-          <p className="text-[12.5px] text-fg-3 m-0 mt-0.5 leading-relaxed max-w-[76ch]">
-            Links steht, was gelten soll, rechts was war. Der Rhythmus benennt Wochentage &mdash; ein Tag
-            l&auml;sst sich anklicken, dann wird seine Spalte breit und nimmt auch auf, was rausging.
-            Ein Haken ist deine Auskunft; die gemessene Postzahl steht auf der Content-Landkarte.
-          </p>
-        </div>
-        <div className="flex items-center gap-4 [font-family:var(--font-mono)] text-[10.5px] uppercase tracking-[0.1em]">
-          <span className="text-fg-3">
-            {posted} / {planned} <span className="text-fg-4">diese Woche</span>
-          </span>
-          {missed > 0 ? <span className="text-danger">{missed} verpasst</span> : null}
+      <div className="px-5 py-3.5 border-b border-line">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="font-semibold text-fg text-[14px]">Posting</div>
+            <p className="text-[12.5px] text-fg-3 m-0 mt-0.5 leading-relaxed max-w-[76ch]">
+              Links steht, was gelten soll, rechts was war. Der Rhythmus benennt Wochentage &mdash; ein
+              Tag l&auml;sst sich anklicken, dann wird seine Spalte breit und nimmt auch auf, was
+              rausging. Ein Haken ist deine Auskunft; die gemessene Postzahl steht auf der
+              Content-Landkarte.
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => setHideDropped((v) => !v)}
-            className="text-fg-4 hover:text-fg"
+            className="[font-family:var(--font-mono)] text-[10.5px] uppercase tracking-[0.1em] text-fg-4 hover:text-fg shrink-0"
           >
             {hideDropped ? "Aufgegebene zeigen" : "Aufgegebene ausblenden"}
           </button>
         </div>
+
+        <div className="flex flex-wrap gap-x-7 gap-y-2 mt-3.5">
+          <Stat label="Accounts" value={String(rows.length)} sub={`${byHand} davon von Hand`} />
+          <Stat
+            label="Zustand"
+            value={`${rows.filter((r) => r.state === "active").length} laufen`}
+            sub={`${rows.filter((r) => r.state === "warmup").length} wärmen auf · ${rows.filter((r) => r.state === "paused").length} pausiert · ${rows.filter((r) => r.state === "dropped").length} aufgegeben`}
+          />
+          <Stat label="Diese Woche" value={`${posted} / ${planned}`} sub={missed > 0 ? `${missed} verpasst` : "nichts verpasst"} danger={missed > 0} />
+          <Stat label="Insgesamt gepostet" value={String(allTime)} sub="deine Haken, alle Wochen" />
+        </div>
       </div>
+
+      {todayCol ? (
+        <div className="px-5 py-4 border-b border-line" style={{ background: "var(--surface-2)" }}>
+          <div className="flex items-baseline gap-2.5 mb-2.5">
+            <span className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.14em] text-fg-2">
+              Heute · {todayCol.weekday} {todayCol.dayLabel}
+            </span>
+            <span className="[font-family:var(--font-mono)] text-[10.5px] text-fg-4">
+              {doneToday} von {dueToday.length} erledigt
+            </span>
+          </div>
+
+          {dueToday.length === 0 ? (
+            <p className="text-[12.5px] text-fg-3 m-0">
+              Für heute ist nichts eingeplant. Der Rhythmus in der Tabelle unten legt fest, an welchen
+              Tagen ein Account drankommt.
+            </p>
+          ) : (
+            <div className="grid gap-1.5 grid-cols-[repeat(auto-fill,minmax(260px,1fr))]">
+              {dueToday.map((r) => {
+                const ticked = isDone(r.key, todayCol.iso);
+                return (
+                  <button
+                    key={r.key}
+                    type="button"
+                    onClick={() => toggleDone(r, todayCol.iso)}
+                    className="flex items-center gap-2.5 rounded-[var(--radius-sm)] border bg-surface px-3 py-2.5 text-left transition-colors hover:border-fg-3"
+                    style={{ borderColor: ticked ? "color-mix(in oklab,var(--fg) 35%,var(--line))" : "var(--line)" }}
+                  >
+                    <span
+                      className={`flex items-center justify-center size-[18px] rounded-[4px] border shrink-0 ${
+                        ticked ? "bg-fg border-fg text-[var(--accent-fg)]" : "border-line-strong"
+                      }`}
+                    >
+                      {ticked ? (
+                        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                      ) : null}
+                    </span>
+                    <span className="min-w-0">
+                      <span className={`block text-[13px] truncate ${ticked ? "text-fg-4 line-through" : "text-fg"}`}>
+                        {r.handle ? `@${r.handle}` : "Handle fehlt"}
+                      </span>
+                      <span className="block [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-4">
+                        {r.platformLabel} · {r.appLabel} · {r.automated ? "Blotato" : "von Hand"}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {extraToday.length > 0 ? (
+            <p className="text-[11.5px] text-fg-4 m-0 mt-2.5">
+              Ausserdem heute gepostet, ohne dass es geplant war:{" "}
+              {extraToday.map((r) => `@${r.handle}`).join(", ")}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="overflow-x-auto">
         <table className="w-full border-collapse" style={{ minWidth: 1120 }}>
@@ -233,6 +327,8 @@ export default function PostingBoard({
                   </th>
                 );
               })}
+              <th className={`${HEAD} text-right`} style={{ minWidth: 66 }}>Woche</th>
+              <th className={`${HEAD} text-right`} style={{ minWidth: 66 }}>Gesamt</th>
               <th className={HEAD} style={{ minWidth: 180 }}>Notiz</th>
             </tr>
           </thead>
@@ -244,7 +340,7 @@ export default function PostingBoard({
                 <Fragment key={r.key}>
                   {first ? (
                     <tr>
-                      <td colSpan={4 + days.length} className="px-2.5 py-1.5" style={{ background: "var(--surface-2)" }}>
+                      <td colSpan={6 + days.length} className="px-2.5 py-1.5" style={{ background: "var(--surface-2)" }}>
                         <span className="inline-flex items-center gap-2">
                           <span className="size-[8px] rounded-full" style={{ background: r.appColor }} />
                           <span className="[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-2">
@@ -369,6 +465,22 @@ export default function PostingBoard({
                       );
                     })}
 
+                    <td className="px-2.5 py-2 text-right [font-family:var(--font-mono)] text-[12px] [font-variant-numeric:tabular-nums]">
+                      {(() => {
+                        const { soll, ist } = weekStat(r);
+                        return (
+                          <span style={{ color: soll > 0 && ist >= soll ? "var(--fg)" : "var(--fg-3)" }}>
+                            {ist}
+                            <span className="text-fg-4">/{soll}</span>
+                          </span>
+                        );
+                      })()}
+                    </td>
+
+                    <td className="px-2.5 py-2 text-right [font-family:var(--font-mono)] text-[12px] text-fg-3 [font-variant-numeric:tabular-nums]">
+                      {totals[r.key] ?? 0}
+                    </td>
+
                     <td className="px-2.5 py-2">
                       <input
                         type="text"
@@ -418,6 +530,30 @@ export default function PostingBoard({
         )}
       </div>
     </Card>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  sub,
+  danger,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  danger?: boolean;
+}) {
+  return (
+    <div>
+      <div className="[font-family:var(--font-mono)] text-[9.5px] font-semibold uppercase tracking-[0.16em] text-fg-4">
+        {label}
+      </div>
+      <div className="text-[19px] leading-tight text-fg [font-variant-numeric:tabular-nums]">{value}</div>
+      <div className="text-[11px] leading-snug" style={{ color: danger ? "var(--danger)" : "var(--fg-4)" }}>
+        {sub}
+      </div>
+    </div>
   );
 }
 

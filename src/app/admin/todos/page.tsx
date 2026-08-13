@@ -13,7 +13,7 @@ import { redirect } from "next/navigation";
 import { ICON, readCookieFromString } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listTodos, todosConfigured } from "@/lib/todoStore";
-import { listAccountStatus, listPostLog } from "@/lib/accountStatus";
+import { listAccountStatus, listPostLog, listPostTotals } from "@/lib/accountStatus";
 import { ACCOUNTS, APPS, PLATFORM_LABEL, accountKey } from "@/lib/socialAccounts";
 import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 import Planner, { type PlannerDay, type PlannerTodo } from "./Planner";
@@ -104,9 +104,10 @@ export default async function TodosPage({
   // Profil-Scraper nicht angeworfen: diese Seite geht mehrmals täglich auf, und
   // beides kostet Wartezeit bzw. Guthaben. Was die Plattform selbst zählt,
   // steht auf /admin/content.
-  const [statusByKey, postLog] = await Promise.all([
+  const [statusByKey, postLog, postTotals] = await Promise.all([
     listAccountStatus(),
     listPostLog(days[0].iso, days[6].iso),
+    listPostTotals(),
   ]);
 
   const appMeta = new Map(APPS.map((a) => [a.key as string, { label: a.name, color: a.color }]));
@@ -209,6 +210,7 @@ export default async function TodosPage({
           days={boardDays}
           apps={[...APPS.map((a) => ({ key: a.key as string, label: a.name })), { key: "studio", label: "Studio" }]}
           log={log}
+          totals={postTotals}
           platforms={platformHints}
           today={today}
         />
