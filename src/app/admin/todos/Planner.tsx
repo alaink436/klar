@@ -25,6 +25,7 @@
 // auf den Zieltag legen — ohne dass die Karte je unsichtbar wird.
 
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -157,9 +158,16 @@ export default function Planner({
   // findet man die eigenen To-dos nicht mehr. Die Wahl bleibt im Browser —
   // sie gilt fuer dieses Geraet, nicht fuer den Vault.
   const hidePosts = useSyncExternalStore(subscribeHidePosts, readHidePosts, () => false);
+  // Eingeklappt ist der Normalfall, ausser fuer heute: an dem Tag arbeitet man,
+  // die anderen sechs sollen nur sagen, was ansteht. Sonst deckt eine Woche mit
+  // drei Accounts im Tagesrhythmus die eigenen To-dos komplett zu.
+  const [openPostDays, setOpenPostDays] = useState<Set<string>>(
+    () => new Set(days.filter((d) => d.isToday).map((d) => d.iso)),
+  );
   const [dragId, setDragId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
 
   type Patch = { id: string; done?: boolean; due?: string; time?: string };
   const [items, patch] = useOptimistic(rows, (state: PlannerTodo[], p: Patch) =>
@@ -185,6 +193,29 @@ export default function Planner({
     (state: PlannerPosting[], p: { id: string; done: boolean }) =>
       state.map((x) => (`${x.accountKey}|${x.day}|${x.slot}` === p.id ? { ...x, done: p.done } : x)),
   );
+
+  // Heute in die Mitte rollen. Sieben Spalten passen auf keinen Bildschirm, und
+  // links anzufangen heisst, dass der wichtigste Tag ab Donnerstag ausserhalb
+  // liegt. Gerechnet wird ueber die Rechtecke statt ueber offsetLeft: das gilt
+  // auch, wenn zwischendrin ein positioniertes Element steht.
+  useEffect(() => {
+    const box = scrollerRef.current;
+    if (!box) return;
+    const col = box.querySelector<HTMLElement>('[data-today="1"]');
+    if (!col) return;
+    const b = box.getBoundingClientRect();
+    const c = col.getBoundingClientRect();
+    box.scrollLeft += c.left - b.left - (b.width - c.width) / 2;
+  }, [today]);
+
+  function togglePostDay(iso: string) {
+    setOpenPostDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(iso)) next.delete(iso);
+      else next.add(iso);
+      return next;
+    });
+  }
 
   function togglePosting(p: PlannerPosting) {
     const id = `${p.accountKey}|${p.day}|${p.slot}`;
@@ -439,11 +470,37 @@ export default function Planner({
     );
   }
 
+  /**
+   * Der Kopf ueber den Posting-Punkten eines Tages. Eingeklappt sagt er, wie
+   * viele es sind und wie viele davon stehen; ausgeklappt stehen die Karten
+   * darunter. Beschriftet, nicht nur ein Pfeil: der Text sagt, was passiert.
+   */
+  function postingHead(iso: string, list: PlannerPosting[]) {
+    const isOpen = openPostDays.has(iso);
+    const done = list.filter((x) => x.done).length;
+    const all = done === list.length;
+    return (
+      <button
+        type="button"
+        onClick={() => togglePostDay(iso)}
+        aria-expanded={isOpen}
+        className="flex items-center gap-1.5 px-1 py-1 text-left [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-fg-4 hover:text-fg transition-colors"
+      >
+        <span className="inline-block w-[7px] shrink-0">{isOpen ? "\u25be" : "\u25b8"}</span>
+        <span>Posting {list.length}</span>
+        <span style={{ color: all ? "var(--fg-3)" : "var(--warning)" }}>
+          {all ? "erledigt" : `${done}/${list.length}`}
+        </span>
+      </button>
+    );
+  }
+
   function column(key: string, head: React.ReactNode, list: PlannerTodo[], withTime: boolean, tint?: string, extra?: React.ReactNode) {
     const isOver = overCol === key && dragId !== null;
     return (
       <div
         key={key}
+        data-today={key === today ? "1" : undefined}
         onDragOver={(e) => {
           if (!dragId) return;
           e.preventDefault();
@@ -543,7 +600,7 @@ export default function Planner({
           ) : null}
         </div>
 
-        <div className="p-3 overflow-x-auto">
+        <div className="p-3 overflow-x-auto" ref={scrollerRef}>
           <div className="flex gap-2.5 items-start" style={{ minWidth: 1180 }}>
             {column(
               BACKLOG,
@@ -590,7 +647,10 @@ export default function Planner({
                 true,
                 d.isWeekend ? "color-mix(in oklab,var(--fg) 3%,var(--surface-2))" : undefined,
                 dayPosts.length > 0 ? (
-                  <div className="flex flex-col gap-2">{dayPosts.map(postingCard)}</div>
+                  <div className="flex flex-col gap-2">
+                    {postingHead(d.iso, dayPosts)}
+                    {openPostDays.has(d.iso) ? dayPosts.map(postingCard) : null}
+                  </div>
                 ) : undefined,
               );
             })}
