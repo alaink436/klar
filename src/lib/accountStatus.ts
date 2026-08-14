@@ -50,6 +50,8 @@ export interface AccountStatus {
   format: string | null;
   /** Wo das Material dafür liegt — Ordner, Drive, Link, Anweisung. */
   material: string | null;
+  /** Liegt dort gerade Postbares bereit? */
+  material_ready: boolean;
   /** Zielnische — wohin der Account zeigen soll. */
   niche: string | null;
   /** Bis zu drei Zeitstempel — einer je Einsteuer-Runde. Länge = Stand. */
@@ -123,6 +125,7 @@ export async function saveAccountStatus(
   if (patch.rhythm !== undefined) row.rhythm = normalizeRhythm(patch.rhythm);
   if (patch.format !== undefined) row.format = clean(patch.format, 60);
   if (patch.material !== undefined) row.material = clean(patch.material, 400);
+  if (patch.materialReady !== undefined) row.material_ready = Boolean(patch.materialReady);
   if (patch.niche !== undefined) row.niche = clean(patch.niche, 60);
   // Jede Runde schreibt ihren eigenen Zeitstempel, statt einen Zähler
   // hochzusetzen: so sieht man auch, ob die drei Runden über Tage verteilt

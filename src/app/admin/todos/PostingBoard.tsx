@@ -50,6 +50,8 @@ export interface BoardAccount {
   format: string;
   /** Wo das Material dafür liegt — Ordner, Drive, Link, Anweisung. */
   material: string;
+  /** Liegt dort gerade Postbares bereit? Selbstauskunft, wie die Haken. */
+  materialReady: boolean;
   /** Zielnische — wohin der Account zeigen soll. */
   niche: string;
   /** Ein Zeitstempel je erledigter Einsteuer-Runde, höchstens drei. */
@@ -150,6 +152,14 @@ export default function PostingBoard({
     startTransition(async () => {
       patchRow({ key: r.key, steeredRounds: next });
       await updateAccount(r.key, { steeredRounds: n });
+    });
+  }
+
+  function toggleMaterialReady(r: BoardAccount) {
+    const materialReady = !r.materialReady;
+    startTransition(async () => {
+      patchRow({ key: r.key, materialReady });
+      await updateAccount(r.key, { materialReady });
     });
   }
 
@@ -305,6 +315,14 @@ export default function PostingBoard({
                           {r.steeredRounds.length === 0
                             ? "noch nicht eingesteuert"
                             : `erst ${r.steeredRounds.length} von ${STEER_ROUNDS} Runden`}
+                        </span>
+                      ) : null}
+                      {/* Dieselbe Logik wie beim Einsteuern: was den Post
+                          verhindert, steht am Post — nicht in einer Spalte
+                          weiter rechts. */}
+                      {!r.materialReady ? (
+                        <span className="block [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-warning">
+                          Material noch nicht bereit
                         </span>
                       ) : null}
                     </span>
@@ -546,6 +564,36 @@ export default function PostingBoard({
                             });
                           }}
                         />
+                      </div>
+                      {/* Der Ort sagt nicht, ob dort etwas Postbares WARTET.
+                          Genau ein Haken: beim Wochenstart gesetzt, beim
+                          Leerposten weggenommen — die Heute-Liste warnt dann,
+                          BEVOR man vor leerem Ordner steht. */}
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <button
+                          type="button"
+                          onClick={() => toggleMaterialReady(r)}
+                          aria-pressed={r.materialReady}
+                          aria-label={`Material für @${r.handle} ${r.materialReady ? "als nicht bereit markieren" : "als bereit markieren"}`}
+                          title={r.materialReady ? "Material liegt bereit" : "Material noch nicht bereit"}
+                          className={`flex items-center justify-center size-[15px] rounded-[4px] border shrink-0 transition-colors ${
+                            r.materialReady
+                              ? "bg-fg border-fg text-[var(--accent-fg)]"
+                              : "border-line-strong hover:border-fg"
+                          }`}
+                        >
+                          {r.materialReady ? (
+                            <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M20 6 9 17l-5-5" />
+                            </svg>
+                          ) : null}
+                        </button>
+                        <span
+                          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em]"
+                          style={{ color: r.materialReady ? "var(--fg-2)" : "var(--fg-4)" }}
+                        >
+                          Material bereit
+                        </span>
                       </div>
                     </td>
 

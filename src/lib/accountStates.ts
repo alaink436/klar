@@ -76,6 +76,8 @@ export interface AccountStatusPatch {
   format?: string | null;
   /** Wo das Material liegt: Ordner, Drive, Link. Steht in der Tagesliste. */
   material?: string | null;
+  /** Liegt dort gerade Postbares bereit? Gesetzt beim Wochenstart, weggenommen beim Leerposten. */
+  materialReady?: boolean;
   /** Zielnische des Accounts. */
   niche?: string | null;
   /** Stand des Einsteuerns: 0–3 Runden. Kürzen entfernt die späteren wieder. */
