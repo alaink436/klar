@@ -13,6 +13,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Gloock, Newsreader } from "next/font/google";
+import HowItWorks from "./HowItWorks";
 
 export const metadata: Metadata = {
   title: "My Yarn Stash — row counter for knitting & crochet",
@@ -152,6 +153,9 @@ export default function YarnstashHomePage() {
             everything as PDF or CSV anytime, free.
           </Feature>
         </div>
+
+        {/* The invisible features, animated in device frames */}
+        <HowItWorks />
 
         {/* Legal + contact */}
         <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 24 }}>
