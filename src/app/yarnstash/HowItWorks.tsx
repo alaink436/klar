@@ -84,19 +84,19 @@ export default function HowItWorks() {
         }}
       >
         <Demo caption="The widget counts with the app closed">
-          <iphone-16-max mode="light">
+          <iphone-16-max mode="light" style={{ display: "block", minHeight: 460 }}>
             <WidgetDemo count={count} pressed={beat % 2 === 1} />
           </iphone-16-max>
         </Demo>
 
         <Demo caption="Lock your phone, the count stays with you">
-          <iphone-16-max mode="dark">
+          <iphone-16-max mode="dark" style={{ display: "block", minHeight: 460 }}>
             <LockScreenDemo count={count} />
           </iphone-16-max>
         </Demo>
 
         <Demo caption="Double-tap the back, mid-episode">
-          <iphone-16-max mode="dark">
+          <iphone-16-max mode="dark" style={{ display: "block", minHeight: 460 }}>
             <BackTapDemo count={count} tapping={beat === 1 || beat === 2} />
           </iphone-16-max>
         </Demo>
