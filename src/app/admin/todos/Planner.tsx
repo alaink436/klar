@@ -24,7 +24,14 @@
 // auch der Weg über grosse Distanzen ist: Karte hineinlegen, Wochen blättern,
 // auf den Zieltag legen — ohne dass die Karte je unsichtbar wird.
 
-import { useMemo, useRef, useState, useTransition, useOptimistic } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+  useOptimistic,
+} from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +82,47 @@ export interface PlannerDay {
 
 const BACKLOG = "__backlog__";
 
+/**
+ * Merker im Browser: sollen die abgeleiteten Posting-Punkte mitlaufen?
+ *
+ * `localStorage` ist ein externer Speicher, kein React-Zustand — also wird er
+ * auch so behandelt und nicht in einem Effekt in den Zustand kopiert. Der
+ * Server-Schnappschuss ist "sichtbar", damit der erste Render auf beiden Seiten
+ * gleich aussieht; unmittelbar nach dem Hydrieren zieht der echte Wert nach.
+ */
+const HIDE_POSTS_KEY = "klar_planner_hide_postings";
+
+let hidePostsCache: boolean | null = null;
+const hidePostsListeners = new Set<() => void>();
+
+function readHidePosts(): boolean {
+  if (hidePostsCache === null) {
+    try {
+      hidePostsCache = window.localStorage.getItem(HIDE_POSTS_KEY) === "1";
+    } catch {
+      hidePostsCache = false; // privater Modus o. Ae.
+    }
+  }
+  return hidePostsCache;
+}
+
+function writeHidePosts(next: boolean): void {
+  hidePostsCache = next;
+  try {
+    window.localStorage.setItem(HIDE_POSTS_KEY, next ? "1" : "0");
+  } catch {
+    // dann gilt die Wahl eben nur fuer diese Sitzung
+  }
+  for (const l of hidePostsListeners) l();
+}
+
+function subscribeHidePosts(cb: () => void): () => void {
+  hidePostsListeners.add(cb);
+  return () => {
+    hidePostsListeners.delete(cb);
+  };
+}
+
 /** Kleine benannte Aktion auf einer Karte — Text, kein schwebendes Symbol. */
 const ACTION =
   "[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-fg-4 hover:text-fg focus-visible:text-fg transition-colors";
@@ -104,6 +152,11 @@ export default function Planner({
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
+  // Die Posting-Punkte lassen sich ausblenden: an einer Woche mit vier Accounts
+  // im Tagesrhythmus stehen schnell zwanzig davon in den Spalten, und dann
+  // findet man die eigenen To-dos nicht mehr. Die Wahl bleibt im Browser —
+  // sie gilt fuer dieses Geraet, nicht fuer den Vault.
+  const hidePosts = useSyncExternalStore(subscribeHidePosts, readHidePosts, () => false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -482,6 +535,12 @@ export default function Planner({
               </button>
             </span>
           ) : null}
+
+          {posts.length > 0 ? (
+            <button type="button" onClick={() => writeHidePosts(!hidePosts)} className={`${ACTION} ml-auto`}>
+              {hidePosts ? `Posts zeigen (${posts.length})` : `Posts ausblenden (${posts.length})`}
+            </button>
+          ) : null}
         </div>
 
         <div className="p-3 overflow-x-auto">
@@ -502,7 +561,7 @@ export default function Planner({
 
             {days.map((d) => {
               const list = forDay(d.iso);
-              const dayPosts = postingsFor(d.iso);
+              const dayPosts = hidePosts ? [] : postingsFor(d.iso);
               const openPosts = dayPosts.filter((x) => !x.done).length;
               return column(
                 d.iso,
