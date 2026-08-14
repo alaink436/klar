@@ -14,16 +14,10 @@ import Link from "next/link";
 import { ICON, readCookieFromString } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listTodos, todosConfigured } from "@/lib/todoStore";
-import {
-  listAccountStatus,
-  listPostLog,
-  listPostTotals,
-  type AccountStatus,
-  type PostLogEntry,
-} from "@/lib/accountStatus";
+import { listAccountStatus, listPostLog, listPostTotals } from "@/lib/accountStatus";
 import { ACCOUNTS, APPS, PLATFORM_LABEL, accountKey } from "@/lib/socialAccounts";
 import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
-import Planner, { type PlannerDay, type PlannerTodo } from "./Planner";
+import Planner, { type PlannerDay, type PlannerPosting, type PlannerTodo } from "./Planner";
 import PostingBoard, { type BoardAccount, type BoardDay } from "./PostingBoard";
 import WeekNav from "./WeekNav";
 import { viewHref, type TodoView } from "./views";
@@ -119,16 +113,14 @@ export default async function TodosPage({
   // Profil-Scraper nicht angeworfen: diese Seite geht mehrmals täglich auf, und
   // beides kostet Wartezeit bzw. Guthaben. Was die Plattform selbst zählt,
   // steht auf /admin/content.
-  let statusByKey = new Map<string, AccountStatus>();
-  let postLog: PostLogEntry[] = [];
-  let postTotals: Record<string, number> = {};
-  if (onPosting) {
-    [statusByKey, postLog, postTotals] = await Promise.all([
-      listAccountStatus(),
-      listPostLog(days[0].iso, days[6].iso),
-      listPostTotals(),
-    ]);
-  }
+  // Beide Ansichten brauchen Accounts und den Wochenverlauf: das Board zeigt
+  // sie als Raster, der Wochenplan als Punkte. Nur die Gesamtzahlen sind allein
+  // Sache des Boards.
+  const [statusByKey, postLog] = await Promise.all([
+    listAccountStatus(),
+    listPostLog(days[0].iso, days[6].iso),
+  ]);
+  const postTotals = onPosting ? await listPostTotals() : {};
 
   const appMeta = new Map(APPS.map((a) => [a.key as string, { label: a.name, color: a.color }]));
   const OTHER = { label: "Weitere", color: "#8C93A8" };
@@ -154,6 +146,7 @@ export default async function TodosPage({
         materialReady: saved?.material_ready ?? false,
         niche: saved?.niche ?? "",
         steeredRounds: saved?.steered_rounds ?? [],
+        perDay: saved?.per_day ?? 1,
         note: saved?.note ?? "",
       };
     }),
@@ -179,6 +172,7 @@ export default async function TodosPage({
         materialReady: s.material_ready ?? false,
         niche: s.niche ?? "",
         steeredRounds: s.steered_rounds ?? [],
+        perDay: s.per_day ?? 1,
         note: s.note ?? "",
       };
     });
@@ -194,7 +188,32 @@ export default async function TodosPage({
   });
 
   const log: Record<string, string> = {};
-  for (const e of postLog) log[`${e.account_key}|${e.day}`] = e.note ?? "";
+  for (const e of postLog) log[`${e.account_key}|${e.day}|${e.slot}`] = e.note ?? "";
+
+  // Posting-Punkte fuer den Wochenplan: abgeleitet, nicht gespeichert. Wer den
+  // Rhythmus aendert, aendert damit die Punkte — ohne dass irgendwo Leichen
+  // liegen bleiben.
+  const plannerPostings: PlannerPosting[] = onPosting
+    ? []
+    : boardAccounts
+        .filter((a) => a.state === "active" || a.state === "warmup")
+        .flatMap((a) =>
+          boardDays
+            .filter((d) => a.rhythm.includes(d.dow))
+            .flatMap((d) =>
+              Array.from({ length: a.perDay }, (_, i) => i + 1).map((slot) => ({
+                accountKey: a.key,
+                day: d.iso,
+                slot,
+                perDay: a.perDay,
+                handle: a.handle,
+                format: a.format,
+                appLabel: a.appLabel,
+                appColor: a.appColor,
+                done: `${a.key}|${d.iso}|${slot}` in log,
+              })),
+            ),
+        );
 
   const platformHints = [
     ...new Set([
@@ -271,7 +290,14 @@ export default async function TodosPage({
             today={today}
           />
         ) : (
-          <Planner rows={rows} days={days} lang={lang} today={today} tomorrow={addDays(today, 1)} />
+          <Planner
+            rows={rows}
+            days={days}
+            postings={plannerPostings}
+            lang={lang}
+            today={today}
+            tomorrow={addDays(today, 1)}
+          />
         )}
       </div>
     </>

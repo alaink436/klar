@@ -27,6 +27,7 @@ import {
   ACCOUNT_STATES,
   ACCOUNT_STATE_LABEL,
   FORMAT_HINTS,
+  MAX_PER_DAY,
   STEER_ROUNDS,
   WEEKDAYS,
   WEEKDAY_SHORT,
@@ -56,6 +57,8 @@ export interface BoardAccount {
   niche: string;
   /** Ein Zeitstempel je erledigter Einsteuer-Runde, höchstens drei. */
   steeredRounds: string[];
+  /** Wie oft an einem Posting-Tag gepostet wird (1–4). */
+  perDay: number;
   note: string;
 }
 
@@ -120,8 +123,14 @@ export default function PostingBoard({
     },
   );
 
-  const cellKey = (accountKey: string, iso: string) => `${accountKey}|${iso}`;
-  const isDone = (accountKey: string, iso: string) => cellKey(accountKey, iso) in done;
+  // Der Schlüssel trägt den Slot: bei zweimal täglich sind das zwei Haken am
+  // selben Tag, und beide müssen sich einzeln setzen lassen.
+  const cellKey = (accountKey: string, iso: string, slot: number) => `${accountKey}|${iso}|${slot}`;
+  const isDone = (accountKey: string, iso: string, slot: number) => cellKey(accountKey, iso, slot) in done;
+  /** Wie viele der Slots eines Tages schon abgehakt sind. */
+  const doneCount = (r: BoardAccount, iso: string) =>
+    slotsOf(r).filter((n) => isDone(r.key, iso, n)).length;
+  const slotsOf = (r: BoardAccount) => Array.from({ length: r.perDay }, (_, i) => i + 1);
 
   const shown = hideDropped ? rows.filter((r) => r.state !== "dropped") : rows;
 
@@ -163,59 +172,72 @@ export default function PostingBoard({
     });
   }
 
-  function toggleDone(r: BoardAccount, iso: string) {
-    const k = cellKey(r.key, iso);
+  function toggleDone(r: BoardAccount, iso: string, slot: number) {
+    const k = cellKey(r.key, iso, slot);
     const on = !(k in done);
     startTransition(async () => {
       patchDone({ k, on });
-      await markPosted(r.key, iso, on);
+      await markPosted(r.key, iso, slot, on);
     });
   }
 
-  function setDayNote(r: BoardAccount, iso: string, note: string) {
-    const k = cellKey(r.key, iso);
+  function setDayNote(r: BoardAccount, iso: string, slot: number, note: string) {
+    const k = cellKey(r.key, iso, slot);
     startTransition(async () => {
       patchDone({ k, on: true, note });
-      await markPosted(r.key, iso, true, note);
+      await markPosted(r.key, iso, slot, true, note);
+    });
+  }
+
+  /** Frequenz: wie oft an einem Tag, an dem der Account dran ist. */
+  function setPerDay(r: BoardAccount, perDay: number) {
+    startTransition(async () => {
+      patchRow({ key: r.key, perDay });
+      await updateAccount(r.key, { perDay });
     });
   }
 
   // Soll und Ist der ganzen Woche — die Zahl, wegen der man das Board aufmacht.
   const live = rows.filter((r) => r.state === "active" || r.state === "warmup");
   const planned = live.reduce(
-    (sum, r) => sum + days.filter((d) => r.rhythm.includes(d.dow)).length,
+    (sum, r) => sum + days.filter((d) => r.rhythm.includes(d.dow)).length * r.perDay,
     0,
   );
-  const posted = rows.reduce((sum, r) => sum + days.filter((d) => isDone(r.key, d.iso)).length, 0);
+  const posted = rows.reduce((sum, r) => sum + days.reduce((n, d) => n + doneCount(r, d.iso), 0), 0);
   const missed = live.reduce(
     (sum, r) =>
-      sum + days.filter((d) => r.rhythm.includes(d.dow) && !isDone(r.key, d.iso) && d.iso < today).length,
+      sum +
+      days
+        .filter((d) => r.rhythm.includes(d.dow) && d.iso < today)
+        .reduce((n, d) => n + (r.perDay - doneCount(r, d.iso)), 0),
     0,
   );
 
   const dayStat = (d: BoardDay) => {
-    const soll = live.filter((r) => r.rhythm.includes(d.dow)).length;
-    const ist = rows.filter((r) => isDone(r.key, d.iso)).length;
+    const soll = live.filter((r) => r.rhythm.includes(d.dow)).reduce((n, r) => n + r.perDay, 0);
+    const ist = rows.reduce((n, r) => n + doneCount(r, d.iso), 0);
     return { soll, ist };
   };
 
   const weekStat = (r: BoardAccount) => ({
-    soll: days.filter((d) => r.rhythm.includes(d.dow)).length,
-    ist: days.filter((d) => isDone(r.key, d.iso)).length,
+    soll: days.filter((d) => r.rhythm.includes(d.dow)).length * r.perDay,
+    ist: days.reduce((n, d) => n + doneCount(r, d.iso), 0),
   });
 
   // Solange von Hand gepostet wird, ist das hier die eigentliche Frage: was
   // steht heute an? Deshalb steht sie oben und nicht als Spalte im Raster.
   const todayCol = days.find((d) => d.iso === today);
+  // Ein Eintrag je Post, nicht je Account: bei zweimal taeglich sind das zwei
+  // Sachen zu tun, und eine Liste, die daraus eine macht, ist gelogen.
   const dueToday = todayCol
-    ? shown.filter(
-        (r) => r.rhythm.includes(todayCol.dow) && r.state !== "dropped" && r.state !== "paused",
-      )
+    ? shown
+        .filter((r) => r.rhythm.includes(todayCol.dow) && r.state !== "dropped" && r.state !== "paused")
+        .flatMap((r) => slotsOf(r).map((slot) => ({ r, slot })))
     : [];
   const extraToday = todayCol
-    ? rows.filter((r) => isDone(r.key, todayCol.iso) && !dueToday.some((x) => x.key === r.key))
+    ? rows.filter((r) => doneCount(r, todayCol.iso) > 0 && !dueToday.some((x) => x.r.key === r.key))
     : [];
-  const doneToday = todayCol ? dueToday.filter((r) => isDone(r.key, todayCol.iso)).length : 0;
+  const doneToday = todayCol ? dueToday.filter((x) => isDone(x.r.key, todayCol.iso, x.slot)).length : 0;
 
   const byHand = rows.filter((r) => !r.automated && r.state !== "dropped").length;
   // Im Warm-up ist das die Zahl, die den Fortschritt zeigt — nicht die Posts.
@@ -268,20 +290,20 @@ export default function PostingBoard({
             </p>
           ) : (
             <div className="grid gap-1.5 grid-cols-[repeat(auto-fill,minmax(260px,1fr))]">
-              {dueToday.map((r) => {
-                const ticked = isDone(r.key, todayCol.iso);
+              {dueToday.map(({ r, slot }) => {
+                const ticked = isDone(r.key, todayCol.iso, slot);
                 return (
                   // Karte statt Knopf: die Materialangabe kann ein Link sein,
                   // und ein <a> darf nicht in einem <button> stehen. Der
                   // Abhaken-Bereich bleibt der Knopf, er füllt die Karte.
                   <div
-                    key={r.key}
+                    key={`${r.key}|${slot}`}
                     className="rounded-[var(--radius-sm)] border bg-surface transition-colors hover:border-fg-3"
                     style={{ borderColor: ticked ? "color-mix(in oklab,var(--fg) 35%,var(--line))" : "var(--line)" }}
                   >
                   <button
                     type="button"
-                    onClick={() => toggleDone(r, todayCol.iso)}
+                    onClick={() => toggleDone(r, todayCol.iso, slot)}
                     className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left"
                   >
                     <span
@@ -298,6 +320,12 @@ export default function PostingBoard({
                     <span className="min-w-0">
                       <span className={`block text-[13px] truncate ${ticked ? "text-fg-4 line-through" : "text-fg"}`}>
                         {r.handle ? `@${r.handle}` : "Handle fehlt"}
+                        {r.perDay > 1 ? (
+                          <span className="text-fg-4">
+                            {" "}
+                            · Post {slot} von {r.perDay}
+                          </span>
+                        ) : null}
                       </span>
                       {/* Das Format steht mit dabei: vor dem Posten ist „was
                           muss ich dafür produzieren" die eigentliche Frage. */}
@@ -633,11 +661,32 @@ export default function PostingBoard({
                           );
                         })}
                       </div>
+                      {/* Frequenz: der Rhythmus sagt an welchen Tagen, das hier
+                          wie oft an so einem Tag. Zwei Angaben, weil nur beide
+                          zusammen eine Zahl pro Woche ergeben — und weil der
+                          Kalender die Tage braucht und die Tagesliste die Anzahl. */}
+                      <label className="flex items-center gap-1.5 mt-1.5 [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-4">
+                        <select
+                          value={r.perDay}
+                          onChange={(e) => setPerDay(r, Number(e.target.value))}
+                          aria-label={`Posts pro Tag für @${r.handle}`}
+                          className="h-6 px-1 text-[11px] [font-family:var(--font-mono)] text-fg bg-bg border border-line rounded-[4px] focus:border-fg focus:outline-none cursor-pointer"
+                        >
+                          {Array.from({ length: MAX_PER_DAY }, (_, i) => i + 1).map((n) => (
+                            <option key={n} value={n}>
+                              {n}&times;
+                            </option>
+                          ))}
+                        </select>
+                        pro Tag
+                        <span className="text-fg-3">
+                          = {r.rhythm.length * r.perDay}/Woche
+                        </span>
+                      </label>
                     </td>
 
                     {days.map((d) => {
                       const open = openDay === d.iso;
-                      const ticked = isDone(r.key, d.iso);
                       const due = r.rhythm.includes(d.dow) && r.state !== "dropped" && r.state !== "paused";
                       return (
                         <td
@@ -648,34 +697,45 @@ export default function PostingBoard({
                           }}
                         >
                           <div className="flex items-start gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => toggleDone(r, d.iso)}
-                              aria-pressed={ticked}
-                              aria-label={`@${r.handle} am ${d.dayLabel} ${ticked ? "nicht gepostet" : "gepostet"}`}
-                              title={due ? "Eingeplant" : "Nicht eingeplant — Haken geht trotzdem"}
-                              className={`mt-[1px] flex items-center justify-center size-[18px] rounded-[4px] border shrink-0 transition-colors ${
-                                ticked
-                                  ? "bg-fg border-fg text-[var(--accent-fg)]"
-                                  : due
-                                    ? "border-line-strong hover:border-fg"
-                                    : "border-dashed border-line text-fg-4 hover:border-fg-3"
-                              }`}
-                            >
-                              {ticked ? (
-                                <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M20 6 9 17l-5-5" />
-                                </svg>
-                              ) : null}
-                            </button>
+                            {/* Ein Kaestchen je Post des Tages: bei zweimal
+                                taeglich muessen sich beide einzeln setzen
+                                lassen, sonst zaehlt der halbe Tag als ganzer. */}
+                            <div className="flex flex-wrap gap-[3px] shrink-0" style={{ maxWidth: 44 }}>
+                              {slotsOf(r).map((slot) => {
+                                const on = isDone(r.key, d.iso, slot);
+                                return (
+                                  <button
+                                    key={slot}
+                                    type="button"
+                                    onClick={() => toggleDone(r, d.iso, slot)}
+                                    aria-pressed={on}
+                                    aria-label={`@${r.handle} am ${d.dayLabel}, Post ${slot} von ${r.perDay} ${on ? "nicht gepostet" : "gepostet"}`}
+                                    title={due ? `Eingeplant · Post ${slot}` : "Nicht eingeplant — Haken geht trotzdem"}
+                                    className={`mt-[1px] flex items-center justify-center size-[18px] rounded-[4px] border shrink-0 transition-colors ${
+                                      on
+                                        ? "bg-fg border-fg text-[var(--accent-fg)]"
+                                        : due
+                                          ? "border-line-strong hover:border-fg"
+                                          : "border-dashed border-line text-fg-4 hover:border-fg-3"
+                                    }`}
+                                  >
+                                    {on ? (
+                                      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M20 6 9 17l-5-5" />
+                                      </svg>
+                                    ) : null}
+                                  </button>
+                                );
+                              })}
+                            </div>
                             {open ? (
                               <GrowArea
-                                defaultValue={done[cellKey(r.key, d.iso)] ?? ""}
+                                defaultValue={done[cellKey(r.key, d.iso, 1)] ?? ""}
                                 placeholder={r.format ? `${r.format} — was ging raus?` : "was ging raus?"}
                                 ariaLabel={`Notiz für @${r.handle} am ${d.dayLabel}`}
                                 onCommit={(v) => {
-                                  if (v === (done[cellKey(r.key, d.iso)] ?? "")) return;
-                                  setDayNote(r, d.iso, v);
+                                  if (v === (done[cellKey(r.key, d.iso, 1)] ?? "")) return;
+                                  setDayNote(r, d.iso, 1, v);
                                 }}
                               />
                             ) : null}

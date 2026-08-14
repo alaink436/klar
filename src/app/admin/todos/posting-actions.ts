@@ -28,11 +28,12 @@ export async function updateAccount(key: string, patch: AccountStatusPatch): Pro
 export async function markPosted(
   key: string,
   day: string,
+  slot: number,
   done: boolean,
   note?: string | null,
 ): Promise<void> {
   if (!(await requireAdmin())) return;
-  await setPostDone(key, day, done, note);
+  await setPostDone(key, day, slot, done, note);
   revalidatePath("/admin/todos");
 }
 

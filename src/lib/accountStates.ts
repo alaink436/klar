@@ -35,6 +35,9 @@ export const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
  */
 export const STEER_ROUNDS = 3;
 
+/** Wie oft pro Posting-Tag höchstens — mehr wäre kein Plan, sondern Wunschdenken. */
+export const MAX_PER_DAY = 4;
+
 export const WEEKDAY_SHORT: Record<number, string> = {
   1: "Mo",
   2: "Di",
@@ -82,6 +85,8 @@ export interface AccountStatusPatch {
   niche?: string | null;
   /** Stand des Einsteuerns: 0–3 Runden. Kürzen entfernt die späteren wieder. */
   steeredRounds?: number;
+  /** Posts pro Tag, an dem der Account laut Rhythmus dran ist (1–4). */
+  perDay?: number;
   note?: string | null;
   /** Nur für selbst angelegte Zeilen — Accounts, die nicht im Code stehen. */
   app?: string | null;

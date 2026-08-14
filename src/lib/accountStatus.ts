@@ -18,6 +18,7 @@
 import "server-only";
 import {
   isAccountState,
+  MAX_PER_DAY,
   STEER_ROUNDS,
   type AccountState,
   type AccountStatusPatch,
@@ -56,6 +57,8 @@ export interface AccountStatus {
   niche: string | null;
   /** Bis zu drei Zeitstempel — einer je Einsteuer-Runde. Länge = Stand. */
   steered_rounds: string[];
+  /** Posts pro Posting-Tag (1–4). */
+  per_day: number;
   note: string | null;
   /** Gesetzt nur bei selbst angelegten Accounts. */
   app: string | null;
@@ -68,6 +71,8 @@ export interface PostLogEntry {
   account_key: string;
   /** "YYYY-MM-DD". */
   day: string;
+  /** Laufende Nummer des Posts innerhalb des Tages (1–4). */
+  slot: number;
   note: string | null;
 }
 
@@ -95,7 +100,12 @@ export async function listAccountStatus(): Promise<Map<string, AccountStatus>> {
     const rows = (await res.json()) as AccountStatus[];
     if (!Array.isArray(rows)) return out;
     for (const r of rows) {
-      out.set(r.account_key, { ...r, state: normalizeState(r.state), rhythm: normalizeRhythm(r.rhythm) });
+      out.set(r.account_key, {
+        ...r,
+        state: normalizeState(r.state),
+        rhythm: normalizeRhythm(r.rhythm),
+        per_day: Math.max(1, Math.min(MAX_PER_DAY, Number(r.per_day) || 1)),
+      });
     }
     return out;
   } catch {
@@ -133,6 +143,9 @@ export async function saveAccountStatus(
   // werden — PostgREST kann ein Array nicht serverseitig verlängern.
   if (patch.steeredRounds !== undefined) {
     row.steered_rounds = await nextRounds(key, patch.steeredRounds);
+  }
+  if (patch.perDay !== undefined) {
+    row.per_day = Math.max(1, Math.min(MAX_PER_DAY, Math.round(patch.perDay)));
   }
   if (patch.note !== undefined) row.note = clean(patch.note, 500);
   if (patch.app !== undefined) row.app = clean(patch.app, 60);
@@ -176,12 +189,14 @@ export async function listPostLog(from: string, to: string): Promise<PostLogEntr
   if (!KEY || !isDay(from) || !isDay(to)) return [];
   try {
     const res = await fetch(
-      `${REST_LOG}?select=account_key,day,note&day=gte.${from}&day=lte.${to}&limit=2000`,
+      `${REST_LOG}?select=account_key,day,slot,note&day=gte.${from}&day=lte.${to}&limit=2000`,
       { headers: hdr(), cache: "no-store" },
     );
     if (!res.ok) return [];
     const rows = (await res.json()) as PostLogEntry[];
-    return Array.isArray(rows) ? rows.map((r) => ({ ...r, day: r.day.slice(0, 10) })) : [];
+    return Array.isArray(rows)
+      ? rows.map((r) => ({ ...r, day: r.day.slice(0, 10), slot: Number(r.slot) || 1 }))
+      : [];
   } catch {
     return [];
   }
@@ -222,14 +237,16 @@ export async function listPostTotals(): Promise<Record<string, number>> {
 export async function setPostDone(
   key: string,
   day: string,
+  slot: number,
   done: boolean,
   note?: string | null,
 ): Promise<{ ok: boolean }> {
+  const n = Math.max(1, Math.min(MAX_PER_DAY, Math.round(slot)));
   if (!KEY || !key.trim() || !isDay(day)) return { ok: false };
   try {
     if (!done) {
       const res = await fetch(
-        `${REST_LOG}?account_key=eq.${encodeURIComponent(key)}&day=eq.${day}`,
+        `${REST_LOG}?account_key=eq.${encodeURIComponent(key)}&day=eq.${day}&slot=eq.${n}`,
         { method: "DELETE", headers: hdr({ Prefer: "return=minimal" }) },
       );
       return { ok: res.ok };
@@ -240,6 +257,7 @@ export async function setPostDone(
       body: JSON.stringify({
         account_key: key.trim().slice(0, 200),
         day,
+        slot: n,
         note: note === undefined ? undefined : clean(note, 300),
         done_at: new Date().toISOString(),
       }),
