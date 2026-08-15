@@ -71,7 +71,7 @@ export default async function Success({ searchParams }) {
               Want to shape the onboarding chapter? Reply to your receipt email
               with the one thing about agent workflows that annoys you most.
               And if you want platform-specific ship playbooks next (iOS first:
-              App Store review, TestFlight discipline, OTA updates, learned across 7
+              App Store review, TestFlight discipline, OTA updates, learned across six
               shipped apps), reply with <b>&quot;iOS&quot;</b> or
               <b>&quot;Web&quot;</b> for first-buyer pricing on the add-on.
             </p>

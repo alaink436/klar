@@ -18,7 +18,7 @@ export const metadata = {
     "The exact vault structure, agent conventions and LLM Council setup behind Klar Studios' shipped App Store apps. Free system, $49 playbook, honest scars included.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Klar OS: one person, seven shipped apps",
+    title: "Klar OS: one person, six shipped apps",
     description:
       "The free working system of a solo founder who ships with AI agents daily. The scars behind it: the $49 Playbook.",
     url: "/",
@@ -28,7 +28,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Klar OS: one person, seven shipped apps",
+    title: "Klar OS: one person, six shipped apps",
     description:
       "The free working system of a solo founder who ships with AI agents daily. The scars behind it: the $49 Playbook.",
     images: ["/os/og.png"],
@@ -147,7 +147,7 @@ const DETAILS = {
           <h2>Five months of vault data</h2>
           <p className="lede" style={{ margin: 0 }}>
             The templates were never the valuable part, which is why they cost
-            nothing. This is the part that took five months and seven shipped
+            nothing. This is the part that took five months and six shipped
             apps to accumulate.
           </p>
         </div>
@@ -157,7 +157,7 @@ const DETAILS = {
         <div className="row th cols3"><span>Area</span><span>Volume</span><span>What is in there</span></div>
         <div className="row cols3"><span className="k">Learnings</span><span className="n">254</span><span className="dim">Every indexed entry: symptom, verified root cause, fix, rule. The heaviest tags are expo, silent-failure and verify-not-assume</span></div>
         <div className="row cols3"><span className="k">Working with LLMs</span><span className="n">6 sessions</span><span className="dim">Council adaptations from real business decisions, including why the optimist advisor has to be fed its own failures</span></div>
-        <div className="row cols3"><span className="k">Shipping apps</span><span className="n">7 apps</span><span className="dim">Store review, TestFlight discipline, over-the-air updates, native build traps, entitlements and paywalls</span></div>
+        <div className="row cols3"><span className="k">Shipping apps</span><span className="n">6 apps</span><span className="dim">Store review, TestFlight discipline, over-the-air updates, native build traps, entitlements and paywalls</span></div>
         <div className="row cols3"><span className="k">Web and sites</span><span className="n">multiple</span><span className="dim">Deploy pipelines, caching and immutability traps, server rendering boundaries, checkout and webhooks</span></div>
         <div className="row cols3"><span className="k">Distribution</span><span className="n">daily</span><span className="dim">Content pipelines that survive headless, scheduled cloud routines, posting automation</span></div>
         <div className="row cols3"><span className="k">Security</span><span className="n">chapter</span><span className="dim">The agent-safe secrets deep-dive, row-level policies, grants, and the gates that only look like gates</span></div>
@@ -202,7 +202,7 @@ export default function Home() {
         <div className="masthead">
           <h1 className="wordmark"><span>Klar</span> <span className="l2">OS</span></h1>
           <p className="lede" style={{ margin: 0 }}>
-            One person shipped seven apps to the App Store working with AI agents
+            One person shipped six apps to the App Store working with AI agents
             every day. Three things came out of it. Two are free, one is not.
             Pick one to open it.
           </p>

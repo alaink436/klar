@@ -15,7 +15,7 @@ const NODES = [
   { id: "myloo", label: "app 03", x: 278, y: 442, r: 17, kind: "app", info: "Every substantial session ends with this project's dashboard row touched." },
   { id: "yarn", label: "app 04", x: 372, y: 438, r: 17, kind: "app", info: "One of 40 projects tracked in the vault." },
   { id: "anime", label: "app 05", x: 462, y: 420, r: 17, kind: "app", info: "A shipped app whose content pipeline runs fully automatically, planned from inside the vault." },
-  { id: "promillio", label: "app 06", x: 544, y: 390, r: 17, kind: "app", info: "Seven of these made it to the App Store, all run by one person." },
+  { id: "promillio", label: "app 06", x: 544, y: 390, r: 17, kind: "app", info: "Six of these are live in the App Store, all run by one person." },
   { id: "moto", label: "app 07", x: 610, y: 344, r: 17, kind: "app", info: "Same folder skeleton as every other project." },
   { id: "tech", label: "tech-stack.md", x: 456, y: 288, r: 19, kind: "cat", info: "Learnings category: framework and platform scars. Written FIRST, indexed second, never the other way." },
   { id: "tooling", label: "tooling.md", x: 588, y: 260, r: 19, kind: "cat", info: "Learnings category: CLI traps, silent failures, encoding disasters." },
