@@ -9,7 +9,10 @@ const SECURITY_HEADERS = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com",
+      // 'unsafe-eval' in dev only: React's development build calls eval() for
+      // its debugging features, and without it the console fills with CSP
+      // errors on every local page load. Production never needs it.
+      `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"} https://va.vercel-scripts.com`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https:",
@@ -20,7 +23,11 @@ const SECURITY_HEADERS = [
       // Only Klar itself may embed Klar pages
       "frame-ancestors 'self'",
       "base-uri 'self'",
-      "form-action 'self' https://*.supabase.co https://api.brevo.com",
+      // checkout.stripe.com: the Klar OS buy buttons POST to /api/os/checkout,
+      // which answers with a 303 to Stripe. Firefox applies form-action to the
+      // redirect target as well, so without it listed the purchase dies after
+      // the session is already created.
+      "form-action 'self' https://*.supabase.co https://api.brevo.com https://checkout.stripe.com",
       "object-src 'none'",
       "upgrade-insecure-requests",
     ].join("; "),

@@ -60,3 +60,13 @@ next-env.d.ts
 # supabase CLI local cache
 /supabase/.branches
 /supabase/.temp
+
+# Klar OS paid product — this repo is PUBLIC on GitHub. The learnings corpus
+# and the playbook zip are what the $49 buys; they live in the private Supabase
+# `corpus` and `kit` buckets and are served by the token-gated feed and by the
+# deliver-playbook edge function. These patterns are a tripwire, not the
+# mechanism: nothing here should ever be produced inside this repo.
+/corpus/
+/public/dl-*.zip
+klar-os-playbook-*.zip
+/build/learnings/
