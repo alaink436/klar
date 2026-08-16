@@ -35,6 +35,39 @@ export const metadata = {
   },
 };
 
+// The sync price climbs in steps. Each step is a fixed number of subscriptions
+// at a fixed price; when it fills, the next opens and costs more. Nobody's own
+// price moves: a Stripe subscription keeps the price it was created with, so
+// raising the price means creating a NEW price and pointing
+// KLAROS_STRIPE_SYNC_PRICE_ID at it. Existing subscribers carry on untouched,
+// which is exactly what the page promises them.
+//
+// OPEN_STEP is the step selling right now. Move it by hand when one fills —
+// deliberately not derived from a live subscriber count, because that count is
+// a revenue figure and this page does not publish those.
+const LADDER = [
+  { step: 1, from: 1, to: 5, price: 19 },
+  { step: 2, from: 6, to: 15, price: 29 },
+  { step: 3, from: 16, to: 30, price: 39 },
+  { step: 4, from: 31, to: 60, price: 49 },
+  { step: 5, from: 61, to: null, price: 59 },
+];
+const OPEN_STEP = 1;
+
+// Recurring revenue once a step is full, counted the way the promise works:
+// everyone keeps the price they joined at, so each step adds its own seats at
+// its own price on top of everything before it.
+const RUNGS = (() => {
+  let running = 0;
+  return LADDER.map((r) => {
+    const seats = r.to ? r.to - r.from + 1 : null;
+    if (seats) running += seats * r.price;
+    return { ...r, seats, mrr: seats ? running : null };
+  });
+})();
+
+const money = (n) => `$${n.toLocaleString("en-US")}`;
+
 const SKILLS = [
   { set: "Everything Claude Code", n: "59", who: "Affaan Mustafa", lic: "MIT", for: "API design, frontend and backend patterns, migrations, deployment, testing, docker, cost-aware model routing, eval harnesses" },
   { set: "Impeccable", n: "18", who: "Paul Bakaus", lic: "Apache 2.0", for: "UI and UX quality: full design review plus focused passes for type, colour, layout, polish and critique" },
@@ -275,10 +308,17 @@ export default function Home() {
                 <li>Reply to any monthly note and ask me something. I answer
                     personally when I can, and I am not promising a response time</li>
                 <li>Cancel any month. The learnings you already merged stay yours</li>
+                <li>The price you join at is the price you keep. Later steps cost
+                    more; yours does not move</li>
               </ul>
             </div>
             <div className="subbuy">
-              <p className="price">$19<small>per month, cancel any time</small></p>
+              <p className="price">
+                {money(LADDER[OPEN_STEP - 1].price)}
+                <small>
+                  per month, step {OPEN_STEP} of {LADDER.length}, cancel any time
+                </small>
+              </p>
               <form action="/api/os/checkout" method="POST">
                 <input type="hidden" name="plan" value="sync" />
                 <button className="btn pay" type="submit">Subscribe</button>
@@ -288,6 +328,54 @@ export default function Home() {
                 there is nothing to sync into.
               </p>
             </div>
+          </div>
+
+          <div className="ladder">
+            <p className="stamp">05, the ladder</p>
+            <h3 style={{ fontSize: "1.5rem", marginBottom: "var(--space-2)" }}>
+              The price climbs as the list does
+            </h3>
+            <p className="dim" style={{ maxWidth: "64ch" }}>
+              Each step is a fixed number of subscriptions at a fixed price. When
+              a step fills, the next one opens and costs more, because by then
+              the corpus is bigger and there is less of me to go round. The last
+              column is what the monthly revenue adds up to once that step is
+              full, counted the way the promise works: everyone keeps the price
+              they joined at, so each step stacks on top of the ones before it.
+            </p>
+            <div className="table">
+              <div className="row th cols4">
+                <span>Step</span>
+                <span>Subscriptions</span>
+                <span>Per month</span>
+                <span>Recurring revenue when the step is full</span>
+              </div>
+              {RUNGS.map((r) => (
+                <div
+                  key={r.step}
+                  className={`row cols4${r.step === OPEN_STEP ? " now" : ""}`}
+                >
+                  <span className="k" data-l="Step">
+                    {String(r.step).padStart(2, "0")}
+                    {r.step === OPEN_STEP ? <i className="tag"> open now</i> : null}
+                  </span>
+                  <span data-l="Subscriptions">
+                    {r.to ? `${r.from} to ${r.to}` : `${r.from} and up`}
+                  </span>
+                  <span data-l="Per month">{money(r.price)}</span>
+                  <span className="dim" data-l="Revenue when full">
+                    {r.mrr ? `${money(r.mrr)} per month` : "grows from there"}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="fine" style={{ maxWidth: "70ch" }}>
+              Published so it is a commitment rather than a mood. The step that
+              is open is the one marked above, and it changes when it fills, not
+              when it suits me. Nothing here is retroactive, in either direction:
+              a step that fills does not reprice the people already in it, and a
+              step that fills slowly does not get cheaper.
+            </p>
           </div>
         </section>
 

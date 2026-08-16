@@ -431,6 +431,20 @@
   align-items: baseline;
 }
 .os-root .row.cols3 { grid-template-columns: 12rem 6rem 1fr; }
+.os-root .row.cols4 { grid-template-columns: 5rem 9rem 8rem 1fr; }
+/* The step that is open right now, marked in the ladder rather than described
+   underneath it: the reader is scanning a table, so the answer has to be in
+   the table. */
+.os-root .row.now { background: var(--green-lift); }
+.os-root .row.now .k { color: var(--green); }
+.os-root .row .tag {
+  font-family: var(--f-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--green);
+}
 .os-root .row.th {
   font-family: var(--f-mono);
   font-size: 0.64rem;
@@ -455,7 +469,7 @@
 .os-root .row .n { font-family: var(--f-mono); font-weight: 700; }
 .os-root .row .lic { font-family: var(--f-mono); font-size: 0.76rem; }
 @media (max-width: 860px) {
-.os-root .row, .os-root .row.cols3 { grid-template-columns: 1fr; gap: var(--space-1); }
+.os-root .row, .os-root .row.cols3, .os-root .row.cols4 { grid-template-columns: 1fr; gap: var(--space-1); }
 .os-root .row.th { display: none; }
 .os-root .row .n::before { content: "count: "; color: var(--ink-3); font-weight: 400; }
 .os-root .row .lic::before { content: "licence: "; color: var(--ink-3); }
@@ -1111,4 +1125,26 @@ body:has(.os-root)::after { content: none; }
 }
 @media (max-width: 900px) {
   .os-root .masthead { grid-template-columns: 1fr; }
+}
+
+/* ── The price ladder ──────────────────────────────────────────────────────
+ * Sits under the subscription offer and shows every step at once: how many
+ * subscriptions it holds, what it costs, and what the monthly revenue comes
+ * to once it is full. Deliberately a table and not prose — the reader is
+ * checking whether the story adds up, and prose is where numbers go to hide.
+ */
+.os-root .ladder {
+  border-top: 1px solid var(--rule);
+  margin-top: var(--space-7);
+  padding-top: var(--space-6);
+}
+.os-root .ladder .stamp { display: block; margin-bottom: var(--space-2); }
+@media (max-width: 700px) {
+  /* The header row is hidden on narrow screens, so each cell names itself. */
+  .os-root .row.cols4 span::before {
+    content: attr(data-l) ": ";
+    color: var(--ink-3);
+    font-weight: 400;
+  }
+  .os-root .row.cols4 .k::before { content: none; }
 }
