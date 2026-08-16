@@ -786,7 +786,7 @@
 }
 /* --------------------------------------------------------------- panel --- */
 /* shared frame for the two instruments (vault map, proxy) */
-.os-root .panel { border: 1px solid var(--ink); background: var(--paper-2); }
+.os-root .panel { border: 1px solid var(--ink); background: var(--paper-2); width: 100%; min-width: 0; box-sizing: border-box; }
 .os-root .panel > header {
   display: flex;
   justify-content: space-between;
@@ -860,6 +860,22 @@
 .os-root .ginfo { grid-template-columns: 1fr; gap: var(--space-1); }
 }
 /* ---------------------------------------------------------------- flow --- */
+/* Explicit widths, not inherited ones. These containers had no rule at all and
+   relied on being block-level children of a full-width panel. That holds until
+   something upstream sizes to content: a translation layer rewrapping text
+   nodes, a print stylesheet, an extension. Then the caption grid gets its
+   width from its longest word and the sentence falls apart one word per line.
+   The rule costs nothing and removes the whole class of failure. */
+/* A floor, not just a percentage. `width: 100%` of an ancestor that sizes to
+   its content is still content-sized, so a panel inside anything shrink-to-fit
+   collapses to its longest word and the sentences fall apart one word per
+   line. The floor is deliberately viewport-based and does NOT include a 100%
+   term: inside a shrunken ancestor that term resolves to the collapsed width
+   and min() picks it, which is exactly the failure it was meant to prevent. */
+.os-root .pflow,
+.os-root .vdemo,
+.os-root .panel { min-width: min(30rem, 100vw - 3rem); }
+.os-root .pflow { width: 100%; }
 .os-root .pfsvg { width: 100%; height: auto; display: block; padding: var(--space-4); }
 .os-root .pfrail { stroke: var(--rule-hard); stroke-width: 1; stroke-dasharray: 2 6; }
 .os-root .pfwall { stroke: var(--rust); stroke-width: 1.4; stroke-dasharray: 7 5; }
@@ -878,10 +894,11 @@
    so the chip text no longer needs a dark-mode rule of its own. */
 .os-root .pfc-resp rect { fill: var(--green); stroke: var(--green); }
 .os-root .pfc-resp text { fill: var(--on-green); }
-.os-root .pfcaps { list-style: none; margin: 0; padding: 0 var(--space-4) var(--space-2); border-top: 1px solid var(--rule); }
+.os-root .pfcaps { list-style: none; margin: 0; padding: 0 var(--space-4) var(--space-2); border-top: 1px solid var(--rule); width: 100%; min-width: 0; box-sizing: border-box; }
 .os-root .pfcap {
   display: grid;
-  grid-template-columns: 2.4rem 1fr;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  width: 100%;
   gap: var(--space-3);
   padding: 0.5rem 0;
   font-size: 0.88rem;
@@ -939,10 +956,10 @@
 .os-root .pfcap { color: var(--ink); }
 }
 /* ---------------------------------------------------------------- demo --- */
-.os-root .vdemo { padding: var(--space-4); }
-.os-root .vlanes { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
+.os-root .vdemo { padding: var(--space-4); width: 100%; min-width: 0; box-sizing: border-box; }
+.os-root .vlanes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
 @media (max-width: 860px) {
-.os-root .vlanes { grid-template-columns: 1fr; }
+.os-root .vlanes { grid-template-columns: minmax(0, 1fr); }
 }
 .os-root .vlane { border: 1px solid var(--rule); padding: var(--space-4); background: var(--paper); transition: border-color 0.2s; }
 .os-root .vlane.now { border-color: var(--green); }
