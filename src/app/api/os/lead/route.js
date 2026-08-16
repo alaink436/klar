@@ -18,11 +18,25 @@ export async function POST(req) {
   // uses everywhere else — `leads` means something different in each.
   const url = process.env.KLAROS_SUPABASE_URL;
   const serviceKey = process.env.KLAROS_SUPABASE_SERVICE_ROLE_KEY;
+  // Capture is best-effort, delivery is not: whatever happens below, the
+  // download link goes back. But "best-effort" used to mean an empty catch,
+  // which turned a broken key into a silent, permanent loss of every lead. It
+  // is reported now, in the log and in the payload, without ever failing the
+  // request.
+  let stored = false;
   if (url && serviceKey) {
+    const supabase = createClient(url, serviceKey);
     try {
-      const supabase = createClient(url, serviceKey);
-      await supabase.from("leads").upsert({ email, source: "free_kit" }, { onConflict: "email" });
-    } catch {}
+      const { error } = await supabase
+        .from("leads")
+        .upsert({ email, source: "free_kit" }, { onConflict: "email" });
+      if (error) console.error("[os/lead] upsert failed:", error.message);
+      stored = !error;
+    } catch (e) {
+      console.error("[os/lead] upsert threw:", String(e).slice(0, 200));
+    }
+  } else {
+    console.error("[os/lead] no KLAROS_SUPABASE_* env, lead not captured");
   }
-  return NextResponse.json({ ok: true, url: FREE_ZIP });
+  return NextResponse.json({ ok: true, url: FREE_ZIP, stored });
 }

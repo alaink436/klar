@@ -81,11 +81,21 @@ export async function GET(req) {
   }
 
   const supabase = createClient(url, serviceKey);
-  const { data: sub } = await supabase
+  const { data: sub, error: dbErr } = await supabase
     .from("subscriptions")
     .select("status, plan")
     .eq("token", token)
     .maybeSingle();
+
+  // A failed query is not an unknown token. Collapsing the two into one 403 is
+  // how a misconfigured key looks exactly like a stranger knocking: the paid
+  // feed can be down for every subscriber and the endpoint still answers the
+  // way it does on an ordinary bad request. Costs nothing to separate, and the
+  // reply carries no detail an attacker could use.
+  if (dbErr) {
+    console.error("[learnings/feed] subscription lookup failed:", dbErr.message);
+    return NextResponse.json({ error: "subscription backend unavailable" }, { status: 503 });
+  }
 
   // One message for "no such token" and for "lapsed", so the endpoint cannot
   // be used to find out which tokens exist.
