@@ -82,23 +82,40 @@ export default async function MrrBar({ ladder }: { ladder: Rung[] }) {
         ))}
       </div>
 
-      {/* Prices below, one cell per step, the open one inverted. */}
+      {/* Prices below. Every cell has the same three lines in the same order:
+          which step, when it applies, what the two things cost. The row used to
+          run four numbers together with no labels, so a reader had to guess
+          which figure was the one-time purchase and which was the monthly one,
+          and nothing said when step 02 starts. */}
+      <p className="ladderbar-cap ladderbar-steps-cap">What you pay at each step</p>
       <ol className="ladderbar-steps">
-        {ladder.map((r) => (
-          <li key={r.step} className={r.step === current.step ? "is-open" : ""}>
-            <span className="ladderbar-step-n">
-              {String(r.step).padStart(2, "0")}
-              {r.step === current.step ? <i>you are here</i> : null}
-            </span>
-            <span className="ladderbar-step-price">
-              {money(r.data)} <i>once</i>
-            </span>
-            <span className="ladderbar-step-price">
-              {money(r.sync)} <i>a month</i>
-            </span>
-          </li>
-        ))}
+        {ladder.map((r) => {
+          const open = r.step === current.step;
+          const passed = r.step < current.step;
+          return (
+            <li key={r.step} className={open ? "is-open" : passed ? "is-passed" : ""}>
+              <span className="ladderbar-step-head">
+                <b>Step {String(r.step).padStart(2, "0")}</b>
+                {open ? <i>you are here</i> : null}
+              </span>
+              <span className="ladderbar-step-when">
+                {r.floor === 0
+                  ? `while the apps earn under ${money(ladder[1].floor)} a month`
+                  : `once the apps earn ${money(r.floor)} a month`}
+              </span>
+              <span className="ladderbar-step-row">
+                <span>The data</span>
+                <b>{money(r.data)} once</b>
+              </span>
+              <span className="ladderbar-step-row">
+                <span>The sync</span>
+                <b>{money(r.sync)} a month</b>
+              </span>
+            </li>
+          );
+        })}
       </ol>
+
     </section>
   );
 }

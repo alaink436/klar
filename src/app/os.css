@@ -1380,11 +1380,12 @@ body:has(.os-root)::after { content: none; }
   background: var(--ink);
 }
 
+.os-root .ladderbar-steps-cap { margin: var(--space-5) 0 var(--space-2); }
 .os-root .ladderbar-steps {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
-  margin: var(--space-4) 0 0;
+  margin: 0;
   background: var(--rule);
   border: 1px solid var(--rule);
   list-style: none;
@@ -1392,41 +1393,68 @@ body:has(.os-root)::after { content: none; }
 }
 .os-root .ladderbar-steps li {
   background: var(--paper);
-  padding: var(--space-3) var(--space-4);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2) var(--space-4);
+  padding: var(--space-4);
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
   font-family: var(--f-mono);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
+  min-width: 0;
 }
+/* The step being sold is inverted. Steps already behind you fade, so the row
+   reads as a path with a position on it rather than four equal options. */
 .os-root .ladderbar-steps li.is-open { background: var(--ink); color: var(--paper); }
-.os-root .ladderbar-step-n {
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--ink-3);
+.os-root .ladderbar-steps li.is-passed { opacity: 0.55; }
+
+.os-root .ladderbar-step-head {
   display: flex;
   align-items: baseline;
   gap: var(--space-2);
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: var(--space-2);
 }
-.os-root .ladderbar-steps li.is-open .ladderbar-step-n { color: var(--paper); }
-.os-root .ladderbar-step-n i {
+.os-root .ladderbar-steps li.is-open .ladderbar-step-head { border-bottom-color: var(--rule-hard); }
+.os-root .ladderbar-step-head b {
+  font-family: var(--f-display);
+  font-size: 0.92rem;
+  letter-spacing: -0.01em;
+}
+.os-root .ladderbar-step-head i {
   font-style: normal;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   font-size: 0.56rem;
-  opacity: 0.72;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.75;
 }
-.os-root .ladderbar-step-price { font-weight: 700; white-space: nowrap; }
-.os-root .ladderbar-step-price i {
-  font-style: normal;
-  font-weight: 400;
+.os-root .ladderbar-step-when {
   color: var(--ink-3);
-  letter-spacing: 0.06em;
+  line-height: 1.4;
+  min-height: 2.8em;
 }
-.os-root .ladderbar-steps li.is-open .ladderbar-step-price i { color: var(--paper); opacity: 0.7; }
+.os-root .ladderbar-steps li.is-open .ladderbar-step-when { color: var(--paper); opacity: 0.72; }
+/* Label left, figure right: the eye can run down one column and compare the
+   same thing across all four steps. */
+.os-root .ladderbar-step-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+  border-top: 1px solid var(--rule);
+  padding-top: var(--space-2);
+}
+.os-root .ladderbar-steps li.is-open .ladderbar-step-row { border-top-color: var(--rule-hard); }
+.os-root .ladderbar-step-row > span { color: var(--ink-3); }
+.os-root .ladderbar-steps li.is-open .ladderbar-step-row > span { color: var(--paper); opacity: 0.72; }
+.os-root .ladderbar-step-row > b { font-weight: 700; white-space: nowrap; }
+
 @media (max-width: 860px) {
-  .os-root .ladderbar-steps { grid-template-columns: repeat(2, 1fr); }
+  .os-root .ladderbar-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .os-root .ladderbar-steps { grid-template-columns: minmax(0, 1fr); }
+  .os-root .ladderbar-step-when { min-height: 0; }
 }
 
 /* The value, printed where the fill ends. A logarithmic axis keeps every
