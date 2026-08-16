@@ -218,7 +218,7 @@ export function InstallClient({ code }: { code: string }) {
             }}
           >
             <Image
-              src="/icons/promillio.png"
+              src="/logo/klar-symbol.png"
               alt="Promillo icon"
               fill
               sizes="46px"

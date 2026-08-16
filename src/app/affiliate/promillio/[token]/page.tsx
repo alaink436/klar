@@ -1,6 +1,7 @@
 // Promillo affiliate-onboarding hosted on getklar.org. Unified Klar
 // public-site look — same fonts/palette as the landing page. The app
-// identity is the icon from /icons/promillio.png.
+// identity is the studio mark: the app is retired and its icon went with the
+// rest of the old artwork, but links already in circulation still land here.
 
 import { use } from "react";
 import { getApp, sbGet } from "@/lib/adminApps";

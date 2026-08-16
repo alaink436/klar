@@ -433,7 +433,9 @@ export const BRANDS: Record<BrandKey, Brand> = {
     commissionPct: 50,
     attributionMonths: 24,
     streamLabel: "Premium-Abos",
-    iconUrl: "/icons/promillio.png",
+    // Retired app, retired icon. Its affiliate and install pages stay reachable
+    // for links already in circulation, wearing the studio mark.
+    iconUrl: "/logo/klar-symbol.png",
     assetsDriveUrl: null,
     mascot: "/affiliate-mascots/promillio/unicorn.png",
     glyph: { letter: "P", italic: false },

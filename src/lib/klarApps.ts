@@ -125,7 +125,11 @@ export const KLAR_APPS: KlarAppMeta[] = [
   {
     slug: "promillio",
     name: "Promillo",
-    icon: "/icons/promillio.png",
+    // Promillo is retired, and its app icon went with the rest of the old
+    // artwork. The entry survives only so historical rows resolve to a name,
+    // and nothing renders this field for an unlisted app, but the type wants
+    // one: the studio mark stands in.
+    icon: "/logo/klar-symbol.png",
     status: "PAUSED",
     publicSite: false,
     listed: false,
