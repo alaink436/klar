@@ -27,11 +27,15 @@ import OsShell from "./os/OsShell";
 // KLAROS_STRIPE_SYNC_PRICE_ID at it: a subscription keeps the price it was
 // created with, so everyone already subscribed carries on untouched, which is
 // what the page promises them.
+// The climb is steep on purpose. A flat ladder says the evidence is worth
+// roughly the same whether it came from a side project or from a studio at ten
+// thousand a month, and if that were true there would be no reason to price it
+// by traction at all. Step one is the only price anyone can buy today.
 const LADDER = [
   { step: 1, floor: 0, data: 49, sync: 19 },
-  { step: 2, floor: 500, data: 79, sync: 29 },
-  { step: 3, floor: 2000, data: 119, sync: 39 },
-  { step: 4, floor: 10000, data: 149, sync: 49 },
+  { step: 2, floor: 500, data: 99, sync: 39 },
+  { step: 3, floor: 2000, data: 199, sync: 69 },
+  { step: 4, floor: 10000, data: 399, sync: 119 },
 ];
 const OPEN_STEP = 1;
 
