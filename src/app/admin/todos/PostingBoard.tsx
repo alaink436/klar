@@ -715,12 +715,12 @@ export default function PostingBoard({
                       className="px-2.5 py-2 sticky left-0 z-10 align-top"
                       style={{ minWidth: 210, background: "var(--surface)" }}
                     >
+                      {/* Die Rinne steht in JEDER Zeile, auch der ungebundenen:
+                          der Text rückt überall gleich weit ein, sonst franste
+                          die Spalte an jedem verbundenen Kanal aus. */}
+                      <LinkLine up={linkedUp} down={linkedDown} member={Boolean(r.contentGroup)} />
                       <div className="flex gap-2">
-                        {/* Die Rinne steht in JEDER Zeile, auch der ungebundenen:
-                            sonst rückte der Text verbundener Kanäle ein und die
-                            Spalte franste aus. */}
-                        <LinkLine up={linkedUp} down={linkedDown} member={Boolean(r.contentGroup)} />
-                        <div className="min-w-0">
+                        <div className="min-w-0 pl-[13px]">
                           <div className="text-[13px] text-fg">
                             {r.handle ? `@${r.handle}` : <span className="text-fg-4">Handle fehlt</span>}
                           </div>
@@ -744,8 +744,11 @@ export default function PostingBoard({
                               hier sucht man, wenn man wissen will, ob dieser Kanal
                               eigenes Material braucht. */}
                           {r.contentGroup ? (
+                            // Kein `uppercase`: der Kontoname IST ein Handle, und
+                            // „GIRLYSGIRL78" erkennt man schlechter wieder als
+                            // das, was auf dem Profil steht.
                             <div
-                              className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-3 mt-0.5 truncate"
+                              className="[font-family:var(--font-mono)] text-[9.5px] tracking-[0.06em] text-fg-3 mt-0.5 truncate"
                               title={
                                 groupMates(r).length
                                   ? `Gleiches Material wie ${groupMates(r).map((m) => `@${m.handle}`).join(", ")}`
@@ -938,12 +941,12 @@ export default function PostingBoard({
                       {/* Lösen steht nur da, wo es etwas zu lösen gibt, und
                           trägt ein Wort statt eines Symbols. */}
                       {r.contentGroup ? (
-                        <div className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-4 mt-1">
+                        <div className="[font-family:var(--font-mono)] text-[9.5px] tracking-[0.06em] text-fg-4 mt-1">
                           {groupMates(r).length + 1} Kanäle ·{" "}
                           <button
                             type="button"
                             onClick={() => unlink(r)}
-                            className="hover:text-danger underline decoration-dotted uppercase"
+                            className="hover:text-danger underline decoration-dotted"
                           >
                             @{r.handle} lösen
                           </button>
@@ -1146,21 +1149,19 @@ export default function PostingBoard({
  * Die Rinne steht auch in ungebundenen Zeilen, sonst rückte der Text ein.
  */
 function LinkLine({ up, down, member }: { up: boolean; down: boolean; member: boolean }) {
-  const DOT = 9; // Höhe der Handle-Zeile, dort sitzt der Knoten
+  // ⚠️ Die Rinne hängt an der ZELLE (absolut, `inset-y-0`) und nicht im
+  // Textfluss. Als Flex-Kind wuchs sie nur mit dem Zellinhalt — rund 50 px —,
+  // während die Zeile durch Notizfeld und Wochenstreifen dreimal so hoch wird.
+  // Die Linie brach dann mitten in der Zeile ab, und zwischen zwei verbundenen
+  // Kanälen klaffte eine Lücke von fast hundert Pixeln.
+  const DOT = 17; // Zellpolster (8) + Mitte der Handle-Zeile (9)
+  const line = "absolute w-px bg-[var(--line-strong,var(--line))]";
   return (
-    <div className="relative w-[9px] shrink-0" aria-hidden="true">
-      {up ? (
-        <span
-          className="absolute w-px bg-[var(--line-strong,var(--line))]"
-          style={{ left: 4, top: -8, height: DOT + 8 }}
-        />
-      ) : null}
-      {down ? (
-        <span
-          className="absolute w-px bg-[var(--line-strong,var(--line))]"
-          style={{ left: 4, top: DOT, bottom: -8 }}
-        />
-      ) : null}
+    <div className="absolute left-[10px] top-0 bottom-0 w-[9px] pointer-events-none" aria-hidden="true">
+      {/* Je 1 px über die Zellgrenze hinaus, sonst schneidet der Zeilenrahmen
+          die Kette an jeder Naht durch. */}
+      {up ? <span className={line} style={{ left: 4, top: -1, height: DOT + 1 }} /> : null}
+      {down ? <span className={line} style={{ left: 4, top: DOT, bottom: -1 }} /> : null}
       {member ? (
         <span
           className="absolute rounded-full"
