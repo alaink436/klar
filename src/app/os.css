@@ -294,7 +294,16 @@
 }
 .os-root .pane-cta i { font-style: normal; font-size: 0.95rem; line-height: 1; }
 .os-root .pane.open .pane-cta { color: var(--rust); }
-.os-root .detail { border-bottom: 2px solid var(--ink); padding-bottom: var(--space-7); }
+/* The opened panel sits in the same column as everything else. Without this it
+   inherited the triptych's full width and its first line started at the very
+   edge of the window, which read as a different page rather than as the inside
+   of the panel above it. */
+.os-root .detail {
+  border-bottom: 2px solid var(--ink);
+  padding: 0 var(--space-5) var(--space-7);
+  max-width: 1240px;
+  margin: 0 auto;
+}
 .os-root .detail[hidden] { display: none; }
 /* hero one: the skill field */
 .os-root .art-skills { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }

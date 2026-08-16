@@ -73,13 +73,14 @@ export const metadata = {
 };
 
 const SKILLS = [
-  { set: "Everything Claude Code", n: "59", who: "Affaan Mustafa", lic: "MIT", for: "API design, frontend and backend patterns, migrations, deployment, testing, docker, cost-aware model routing, eval harnesses" },
-  { set: "Impeccable", n: "18", who: "Paul Bakaus", lic: "Apache 2.0", for: "UI and UX quality: full design review plus focused passes for type, colour, layout, polish and critique" },
-  { set: "HyperFrames", n: "19", who: "HeyGen", lic: "Apache 2.0", for: "HTML plus a seekable timeline rendered to deterministic MP4, across ten creation workflows" },
-  { set: "UI/UX Pro Max", n: "4", who: "Next Level Builder", lic: "MIT", for: "Design systems, banner design, UI styling" },
-  { set: "LLM Council", n: "1", who: "tenfoldmarc", lic: "MIT", for: "Five adversarial advisors, anonymised and peer-reviewed, for decisions where being wrong is expensive", ships: true },
-  { set: "Vault proxy setup", n: "1", who: "Klar Studios", lic: "MIT", for: "Builds your whole secrets infrastructure, then quizzes you until the model sticks", ships: true },
+  { set: "Everything Claude Code", n: "59", who: "Affaan Mustafa", lic: "MIT", for: "API, frontend, backend, migrations, deployment, testing, model routing" },
+  { set: "Impeccable", n: "18", who: "Paul Bakaus", lic: "Apache 2.0", for: "Design review: type, colour, layout, polish, critique" },
+  { set: "HyperFrames", n: "19", who: "HeyGen", lic: "Apache 2.0", for: "HTML plus a timeline, rendered to deterministic MP4" },
+  { set: "UI/UX Pro Max", n: "4", who: "Next Level Builder", lic: "MIT", for: "Design systems, banners, UI styling" },
+  { set: "LLM Council", n: "1", who: "tenfoldmarc", lic: "MIT", for: "Five adversarial advisors, for decisions where being wrong is expensive", ships: true },
+  { set: "Vault proxy setup", n: "1", who: "Klar Studios", lic: "MIT", for: "Builds your secrets infrastructure, then quizzes you on it", ships: true },
 ];
+
 
 const DETAILS = {
   setup: (
@@ -89,9 +90,8 @@ const DETAILS = {
         <div>
           <h2>The setup, and every skill in it</h2>
           <p className="lede" style={{ margin: 0 }}>
-            The map below is the seller&apos;s real vault. Every node is a file,
-            every line a reference the session rituals create, and the pulsing
-            path is the lookup order that starts every session. Drag it around.
+            The map is the seller&apos;s real vault: every node a file, every
+            line a reference the session rituals made. Drag it around.
           </p>
         </div>
       </div>
@@ -106,11 +106,8 @@ const DETAILS = {
 
       <h3 style={{ marginTop: "var(--space-7)" }}>Every skill, with its author and licence</h3>
       <p className="fine" style={{ maxWidth: "70ch" }}>
-        Two ship inside the kit with their licence text next to them. The rest
-        are curated: the registry gives you the reason to load each one and the
-        command to install it from its author, which is both correct and how you
-        keep getting their updates. Sets with an unverifiable licence are left
-        out on purpose, and the registry says so in writing.
+        Two ship in the kit. The rest are curated, so you install them from
+        their authors and keep getting their updates.
       </p>
       <div className="table">
         <div className="row th">
@@ -127,9 +124,8 @@ const DETAILS = {
         ))}
       </div>
       <p className="fine">
-        Loading discipline is part of the system: skills live in an archive and
-        are read when the task matches, never from an auto-load directory. A
-        dozen auto-loaded skills is a tax on every session you will ever run.
+        Read when the task matches, never auto-loaded. A dozen auto-loaded
+        skills is a tax on every session you run.
       </p>
 
       <div className="card-cta">
@@ -148,9 +144,7 @@ const DETAILS = {
         <div>
           <h2>Keys your agent can <em>use but never see</em></h2>
           <p className="lede" style={{ margin: 0 }}>
-            A key that lands in a chat is burned: it sits in logs, screenshots
-            and storage you do not control. So in this design it never gets
-            there. Below: what moves, then what happens when you try to break it.
+            A key that lands in a chat is burned. Here it never gets there.
           </p>
         </div>
       </div>
@@ -163,9 +157,8 @@ const DETAILS = {
         <VaultDemo />
       </div>
       <p className="fine">
-        The real thing installs itself: private repo, deployment, encrypted key
-        store and the browser key window with 14 provider templates. It closes
-        with a five-question quiz, and passing it is not optional.
+        It installs itself: repo, deployment, encrypted store, 14 provider
+        templates. Ends with a quiz you have to pass.
       </p>
       <div className="card-cta">
         <p style={{ margin: 0 }}>
@@ -183,33 +176,27 @@ const DETAILS = {
         <div>
           <h2>Five months of vault data</h2>
           <p className="lede" style={{ margin: 0 }}>
-            The templates were never the valuable part, which is why they cost
-            nothing. This is the part that took five months and six shipped
-            apps to accumulate.
+            The templates cost nothing because they were never the valuable
+            part. This took five months and six shipped apps.
           </p>
         </div>
       </div>
 
       <div className="table">
         <div className="row th cols3"><span>Area</span><span>Volume</span><span>What is in there</span></div>
-        <div className="row cols3"><span className="k">Learnings</span><span className="n">254</span><span className="dim">Every indexed entry: symptom, verified root cause, fix, rule. The heaviest tags are expo, silent-failure and verify-not-assume</span></div>
-        <div className="row cols3"><span className="k">Working with LLMs</span><span className="n">6 sessions</span><span className="dim">Council adaptations from real business decisions, including why the optimist advisor has to be fed its own failures</span></div>
-        <div className="row cols3"><span className="k">Shipping apps</span><span className="n">6 apps</span><span className="dim">Store review, TestFlight discipline, over-the-air updates, native build traps, entitlements and paywalls</span></div>
-        <div className="row cols3"><span className="k">Web and sites</span><span className="n">multiple</span><span className="dim">Deploy pipelines, caching and immutability traps, server rendering boundaries, checkout and webhooks</span></div>
-        <div className="row cols3"><span className="k">Distribution</span><span className="n">daily</span><span className="dim">Content pipelines that survive headless, scheduled cloud routines, posting automation</span></div>
-        <div className="row cols3"><span className="k">Security</span><span className="n">chapter</span><span className="dim">The agent-safe secrets deep-dive, row-level policies, grants, and the gates that only look like gates</span></div>
-        <div className="row cols3"><span className="k">Scaling and cost</span><span className="n">ongoing</span><span className="dim">Context budgets, rate limits, batch work that locks you out, model routing by cost</span></div>
-        <div className="row cols3"><span className="k">Animation</span><span className="n">recipes</span><span className="dim">Easing that belongs on a position and not a frame index, sprite turnarounds, render pipelines</span></div>
+        <div className="row cols3"><span className="k">Learnings</span><span className="n">254</span><span className="dim">Symptom, verified root cause, fix, rule</span></div>
+        <div className="row cols3"><span className="k">Working with LLMs</span><span className="n">6 sessions</span><span className="dim">Council adaptations from real decisions</span></div>
+        <div className="row cols3"><span className="k">Shipping apps</span><span className="n">6 apps</span><span className="dim">Store review, TestFlight, OTA, build traps, paywalls</span></div>
+        <div className="row cols3"><span className="k">Web and sites</span><span className="n">multiple</span><span className="dim">Deploy pipelines, caching traps, checkout and webhooks</span></div>
+        <div className="row cols3"><span className="k">Security</span><span className="n">chapter</span><span className="dim">Agent-safe secrets, row-level policies, fake gates</span></div>
+        <div className="row cols3"><span className="k">Scaling and cost</span><span className="n">ongoing</span><span className="dim">Context budgets, rate limits, model routing by cost</span></div>
       </div>
 
       <p className="fine" style={{ maxWidth: "72ch" }}>
-        <b>Exactly what lands today:</b> all 254 learnings, redacted and indexed
-        in English, plus the four written chapters. The entries themselves are
-        the German originals, written during the work; English translations of
-        the bodies follow in stages and your download page always serves the
-        newest build. Every project name is removed: the lesson is the product,
-        not which app happened to teach it. No revenue numbers anywhere, and
-        none were ever written down.
+        <b>Today:</b> 254 learnings, redacted, English index, four chapters.
+        Entries are the German originals; translations follow and your download
+        page always serves the newest build. Project names are removed, because
+        the lesson is the product.
       </p>
 
       <div className="card-cta paid">
