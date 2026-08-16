@@ -231,34 +231,9 @@ export default async function Home() {
       <div className="wrap">
         <div className="topbar">
           <a className="mark" href="/">KLAR STUDIOS</a>
-          <a className="to-buy" href="#pricing">Pricing &rarr;</a>
+          <a className="to-buy" href="#pricing">Get it &rarr;</a>
         </div>
-        {/* The price, before the pitch. Someone who lands here already knows
-            whether they want a vault; what they cannot see is that today is
-            cheaper than next month, and burying that at the bottom of the page
-            wastes it. The threshold is named, so this is a fact rather than a
-            countdown someone invented. */}
-        <div className="pricenow">
-          <span className="pricenow-step">
-            Step {String(OPEN_STEP).padStart(2, "0")} /{" "}
-            {String(LADDER.length).padStart(2, "0")}
-          </span>
-          <span className="pricenow-fig">
-            <b>{money(NOW.data)}</b> data
-          </span>
-          <span className="pricenow-fig">
-            <b>{money(NOW.sync)}</b> a month, sync
-          </span>
-          {NEXT ? (
-            <span className="pricenow-next">
-              then {money(NEXT.data)} and {money(NEXT.sync)} above{" "}
-              {money(NEXT.floor)} a month
-            </span>
-          ) : null}
-          <a className="pricenow-cta" href="#pricing">
-            the ladder
-          </a>
-        </div>
+        <MrrBar ladder={LADDER} />
 
         <div className="masthead">
           <h1 className="wordmark"><span>Klar</span> <span className="l2">OS</span></h1>
@@ -361,66 +336,6 @@ export default async function Home() {
             </div>
           </div>
 
-          <div className="ladder">
-            <p className="stamp">the ladder</p>
-            <h3 style={{ fontSize: "1.5rem", marginBottom: "var(--space-2)" }}>
-              It gets more expensive as the apps prove it
-            </h3>
-            <p className="dim" style={{ maxWidth: "64ch" }}>
-              This is not scarcity pricing, and there is no countdown. What is
-              for sale is what six live apps taught one person, so the thing
-              that makes it worth more is those apps earning more. The same
-              notes behind a few hundred a month are one person&apos;s habits.
-              Behind ten thousand a month they are a manual. Each time the apps
-              cross a line below, both prices step up.
-            </p>
-            <MrrBar ladder={LADDER} openStep={OPEN_STEP} />
-
-            <div className="table">
-              <div className="row th cols4">
-                <span>Step</span>
-                <span>Once the apps make</span>
-                <span>The data, one-time</span>
-                <span>The sync, per month</span>
-              </div>
-              {LADDER.map((r) => (
-                <div
-                  key={r.step}
-                  className={`row cols4${r.step === OPEN_STEP ? " now" : ""}`}
-                >
-                  <span className="k" data-l="Step">
-                    {String(r.step).padStart(2, "0")}
-                    {r.step === OPEN_STEP ? <i className="tag"> you are here</i> : null}
-                  </span>
-                  <span data-l="Once the apps make">
-                    {r.floor === 0
-                      ? `under ${money(LADDER[1].floor)} a month`
-                      : `${money(r.floor)} a month or more`}
-                  </span>
-                  <span data-l="The data">{money(r.data)}</span>
-                  <span data-l="The sync">{money(r.sync)} a month</span>
-                </div>
-              ))}
-            </div>
-            <p className="fine" style={{ maxWidth: "70ch" }}>
-              Buying at a step is buying at that step for good: the one-time
-              purchase keeps serving you the newest build forever, and a
-              subscription keeps the price it started at for as long as it runs.
-              Later steps cost more. Yours does not move.
-            </p>
-            {NEXT ? (
-              <p className="fine" style={{ maxWidth: "70ch" }}>
-                Today the apps are under {money(NEXT.floor)} a month, so step{" "}
-                {String(OPEN_STEP).padStart(2, "0")} is what you pay:{" "}
-                {money(NOW.data)} for the data, and {money(NOW.sync)}{" "}
-                a month for the sync.{" "}
-                The next step is a threshold and not a date, which means
-                the honest version of &quot;buy now&quot; is: it gets more
-                expensive when the work says so, and there is nothing here
-                pretending otherwise.
-              </p>
-            ) : null}
-          </div>
         </section>
 
         <section className="faq">

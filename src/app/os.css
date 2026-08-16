@@ -960,53 +960,6 @@
 .os-root .spec { animation-delay: 0.1s; }
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 }
-/* ── The price, stated at the top ──────────────────────────────────────────
- * A single line under the topbar carrying the open step, both of today's
- * figures and the threshold where they change. Set in mono at label size so it
- * reads as a spec stamp rather than as a banner, which is the difference
- * between urgency and a countdown widget.
- */
-.os-root .pricenow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2) var(--space-5);
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--rule);
-  font-family: var(--f-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  color: var(--ink-3);
-}
-.os-root .pricenow-step {
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--paper);
-  background: var(--ink);
-  padding: 0.28rem var(--space-3);
-}
-.os-root .pricenow-fig { color: var(--ink-2); }
-.os-root .pricenow-fig b { color: var(--ink); font-size: 0.92rem; }
-/* No max-width: this line is a spec stamp and has to stay on one line at
-   desktop. Capped at 42ch it wrapped and the band grew to 99px, which pushed
-   the triptych 60px further down the fold for no gain. */
-.os-root .pricenow-next { white-space: nowrap; }
-.os-root .pricenow-cta {
-  margin-left: auto;
-  font-weight: 700;
-  color: var(--ink);
-  text-decoration-color: var(--rule-hard);
-  white-space: nowrap;
-}
-@media (max-width: 1080px) {
-  .os-root .pricenow-next { white-space: normal; }
-}
-@media (max-width: 700px) {
-  .os-root .pricenow { gap: var(--space-2) var(--space-4); }
-  .os-root .pricenow-cta { margin-left: 0; }
-}
-
 /* masthead above the triptych: small, because the panels are the hero now */
 .os-root .masthead {
   display: grid;
@@ -1135,7 +1088,11 @@ body:has(.os-root)::after { content: none; }
   width: 128px;
   /* icon (128) + name (20) + the three behind (42) + the exit travel (40) */
   height: 230px;
-  perspective: 800px;
+  /* Tighter perspective than the usual 1000: the stack is only 128px wide, and
+     at a long focal length the tilt reads as a rendering error rather than as
+     depth. */
+  perspective: 620px;
+  perspective-origin: 50% 40%;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1149,14 +1106,40 @@ body:has(.os-root)::after { content: none; }
   justify-items: center;
   gap: var(--space-2);
   transform-origin: 50% 100%;
+  transform-style: preserve-3d;
   will-change: transform, opacity;
 }
+/* The lift. A cast shadow rather than a box-shadow, so it follows the icon's
+   rounded silhouette instead of the square element behind it, and a hairline
+   highlight along the top edge where a tilted object would catch the light. */
 .os-root .deck-card img {
   width: 128px;
   height: 128px;
   border-radius: 28px;
   display: block;
+  filter:
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55))
+    drop-shadow(0 10px 16px rgba(16, 19, 17, 0.22))
+    drop-shadow(0 2px 4px rgba(16, 19, 17, 0.16));
 }
+.os-root .deck-card:not(.is-front) img {
+  /* The ones behind sit further away, so their shadow softens and the
+     highlight goes. */
+  filter: drop-shadow(0 6px 10px rgba(16, 19, 17, 0.16));
+}
+@media (prefers-color-scheme: dark) {
+  .os-root .deck-card img {
+    filter:
+      drop-shadow(0 1px 0 rgba(242, 244, 242, 0.16))
+      drop-shadow(0 10px 18px rgba(0, 0, 0, 0.62));
+  }
+  .os-root .deck-card:not(.is-front) img {
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5));
+  }
+}
+/* The name stays flat on the page; tilting a six-letter label just makes it
+   harder to read. */
+.os-root .deck-name { transform: rotateX(-9deg) rotateZ(2deg); }
 .os-root .deck-name {
   font-family: var(--f-mono);
   font-size: 0.64rem;
@@ -1285,83 +1268,156 @@ body:has(.os-root)::after { content: none; }
   .os-root .freebracket { grid-template-columns: 1fr; }
 }
 
-/* ── The revenue bar ───────────────────────────────────────────────────────
- * The ladder drawn to scale with the steps underneath. Log scale on purpose:
- * linear, the $500 mark sits at five percent of a $10,000 axis and the first
- * three steps pile up against the left edge.
+
+/* ── The price ladder, as a bar ────────────────────────────────────────────
+ * Top of the page, three rows: what the apps earn, how far along the scale
+ * that is with every checkpoint marked, and what each step costs. The reader
+ * should be able to answer "why is it this price and when does it change"
+ * without scrolling.
+ *
+ * The scale is logarithmic. Linear, the $500 checkpoint sits at five percent
+ * of a $10,000 axis and the first three steps collapse into the left edge,
+ * hiding precisely the part the reader is standing in.
  */
-.os-root .mrrbar { margin: var(--space-5) 0 var(--space-6); }
-.os-root .mrrbar-head {
+.os-root .ladderbar {
+  border-bottom: 1px solid var(--rule);
+  padding: var(--space-4) 0 var(--space-5);
+}
+.os-root .ladderbar-top {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--space-4);
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-5);
+  margin-bottom: var(--space-4);
+}
+.os-root .ladderbar-now {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
   font-family: var(--f-mono);
+}
+.os-root .ladderbar-cap,
+.os-root .ladderbar-unit {
   font-size: 0.66rem;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink-3);
-  margin-bottom: var(--space-2);
 }
-.os-root .mrrbar-now b { color: var(--ink); font-size: 0.8rem; }
-.os-root .mrrbar-track {
+.os-root .ladderbar-now b {
+  font-family: var(--f-display);
+  font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.os-root .ladderbar-next {
+  margin: 0;
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  color: var(--ink-2);
+  max-width: 58ch;
+}
+
+/* Checkpoint labels ride above the track, each one starting at its own mark. */
+.os-root .ladderbar-scale {
   position: relative;
-  height: 10px;
+  height: 1.1rem;
+}
+.os-root .ladderbar-mark {
+  position: absolute;
+  transform: translateX(-50%);
+  font-family: var(--f-mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.os-root .ladderbar-track {
+  position: relative;
+  height: 14px;
   background: var(--stock);
   border: 1px solid var(--ink);
 }
-.os-root .mrrbar-fill {
+.os-root .ladderbar-fill {
   position: absolute;
   inset: 0 auto 0 0;
   background: var(--ink);
-  min-width: 2px;
+  min-width: 3px;
 }
-.os-root .mrrbar-tick {
+.os-root .ladderbar-tick {
   position: absolute;
-  top: -1px;
-  bottom: -1px;
+  top: -5px;
+  bottom: -5px;
   width: 1px;
   background: var(--ink);
 }
-.os-root .mrrbar-steps {
+
+.os-root .ladderbar-steps {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1px;
-  margin: var(--space-3) 0;
+  margin: var(--space-4) 0 0;
   background: var(--rule);
   border: 1px solid var(--rule);
   list-style: none;
   padding: 0;
 }
-.os-root .mrrbar-steps li {
+.os-root .ladderbar-steps li {
   background: var(--paper);
   padding: var(--space-3) var(--space-4);
-  display: grid;
-  gap: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
   font-family: var(--f-mono);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
 }
-.os-root .mrrbar-steps li.is-open { background: var(--ink); color: var(--paper); }
-.os-root .mrrbar-step-n { font-weight: 700; letter-spacing: 0.1em; color: var(--ink-3); }
-.os-root .mrrbar-steps li.is-open .mrrbar-step-n { color: var(--paper); }
-.os-root .mrrbar-step-n i {
+.os-root .ladderbar-steps li.is-open { background: var(--ink); color: var(--paper); }
+.os-root .ladderbar-step-n {
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.os-root .ladderbar-steps li.is-open .ladderbar-step-n { color: var(--paper); }
+.os-root .ladderbar-step-n i {
   font-style: normal;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  font-size: 0.58rem;
+  font-size: 0.56rem;
   opacity: 0.72;
 }
-.os-root .mrrbar-step-at { color: var(--ink-2); }
-.os-root .mrrbar-steps li.is-open .mrrbar-step-at { color: var(--paper); opacity: 0.78; }
-.os-root .mrrbar-step-price { font-weight: 700; }
-.os-root .mrrbar-step-price i {
+.os-root .ladderbar-step-price { font-weight: 700; white-space: nowrap; }
+.os-root .ladderbar-step-price i {
   font-style: normal;
   font-weight: 400;
   color: var(--ink-3);
   letter-spacing: 0.06em;
 }
-.os-root .mrrbar-steps li.is-open .mrrbar-step-price i { color: var(--paper); opacity: 0.7; }
-.os-root .mrrbar-foot { margin: 0; max-width: 74ch; }
+.os-root .ladderbar-steps li.is-open .ladderbar-step-price i { color: var(--paper); opacity: 0.7; }
 @media (max-width: 860px) {
-  .os-root .mrrbar-steps { grid-template-columns: repeat(2, 1fr); }
+  .os-root .ladderbar-steps { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* The value, printed where the fill ends. A logarithmic axis keeps every
+   checkpoint legible but flatters the low end, and a bar with no number on it
+   invites the reader to read the position rather than the amount. */
+.os-root .ladderbar-you {
+  position: absolute;
+  top: 50%;
+  transform: translate(6px, -50%);
+  font-family: var(--f-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* The last checkpoint sits at the very end of the track, so it hangs off its
+   own mark instead of being centred on it. */
+.os-root .ladderbar-mark.is-last { transform: translateX(-100%); }

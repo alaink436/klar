@@ -25,11 +25,18 @@ type Slot = {
 
 const EASE = "transform 760ms cubic-bezier(0.22, 1, 0.36, 1), opacity 760ms ease";
 
+// The tilt that makes the stack read as objects rather than as a pile of flat
+// pictures. Small on purpose: past about 12 degrees the icon artwork starts to
+// look wrong rather than turned, because these are square logos and the eye
+// knows their proportions. The card in front sits almost square; the ones
+// behind lean back a little further, which is what a real stack does.
+const TILT = "rotateX(9deg) rotateZ(-2deg)";
+
 function slotFor(depth: number, count: number, still: boolean): Slot {
   // Frozen (reduced motion, or a single app): fan the stack out and leave it.
   if (still) {
     return {
-      transform: `translate3d(0, ${-depth * 14}px, 0) scale(${1 - depth * 0.09})`,
+      transform: `translate3d(0, ${-depth * 14}px, 0) scale(${1 - depth * 0.09}) ${TILT}`,
       opacity: depth < VISIBLE ? 1 - depth * 0.2 : 0,
       zIndex: count - depth,
       transition: "none",
@@ -41,7 +48,7 @@ function slotFor(depth: number, count: number, still: boolean): Slot {
   // animates it out of the stack instead of teleporting it to the back.
   if (depth === count - 1) {
     return {
-      transform: "translate3d(0, 46px, 0) scale(1.22)",
+      transform: `translate3d(0, 46px, 0) scale(1.22) ${TILT}`,
       opacity: 0,
       zIndex: count + 10,
       transition: EASE,
@@ -52,7 +59,7 @@ function slotFor(depth: number, count: number, still: boolean): Slot {
   // do not visibly slide backwards through the stack while invisible.
   if (depth >= VISIBLE) {
     return {
-      transform: `translate3d(0, ${-(VISIBLE - 1) * 14}px, 0) scale(${1 - (VISIBLE - 1) * 0.09})`,
+      transform: `translate3d(0, ${-(VISIBLE - 1) * 14}px, 0) scale(${1 - (VISIBLE - 1) * 0.09}) ${TILT}`,
       opacity: 0,
       zIndex: 0,
       transition: "none",
@@ -60,7 +67,7 @@ function slotFor(depth: number, count: number, still: boolean): Slot {
   }
 
   return {
-    transform: `translate3d(0, ${-depth * 14}px, 0) scale(${1 - depth * 0.09})`,
+    transform: `translate3d(0, ${-depth * 14}px, 0) scale(${1 - depth * 0.09}) ${TILT}`,
     opacity: 1 - depth * 0.2,
     zIndex: count - depth,
     transition: EASE,
