@@ -25,6 +25,22 @@ function mintToken() {
   return "kos_" + Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
 }
 
+
+// A write that touches no rows is not a success. Row-level security is on for
+// these tables with no policies, so a key that is not the service role makes
+// every statement a no-op that PostgREST reports as fine. Money would change
+// hands, Stripe would get its 200, and nothing would be recorded anywhere.
+// Answering non-2xx makes Stripe retry and puts the failure on its dashboard
+// where somebody sees it.
+function dbFailed(error, kind) {
+  console.error(
+    `[os/webhook] ${kind} write did not land:`,
+    error?.message ??
+      "no rows affected. Check KLAROS_SUPABASE_SERVICE_ROLE_KEY is the service role key.",
+  );
+  return NextResponse.json({ error: "db write failed" }, { status: 500 });
+}
+
 export async function POST(req) {
   const key = (process.env.KLAROS_STRIPE_SECRET_KEY || "").trim();
   const whSecret = (process.env.KLAROS_STRIPE_WEBHOOK_SECRET || "").trim();
@@ -59,33 +75,39 @@ export async function POST(req) {
     const s = event.data.object;
 
     if (s.mode === "subscription") {
-      const { error } = await supabase.from("subscriptions").upsert(
-        {
-          stripe_subscription_id: s.subscription,
-          stripe_customer_id: s.customer,
-          email: s.customer_details?.email ?? null,
-          status: "active",
-          token: mintToken(),
-          plan: "learnings_sync",
-        },
-        { onConflict: "stripe_subscription_id" }
-      );
-      if (error) return NextResponse.json({ error: "db write failed" }, { status: 500 });
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .upsert(
+          {
+            stripe_subscription_id: s.subscription,
+            stripe_customer_id: s.customer,
+            email: s.customer_details?.email ?? null,
+            status: "active",
+            token: mintToken(),
+            plan: "learnings_sync",
+          },
+          { onConflict: "stripe_subscription_id" }
+        )
+        .select("id");
+      if (error || !data?.length) return dbFailed(error, "subscription");
       return NextResponse.json({ received: true, kind: "subscription" });
     }
 
-    const { error } = await supabase.from("purchases").upsert(
-      {
-        stripe_session_id: s.id,
-        email: s.customer_details?.email ?? null,
-        amount_total: s.amount_total,
-        currency: s.currency,
-        status: "paid",
-        entitlement: "brain_kit_v1",
-      },
-      { onConflict: "stripe_session_id" }
-    );
-    if (error) return NextResponse.json({ error: "db write failed" }, { status: 500 });
+    const { data, error } = await supabase
+      .from("purchases")
+      .upsert(
+        {
+          stripe_session_id: s.id,
+          email: s.customer_details?.email ?? null,
+          amount_total: s.amount_total,
+          currency: s.currency,
+          status: "paid",
+          entitlement: "brain_kit_v1",
+        },
+        { onConflict: "stripe_session_id" }
+      )
+      .select("id");
+    if (error || !data?.length) return dbFailed(error, "purchase");
     return NextResponse.json({ received: true, kind: "purchase" });
   }
 
@@ -101,11 +123,12 @@ export async function POST(req) {
 
   if (!id) return NextResponse.json({ received: true, note: "no subscription id" });
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("subscriptions")
     .update({ status })
-    .eq("stripe_subscription_id", id);
-  if (error) return NextResponse.json({ error: "db write failed" }, { status: 500 });
+    .eq("stripe_subscription_id", id)
+    .select("id");
+  if (error || !data?.length) return dbFailed(error, "lifecycle");
 
   return NextResponse.json({ received: true, kind: "lifecycle", status });
 }

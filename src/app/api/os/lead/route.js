@@ -27,11 +27,19 @@ export async function POST(req) {
   if (url && serviceKey) {
     const supabase = createClient(url, serviceKey);
     try {
-      const { error } = await supabase
+      // .select() is not decoration. Row-level security is on with no
+      // policies, so a key that is not the service role does not raise: the
+      // statement simply touches nothing and PostgREST answers 200. Asking for
+      // the row back is the only way the route can tell "written" from
+      // "silently discarded".
+      const { data, error } = await supabase
         .from("leads")
-        .upsert({ email, source: "free_kit" }, { onConflict: "email" });
+        .upsert({ email, source: "free_kit" }, { onConflict: "email" })
+        .select("id");
       if (error) console.error("[os/lead] upsert failed:", error.message);
-      stored = !error;
+      else if (!data || data.length === 0)
+        console.error("[os/lead] upsert affected no rows: check that KLAROS_SUPABASE_SERVICE_ROLE_KEY is the service role key, RLS is on with no policies");
+      stored = !error && Array.isArray(data) && data.length > 0;
     } catch (e) {
       console.error("[os/lead] upsert threw:", String(e).slice(0, 200));
     }
