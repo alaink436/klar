@@ -60,11 +60,28 @@ export default function ProxyFlow() {
           <text x="0" y="152" textAnchor="middle">200 OK</text>
         </g>
       </svg>
+      {/* Each caption is a two-column row: the step number, then the sentence.
+          Both parts are real elements. They used to be one bare text node, and
+          a bare text node in a grid becomes an anonymous item in the FIRST
+          column, which is 2.4rem wide. The sentence was rendering in 38 pixels,
+          one word per line, while the wide column next to it sat empty. */}
       <ol className="pfcaps">
-        <li className="pfcap pfcap1">The agent sends its request with a scoped use-token. That token can call, not read.</li>
-        <li className="pfcap pfcap2">The proxy checks the token and decrypts the key. Server-side only, in memory.</li>
-        <li className="pfcap pfcap3">The key rides upstream for milliseconds, then it is gone again.</li>
-        <li className="pfcap pfcap4">The response streams back to the agent. The key stayed behind the line.</li>
+        <li className="pfcap pfcap1">
+          <b>1</b>
+          <span>The agent sends its request with a scoped use-token. That token can call, not read.</span>
+        </li>
+        <li className="pfcap pfcap2">
+          <b>2</b>
+          <span>The proxy checks the token and decrypts the key. Server-side only, in memory.</span>
+        </li>
+        <li className="pfcap pfcap3">
+          <b>3</b>
+          <span>The key rides upstream for milliseconds, then it is gone again.</span>
+        </li>
+        <li className="pfcap pfcap4">
+          <b>4</b>
+          <span>The response streams back to the agent. The key stayed behind the line.</span>
+        </li>
       </ol>
     </div>
   );
