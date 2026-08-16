@@ -83,7 +83,7 @@ export interface AccountStatusPatch {
   materialReady?: boolean;
   /** Zielnische des Accounts. */
   niche?: string | null;
-  /** Name des Content-Verbunds — gleicher Name heisst gleiches Material. */
+  /** Name des Kontos, zu dem der Kanal gehört — gleicher Name = gleiches Material. */
   contentGroup?: string | null;
   /** Stand des Einsteuerns: 0–3 Runden. Kürzen entfernt die späteren wieder. */
   steeredRounds?: number;

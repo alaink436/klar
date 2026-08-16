@@ -55,7 +55,7 @@ export interface AccountStatus {
   material_ready: boolean;
   /** Zielnische — wohin der Account zeigen soll. */
   niche: string | null;
-  /** Content-Verbund: gleicher Name = dasselbe Material wie auf den anderen. */
+  /** Konto des Kanals (Oberfläche: „Konto"). Gleicher Name = dasselbe Material. */
   content_group: string | null;
   /** Bis zu drei Zeitstempel — einer je Einsteuer-Runde. Länge = Stand. */
   steered_rounds: string[];

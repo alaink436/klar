@@ -1,6 +1,6 @@
 "use client";
 
-// Posting-Board — eine Zeile pro Account, sieben Spalten für die Woche.
+// Posting-Board — eine Zeile pro Kanal, sieben Spalten für die Woche.
 //
 // Es beantwortet genau eine Frage: halte ich meinen Rhythmus? Deshalb steht
 // links, was gelten SOLL (Zustand, an welchen Tagen gepostet wird), und rechts,
@@ -19,10 +19,15 @@
 //   - Ein Tag lässt sich aufklappen. Dann wird seine Spalte breit und jede
 //     Zelle bekommt ein Textfeld — für die Tage, an denen man wissen will, WAS
 //     rausging, ohne dass die anderen sechs Spalten dafür Platz opfern.
-//   - Ein Verbund ist ein Name, keine Verknüpfung. Wer denselben Namen trägt,
-//     postet dasselbe Material; die Tagesliste schreibt das an jeden Post, weil
-//     „das ist derselbe Upload wie vorhin" beim Posten die teuerste Information
-//     ist, die man sonst erst nach dem Exportieren bemerkt.
+//   - Eine Zeile ist ein KANAL, mehrere Kanäle gehören zu einem KONTO. Das Konto
+//     ist ein Name, keine Verknüpfungstabelle: wer denselben trägt, postet
+//     dasselbe Material. Die Tagesliste schreibt es an jeden Post, weil „das ist
+//     derselbe Upload wie vorhin" beim Posten die teuerste Information ist, die
+//     man sonst erst nach dem Exportieren bemerkt.
+//     ⚠️ Im Code heisst das Feld weiter `contentGroup` / `content_group`: „account"
+//     ist hier seit `lib/socialAccounts` der Name für die EINZELNE Zeile
+//     (`accountKey`, `AccountStatus`), und zwei Bedeutungen unter einem Bezeichner
+//     wären schlimmer als die Abweichung zwischen Oberfläche und Datenmodell.
 
 import {
   Fragment,
@@ -53,21 +58,21 @@ export interface BoardAccount {
   platformLabel: string;
   appLabel: string;
   appColor: string;
-  /** Blotato kann hier posten — abgeleitet aus der Account-Liste im Code. */
+  /** Blotato kann hier posten — abgeleitet aus der Kanal-Liste im Code. */
   automated: boolean;
   /** Selbst angelegt: lässt sich wieder entfernen, steht nicht im Code. */
   custom: boolean;
   state: AccountState;
   rhythm: number[];
-  /** Was auf diesem Account rausgeht — steht auch in der Tagesliste. */
+  /** Was auf diesem Kanal rausgeht — steht auch in der Tagesliste. */
   format: string;
   /** Wo das Material dafür liegt — Ordner, Drive, Link, Anweisung. */
   material: string;
   /** Liegt dort gerade Postbares bereit? Selbstauskunft, wie die Haken. */
   materialReady: boolean;
-  /** Zielnische — wohin der Account zeigen soll. */
+  /** Zielnische — wohin der Kanal zeigen soll. */
   niche: string;
-  /** Content-Verbund: gleicher Name = dasselbe Material wie auf den anderen. */
+  /** Konto, zu dem dieser Kanal gehört. Gleicher Name = dasselbe Material. */
   contentGroup: string;
   /** Ein Zeitstempel je erledigter Einsteuer-Runde, höchstens drei. */
   steeredRounds: string[];
@@ -147,7 +152,7 @@ export default function PostingBoard({
   accounts: BoardAccount[];
   days: BoardDay[];
   apps: BoardApp[];
-  /** Haken je Account über alle Zeiten — „wie viel habe ich schon gepostet". */
+  /** Haken je Kanal über alle Zeiten — „wie viel habe ich schon gepostet". */
   totals: Record<string, number>;
   /** "YYYY-MM-DD" in Europe/Zurich, vom Server — was verpasst ist, hängt daran. */
   today: string;
@@ -211,7 +216,7 @@ export default function PostingBoard({
   }
 
   /**
-   * Die anderen Kanäle desselben Verbunds. Genau das ist die Frage beim Posten:
+   * Die anderen Kanäle desselben Kontos. Genau das ist die Frage beim Posten:
    * habe ich dieses Material gerade schon einmal hochgeladen?
    */
   const groupMates = (r: BoardAccount) =>
@@ -333,7 +338,7 @@ export default function PostingBoard({
   const allTime = visible.reduce((sum, r) => sum + (totals[r.key] ?? 0), 0);
 
   // Kanalauswahl: nach App gebündelt, in der Reihenfolge der Tabelle. Aufgegebene
-  // Accounts stehen nur drin, wenn sie ohnehin gezeigt werden — sonst wäre die
+  // Kanäle stehen nur drin, wenn sie ohnehin gezeigt werden — sonst wäre die
   // Leiste voll mit Kanälen, die es nicht mehr gibt.
   const pickable = hideDropped ? rows.filter((r) => r.state !== "dropped") : rows;
   const appGroups = [...new Set(pickable.map((r) => r.appLabel))].map((label) => ({
@@ -346,7 +351,7 @@ export default function PostingBoard({
       <div className="px-5 py-3.5 border-b border-line">
         <div className="flex flex-wrap items-end justify-between gap-x-7 gap-y-3">
           <Stat
-            label={isolated ? `Accounts (von ${rows.length})` : "Accounts"}
+            label={isolated ? `Kanäle (von ${rows.length})` : "Kanäle"}
             value={String(visible.length)}
             sub={`${byHand} davon von Hand`}
           />
@@ -517,7 +522,7 @@ export default function PostingBoard({
                       </span>
                       {mates.length > 0 ? (
                         <span className="block [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-2">
-                          &#8644; {r.contentGroup} · gleich wie{" "}
+                          &#8644; {r.contentGroup} · gleicher Content wie{" "}
                           {mates.map(({ m, posted }, i) => (
                             <span key={m.key} style={{ color: posted ? "var(--fg-4)" : undefined }}>
                               {i > 0 ? ", " : ""}@{m.handle}
@@ -574,13 +579,13 @@ export default function PostingBoard({
                 className={`${HEAD} sticky left-0 z-30`}
                 style={{ minWidth: 210, background: "var(--surface)" }}
               >
-                Account
+                Kanal
               </th>
               <th className={HEAD} style={{ minWidth: 104 }}>Zustand</th>
               {/* Nische und „eingesteuert" gehören in eine Zelle: das Häkchen
                   bedeutet nichts ohne das Ziel, auf das es sich bezieht. */}
               <th className={HEAD} style={{ minWidth: 170 }}>Zielnische</th>
-              <th className={HEAD} style={{ minWidth: 250 }}>Format, Material &amp; Verbund</th>
+              <th className={HEAD} style={{ minWidth: 250 }}>Format, Material &amp; Konto</th>
               {/* Notiz steht neben dem Format, nicht hinter der Woche: was du
                   dir überlegt hast, gehört neben das, worauf es sich bezieht —
                   sonst liest man es erst, wenn man ganz nach rechts scrollt. */}
@@ -665,7 +670,7 @@ export default function PostingBoard({
                           </>
                         ) : null}
                       </div>
-                      {/* Der Verbund gehört an den Kanal, nicht nur ins Format:
+                      {/* Das Konto gehört an den Kanal, nicht nur ins Format:
                           hier sucht man, wenn man wissen will, ob dieser Kanal
                           eigenes Material braucht. */}
                       {groupMates(r).length > 0 ? (
@@ -823,20 +828,20 @@ export default function PostingBoard({
                           Material bereit
                         </span>
                       </div>
-                      {/* Verbund: derselbe Name auf zwei Kanälen heisst, dass
-                          dort dasselbe rausgeht. Ein Textfeld mit Vorschlägen
-                          statt einer Auswahl — der erste Kanal eines Verbunds
-                          muss ihn benennen können, ohne dass es ihn schon gibt. */}
+                      {/* Konto: derselbe Name auf zwei Kanälen heisst, dass dort
+                          dasselbe rausgeht. Ein Textfeld mit Vorschlägen statt
+                          einer Auswahl — der erste Kanal eines Kontos muss es
+                          benennen können, ohne dass es das Konto schon gibt. */}
                       <div className="flex items-center gap-1.5 mt-1.5">
                         <span className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-4 shrink-0">
-                          &#8644; Verbund
+                          &#8644; Konto
                         </span>
                         <input
                           list="klar-groups"
                           defaultValue={r.contentGroup}
-                          placeholder="z. B. Basalt Talking Head"
-                          aria-label={`Content-Verbund von @${r.handle}`}
-                          title="Kanäle mit demselben Verbund posten dasselbe Material."
+                          placeholder="z. B. girlysgirl78"
+                          aria-label={`Konto von @${r.handle}`}
+                          title="Kanäle desselben Kontos posten dasselbe Material."
                           onBlur={(e) => {
                             const v = e.target.value.trim();
                             if (v === r.contentGroup) return;
@@ -1005,7 +1010,7 @@ export default function PostingBoard({
             <option key={n} value={n} />
           ))}
         </datalist>
-        {/* Verbünde ebenso: es gibt nur die, die schon jemand benannt hat. */}
+        {/* Konten ebenso: es gibt nur die, die schon jemand benannt hat. */}
         <datalist id="klar-groups">
           {[...new Set(rows.map((r) => r.contentGroup).filter(Boolean))].map((g) => (
             <option key={g} value={g} />
@@ -1032,7 +1037,7 @@ export default function PostingBoard({
             onClick={() => setAdding(true)}
             className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3 hover:text-fg"
           >
-            Account hinzuf&uuml;gen
+            Kanal hinzuf&uuml;gen
           </button>
         )}
       </div>
