@@ -33,9 +33,9 @@ import OsShell from "./os/OsShell";
 // by traction at all. Step one is the only price anyone can buy today.
 const LADDER = [
   { step: 1, floor: 0, data: 49, sync: 19 },
-  { step: 2, floor: 500, data: 99, sync: 39 },
-  { step: 3, floor: 2000, data: 199, sync: 69 },
-  { step: 4, floor: 10000, data: 399, sync: 119 },
+  { step: 2, floor: 500, data: 129, sync: 49 },
+  { step: 3, floor: 2000, data: 249, sync: 89 },
+  { step: 4, floor: 10000, data: 499, sync: 149 },
 ];
 const OPEN_STEP = 1;
 
@@ -230,6 +230,33 @@ export default function Home() {
           </a>
           <a className="to-buy" href="#pricing">Pricing &rarr;</a>
         </div>
+        {/* The price, before the pitch. Someone who lands here already knows
+            whether they want a vault; what they cannot see is that today is
+            cheaper than next month, and burying that at the bottom of the page
+            wastes it. The threshold is named, so this is a fact rather than a
+            countdown someone invented. */}
+        <div className="pricenow">
+          <span className="pricenow-step">
+            Step {String(OPEN_STEP).padStart(2, "0")} /{" "}
+            {String(LADDER.length).padStart(2, "0")}
+          </span>
+          <span className="pricenow-fig">
+            <b>{money(NOW.data)}</b> data
+          </span>
+          <span className="pricenow-fig">
+            <b>{money(NOW.sync)}</b> a month, sync
+          </span>
+          {NEXT ? (
+            <span className="pricenow-next">
+              then {money(NEXT.data)} and {money(NEXT.sync)} above{" "}
+              {money(NEXT.floor)} a month
+            </span>
+          ) : null}
+          <a className="pricenow-cta" href="#pricing">
+            the ladder
+          </a>
+        </div>
+
         <div className="masthead">
           <h1 className="wordmark"><span>Klar</span> <span className="l2">OS</span></h1>
           <p className="lede" style={{ margin: 0 }}>
@@ -261,7 +288,7 @@ export default function Home() {
 
           <div className="offer">
             <div>
-              <p className="stamp">01 + 02, the system</p>
+              <p className="stamp">the system</p>
               <p className="price">Free<small>one email, instant download, no account</small></p>
               <ul className="checks">
                 <li>The vault structure and rule set</li>
@@ -272,7 +299,7 @@ export default function Home() {
               <FreeKitForm />
             </div>
             <div className="paid">
-              <p className="stamp">03, the data</p>
+              <p className="stamp">the data</p>
               <p className="price">{money(NOW.data)}<small>one-time, {money(NEXT.data)} at the next step, 30-day refund</small></p>
               <ul className="checks">
                 <li>All 254 learnings, redacted, with an English index</li>
@@ -289,7 +316,7 @@ export default function Home() {
 
           <div className="sub">
             <div>
-              <p className="stamp">04, staying current</p>
+              <p className="stamp">staying current</p>
               <h3 style={{ fontSize: "1.5rem", marginBottom: "var(--space-2)" }}>
                 Keep your vault in sync with mine
               </h3>
@@ -330,7 +357,7 @@ export default function Home() {
           </div>
 
           <div className="ladder">
-            <p className="stamp">05, the ladder</p>
+            <p className="stamp">the ladder</p>
             <h3 style={{ fontSize: "1.5rem", marginBottom: "var(--space-2)" }}>
               It gets more expensive as the apps prove it
             </h3>

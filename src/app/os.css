@@ -17,19 +17,28 @@
      and therefore has no ordering to get wrong; the OKLCH originals are kept
      in the comments so the palette is still editable in a perceptual space.
      Lesson for the next person: reload before you refactor. */
-  --paper:      #f6f4ef;   /* oklch(0.968 0.008 96)  */
-  --paper-2:    #fdfcf9;   /* oklch(0.992 0.005 96)  */
-  --stock:      #efede5;   /* oklch(0.945 0.011 96)  */
-  --ink:        #141d18;   /* oklch(0.22 0.016 160)  */
-  --ink-2:      #4b554f;   /* oklch(0.44 0.016 160)  */
-  --ink-3:      #67706a;   /* oklch(0.535 0.014 160) small print, 4.66:1 */
-  --rule:       #cfd7d0;
-  --rule-hard:  #a4aea6;
-  --green:      #225f4b;
-  --green-lift: #d7eee4;
-  --on-green:   #eef8f3;
-  --rust:       #a34d16;
-  --rust-lift:  #fce7d6;
+  /* Black and white, no hue anywhere (2026-08-16, Alain). The palette keeps
+     its old variable names on purpose: --green and --rust were never colours
+     in the design, they were roles. --green is "this is the accent, look
+     here", --rust is "this is the warning". Both now speak through weight and
+     contrast instead of hue, and renaming forty selectors to say so would have
+     been a large diff that changes nothing on screen. */
+  --paper:      #fbfcfa;   /* oklch(0.985 0.003 160) */
+  --paper-2:    #ffffff;
+  --stock:      #f0f2f0;
+  --ink:        #101311;   /* oklch(0.19 0.006 160) */
+  --ink-2:      #494d4a;   /* 9.6:1 on paper */
+  --ink-3:      #626763;   /* small print. Sized against the LIFTED ground
+                              (--green-lift), not against paper: on paper it was
+                              5.1:1 and passing, on the lifted block 4.3:1 and
+                              failing. Now 4.8:1 there, 5.7:1 on paper. */
+  --rule:       #d7dad7;
+  --rule-hard:  #9aa09b;
+  --green:      #101311;   /* accent */
+  --green-lift: #e9ece9;   /* the ground under an accented block */
+  --on-green:   #fbfcfa;
+  --rust:       #101311;   /* warning */
+  --rust-lift:  #e3e6e3;
 
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
   --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
@@ -37,19 +46,22 @@
 }
 @media (prefers-color-scheme: dark) {
 :root {
-    --paper:      #0f1411;
-    --paper-2:    #171d1a;
-    --stock:      #1e2521;
-    --ink:        #e3eae4;
-    --ink-2:      #9ca49d;
-    --ink-3:      #7f8781;   /* lifted from 4.39:1 to clear AA on the dark ground */
-    --rule:       #2b322e;
-    --rule-hard:  #46504a;
-    --green:      #85d0b3;
-    --green-lift: #1a2e26;
-    --on-green:   #081410;
-    --rust:       #e29c6c;
-    --rust-lift:  #35251b;
+    /* Never pure #000: both skills call it out, and a page that goes fully
+       black loses every sense of depth because there is nothing left below the
+       surfaces to separate them from. oklch 0.14 to 0.19 instead. */
+    --paper:      #0e110f;
+    --paper-2:    #141816;
+    --stock:      #1a1e1c;
+    --ink:        #f2f4f2;
+    --ink-2:      #b4b8b5;
+    --ink-3:      #8b908c;   /* small print on the dark ground */
+    --rule:       #2a2f2c;
+    --rule-hard:  #4e534f;
+    --green:      #f2f4f2;
+    --green-lift: #1e2320;
+    --on-green:   #0e110f;
+    --rust:       #f2f4f2;
+    --rust-lift:  #1e2320;
   }
 }
 /* next/font puts its variables on <body>, so the aliases have to live there
@@ -150,7 +162,10 @@
   text-transform: uppercase;
 }
 .os-root .wordmark span { display: block; }
-.os-root .wordmark .l2 { color: var(--green); }
+/* "OS" used to be the one green word on the page. Without hue it would sit in
+   the same black as "Klar" and the wordmark would read as one lump, so the
+   split is carried by tone instead. */
+.os-root .wordmark .l2 { color: var(--ink-3); }
 .os-root .herogrid {
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
@@ -334,9 +349,10 @@
 .os-root .pa-keytrip text { fill: var(--paper-2); }
 .os-root .pa-resp rect { fill: var(--green); stroke: var(--green); }
 .os-root .pa-resp text { fill: var(--on-green); }
-@media (prefers-color-scheme: dark) {
-.os-root .pa-key text, .os-root .pa-keytrip text { fill: oklch(0.18 0.02 50); }
-}
+/* The dark-mode override that used to sit here set this text to a warm near
+   black, because the chip behind it was orange. The chip is now white in dark
+   mode and near black in light mode, and --paper-2 already inverts with it, so
+   the rule above covers both schemes on its own. */
 @media (prefers-reduced-motion: no-preference) {
 .os-root .pa-token { animation: pa-tok 7s linear infinite; }
 .os-root .pa-key { animation: pa-pop 7s linear infinite; transform-origin: 130px 186px; }
@@ -435,8 +451,19 @@
 /* The step that is open right now, marked in the ladder rather than described
    underneath it: the reader is scanning a table, so the answer has to be in
    the table. */
-.os-root .row.now { background: var(--green-lift); }
-.os-root .row.now .k { color: var(--green); }
+/* The open step is the page's one loud element. Without hue the way to be
+   loud is to invert: the row becomes ink and the type becomes paper. That is
+   also where the 10 percent of the 60-30-10 split went when the palette lost
+   its colour. */
+.os-root .row.now {
+  background: var(--ink);
+  color: var(--paper);
+  border-bottom-color: var(--ink);
+}
+.os-root .row.now .k,
+.os-root .row.now .dim,
+.os-root .row.now .tag { color: var(--paper); }
+.os-root .row.now .tag { opacity: 0.72; }
 .os-root .row .tag {
   font-family: var(--f-mono);
   font-size: 0.6rem;
@@ -830,9 +857,8 @@
 .os-root .pfc-token text { fill: var(--ink); }
 .os-root .pfc-key rect, .os-root .pfkeychip rect { fill: var(--rust); stroke: var(--rust); }
 .os-root .pfc-key text, .os-root .pfkeychip text { fill: var(--paper-2); font-family: var(--f-mono); font-size: 10px; font-weight: 700; }
-@media (prefers-color-scheme: dark) {
-.os-root .pfc-key text, .os-root .pfkeychip text { fill: oklch(0.18 0.02 50); }
-}
+/* Same as the cross-section drawing above: --paper-2 inverts with the scheme,
+   so the chip text no longer needs a dark-mode rule of its own. */
 .os-root .pfc-resp rect { fill: var(--green); stroke: var(--green); }
 .os-root .pfc-resp text { fill: var(--on-green); }
 .os-root .pfcaps { list-style: none; margin: 0; padding: 0 var(--space-4) var(--space-2); border-top: 1px solid var(--rule); }
@@ -926,6 +952,53 @@
 .os-root .spec { animation-delay: 0.1s; }
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 }
+/* ── The price, stated at the top ──────────────────────────────────────────
+ * A single line under the topbar carrying the open step, both of today's
+ * figures and the threshold where they change. Set in mono at label size so it
+ * reads as a spec stamp rather than as a banner, which is the difference
+ * between urgency and a countdown widget.
+ */
+.os-root .pricenow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-5);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+.os-root .pricenow-step {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--paper);
+  background: var(--ink);
+  padding: 0.28rem var(--space-3);
+}
+.os-root .pricenow-fig { color: var(--ink-2); }
+.os-root .pricenow-fig b { color: var(--ink); font-size: 0.92rem; }
+/* No max-width: this line is a spec stamp and has to stay on one line at
+   desktop. Capped at 42ch it wrapped and the band grew to 99px, which pushed
+   the triptych 60px further down the fold for no gain. */
+.os-root .pricenow-next { white-space: nowrap; }
+.os-root .pricenow-cta {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration-color: var(--rule-hard);
+  white-space: nowrap;
+}
+@media (max-width: 1080px) {
+  .os-root .pricenow-next { white-space: normal; }
+}
+@media (max-width: 700px) {
+  .os-root .pricenow { gap: var(--space-2) var(--space-4); }
+  .os-root .pricenow-cta { margin-left: 0; }
+}
+
 /* masthead above the triptych: small, because the panels are the hero now */
 .os-root .masthead {
   display: grid;
@@ -1038,21 +1111,23 @@ body:has(.os-root)::after { content: none; }
 }
 
 /* ── The shipped deck ──────────────────────────────────────────────────────
- * The live apps, dealt like flashcards: front card full size, the ones behind
- * smaller but still readable, the whole stack stepping forward every few
- * seconds. Positions come from ShippedDeck.tsx as inline transforms; this file
- * only owns what a card looks like standing still.
+ * The live apps, dealt like flashcards: the front icon full size, the ones
+ * behind it smaller and dimmer but still recognisable, the whole stack
+ * stepping forward every few seconds. Icons only, no labels and no links, so
+ * it reads as evidence rather than as a navigation strip. Positions come from
+ * ShippedDeck.tsx as inline transforms; this file owns what a card looks like
+ * standing still.
  */
 .os-root .deck {
   display: grid;
   gap: var(--space-2);
-  justify-items: start;
+  justify-items: center;
 }
 .os-root .deck-stack {
   position: relative;
-  width: 268px;
-  /* front card (70) + three behind it (42) + the exit travel (46) */
-  height: 160px;
+  width: 112px;
+  /* front tile (112) + three behind it (36) + the exit travel (40) */
+  height: 188px;
   perspective: 700px;
   list-style: none;
   margin: 0;
@@ -1061,15 +1136,11 @@ body:has(.os-root)::after { content: none; }
 .os-root .deck-card {
   position: absolute;
   left: 0;
-  bottom: 46px;
-  width: 268px;
+  bottom: 40px;
+  width: 112px;
+  padding: 20px;
   box-sizing: border-box;
   transform-origin: 50% 100%;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
   background: var(--paper-2);
   border: 1px solid var(--rule-hard);
   box-shadow: 0 2px 0 var(--rule);
@@ -1080,32 +1151,11 @@ body:has(.os-root)::after { content: none; }
   box-shadow: 0 3px 0 var(--rule-hard);
 }
 .os-root .deck-card img {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  border: 1px solid var(--rule);
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  display: block;
 }
-.os-root .deck-name {
-  font-family: var(--f-display);
-  font-weight: 700;
-  font-size: 1.02rem;
-  letter-spacing: -0.01em;
-  line-height: 1.1;
-}
-.os-root .deck-link {
-  font-family: var(--f-mono);
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--green);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.os-root .deck-link i { font-style: normal; }
-/* Only the readable card offers the action; the ones behind would be a link
-   you cannot see the label of. */
-.os-root .deck-card:not(.is-front) .deck-link { visibility: hidden; }
 .os-root .deck-cap {
   font-family: var(--f-mono);
   font-size: 0.62rem;
@@ -1113,6 +1163,7 @@ body:has(.os-root)::after { content: none; }
   text-transform: uppercase;
   color: var(--ink-3);
   margin: 0;
+  text-align: center;
 }
 .os-root .deck-cap b { color: var(--ink); }
 

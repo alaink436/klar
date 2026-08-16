@@ -112,21 +112,14 @@ export default function ShippedDeck() {
                 zIndex: slot.zIndex,
                 transition: slot.transition,
               }}
-              // Only the card you can actually read is in the tab order and
-              // announced; the ones behind it are decoration until their turn.
+              // Only the card in front is announced; the ones behind it are
+              // decoration until their turn. Nothing here is clickable on
+              // purpose: an app icon on its own is a picture, and a picture
+              // that acts as a link is an unnamed control. The deck is proof
+              // that the vault came from shipped work, not a menu of apps.
               aria-hidden={!isFront}
             >
-              <img src={app.icon} alt="" width="44" height="44" />
-              <span className="deck-name">{app.name}</span>
-              <a
-                className="deck-link"
-                href={app.appStoreUrl}
-                target="_blank"
-                rel="noreferrer"
-                tabIndex={isFront ? 0 : -1}
-              >
-                App&nbsp;Store <i aria-hidden="true">↗</i>
-              </a>
+              <img src={app.icon} alt={isFront ? app.name : ""} width="72" height="72" />
             </li>
           );
         })}

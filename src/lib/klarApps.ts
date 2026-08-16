@@ -42,10 +42,14 @@ export interface KlarAppMeta {
 }
 
 export const KLAR_APPS: KlarAppMeta[] = [
+  // -v3 = the real App Store icons, supplied 2026-08-16 and resized from the
+  // 1024px originals. New filenames rather than new bytes, for the reason
+  // spelled out on Anime Vault below: /public is served immutable, so replacing
+  // an icon's content changes nothing for anyone who already loaded it.
   {
     slug: "trubel",
     name: "Trubel",
-    icon: "/icons/trubel.webp",
+    icon: "/icons/trubel-v3.webp",
     status: "LIVE",
     release: "v1.0.6 · build 16",
     appStoreUrl: "https://apps.apple.com/app/id6766649400",
@@ -54,7 +58,7 @@ export const KLAR_APPS: KlarAppMeta[] = [
   {
     slug: "myloo",
     name: "MyLoo",
-    icon: "/icons/myloo.webp",
+    icon: "/icons/myloo-v3.webp",
     status: "LIVE",
     release: "v1.0.5 · build 12",
     appStoreUrl: "https://apps.apple.com/app/id6767200261",
@@ -78,7 +82,7 @@ export const KLAR_APPS: KlarAppMeta[] = [
   {
     slug: "yarn-stash",
     name: "Yarn-Stash",
-    icon: "/icons/yarnstash.webp",
+    icon: "/icons/yarnstash-v3.webp",
     status: "LIVE",
     release: "v1.0.2",
     appStoreUrl: "https://apps.apple.com/app/id6761712550",
@@ -87,7 +91,7 @@ export const KLAR_APPS: KlarAppMeta[] = [
   {
     slug: "kelva",
     name: "Kelva",
-    icon: "/icons/kelva.webp",
+    icon: "/icons/kelva-v3.webp",
     status: "LIVE",
     appStoreUrl: "https://apps.apple.com/app/id6761271923",
     publicSite: true,
@@ -95,7 +99,7 @@ export const KLAR_APPS: KlarAppMeta[] = [
   {
     slug: "moto",
     name: "ThrottleUp",
-    icon: "/icons/moto.webp",
+    icon: "/icons/moto-v3.webp",
     status: "LIVE",
     release: "v1.0.3 · build 14",
     appStoreUrl: "https://apps.apple.com/app/id6761712527",
@@ -108,7 +112,8 @@ export const KLAR_APPS: KlarAppMeta[] = [
   {
     slug: "wavelength",
     name: "Basalt",
-    icon: "/icons/wavelength.webp",
+    // The slug stays historical, the icon does not: this is Basalt's own.
+    icon: "/icons/basalt-v3.webp",
     status: "BUILD",
     publicSite: true,
   },
