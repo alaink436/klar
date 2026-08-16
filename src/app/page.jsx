@@ -12,15 +12,42 @@ import OsShell from "./os/OsShell";
 // App-Store-required legal and support page are untouched and still live at
 // their own URLs.
 
+// The price is indexed to the evidence, not to scarcity. What is for sale here
+// is what six live apps taught one person, so the thing that makes it worth
+// more is those apps earning more: a vault behind $200 a month is a hobby
+// notebook, the same vault behind $10,000 a month is a manual. Every time the
+// apps cross a step, both prices go up.
+//
+// Stated as thresholds rather than as a live figure. The step is public, the
+// exact monthly revenue is not, and the promise on the page only needs the
+// threshold to be checkable.
+//
+// OPEN_STEP is moved by hand when a threshold is crossed. Raising the sync
+// price means creating a NEW Stripe price and pointing
+// KLAROS_STRIPE_SYNC_PRICE_ID at it: a subscription keeps the price it was
+// created with, so everyone already subscribed carries on untouched, which is
+// what the page promises them.
+const LADDER = [
+  { step: 1, floor: 0, data: 49, sync: 19 },
+  { step: 2, floor: 500, data: 79, sync: 29 },
+  { step: 3, floor: 2000, data: 119, sync: 39 },
+  { step: 4, floor: 10000, data: 149, sync: 49 },
+];
+const OPEN_STEP = 1;
+
+const money = (n) => `$${n.toLocaleString("en-US")}`;
+const NOW = LADDER[OPEN_STEP - 1];
+const NEXT = LADDER[OPEN_STEP] ?? null;
+
 export const metadata = {
   title: "Klar OS: the operating system of a solo founder who ships",
   description:
-    "The exact vault structure, agent conventions and LLM Council setup behind Klar Studios' shipped App Store apps. Free system, $49 playbook, honest scars included.",
+    `The exact vault structure, agent conventions and LLM Council setup behind Klar Studios' shipped App Store apps. Free system, ${money(NOW.data)} playbook, honest scars included.`,
   alternates: { canonical: "/" },
   openGraph: {
     title: "Klar OS: one person, six shipped apps",
     description:
-      "The free working system of a solo founder who ships with AI agents daily. The scars behind it: the $49 Playbook.",
+      `The free working system of a solo founder who ships with AI agents daily. The scars behind it: the ${money(NOW.data)} Playbook.`,
     url: "/",
     siteName: "Klar OS",
     images: [{ url: "/os/og.png", width: 1200, height: 630 }],
@@ -30,43 +57,10 @@ export const metadata = {
     card: "summary_large_image",
     title: "Klar OS: one person, six shipped apps",
     description:
-      "The free working system of a solo founder who ships with AI agents daily. The scars behind it: the $49 Playbook.",
+      `The free working system of a solo founder who ships with AI agents daily. The scars behind it: the ${money(NOW.data)} Playbook.`,
     images: ["/os/og.png"],
   },
 };
-
-// The sync price climbs in steps. Each step is a fixed number of subscriptions
-// at a fixed price; when it fills, the next opens and costs more. Nobody's own
-// price moves: a Stripe subscription keeps the price it was created with, so
-// raising the price means creating a NEW price and pointing
-// KLAROS_STRIPE_SYNC_PRICE_ID at it. Existing subscribers carry on untouched,
-// which is exactly what the page promises them.
-//
-// OPEN_STEP is the step selling right now. Move it by hand when one fills —
-// deliberately not derived from a live subscriber count, because that count is
-// a revenue figure and this page does not publish those.
-const LADDER = [
-  { step: 1, from: 1, to: 5, price: 19 },
-  { step: 2, from: 6, to: 15, price: 29 },
-  { step: 3, from: 16, to: 30, price: 39 },
-  { step: 4, from: 31, to: 60, price: 49 },
-  { step: 5, from: 61, to: null, price: 59 },
-];
-const OPEN_STEP = 1;
-
-// Recurring revenue once a step is full, counted the way the promise works:
-// everyone keeps the price they joined at, so each step adds its own seats at
-// its own price on top of everything before it.
-const RUNGS = (() => {
-  let running = 0;
-  return LADDER.map((r) => {
-    const seats = r.to ? r.to - r.from + 1 : null;
-    if (seats) running += seats * r.price;
-    return { ...r, seats, mrr: seats ? running : null };
-  });
-})();
-
-const money = (n) => `$${n.toLocaleString("en-US")}`;
 
 const SKILLS = [
   { set: "Everything Claude Code", n: "59", who: "Affaan Mustafa", lic: "MIT", for: "API design, frontend and backend patterns, migrations, deployment, testing, docker, cost-aware model routing, eval harnesses" },
@@ -175,7 +169,7 @@ const DETAILS = {
   brain: (
     <>
       <div className="head">
-        <p className="plate">03 / $49</p>
+        <p className="plate">03 / {money(NOW.data)}</p>
         <div>
           <h2>Five months of vault data</h2>
           <p className="lede" style={{ margin: 0 }}>
@@ -210,7 +204,7 @@ const DETAILS = {
 
       <div className="card-cta paid">
         <div>
-          <p className="price" style={{ marginBottom: 0 }}>$49<small>one-time, $79 after launch, 30-day refund</small></p>
+          <p className="price" style={{ marginBottom: 0 }}>{money(NOW.data)}<small>one-time, {money(NEXT.data)} at the next step, 30-day refund</small></p>
         </div>
         <form action="/api/os/checkout" method="POST">
             <input type="hidden" name="plan" value="data" />
@@ -275,7 +269,7 @@ export default function Home() {
             </div>
             <div className="paid">
               <p className="stamp">03, the data</p>
-              <p className="price">$49<small>one-time, $79 after launch, 30-day refund</small></p>
+              <p className="price">{money(NOW.data)}<small>one-time, {money(NEXT.data)} at the next step, 30-day refund</small></p>
               <ul className="checks">
                 <li>All 254 learnings, redacted, with an English index</li>
                 <li>The four written chapters, immediately</li>
@@ -314,9 +308,10 @@ export default function Home() {
             </div>
             <div className="subbuy">
               <p className="price">
-                {money(LADDER[OPEN_STEP - 1].price)}
+                {money(NOW.sync)}
                 <small>
-                  per month, step {OPEN_STEP} of {LADDER.length}, cancel any time
+                  per month, step {String(OPEN_STEP).padStart(2, "0")} of{" "}
+                  {String(LADDER.length).padStart(2, "0")}, cancel any time
                 </small>
               </p>
               <form action="/api/os/checkout" method="POST">
@@ -333,49 +328,60 @@ export default function Home() {
           <div className="ladder">
             <p className="stamp">05, the ladder</p>
             <h3 style={{ fontSize: "1.5rem", marginBottom: "var(--space-2)" }}>
-              The price climbs as the list does
+              It gets more expensive as the apps prove it
             </h3>
             <p className="dim" style={{ maxWidth: "64ch" }}>
-              Each step is a fixed number of subscriptions at a fixed price. When
-              a step fills, the next one opens and costs more, because by then
-              the corpus is bigger and there is less of me to go round. The last
-              column is what the monthly revenue adds up to once that step is
-              full, counted the way the promise works: everyone keeps the price
-              they joined at, so each step stacks on top of the ones before it.
+              This is not scarcity pricing, and there is no countdown. What is
+              for sale is what six live apps taught one person, so the thing
+              that makes it worth more is those apps earning more. The same
+              notes behind a few hundred a month are one person&apos;s habits.
+              Behind ten thousand a month they are a manual. Each time the apps
+              cross a line below, both prices step up.
             </p>
             <div className="table">
               <div className="row th cols4">
                 <span>Step</span>
-                <span>Subscriptions</span>
-                <span>Per month</span>
-                <span>Recurring revenue when the step is full</span>
+                <span>Once the apps make</span>
+                <span>The data, one-time</span>
+                <span>The sync, per month</span>
               </div>
-              {RUNGS.map((r) => (
+              {LADDER.map((r) => (
                 <div
                   key={r.step}
                   className={`row cols4${r.step === OPEN_STEP ? " now" : ""}`}
                 >
                   <span className="k" data-l="Step">
                     {String(r.step).padStart(2, "0")}
-                    {r.step === OPEN_STEP ? <i className="tag"> open now</i> : null}
+                    {r.step === OPEN_STEP ? <i className="tag"> you are here</i> : null}
                   </span>
-                  <span data-l="Subscriptions">
-                    {r.to ? `${r.from} to ${r.to}` : `${r.from} and up`}
+                  <span data-l="Once the apps make">
+                    {r.floor === 0
+                      ? `under ${money(LADDER[1].floor)} a month`
+                      : `${money(r.floor)} a month or more`}
                   </span>
-                  <span data-l="Per month">{money(r.price)}</span>
-                  <span className="dim" data-l="Revenue when full">
-                    {r.mrr ? `${money(r.mrr)} per month` : "grows from there"}
-                  </span>
+                  <span data-l="The data">{money(r.data)}</span>
+                  <span data-l="The sync">{money(r.sync)} a month</span>
                 </div>
               ))}
             </div>
             <p className="fine" style={{ maxWidth: "70ch" }}>
-              Published so it is a commitment rather than a mood. The step that
-              is open is the one marked above, and it changes when it fills, not
-              when it suits me. Nothing here is retroactive, in either direction:
-              a step that fills does not reprice the people already in it, and a
-              step that fills slowly does not get cheaper.
+              Buying at a step is buying at that step for good: the one-time
+              purchase keeps serving you the newest build forever, and a
+              subscription keeps the price it started at for as long as it runs.
+              Later steps cost more. Yours does not move.
             </p>
+            {NEXT ? (
+              <p className="fine" style={{ maxWidth: "70ch" }}>
+                Today the apps are under {money(NEXT.floor)} a month, so step{" "}
+                {String(OPEN_STEP).padStart(2, "0")} is what you pay:{" "}
+                {money(NOW.data)} for the data, and {money(NOW.sync)}{" "}
+                a month for the sync.{" "}
+                The next step is a threshold and not a date, which means
+                the honest version of &quot;buy now&quot; is: it gets more
+                expensive when the work says so, and there is nothing here
+                pretending otherwise.
+              </p>
+            ) : null}
           </div>
         </section>
 
