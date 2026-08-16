@@ -206,12 +206,12 @@ export function AppBadges({
     moto: "ThrottleUp",
   };
   const APP_ICON: Record<string, string> = {
-    wavelength: "/icons/wavelength.webp",
-    kelva: "/icons/kelva.webp",
-    trubel: "/icons/trubel.webp",
-    myloo: "/icons/myloo.webp",
-    "yarn-stash": "/icons/yarnstash.webp",
-    moto: "/icons/moto.webp",
+    wavelength: "/icons/basalt-v3.webp",
+    kelva: "/icons/kelva-v3.webp",
+    trubel: "/icons/trubel-v3.webp",
+    myloo: "/icons/myloo-v3.webp",
+    "yarn-stash": "/icons/yarnstash-v3.webp",
+    moto: "/icons/moto-v3.webp",
   };
   if (apps.length === 0) {
     return <span style={{ fontSize: 14, color: "var(--fg-3)" }}>Not connected to any app yet.</span>;

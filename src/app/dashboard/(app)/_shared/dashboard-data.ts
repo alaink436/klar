@@ -15,12 +15,12 @@ export const APP_NAME: Record<string, string> = {
 };
 
 export const APP_ICON: Record<string, string> = {
-  wavelength: "/icons/wavelength.webp",
-  kelva: "/icons/kelva.webp",
-  trubel: "/icons/trubel.webp",
-  myloo: "/icons/myloo.webp",
-  "yarn-stash": "/icons/yarnstash.webp",
-  moto: "/icons/moto.webp",
+  wavelength: "/icons/basalt-v3.webp",
+  kelva: "/icons/kelva-v3.webp",
+  trubel: "/icons/trubel-v3.webp",
+  myloo: "/icons/myloo-v3.webp",
+  "yarn-stash": "/icons/yarnstash-v3.webp",
+  moto: "/icons/moto-v3.webp",
 };
 
 export interface AffiliateRow {
@@ -68,7 +68,7 @@ export async function loadStatsForApp(slug: string, handle: string): Promise<App
   const app = getApp(slug);
   if (!app) return null;
   const appName = APP_NAME[slug] ?? slug;
-  const iconUrl = APP_ICON[slug] ?? "/icons/yarnstash.webp";
+  const iconUrl = APP_ICON[slug] ?? "/icons/yarnstash-v3.webp";
 
   const h = encodeURIComponent(handle);
 

@@ -56,7 +56,7 @@ export default function YarnstashHomePage() {
         {/* Masthead */}
         <div className="flex items-center gap-4 mb-10">
           <Image
-            src="/icons/yarnstash.webp"
+            src="/icons/yarnstash-v3.webp"
             alt="My Yarn Stash app icon"
             width={56}
             height={56}

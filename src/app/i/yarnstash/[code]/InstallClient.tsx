@@ -251,7 +251,7 @@ export function InstallClient({ code }: { code: string }) {
             }}
           >
             <Image
-              src="/icons/yarnstash.webp"
+              src="/icons/yarnstash-v3.webp"
               alt="My Yarn Stash icon"
               fill
               sizes="44px"

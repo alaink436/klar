@@ -55,7 +55,7 @@ export default function BasaltHomePage() {
         {/* Masthead */}
         <div className="flex items-center gap-4 mb-10">
           <Image
-            src="/icons/basalt.png"
+            src="/icons/basalt-v3.webp"
             alt="Basalt app icon"
             width={56}
             height={56}

@@ -1,7 +1,7 @@
 // Yarn-Stash affiliate-onboarding hosted on getklar.org. Unified Klar
 // public-site look: fonts (Space Grotesk + Fraunces + Manrope + JetBrains
 // Mono) are loaded once in /app/layout.tsx and reused. The app identity is
-// the icon from /icons/yarnstash.webp, surfaced in the topframe + welcome
+// the icon from /icons/yarnstash-v3.webp, surfaced in the topframe + welcome
 // + live screens.
 
 import { use } from "react";

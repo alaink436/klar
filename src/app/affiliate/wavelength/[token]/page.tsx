@@ -1,6 +1,6 @@
 // Wavelength affiliate-onboarding hosted on getklar.org. Unified Klar
 // public-site look — identical to the other apps, only the topframe icon
-// switches via /icons/wavelength.webp.
+// switches via /icons/basalt-v3.webp.
 
 import { use } from "react";
 import { getApp, sbGet } from "@/lib/adminApps";

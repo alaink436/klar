@@ -1,6 +1,6 @@
 // ThrottleUp affiliate-onboarding hosted on getklar.org. Unified Klar
 // public-site look — same fonts/palette as the landing page. The app
-// identity is the icon from /icons/moto.webp.
+// identity is the icon from /icons/moto-v3.webp.
 
 import { use } from "react";
 import { getApp, sbGet } from "@/lib/adminApps";

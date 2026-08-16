@@ -125,7 +125,7 @@ export function InstallClient({ code }: { code: string }) {
           }}
         >
           <Image
-            src="/icons/moto.webp"
+            src="/icons/moto-v3.webp"
             alt="ThrottleUp"
             fill
             sizes="92px"
