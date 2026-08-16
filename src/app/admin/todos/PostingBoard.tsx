@@ -19,8 +19,20 @@
 //   - Ein Tag lässt sich aufklappen. Dann wird seine Spalte breit und jede
 //     Zelle bekommt ein Textfeld — für die Tage, an denen man wissen will, WAS
 //     rausging, ohne dass die anderen sechs Spalten dafür Platz opfern.
+//   - Ein Verbund ist ein Name, keine Verknüpfung. Wer denselben Namen trägt,
+//     postet dasselbe Material; die Tagesliste schreibt das an jeden Post, weil
+//     „das ist derselbe Upload wie vorhin" beim Posten die teuerste Information
+//     ist, die man sonst erst nach dem Exportieren bemerkt.
 
-import { Fragment, useEffect, useOptimistic, useRef, useState, useTransition } from "react";
+import {
+  Fragment,
+  useEffect,
+  useOptimistic,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +67,8 @@ export interface BoardAccount {
   materialReady: boolean;
   /** Zielnische — wohin der Account zeigen soll. */
   niche: string;
+  /** Content-Verbund: gleicher Name = dasselbe Material wie auf den anderen. */
+  contentGroup: string;
   /** Ein Zeitstempel je erledigter Einsteuer-Runde, höchstens drei. */
   steeredRounds: string[];
   /** Wie oft an einem Posting-Tag gepostet wird (1–4). */
@@ -81,6 +95,45 @@ const FIELD =
   "h-8 px-2 text-[12px] [font-family:var(--font-body)] text-fg bg-bg border border-line rounded-[4px] focus:border-fg focus:outline-none";
 const HEAD =
   "[font-family:var(--font-mono)] text-[9.5px] font-semibold uppercase tracking-[0.12em] text-fg-4 text-left px-2.5 py-2 whitespace-nowrap";
+// Ob die Heute-Liste offen steht — im Browser, nicht im Vault: die Wahl gilt
+// für dieses Gerät. Gelesen wird sie über `useSyncExternalStore` und nicht per
+// `setState` im Effekt; die Lint-Regel `react-hooks/set-state-in-effect` verbietet
+// das zu Recht, und derselbe Weg steht schon im Wochenplan (`Planner.tsx`).
+const TODAY_OPEN_KEY = "klar_posting_today_open";
+
+let todayOpenCache: boolean | null = null;
+const todayOpenListeners = new Set<() => void>();
+
+function readTodayOpen(): boolean {
+  if (todayOpenCache === null) {
+    try {
+      todayOpenCache = window.localStorage.getItem(TODAY_OPEN_KEY) !== "0";
+    } catch {
+      todayOpenCache = true; // privater Modus o. Ä.
+    }
+  }
+  return todayOpenCache;
+}
+
+function writeTodayOpen(next: boolean): void {
+  todayOpenCache = next;
+  try {
+    window.localStorage.setItem(TODAY_OPEN_KEY, next ? "1" : "0");
+  } catch {
+    // dann gilt die Wahl eben nur für diese Sitzung
+  }
+  for (const l of todayOpenListeners) l();
+}
+
+function subscribeTodayOpen(cb: () => void): () => void {
+  todayOpenListeners.add(cb);
+  return () => {
+    todayOpenListeners.delete(cb);
+  };
+}
+
+const CHIP =
+  "[font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.08em] px-2 py-1 rounded-[4px] border transition-colors whitespace-nowrap";
 
 export default function PostingBoard({
   accounts,
@@ -107,6 +160,14 @@ export default function PostingBoard({
   const [openDay, setOpenDay] = useState<string | null>(null);
   const [hideDropped, setHideDropped] = useState(true);
   const [adding, setAdding] = useState(false);
+  // Isolieren: solange die Menge leer ist, gilt das ganze Board. Sobald ein
+  // Kanal drin steht, zeigt die Seite nur noch ihn — Zahlen eingeschlossen,
+  // denn eine gefilterte Tabelle über einer ungefilterten Bilanz liest sich
+  // wie ein Fehler.
+  const [focus, setFocus] = useState<string[]>([]);
+  // Die Heute-Liste ist der Grund, warum man die Seite öffnet — sie steht
+  // deshalb offen und lässt sich zuklappen, wenn die Tabelle darunter dran ist.
+  const todayOpen = useSyncExternalStore(subscribeTodayOpen, readTodayOpen, () => true);
 
   const [rows, patchRow] = useOptimistic(
     accounts,
@@ -132,7 +193,33 @@ export default function PostingBoard({
     slotsOf(r).filter((n) => isDone(r.key, iso, n)).length;
   const slotsOf = (r: BoardAccount) => Array.from({ length: r.perDay }, (_, i) => i + 1);
 
-  const shown = hideDropped ? rows.filter((r) => r.state !== "dropped") : rows;
+  // Isoliert wird vor allem anderen: ab hier rechnet und zeichnet die Seite nur
+  // noch mit `visible`. `rows` bleibt die volle Liste — die Kanalauswahl oben
+  // muss auch die Kanäle anbieten, die gerade ausgeblendet sind.
+  const visible = focus.length ? rows.filter((r) => focus.includes(r.key)) : rows;
+  const shown = hideDropped ? visible.filter((r) => r.state !== "dropped") : visible;
+
+  const isolated = focus.length > 0;
+  function toggleFocus(key: string) {
+    setFocus((f) => (f.includes(key) ? f.filter((k) => k !== key) : [...f, key]));
+  }
+  /** Ganze App isolieren — ein Klick statt sieben. */
+  function focusApp(appLabel: string) {
+    const keys = rows.filter((r) => r.appLabel === appLabel).map((r) => r.key);
+    const all = keys.every((k) => focus.includes(k));
+    setFocus((f) => (all ? f.filter((k) => !keys.includes(k)) : [...new Set([...f, ...keys])]));
+  }
+
+  /**
+   * Die anderen Kanäle desselben Verbunds. Genau das ist die Frage beim Posten:
+   * habe ich dieses Material gerade schon einmal hochgeladen?
+   */
+  const groupMates = (r: BoardAccount) =>
+    r.contentGroup
+      ? rows.filter(
+          (o) => o.key !== r.key && o.contentGroup === r.contentGroup && o.state !== "dropped",
+        )
+      : [];
 
   function setState(r: BoardAccount, state: AccountState) {
     startTransition(async () => {
@@ -198,12 +285,12 @@ export default function PostingBoard({
   }
 
   // Soll und Ist der ganzen Woche — die Zahl, wegen der man das Board aufmacht.
-  const live = rows.filter((r) => r.state === "active" || r.state === "warmup");
+  const live = visible.filter((r) => r.state === "active" || r.state === "warmup");
   const planned = live.reduce(
     (sum, r) => sum + days.filter((d) => r.rhythm.includes(d.dow)).length * r.perDay,
     0,
   );
-  const posted = rows.reduce((sum, r) => sum + days.reduce((n, d) => n + doneCount(r, d.iso), 0), 0);
+  const posted = visible.reduce((sum, r) => sum + days.reduce((n, d) => n + doneCount(r, d.iso), 0), 0);
   const missed = live.reduce(
     (sum, r) =>
       sum +
@@ -215,7 +302,7 @@ export default function PostingBoard({
 
   const dayStat = (d: BoardDay) => {
     const soll = live.filter((r) => r.rhythm.includes(d.dow)).reduce((n, r) => n + r.perDay, 0);
-    const ist = rows.reduce((n, r) => n + doneCount(r, d.iso), 0);
+    const ist = visible.reduce((n, r) => n + doneCount(r, d.iso), 0);
     return { soll, ist };
   };
 
@@ -235,25 +322,38 @@ export default function PostingBoard({
         .flatMap((r) => slotsOf(r).map((slot) => ({ r, slot })))
     : [];
   const extraToday = todayCol
-    ? rows.filter((r) => doneCount(r, todayCol.iso) > 0 && !dueToday.some((x) => x.r.key === r.key))
+    ? visible.filter((r) => doneCount(r, todayCol.iso) > 0 && !dueToday.some((x) => x.r.key === r.key))
     : [];
   const doneToday = todayCol ? dueToday.filter((x) => isDone(x.r.key, todayCol.iso, x.slot)).length : 0;
 
-  const byHand = rows.filter((r) => !r.automated && r.state !== "dropped").length;
+  const byHand = visible.filter((r) => !r.automated && r.state !== "dropped").length;
   // Im Warm-up ist das die Zahl, die den Fortschritt zeigt — nicht die Posts.
-  const relevant = rows.filter((r) => r.state !== "dropped");
+  const relevant = visible.filter((r) => r.state !== "dropped");
   const steered = relevant.filter((r) => r.steeredRounds.length >= STEER_ROUNDS).length;
-  const allTime = Object.entries(totals).reduce((sum, [, n]) => sum + n, 0);
+  const allTime = visible.reduce((sum, r) => sum + (totals[r.key] ?? 0), 0);
+
+  // Kanalauswahl: nach App gebündelt, in der Reihenfolge der Tabelle. Aufgegebene
+  // Accounts stehen nur drin, wenn sie ohnehin gezeigt werden — sonst wäre die
+  // Leiste voll mit Kanälen, die es nicht mehr gibt.
+  const pickable = hideDropped ? rows.filter((r) => r.state !== "dropped") : rows;
+  const appGroups = [...new Set(pickable.map((r) => r.appLabel))].map((label) => ({
+    label,
+    accounts: pickable.filter((r) => r.appLabel === label),
+  }));
 
   return (
     <Card className="p-0 overflow-hidden mt-4">
       <div className="px-5 py-3.5 border-b border-line">
         <div className="flex flex-wrap items-end justify-between gap-x-7 gap-y-3">
-          <Stat label="Accounts" value={String(rows.length)} sub={`${byHand} davon von Hand`} />
+          <Stat
+            label={isolated ? `Accounts (von ${rows.length})` : "Accounts"}
+            value={String(visible.length)}
+            sub={`${byHand} davon von Hand`}
+          />
           <Stat
             label="Zustand"
-            value={`${rows.filter((r) => r.state === "active").length} laufen`}
-            sub={`${rows.filter((r) => r.state === "warmup").length} wärmen auf · ${rows.filter((r) => r.state === "paused").length} pausiert · ${rows.filter((r) => r.state === "dropped").length} aufgegeben`}
+            value={`${visible.filter((r) => r.state === "active").length} laufen`}
+            sub={`${visible.filter((r) => r.state === "warmup").length} wärmen auf · ${visible.filter((r) => r.state === "paused").length} pausiert · ${visible.filter((r) => r.state === "dropped").length} aufgegeben`}
           />
           <Stat label="Diese Woche" value={`${posted} / ${planned}`} sub={missed > 0 ? `${missed} verpasst` : "nichts verpasst"} danger={missed > 0} />
           <Stat
@@ -272,18 +372,92 @@ export default function PostingBoard({
         </div>
       </div>
 
+      {/* Kanäle isolieren. Vierundzwanzig Zeilen sind der Überblick; wer an
+          einem Kanal arbeitet, will die anderen dreiundzwanzig für ein paar
+          Minuten nicht sehen. Die Auswahl steht bewusst im Browser und nicht in
+          der URL: sie ist ein Blickwinkel, kein Ort, den man verlinkt. */}
+      <div className="px-5 py-2.5 border-b border-line" style={{ background: "var(--surface-2)" }}>
+        <div className="flex items-start gap-3">
+          <span className="[font-family:var(--font-mono)] text-[9.5px] font-semibold uppercase tracking-[0.14em] text-fg-4 pt-1.5 shrink-0">
+            Kanäle
+          </span>
+          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+            <button
+              type="button"
+              onClick={() => setFocus([])}
+              className={`${CHIP} ${
+                isolated
+                  ? "border-line text-fg-4 hover:border-fg-3 hover:text-fg-2"
+                  : "bg-fg border-fg text-[var(--accent-fg)]"
+              }`}
+            >
+              Alle
+            </button>
+            {appGroups.map((g) => {
+              const keys = g.accounts.map((a) => a.key);
+              const whole = keys.every((k) => focus.includes(k));
+              return (
+                <Fragment key={g.label}>
+                  <span className="w-px self-stretch bg-[var(--line)] mx-0.5" />
+                  <button
+                    type="button"
+                    onClick={() => focusApp(g.label)}
+                    title={`Alle Kanäle von ${g.label}`}
+                    className={`${CHIP} font-semibold ${
+                      whole
+                        ? "bg-fg border-fg text-[var(--accent-fg)]"
+                        : "border-line-strong text-fg-2 hover:border-fg"
+                    }`}
+                  >
+                    {g.label}
+                  </button>
+                  {g.accounts.map((a) => {
+                    const on = focus.includes(a.key);
+                    return (
+                      <button
+                        key={a.key}
+                        type="button"
+                        onClick={() => toggleFocus(a.key)}
+                        aria-pressed={on}
+                        title={`@${a.handle} — ${a.platformLabel}`}
+                        className={`${CHIP} ${
+                          on
+                            ? "bg-fg border-fg text-[var(--accent-fg)]"
+                            : "border-line text-fg-4 hover:border-fg-3 hover:text-fg-2"
+                        }`}
+                      >
+                        @{a.handle || "?"}
+                        {a.contentGroup ? <span className="opacity-60"> ⇄</span> : null}
+                      </button>
+                    );
+                  })}
+                </Fragment>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {todayCol ? (
         <div className="px-5 py-4 border-b border-line" style={{ background: "var(--surface-2)" }}>
-          <div className="flex items-baseline gap-2.5 mb-2.5">
+          {/* Zugeklappt bleibt die Zeile stehen, die sagt, wie weit der Tag ist —
+              eine Liste, die man einklappt, soll ihre Zahl nicht mitnehmen. */}
+          <button
+            type="button"
+            onClick={() => writeTodayOpen(!todayOpen)}
+            aria-expanded={todayOpen}
+            className={`flex items-baseline gap-2.5 text-left ${todayOpen ? "mb-2.5" : ""}`}
+          >
             <span className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.14em] text-fg-2">
+              <span className="inline-block w-[9px] text-fg-4">{todayOpen ? "−" : "+"}</span>{" "}
               Heute · {todayCol.weekday} {todayCol.dayLabel}
             </span>
             <span className="[font-family:var(--font-mono)] text-[10.5px] text-fg-4">
               {doneToday} von {dueToday.length} erledigt
             </span>
-          </div>
+          </button>
 
-          {dueToday.length === 0 ? (
+          {!todayOpen ? null : dueToday.length === 0 ? (
             <p className="text-[12.5px] text-fg-3 m-0">
               Für heute ist nichts eingeplant. Der Rhythmus in der Tabelle unten legt fest, an welchen
               Tagen ein Account drankommt.
@@ -292,6 +466,13 @@ export default function PostingBoard({
             <div className="grid gap-1.5 grid-cols-[repeat(auto-fill,minmax(260px,1fr))]">
               {dueToday.map(({ r, slot }) => {
                 const ticked = isDone(r.key, todayCol.iso, slot);
+                // Wer dasselbe Material trägt, steht am Post — mit Haken, wenn
+                // er heute schon draussen ist. Dann weiss man beim Exportieren
+                // schon, dass die Datei nur noch hochgeladen werden muss.
+                const mates = groupMates(r).map((m) => ({
+                  m,
+                  posted: doneCount(m, todayCol.iso) > 0,
+                }));
                 return (
                   // Karte statt Knopf: die Materialangabe kann ein Link sein,
                   // und ein <a> darf nicht in einem <button> stehen. Der
@@ -334,6 +515,17 @@ export default function PostingBoard({
                         {r.format ? <span className="text-fg-2"> · {r.format}</span> : null}
                         {r.niche ? <span> · {r.niche}</span> : null}
                       </span>
+                      {mates.length > 0 ? (
+                        <span className="block [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-2">
+                          &#8644; {r.contentGroup} · gleich wie{" "}
+                          {mates.map(({ m, posted }, i) => (
+                            <span key={m.key} style={{ color: posted ? "var(--fg-4)" : undefined }}>
+                              {i > 0 ? ", " : ""}@{m.handle}
+                              {posted ? " ✓" : ""}
+                            </span>
+                          ))}
+                        </span>
+                      ) : null}
                       {/* Auf einen Account, dessen Feed noch nicht in der Nische
                           steht, zu posten heisst, ihn ans falsche Publikum
                           auszuliefern. Das gehört vor den Post, nicht in eine
@@ -362,7 +554,7 @@ export default function PostingBoard({
             </div>
           )}
 
-          {extraToday.length > 0 ? (
+          {todayOpen && extraToday.length > 0 ? (
             <p className="text-[11.5px] text-fg-4 m-0 mt-2.5">
               Ausserdem heute gepostet, ohne dass es geplant war:{" "}
               {extraToday.map((r) => `@${r.handle}`).join(", ")}
@@ -388,7 +580,7 @@ export default function PostingBoard({
               {/* Nische und „eingesteuert" gehören in eine Zelle: das Häkchen
                   bedeutet nichts ohne das Ziel, auf das es sich bezieht. */}
               <th className={HEAD} style={{ minWidth: 170 }}>Zielnische</th>
-              <th className={HEAD} style={{ minWidth: 230 }}>Format &amp; Material</th>
+              <th className={HEAD} style={{ minWidth: 250 }}>Format, Material &amp; Verbund</th>
               {/* Notiz steht neben dem Format, nicht hinter der Woche: was du
                   dir überlegt hast, gehört neben das, worauf es sich bezieht —
                   sonst liest man es erst, wenn man ganz nach rechts scrollt. */}
@@ -442,11 +634,8 @@ export default function PostingBoard({
                   {first ? (
                     <tr>
                       <td colSpan={8 + days.length} className="px-2.5 py-1.5" style={{ background: "var(--surface-2)" }}>
-                        <span className="inline-flex items-center gap-2">
-                          <span className="size-[8px] rounded-full" style={{ background: r.appColor }} />
-                          <span className="[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-2">
-                            {r.appLabel}
-                          </span>
+                        <span className="[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-2">
+                          {r.appLabel}
                         </span>
                       </td>
                     </tr>
@@ -476,6 +665,17 @@ export default function PostingBoard({
                           </>
                         ) : null}
                       </div>
+                      {/* Der Verbund gehört an den Kanal, nicht nur ins Format:
+                          hier sucht man, wenn man wissen will, ob dieser Kanal
+                          eigenes Material braucht. */}
+                      {groupMates(r).length > 0 ? (
+                        <div
+                          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-3 mt-0.5"
+                          title={`Gleiches Material wie ${groupMates(r).map((m) => `@${m.handle}`).join(", ")}`}
+                        >
+                          &#8644; {r.contentGroup}
+                        </div>
+                      ) : null}
                     </td>
 
                     <td className="px-2.5 py-2">
@@ -622,6 +822,31 @@ export default function PostingBoard({
                         >
                           Material bereit
                         </span>
+                      </div>
+                      {/* Verbund: derselbe Name auf zwei Kanälen heisst, dass
+                          dort dasselbe rausgeht. Ein Textfeld mit Vorschlägen
+                          statt einer Auswahl — der erste Kanal eines Verbunds
+                          muss ihn benennen können, ohne dass es ihn schon gibt. */}
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <span className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-4 shrink-0">
+                          &#8644; Verbund
+                        </span>
+                        <input
+                          list="klar-groups"
+                          defaultValue={r.contentGroup}
+                          placeholder="z. B. Basalt Talking Head"
+                          aria-label={`Content-Verbund von @${r.handle}`}
+                          title="Kanäle mit demselben Verbund posten dasselbe Material."
+                          onBlur={(e) => {
+                            const v = e.target.value.trim();
+                            if (v === r.contentGroup) return;
+                            startTransition(async () => {
+                              patchRow({ key: r.key, contentGroup: v });
+                              await updateAccount(r.key, { contentGroup: v });
+                            });
+                          }}
+                          className={`${FIELD} h-6 text-[11px] min-w-0 flex-1`}
+                        />
                       </div>
                     </td>
 
@@ -778,6 +1003,12 @@ export default function PostingBoard({
         <datalist id="klar-niches">
           {[...new Set(rows.map((r) => r.niche).filter(Boolean))].map((n) => (
             <option key={n} value={n} />
+          ))}
+        </datalist>
+        {/* Verbünde ebenso: es gibt nur die, die schon jemand benannt hat. */}
+        <datalist id="klar-groups">
+          {[...new Set(rows.map((r) => r.contentGroup).filter(Boolean))].map((g) => (
+            <option key={g} value={g} />
           ))}
         </datalist>
       </div>

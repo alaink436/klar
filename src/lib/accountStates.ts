@@ -83,6 +83,8 @@ export interface AccountStatusPatch {
   materialReady?: boolean;
   /** Zielnische des Accounts. */
   niche?: string | null;
+  /** Name des Content-Verbunds — gleicher Name heisst gleiches Material. */
+  contentGroup?: string | null;
   /** Stand des Einsteuerns: 0–3 Runden. Kürzen entfernt die späteren wieder. */
   steeredRounds?: number;
   /** Posts pro Tag, an dem der Account laut Rhythmus dran ist (1–4). */

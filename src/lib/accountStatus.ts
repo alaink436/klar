@@ -55,6 +55,8 @@ export interface AccountStatus {
   material_ready: boolean;
   /** Zielnische — wohin der Account zeigen soll. */
   niche: string | null;
+  /** Content-Verbund: gleicher Name = dasselbe Material wie auf den anderen. */
+  content_group: string | null;
   /** Bis zu drei Zeitstempel — einer je Einsteuer-Runde. Länge = Stand. */
   steered_rounds: string[];
   /** Posts pro Posting-Tag (1–4). */
@@ -137,6 +139,7 @@ export async function saveAccountStatus(
   if (patch.material !== undefined) row.material = clean(patch.material, 400);
   if (patch.materialReady !== undefined) row.material_ready = Boolean(patch.materialReady);
   if (patch.niche !== undefined) row.niche = clean(patch.niche, 60);
+  if (patch.contentGroup !== undefined) row.content_group = clean(patch.contentGroup, 60);
   // Jede Runde schreibt ihren eigenen Zeitstempel, statt einen Zähler
   // hochzusetzen: so sieht man auch, ob die drei Runden über Tage verteilt
   // waren oder alle in zehn Minuten. Dafür müssen die bisherigen gelesen
