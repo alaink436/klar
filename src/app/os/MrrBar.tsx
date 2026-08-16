@@ -1,4 +1,5 @@
-import { readAppsMrr } from "@/lib/klarOsMrr";
+import { readAppsMrr, readAppsMrrSeries } from "@/lib/klarOsMrr";
+import MrrTrend from "./MrrTrend";
 
 // The ladder as a progress bar, at the top of the page where the price belongs.
 // Three rows, read top to bottom: what the apps earn right now, how far that is
@@ -19,7 +20,7 @@ interface Rung {
 const money = (n: number) => `$${n.toLocaleString("en-US")}`;
 
 export default async function MrrBar({ ladder }: { ladder: Rung[] }) {
-  const mrr = await readAppsMrr();
+  const [mrr, series] = await Promise.all([readAppsMrr(), readAppsMrrSeries()]);
   const dollars = mrr ? mrr.cents / 100 : null;
 
   // Logarithmic. On a linear $10,000 axis the $500 checkpoint sits at five
@@ -47,6 +48,7 @@ export default async function MrrBar({ ladder }: { ladder: Rung[] }) {
             <>
               <b>{money(Math.round(dollars))}</b>
               <span className="ladderbar-unit">a month</span>
+              <MrrTrend series={series} />
             </>
           )}
         </p>

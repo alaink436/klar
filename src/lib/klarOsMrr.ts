@@ -62,3 +62,49 @@ export async function readAppsMrr(): Promise<AppsMrr | null> {
     return null;
   }
 }
+
+export interface MrrPoint {
+  day: string;
+  cents: number;
+  subscriptions: number;
+}
+
+/**
+ * The whole recorded series, oldest first, one point per snapshot day. Same
+ * table as readAppsMrr, summed per day across every connected app.
+ *
+ * Days can be missing: the cron has skipped a night before, and a gap is a gap
+ * rather than a zero. Callers must not assume the last two points are
+ * consecutive days, which is why the change is labelled with the date it is
+ * measured against.
+ */
+export async function readAppsMrrSeries(): Promise<MrrPoint[]> {
+  if (!HUB_KEY) return [];
+  try {
+    const res = await fetch(
+      `${HUB_URL}/rest/v1/klar_app_metrics_daily?select=day,mrr_cents,active_subscriptions&order=day.asc&limit=20000`,
+      {
+        headers: { apikey: HUB_KEY, Authorization: `Bearer ${HUB_KEY}`, Accept: "application/json" },
+        next: { revalidate: 3600 },
+      },
+    );
+    if (!res.ok) return [];
+    const rows = (await res.json()) as {
+      day: string;
+      mrr_cents: number | null;
+      active_subscriptions: number | null;
+    }[];
+    if (!Array.isArray(rows)) return [];
+
+    const byDay = new Map<string, MrrPoint>();
+    for (const r of rows) {
+      const p = byDay.get(r.day) ?? { day: r.day, cents: 0, subscriptions: 0 };
+      p.cents += r.mrr_cents ?? 0;
+      p.subscriptions += r.active_subscriptions ?? 0;
+      byDay.set(r.day, p);
+    }
+    return [...byDay.values()].sort((a, b) => a.day.localeCompare(b.day));
+  } catch {
+    return [];
+  }
+}

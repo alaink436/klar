@@ -1321,8 +1321,12 @@ body:has(.os-root)::after { content: none; }
   margin: 0;
   display: flex;
   align-items: baseline;
+  /* Wraps so the opened history takes a line of its own instead of squeezing
+     in beside the figure it belongs to. */
+  flex-wrap: wrap;
   gap: var(--space-3);
   font-family: var(--f-mono);
+  width: 100%;
 }
 .os-root .ladderbar-cap,
 .os-root .ladderbar-unit {
@@ -1475,3 +1479,77 @@ body:has(.os-root)::after { content: none; }
 /* The last checkpoint sits at the very end of the track, so it hangs off its
    own mark instead of being centred on it. */
 .os-root .ladderbar-mark.is-last { transform: translateX(-100%); }
+
+/* ── The change since the last snapshot ────────────────────────────────────
+ * A chip beside the figure, and the whole recorded history behind it. Set at
+ * label size so it reads as an annotation on the number rather than as a
+ * second headline competing with it.
+ */
+.os-root .mrrtrend { display: contents; }
+.os-root .mrrtrend-chip {
+  appearance: none;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--rule-hard);
+  color: var(--ink-2);
+  font-family: var(--f-mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.3rem var(--space-3);
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+.os-root .mrrtrend-chip:hover { border-color: var(--ink); color: var(--ink); }
+/* Direction is carried by the border weight and the sign, not by colour: the
+   palette has no red and no green, and inventing one for this would break the
+   whole page to decorate one chip. */
+.os-root .mrrtrend-chip.is-up { border-color: var(--ink); color: var(--ink); }
+.os-root .mrrtrend-chip.is-down { border-style: dashed; }
+.os-root .mrrtrend-chip i { font-style: normal; opacity: 0.6; }
+
+.os-root .mrrtrend-panel {
+  display: grid;
+  gap: var(--space-2);
+  /* Its own row: .mrrtrend uses display:contents, so this is a flex child of
+     the figure line and a full basis is what pushes it onto a new line. */
+  flex: 1 0 100%;
+  width: 100%;
+  margin-top: var(--space-3);
+  border: 1px solid var(--rule);
+  background: var(--paper-2);
+  padding: var(--space-4);
+}
+.os-root .mrrtrend-panel[hidden] { display: none; }
+.os-root .mrrtrend-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  color: var(--ink-3);
+}
+.os-root .mrrtrend-facts b { color: var(--ink); font-size: 0.86rem; }
+.os-root .mrrtrend-facts i { font-style: normal; opacity: 0.6; }
+.os-root .mrrtrend-facts em {
+  font-style: normal;
+  margin-left: auto;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+}
+.os-root .mrrtrend-chart { width: 100%; height: 120px; display: block; }
+.os-root .mrrtrend-area { fill: var(--stock); }
+.os-root .mrrtrend-line { fill: none; stroke: var(--ink); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.os-root .mrrtrend-axis {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--f-mono);
+  font-size: 0.62rem;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+}
