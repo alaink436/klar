@@ -50,7 +50,14 @@ import {
   WEEKDAY_SHORT,
   type AccountState,
 } from "@/lib/accountStates";
-import { addAccount, markPosted, removeAccount, updateAccount } from "./posting-actions";
+import {
+  addAccount,
+  linkChannels,
+  markPosted,
+  removeAccount,
+  unlinkChannel,
+  updateAccount,
+} from "./posting-actions";
 
 export interface BoardAccount {
   key: string;
@@ -225,6 +232,52 @@ export default function PostingBoard({
           (o) => o.key !== r.key && o.contentGroup === r.contentGroup && o.state !== "dropped",
         )
       : [];
+
+  /**
+   * Womit sich dieser Kanal verbinden lässt: erst die Kanäle derselben App —
+   * dort liegt der Normalfall, dasselbe Material auf Brand- und Zweitkanal —,
+   * die übrigen darunter. Wer schon im selben Konto steht, fehlt: ihn noch
+   * einmal anzubieten hiesse, eine Verbindung anzubieten, die es gibt.
+   */
+  function linkTargets(r: BoardAccount) {
+    const usable = rows.filter(
+      (o) => o.key !== r.key && o.state !== "dropped" && (!r.contentGroup || o.contentGroup !== r.contentGroup),
+    );
+    const same = usable.filter((o) => o.appLabel === r.appLabel);
+    const other = usable.filter((o) => o.appLabel !== r.appLabel);
+    return [
+      { label: r.appLabel, rows: same },
+      { label: "andere Apps", rows: other },
+    ].filter((g) => g.rows.length > 0);
+  }
+
+  /**
+   * Verbinden. Der Server bestimmt den Namen; hier wird nur dieselbe Regel
+   * vorweggenommen, damit die Zeile nicht erst nach dem Roundtrip zuckt. Zieht
+   * das Verbinden weitere Kanäle mit (zwei bestehende Konten verschmelzen), holt
+   * die Revalidierung sie nach.
+   */
+  function link(r: BoardAccount, targetKey: string) {
+    const target = rows.find((o) => o.key === targetKey);
+    if (!target) return;
+    const name = target.contentGroup || r.contentGroup || target.handle;
+    startTransition(async () => {
+      patchRow({ key: r.key, contentGroup: name });
+      patchRow({ key: target.key, contentGroup: name });
+      await linkChannels(r.key, target.key);
+    });
+  }
+
+  function unlink(r: BoardAccount) {
+    const mates = groupMates(r);
+    startTransition(async () => {
+      patchRow({ key: r.key, contentGroup: "" });
+      // Bleibt einer allein zurück, löst der Server auch ihn — ein Konto mit
+      // einem Kanal behauptet eine Verbindung, die es nicht gibt.
+      if (mates.length === 1) patchRow({ key: mates[0].key, contentGroup: "" });
+      await unlinkChannel(r.key);
+    });
+  }
 
   function setState(r: BoardAccount, state: AccountState) {
     startTransition(async () => {
@@ -634,6 +687,17 @@ export default function PostingBoard({
           <tbody>
             {shown.map((r, i) => {
               const first = i === 0 || shown[i - 1].appLabel !== r.appLabel;
+              // Die Verbindungslinie wird aus der Nachbarschaft gezeichnet, nicht
+              // aus der Gruppe: sie darf nur dort stehen, wo die nächste Zeile
+              // wirklich dazugehört. Über eine fremde Zeile hinweg wäre sie eine
+              // Behauptung, die das Auge nicht prüfen kann.
+              const linkedUp =
+                Boolean(r.contentGroup) && i > 0 && shown[i - 1].contentGroup === r.contentGroup;
+              const linkedDown =
+                Boolean(r.contentGroup) &&
+                i < shown.length - 1 &&
+                shown[i + 1].contentGroup === r.contentGroup &&
+                shown[i + 1].appLabel === r.appLabel;
               return (
                 <Fragment key={r.key}>
                   {first ? (
@@ -651,36 +715,48 @@ export default function PostingBoard({
                       className="px-2.5 py-2 sticky left-0 z-10 align-top"
                       style={{ minWidth: 210, background: "var(--surface)" }}
                     >
-                      <div className="text-[13px] text-fg">
-                        {r.handle ? `@${r.handle}` : <span className="text-fg-4">Handle fehlt</span>}
-                      </div>
-                      <div className="[font-family:var(--font-mono)] text-[10px] text-fg-4">
-                        {r.platformLabel}
-                        {r.automated ? " · Blotato" : ""}
-                        {r.custom ? (
-                          <>
-                            {" · "}
-                            <button
-                              type="button"
-                              onClick={() => startTransition(async () => void (await removeAccount(r.key)))}
-                              className="hover:text-danger underline decoration-dotted"
+                      <div className="flex gap-2">
+                        {/* Die Rinne steht in JEDER Zeile, auch der ungebundenen:
+                            sonst rückte der Text verbundener Kanäle ein und die
+                            Spalte franste aus. */}
+                        <LinkLine up={linkedUp} down={linkedDown} member={Boolean(r.contentGroup)} />
+                        <div className="min-w-0">
+                          <div className="text-[13px] text-fg">
+                            {r.handle ? `@${r.handle}` : <span className="text-fg-4">Handle fehlt</span>}
+                          </div>
+                          <div className="[font-family:var(--font-mono)] text-[10px] text-fg-4">
+                            {r.platformLabel}
+                            {r.automated ? " · Blotato" : ""}
+                            {r.custom ? (
+                              <>
+                                {" · "}
+                                <button
+                                  type="button"
+                                  onClick={() => startTransition(async () => void (await removeAccount(r.key)))}
+                                  className="hover:text-danger underline decoration-dotted"
+                                >
+                                  entfernen
+                                </button>
+                              </>
+                            ) : null}
+                          </div>
+                          {/* Das Konto gehört an den Kanal, nicht nur ins Format:
+                              hier sucht man, wenn man wissen will, ob dieser Kanal
+                              eigenes Material braucht. */}
+                          {r.contentGroup ? (
+                            <div
+                              className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-3 mt-0.5 truncate"
+                              title={
+                                groupMates(r).length
+                                  ? `Gleiches Material wie ${groupMates(r).map((m) => `@${m.handle}`).join(", ")}`
+                                  : "Konto ohne zweiten Kanal"
+                              }
                             >
-                              entfernen
-                            </button>
-                          </>
-                        ) : null}
-                      </div>
-                      {/* Das Konto gehört an den Kanal, nicht nur ins Format:
-                          hier sucht man, wenn man wissen will, ob dieser Kanal
-                          eigenes Material braucht. */}
-                      {groupMates(r).length > 0 ? (
-                        <div
-                          className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-3 mt-0.5"
-                          title={`Gleiches Material wie ${groupMates(r).map((m) => `@${m.handle}`).join(", ")}`}
-                        >
-                          &#8644; {r.contentGroup}
+                              {r.contentGroup}
+                            </div>
+                          ) : null}
                         </div>
-                      ) : null}
+                      </div>
                     </td>
 
                     <td className="px-2.5 py-2">
@@ -828,31 +904,51 @@ export default function PostingBoard({
                           Material bereit
                         </span>
                       </div>
-                      {/* Konto: derselbe Name auf zwei Kanälen heisst, dass dort
-                          dasselbe rausgeht. Ein Textfeld mit Vorschlägen statt
-                          einer Auswahl — der erste Kanal eines Kontos muss es
-                          benennen können, ohne dass es das Konto schon gibt. */}
+                      {/* Konto: man wählt einen Kanal, keinen Namen. Getippt
+                          hiesse, denselben Text auf beiden Zeilen zu treffen,
+                          und ein Tippfehler ergäbe zwei Konten, die aussehen wie
+                          eines. Wie das Konto danach heisst, entscheidet der
+                          Server (`linkChannels`). */}
                       <div className="flex items-center gap-1.5 mt-1.5">
                         <span className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-4 shrink-0">
                           &#8644; Konto
                         </span>
-                        <input
-                          list="klar-groups"
-                          defaultValue={r.contentGroup}
-                          placeholder="z. B. girlysgirl78"
-                          aria-label={`Konto von @${r.handle}`}
+                        <select
+                          value=""
+                          aria-label={`@${r.handle} mit einem Kanal verbinden`}
                           title="Kanäle desselben Kontos posten dasselbe Material."
-                          onBlur={(e) => {
-                            const v = e.target.value.trim();
-                            if (v === r.contentGroup) return;
-                            startTransition(async () => {
-                              patchRow({ key: r.key, contentGroup: v });
-                              await updateAccount(r.key, { contentGroup: v });
-                            });
-                          }}
-                          className={`${FIELD} h-6 text-[11px] min-w-0 flex-1`}
-                        />
+                          onChange={(e) => e.target.value && link(r, e.target.value)}
+                          className={`${FIELD} h-6 text-[11px] min-w-0 flex-1 cursor-pointer`}
+                        >
+                          <option value="">
+                            {r.contentGroup ? "weiteren Kanal dazu …" : "verbinden mit …"}
+                          </option>
+                          {linkTargets(r).map((g) => (
+                            <optgroup key={g.label} label={g.label}>
+                              {g.rows.map((o) => (
+                                <option key={o.key} value={o.key}>
+                                  @{o.handle || "?"} · {o.platformLabel}
+                                  {o.contentGroup ? ` (${o.contentGroup})` : ""}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
                       </div>
+                      {/* Lösen steht nur da, wo es etwas zu lösen gibt, und
+                          trägt ein Wort statt eines Symbols. */}
+                      {r.contentGroup ? (
+                        <div className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-4 mt-1">
+                          {groupMates(r).length + 1} Kanäle ·{" "}
+                          <button
+                            type="button"
+                            onClick={() => unlink(r)}
+                            className="hover:text-danger underline decoration-dotted uppercase"
+                          >
+                            @{r.handle} lösen
+                          </button>
+                        </div>
+                      ) : null}
                     </td>
 
                     <td className="px-2.5 py-2 align-top">
@@ -1010,12 +1106,6 @@ export default function PostingBoard({
             <option key={n} value={n} />
           ))}
         </datalist>
-        {/* Konten ebenso: es gibt nur die, die schon jemand benannt hat. */}
-        <datalist id="klar-groups">
-          {[...new Set(rows.map((r) => r.contentGroup).filter(Boolean))].map((g) => (
-            <option key={g} value={g} />
-          ))}
-        </datalist>
       </div>
 
       <div className="px-5 py-3 border-t border-line">
@@ -1042,6 +1132,48 @@ export default function PostingBoard({
         )}
       </div>
     </Card>
+  );
+}
+
+/**
+ * Die Klammer, die verbundene Kanäle zusammenhält. Ein Punkt auf der Höhe des
+ * Handles, dazu je ein Strich nach oben und unten, wenn die Nachbarzeile
+ * wirklich zum selben Konto gehört.
+ *
+ * Gezeichnet wird sie in einer eigenen Rinne links im Feld und nicht als
+ * Rahmen an der Zeile: eine Zeile hat vierzehn weitere Zellen, und ein Rahmen
+ * hätte entweder alle umfasst oder wäre am ersten Spaltenrand abgerissen.
+ * Die Rinne steht auch in ungebundenen Zeilen, sonst rückte der Text ein.
+ */
+function LinkLine({ up, down, member }: { up: boolean; down: boolean; member: boolean }) {
+  const DOT = 9; // Höhe der Handle-Zeile, dort sitzt der Knoten
+  return (
+    <div className="relative w-[9px] shrink-0" aria-hidden="true">
+      {up ? (
+        <span
+          className="absolute w-px bg-[var(--line-strong,var(--line))]"
+          style={{ left: 4, top: -8, height: DOT + 8 }}
+        />
+      ) : null}
+      {down ? (
+        <span
+          className="absolute w-px bg-[var(--line-strong,var(--line))]"
+          style={{ left: 4, top: DOT, bottom: -8 }}
+        />
+      ) : null}
+      {member ? (
+        <span
+          className="absolute rounded-full"
+          style={{
+            left: 1.5,
+            top: DOT - 3,
+            width: 6,
+            height: 6,
+            background: up || down ? "var(--fg-3)" : "var(--line-strong,var(--line))",
+          }}
+        />
+      ) : null}
+    </div>
   );
 }
 

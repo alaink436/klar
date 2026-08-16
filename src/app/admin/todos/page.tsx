@@ -180,9 +180,35 @@ export default async function TodosPage({
     });
 
   // Nach App gruppiert ausliefern, damit das Board seine Trennzeilen setzen kann.
-  const boardAccounts = [...fromCode, ...custom].sort((a, b) =>
+  const byApp = [...fromCode, ...custom].sort((a, b) =>
     a.appLabel === b.appLabel ? 0 : a.appLabel < b.appLabel ? -1 : 1,
   );
+
+  // Kanäle desselben Kontos rücken zusammen. Nicht sortiert, sondern
+  // eingesammelt: die erste Zeile eines Kontos bleibt, wo sie war, und die
+  // übrigen ziehen zu ihr hoch. Eine echte Sortierung nach Kontoname würde die
+  // gewachsene Reihenfolge der Account-Liste umwerfen, und das Board zeichnet
+  // die Verbindungslinie nur zwischen benachbarten Zeilen — über eine fremde
+  // Zeile hinweg wäre sie eine Behauptung, die man nicht nachvollziehen kann.
+  const clustered: BoardAccount[] = [];
+  const placed = new Set<string>();
+  for (const a of byApp) {
+    if (placed.has(a.key)) continue;
+    clustered.push(a);
+    placed.add(a.key);
+    if (!a.contentGroup) continue;
+    // Nur innerhalb derselben App: quer über die App-Trennzeilen zu ziehen
+    // würde eine zweite Kopfzeile derselben App erzeugen. Ein Konto, das über
+    // Apps hinweg geht, trägt seinen Namen trotzdem an jeder Zeile — nur die
+    // Linie hört an der App-Grenze auf.
+    for (const b of byApp) {
+      if (placed.has(b.key) || b.appLabel !== a.appLabel) continue;
+      if (b.contentGroup !== a.contentGroup) continue;
+      clustered.push(b);
+      placed.add(b.key);
+    }
+  }
+  const boardAccounts = clustered;
 
   const boardDays: BoardDay[] = days.map((d) => {
     const dow = new Date(`${d.iso}T12:00:00Z`).getUTCDay();
