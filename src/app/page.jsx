@@ -4,6 +4,8 @@ import VaultDemo from "./os/VaultDemo";
 import ProxyFlow from "./os/ProxyFlow";
 import Triptych from "./os/Triptych";
 import ShippedDeck from "./os/ShippedDeck";
+import FreeBracket from "./os/FreeBracket";
+import MrrBar from "./os/MrrBar";
 import OsShell from "./os/OsShell";
 
 // getklar.org's front page is Klar OS. The studio's old marketing homepage
@@ -42,6 +44,10 @@ const OPEN_STEP = 1;
 const money = (n) => `$${n.toLocaleString("en-US")}`;
 const NOW = LADDER[OPEN_STEP - 1];
 const NEXT = LADDER[OPEN_STEP] ?? null;
+
+// The MRR bar reads a daily snapshot, so the page is regenerated hourly
+// rather than baked once at build time.
+export const revalidate = 3600;
 
 export const metadata = {
   title: "Klar OS: the operating system of a solo founder who ships",
@@ -219,15 +225,12 @@ const DETAILS = {
   ),
 };
 
-export default function Home() {
+export default async function Home() {
   return (
     <OsShell>
       <div className="wrap">
         <div className="topbar">
-          <a className="mark" href="/">
-            <img src="/os/bot.webp" alt="" width="28" height="28" />
-            KLAR STUDIOS
-          </a>
+          <a className="mark" href="/">KLAR STUDIOS</a>
           <a className="to-buy" href="#pricing">Pricing &rarr;</a>
         </div>
         {/* The price, before the pitch. Someone who lands here already knows
@@ -267,6 +270,8 @@ export default function Home() {
           <ShippedDeck />
         </div>
       </div>
+
+      <FreeBracket />
 
       <Triptych details={DETAILS} />
 
@@ -369,6 +374,8 @@ export default function Home() {
               Behind ten thousand a month they are a manual. Each time the apps
               cross a line below, both prices step up.
             </p>
+            <MrrBar ladder={LADDER} openStep={OPEN_STEP} />
+
             <div className="table">
               <div className="row th cols4">
                 <span>Step</span>

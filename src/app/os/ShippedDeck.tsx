@@ -114,12 +114,12 @@ export default function ShippedDeck() {
               }}
               // Only the card in front is announced; the ones behind it are
               // decoration until their turn. Nothing here is clickable on
-              // purpose: an app icon on its own is a picture, and a picture
-              // that acts as a link is an unnamed control. The deck is proof
-              // that the vault came from shipped work, not a menu of apps.
+              // purpose: the deck is proof that the vault came from shipped
+              // work, not a menu of apps.
               aria-hidden={!isFront}
             >
-              <img src={app.icon} alt={isFront ? app.name : ""} width="72" height="72" />
+              <img src={app.icon} alt="" width="128" height="128" />
+              <span className="deck-name">{app.name}</span>
             </li>
           );
         })}
