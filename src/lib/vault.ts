@@ -7,6 +7,7 @@
 // and are never returned to any client. Never import into a client component.
 
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
+import { parseAscKey, signAscJwt } from "./ascJwt";
 
 const URL_BASE =
   process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
@@ -296,6 +297,30 @@ export async function getForProxy(
       key = decrypt(r.ciphertext, r.iv, r.auth_tag);
     } catch {
       return null; // wrong master key / tampered ciphertext
+    }
+    // App Store Connect: the stored plaintext is key material, not a token.
+    // Mint a fresh 15-minute ES256 JWT for this one request and hand that to the
+    // caller as the key. Routing is forced to `Authorization: Bearer …` because
+    // that is the only shape Apple accepts — a stray header/scheme on the row
+    // would otherwise turn into a silent 401. Signing can only fail on key
+    // material that packAscKey() would have rejected at save time; log it and
+    // fall through to "unusable secret" rather than sending an empty bearer.
+    const asc = parseAscKey(key);
+    if (asc) {
+      try {
+        key = signAscJwt(asc);
+      } catch (err) {
+        console.error("vault: ASC JWT signing failed", { id, err: String(err) });
+        return null;
+      }
+      if (opts.touch !== false) touchSecretUsed(id);
+      return {
+        baseUrl: r.base_url,
+        authHeader: "authorization",
+        authScheme: "Bearer ",
+        authIn: "header",
+        key,
+      };
     }
     if (opts.touch !== false) touchSecretUsed(id);
     return {

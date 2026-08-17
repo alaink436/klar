@@ -135,7 +135,10 @@ async function handle(
   clearTimeout(timer);
 
   const respHeaders = new Headers();
-  for (const h of ["content-type", "content-disposition", "x-request-id"]) {
+  // x-rate-limit / retry-after come back from App Store Connect (and others) and
+  // are the only way a caller can see how much budget is left before Apple
+  // starts refusing — dropping them here would make the ceiling invisible.
+  for (const h of ["content-type", "content-disposition", "x-request-id", "x-rate-limit", "retry-after"]) {
     const v = upstream.headers.get(h);
     if (v) respHeaders.set(h, v);
   }

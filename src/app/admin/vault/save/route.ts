@@ -12,9 +12,33 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ctEqual, readCookie } from "@/app/admin/_shared";
 import { verifyDeviceCookie } from "@/lib/deviceCookie";
 import { addSecret, deleteSecret, rotateSecret, updateSecretMeta } from "@/lib/vault";
+import { packAscKey } from "@/lib/ascJwt";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// App Store Connect keys are three fields, not one: issuer id, key id and the
+// .p8 file. The form posts them separately (key_kind=asc) and they are packed
+// into a single JSON blob here, which the vault then encrypts like any other
+// secret. packAscKey() test-signs the key, so a broken .p8 fails now instead of
+// as an unexplained 401 from Apple weeks later.
+function readSecret(form: FormData): { secret: string } | { error: string } {
+  if (String(form.get("key_kind") ?? "").trim() !== "asc") {
+    return { secret: String(form.get("secret") ?? "") };
+  }
+  try {
+    return {
+      secret: packAscKey({
+        issuerId: String(form.get("asc_issuer_id") ?? ""),
+        keyId: String(form.get("asc_key_id") ?? ""),
+        p8: String(form.get("asc_p8") ?? ""),
+        sub: String(form.get("asc_sub") ?? ""),
+      }),
+    };
+  } catch {
+    return { error: "asc-bad-key" };
+  }
+}
 
 // msg/err carry a CODE, not prose: /admin/vault renders it through
 // flashText() in the admin UI language (see ../_i18n). Anything that is not a
@@ -55,7 +79,9 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   if (action === "rotate") {
     const id = String(form.get("id") ?? "").trim();
-    const secret = String(form.get("secret") ?? "");
+    const read = readSecret(form);
+    if ("error" in read) return backWith(req, { err: read.error });
+    const secret = read.secret;
     if (!id) return backWith(req, { err: "no-entry" });
     if (!secret) return backWith(req, { err: "no-new-key" });
     const r = await rotateSecret(id, secret);
@@ -83,7 +109,9 @@ export async function POST(req: NextRequest): Promise<Response> {
     const auth_header = String(form.get("auth_header") ?? "authorization").trim();
     const auth_scheme = String(form.get("auth_scheme") ?? "Bearer ");
     const auth_in = String(form.get("auth_in") ?? "header").trim() === "query" ? "query" : "header";
-    const secret = String(form.get("secret") ?? "");
+    const read = readSecret(form);
+    if ("error" in read) return backWith(req, { err: read.error });
+    const secret = read.secret;
     if (!secret) return backWith(req, { err: "no-key" });
     // base_url is optional: omit it for a store-only secret (reveal only, no proxy).
     const r = await addSecret({ label, provider, category, base_url, auth_header, auth_scheme, auth_in, secret });

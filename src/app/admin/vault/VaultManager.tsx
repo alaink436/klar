@@ -126,8 +126,8 @@ const CATEGORY_EXAMPLES: Record<string, CategoryExample> = {
   "Mobile / Stores": {
     label: "App Store Connect API",
     provider: "apple",
-    baseUrl: { de: "leer lassen = nur speichern (.p8 / JSON)", en: "leave empty = store only (.p8 / JSON)" },
-    baseUrlFill: "",
+    baseUrl: "https://api.appstoreconnect.apple.com",
+    baseUrlFill: "https://api.appstoreconnect.apple.com",
     key: "-----BEGIN PRIVATE KEY----- (.p8)",
   },
   TMDB: { label: "TMDB Read Access Token (v4)", provider: "tmdb", baseUrl: "https://api.themoviedb.org", baseUrlFill: "https://api.themoviedb.org", key: { de: "eyJ… (v4 Bearer) / 32-Hex (v3)", en: "eyJ… (v4 bearer) / 32-hex (v3)" } },
@@ -187,6 +187,10 @@ interface ProviderPreset {
   authHeader: string;
   authScheme: string;
   authIn?: "header" | "query"; // "query" => authHeader is the query-param name (e.g. Evomi ?api_key=)
+  // "asc" swaps the single key field for App Store Connect's three-part key
+  // material (issuer id + key id + .p8). Auth routing is fixed server-side for
+  // those, so the header/scheme fields are hidden.
+  keyKind?: "asc";
   keyExample: Localized;
   labelExample: Localized;
 }
@@ -226,7 +230,11 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   // credits, proxy data. NOT the scraper key. Feeds the Evomi-Credits billing card.
   { id: "evomi-public", label: "Evomi (Public API / Credits)", category: "Scraping", provider: "evomi", baseUrl: "https://api.evomi.com/public", authHeader: "x-apikey", authScheme: "", keyExample: "Personal API Key (Settings → API)", labelExample: "Evomi Public API" },
   // Mobile / Stores
-  { id: "appstore", label: "App Store Connect (.p8)", category: "Mobile / Stores", provider: "apple", baseUrl: "", authHeader: "authorization", authScheme: "Bearer ", keyExample: "-----BEGIN PRIVATE KEY----- (.p8)", labelExample: "App Store Connect API" },
+  // Proxyable despite the .p8: the vault stores the key material and signs a
+  // fresh ES256 JWT per request (src/lib/ascJwt.ts), because Apple accepts
+  // nothing else. base_url deliberately without a version segment so both
+  // `v1/apps` and the reporting endpoints are reachable through one entry.
+  { id: "appstore", label: "App Store Connect (.p8)", category: "Mobile / Stores", provider: "apple", baseUrl: "https://api.appstoreconnect.apple.com", authHeader: "authorization", authScheme: "Bearer ", keyKind: "asc", keyExample: "-----BEGIN PRIVATE KEY----- (.p8)", labelExample: "App Store Connect API" },
   { id: "expo", label: "Expo / EAS", category: "Mobile / Stores", provider: "expo", baseUrl: "https://api.expo.dev", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "Expo Access-Token", en: "Expo access token" }, labelExample: "Expo EAS" },
   // TMDB (eigene Kategorie) — v4-Token läuft als Bearer über den Proxy, der
   // v3-Key via Query-Param-Injection (?api_key=…, wie Evomi).
@@ -253,11 +261,28 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
 const SELECT_CLASS =
   "w-full px-3.5 py-3 text-sm [font-family:var(--font-body)] text-fg bg-bg border border-line-strong rounded-[var(--radius-sm)] transition-[border-color,box-shadow,background] focus:border-fg focus:bg-surface focus:outline-none focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--fg)_12%,transparent)] cursor-pointer";
 
+// Same look as SELECT_CLASS, minus the pointer: a .p8 is a multi-line PEM and
+// does not fit the single-line key input.
+const TEXTAREA_CLASS =
+  "w-full px-3.5 py-3 text-sm [font-family:var(--font-mono)] text-fg bg-bg border border-line-strong rounded-[var(--radius-sm)] transition-[border-color,box-shadow,background] focus:border-fg focus:bg-surface focus:outline-none focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--fg)_12%,transparent)] resize-y";
+
+const P8_PLACEHOLDER = "-----BEGIN PRIVATE KEY-----\nMIGTAgEAMBMGByqGSM49AgEGCCqGSM49…\n-----END PRIVATE KEY-----";
+
 // The metadata + key fields for the add form; rotate reuses only the key field.
 // Picking a category narrows the provider-preset dropdown; picking a preset
 // auto-fills provider + base URL + the matching auth header/scheme, and the
 // placeholders switch to a fitting example.
-function KeyFields({ includeMeta, lang }: { includeMeta: boolean; lang: AdminLang }) {
+function KeyFields({
+  includeMeta,
+  lang,
+  asc: ascRow = false,
+}: {
+  includeMeta: boolean;
+  lang: AdminLang;
+  /** Rotate mode only: the row being rotated holds ASC key material, so the
+   *  form must ask for the same three parts again instead of one key. */
+  asc?: boolean;
+}) {
   const t = tAdmin(lang);
   const [category, setCategory] = useState("");
   const [provider, setProvider] = useState("");
@@ -269,6 +294,8 @@ function KeyFields({ includeMeta, lang }: { includeMeta: boolean; lang: AdminLan
 
   const catEx = exampleFor(category);
   const preset = PROVIDER_PRESETS.find((p) => p.id === presetId);
+  // Add form: the picked preset decides. Rotate form: the row does.
+  const isAsc = includeMeta ? preset?.keyKind === "asc" : ascRow;
   const keyHint = loc(preset?.keyExample ?? catEx.key, lang);
   const labelHint = loc(preset?.labelExample ?? catEx.label, lang);
 
@@ -355,12 +382,14 @@ function KeyFields({ includeMeta, lang }: { includeMeta: boolean; lang: AdminLan
             value={provider}
             onChange={(e) => setProvider(e.target.value)}
           />
-          <Field
-            name="auth_header"
-            label={authIn === "query" ? t.fieldQueryParam : t.fieldAuthHeader}
-            value={authHeader}
-            onChange={(e) => setAuthHeader(e.target.value)}
-          />
+          {!isAsc && (
+            <Field
+              name="auth_header"
+              label={authIn === "query" ? t.fieldQueryParam : t.fieldAuthHeader}
+              value={authHeader}
+              onChange={(e) => setAuthHeader(e.target.value)}
+            />
+          )}
           <Field
             name="base_url"
             label={t.fieldBaseUrl}
@@ -370,54 +399,101 @@ function KeyFields({ includeMeta, lang }: { includeMeta: boolean; lang: AdminLan
             onChange={(e) => setBaseUrl(e.target.value)}
             className="col-span-2"
           />
+          {/* App Store Connect has no choice of auth routing: the proxy always
+              sends the freshly signed JWT as `Authorization: Bearer …`, so
+              showing these would only invite a config that silently 401s. */}
+          {!isAsc && (
+            <>
+              <Field
+                name="auth_scheme"
+                label={t.fieldAuthScheme}
+                placeholder="Bearer "
+                value={authScheme}
+                onChange={(e) => setAuthScheme(e.target.value)}
+                className="col-span-2"
+              />
+              <div className="col-span-2 flex flex-col gap-1.5">
+                <Label htmlFor="auth_in">
+                  {t.fieldAuthIn}{" "}
+                  <span className="text-fg-4 font-normal">
+                    {t.fieldAuthInHintA}
+                    <code>?api_key=</code>
+                    {t.fieldAuthInHintB}
+                  </span>
+                </Label>
+                <select
+                  id="auth_in"
+                  name="auth_in"
+                  className={SELECT_CLASS}
+                  value={authIn}
+                  onChange={(e) => setAuthIn(e.target.value === "query" ? "query" : "header")}
+                >
+                  <option value="header">{t.optHeader}</option>
+                  <option value="query">{t.optQuery}</option>
+                </select>
+              </div>
+            </>
+          )}
+        </>
+      )}
+      {isAsc ? (
+        <>
+          {/* Three parts instead of one key — packed into a single encrypted
+              blob by /admin/vault/save, which test-signs it before storing. */}
+          <input type="hidden" name="key_kind" value="asc" />
           <Field
-            name="auth_scheme"
-            label={t.fieldAuthScheme}
-            placeholder="Bearer "
-            value={authScheme}
-            onChange={(e) => setAuthScheme(e.target.value)}
+            name="asc_issuer_id"
+            label={t.fieldAscIssuer}
+            required
+            autoComplete="off"
+            placeholder="00000000-1111-2222-3333-444444444444"
+            style={{ fontFamily: "var(--font-mono)" }}
+            className="col-span-2"
+          />
+          <Field
+            name="asc_key_id"
+            label={t.fieldAscKeyId}
+            required
+            autoComplete="off"
+            placeholder="ABCD1EF2GH"
+            style={{ fontFamily: "var(--font-mono)" }}
             className="col-span-2"
           />
           <div className="col-span-2 flex flex-col gap-1.5">
-            <Label htmlFor="auth_in">
-              {t.fieldAuthIn}{" "}
-              <span className="text-fg-4 font-normal">
-                {t.fieldAuthInHintA}
-                <code>?api_key=</code>
-                {t.fieldAuthInHintB}
-              </span>
-            </Label>
-            <select
-              id="auth_in"
-              name="auth_in"
-              className={SELECT_CLASS}
-              value={authIn}
-              onChange={(e) => setAuthIn(e.target.value === "query" ? "query" : "header")}
-            >
-              <option value="header">{t.optHeader}</option>
-              <option value="query">{t.optQuery}</option>
-            </select>
+            <Label htmlFor="asc_p8">{t.fieldAscP8}</Label>
+            <textarea
+              id="asc_p8"
+              name="asc_p8"
+              required
+              rows={5}
+              spellCheck={false}
+              autoComplete="off"
+              className={TEXTAREA_CLASS}
+              placeholder={P8_PLACEHOLDER}
+            />
+            <p className="text-[11px] text-fg-4">{t.ascHint}</p>
           </div>
         </>
+      ) : (
+        <div className="col-span-2 flex flex-col gap-1.5">
+          <Label htmlFor="secret">{t.fieldSecret}</Label>
+          <Input
+            id="secret"
+            name="secret"
+            type="password"
+            required
+            autoComplete="new-password"
+            placeholder={includeMeta ? keyHint : t.secretPlaceholderRotate}
+            style={{ fontFamily: "var(--font-mono)" }}
+          />
+          {includeMeta && (
+            <p className="text-[11px] text-fg-4">
+              {t.exampleFor(preset?.label || category.trim() || t.thisCategory)}{" "}
+              <code className="[font-family:var(--font-mono)]">{keyHint}</code>
+            </p>
+          )}
+        </div>
       )}
-      <div className="col-span-2 flex flex-col gap-1.5">
-        <Label htmlFor="secret">{t.fieldSecret}</Label>
-        <Input
-          id="secret"
-          name="secret"
-          type="password"
-          required
-          autoComplete="new-password"
-          placeholder={includeMeta ? keyHint : t.secretPlaceholderRotate}
-          style={{ fontFamily: "var(--font-mono)" }}
-        />
-        {includeMeta && (
-          <p className="text-[11px] text-fg-4">
-            {t.exampleFor(preset?.label || category.trim() || t.thisCategory)}{" "}
-            <code className="[font-family:var(--font-mono)]">{keyHint}</code>
-          </p>
-        )}
-      </div>
     </div>
   );
 }
@@ -669,7 +745,14 @@ export default function VaultManager({ rows, lang }: { rows: VaultRow[]; lang: A
           <form method="POST" action="/admin/vault/save" autoComplete="off">
             <input type="hidden" name="action" value="rotate" />
             <input type="hidden" name="id" value={rotateRow?.id ?? ""} />
-            <KeyFields includeMeta={false} lang={lang} />
+            {/* An ASC row rotates by re-entering the three key parts. The
+                upstream URL is the only ASC marker the client can see — the
+                key material itself never leaves the server. */}
+            <KeyFields
+              includeMeta={false}
+              lang={lang}
+              asc={(rotateRow?.baseUrl ?? "").includes("appstoreconnect.apple.com")}
+            />
             <DialogFooter>
               <DialogClose asChild>
                 <Button type="button" variant="ghost">
