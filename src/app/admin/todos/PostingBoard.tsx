@@ -170,6 +170,9 @@ export default function PostingBoard({
 }) {
   const [, startTransition] = useTransition();
   const [openDay, setOpenDay] = useState<string | null>(null);
+  /** Der aufgeklappte Tag als Objekt: die Notizfelder stehen jetzt unter den
+   *  Kaestchen und brauchen den Wochentag, nicht nur sein Datum. */
+  const openDayObj = days.find((d) => d.iso === openDay) ?? null;
   const [hideDropped, setHideDropped] = useState(true);
   const [adding, setAdding] = useState(false);
   // Isolieren: solange die Menge leer ist, gilt das ganze Board. Sobald ein
@@ -625,7 +628,7 @@ export default function PostingBoard({
           Account-Spalte beim Blättern stehen — sonst verliert man bei zwanzig
           Zeilen die Zuordnung, welcher Haken zu wem gehört. */}
       <div className="overflow-auto" style={{ maxHeight: "min(70vh, 760px)" }}>
-        <table className="w-full border-collapse" style={{ minWidth: 1490 }}>
+        <table className="w-full border-collapse" style={{ minWidth: 1250 }}>
           <thead className="sticky top-0 z-20" style={{ background: "var(--surface)" }}>
             <tr className="border-b border-line">
               <th
@@ -644,41 +647,53 @@ export default function PostingBoard({
                   sonst liest man es erst, wenn man ganz nach rechts scrollt. */}
               <th className={HEAD} style={{ minWidth: 230 }}>Notiz</th>
               <th className={HEAD} style={{ minWidth: 150 }}>Rhythmus</th>
-              {days.map((d) => {
-                const { soll, ist } = dayStat(d);
-                const open = openDay === d.iso;
-                return (
-                  <th
-                    key={d.iso}
-                    className="px-1.5 py-1.5 align-bottom"
-                    style={{
-                      minWidth: open ? 210 : 60,
-                      background: d.isWeekend ? "color-mix(in oklab,var(--fg) 3%,transparent)" : undefined,
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setOpenDay(open ? null : d.iso)}
-                      title={open ? "Tag wieder zuklappen" : "Tag aufklappen"}
-                      className="w-full text-left"
-                    >
-                      <div
-                        className="[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.1em]"
-                        style={{ color: d.isToday ? "var(--fg)" : "var(--fg-3)" }}
+              {/* Eine Spalte statt sieben.
+
+                  Die Haken standen bis zum 18.08.2026 in sieben eigenen
+                  Tabellenspalten. Damit war die Zeile breiter als der
+                  Bildschirm, und ausgerechnet die zwei Dinge, die man
+                  vergleichen will - geplante Tage und gehakte Tage - lagen nie
+                  gleichzeitig im Blick (Alain: "sonst verliere ich die
+                  Uebersicht"). Jetzt tragen die Haken dieselbe Form wie die
+                  Rhythmus-Kaestchen links daneben: gleiche Groesse, gleicher
+                  Abstand, sieben Kaestchen in einer Reihe. */}
+              <th className={HEAD} style={{ minWidth: 168 }}>
+                <div>Gepostet</div>
+                <div className="flex gap-[3px] mt-1">
+                  {days.map((d) => {
+                    const { soll, ist } = dayStat(d);
+                    const open = openDay === d.iso;
+                    return (
+                      <button
+                        key={d.iso}
+                        type="button"
+                        onClick={() => setOpenDay(open ? null : d.iso)}
+                        title={`${d.weekday} ${d.dayLabel} - ${ist}/${soll} - ${open ? "zuklappen" : "aufklappen"}`}
+                        className="w-[19px] shrink-0 rounded-[4px] py-0.5 text-center"
+                        style={{
+                          background: d.isWeekend
+                            ? "color-mix(in oklab,var(--fg) 3%,transparent)"
+                            : undefined,
+                          outline: open ? "1px solid var(--fg-3)" : undefined,
+                        }}
                       >
-                        {d.weekday}
-                      </div>
-                      <div className="[font-family:var(--font-mono)] text-[9px] text-fg-4">{d.dayLabel}</div>
-                      <div
-                        className="[font-family:var(--font-mono)] text-[9px] mt-0.5"
-                        style={{ color: soll > 0 && ist >= soll ? "var(--success,var(--fg-2))" : "var(--fg-4)" }}
-                      >
-                        {ist}/{soll}
-                      </div>
-                    </button>
-                  </th>
-                );
-              })}
+                        <div
+                          className="[font-family:var(--font-mono)] text-[9px] font-semibold uppercase tracking-[0.04em]"
+                          style={{ color: d.isToday ? "var(--fg)" : "var(--fg-3)" }}
+                        >
+                          {d.weekday.slice(0, 2)}
+                        </div>
+                        <div
+                          className="[font-family:var(--font-mono)] text-[8px] leading-none mt-0.5"
+                          style={{ color: soll > 0 && ist >= soll ? "var(--fg-2)" : "var(--fg-4)" }}
+                        >
+                          {ist}/{soll}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </th>
               <th className={`${HEAD} text-right`} style={{ minWidth: 66 }}>Woche</th>
               <th className={`${HEAD} text-right`} style={{ minWidth: 66 }}>Gesamt</th>
             </tr>
@@ -703,8 +718,11 @@ export default function PostingBoard({
                   {first ? (
                     <tr>
                       <td colSpan={8 + days.length} className="px-2.5 py-1.5" style={{ background: "var(--surface-2)" }}>
-                        <span className="[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-2">
-                          {r.appLabel}
+                        <span className="inline-flex items-center gap-2">
+                          <span className="size-[8px] rounded-full" style={{ background: r.appColor }} />
+                          <span className="[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-2">
+                            {r.appLabel}
+                          </span>
                         </span>
                       </td>
                     </tr>
@@ -1014,22 +1032,25 @@ export default function PostingBoard({
                       </label>
                     </td>
 
-                    {days.map((d) => {
-                      const open = openDay === d.iso;
-                      const due = r.rhythm.includes(d.dow) && r.state !== "dropped" && r.state !== "paused";
-                      return (
-                        <td
-                          key={d.iso}
-                          className="px-1.5 py-2 align-top"
-                          style={{
-                            background: d.isWeekend ? "color-mix(in oklab,var(--fg) 3%,transparent)" : undefined,
-                          }}
-                        >
-                          <div className="flex items-start gap-1.5">
-                            {/* Ein Kaestchen je Post des Tages: bei zweimal
-                                taeglich muessen sich beide einzeln setzen
-                                lassen, sonst zaehlt der halbe Tag als ganzer. */}
-                            <div className="flex flex-wrap gap-[3px] shrink-0" style={{ maxWidth: 44 }}>
+                    {/* Die ganze Woche in einer Zelle, sieben Gruppen nebeneinander.
+                        Mehrere Posts am selben Tag stapeln nach unten statt nach
+                        rechts, sonst wuechse die Spalte wieder mit jedem Account,
+                        der zweimal taeglich postet. */}
+                    <td className="px-2.5 py-2 align-top">
+                      <div className="flex gap-[3px]">
+                        {days.map((d) => {
+                          const due =
+                            r.rhythm.includes(d.dow) && r.state !== "dropped" && r.state !== "paused";
+                          return (
+                            <div
+                              key={d.iso}
+                              className="flex w-[19px] shrink-0 flex-col items-center gap-[3px] rounded-[4px] py-[1px]"
+                              style={{
+                                background: d.isWeekend
+                                  ? "color-mix(in oklab,var(--fg) 3%,transparent)"
+                                  : undefined,
+                              }}
+                            >
                               {slotsOf(r).map((slot) => {
                                 const on = isDone(r.key, d.iso, slot);
                                 return (
@@ -1039,8 +1060,12 @@ export default function PostingBoard({
                                     onClick={() => toggleDone(r, d.iso, slot)}
                                     aria-pressed={on}
                                     aria-label={`@${r.handle} am ${d.dayLabel}, Post ${slot} von ${r.perDay} ${on ? "nicht gepostet" : "gepostet"}`}
-                                    title={due ? `Eingeplant · Post ${slot}` : "Nicht eingeplant — Haken geht trotzdem"}
-                                    className={`mt-[1px] flex items-center justify-center size-[18px] rounded-[4px] border shrink-0 transition-colors ${
+                                    title={
+                                      due
+                                        ? `${d.dayLabel} - eingeplant - Post ${slot}`
+                                        : `${d.dayLabel} - nicht eingeplant, Haken geht trotzdem`
+                                    }
+                                    className={`flex items-center justify-center size-[17px] rounded-[4px] border shrink-0 transition-colors ${
                                       on
                                         ? "bg-fg border-fg text-[var(--accent-fg)]"
                                         : due
@@ -1057,21 +1082,29 @@ export default function PostingBoard({
                                 );
                               })}
                             </div>
-                            {open ? (
-                              <GrowArea
-                                defaultValue={done[cellKey(r.key, d.iso, 1)] ?? ""}
-                                placeholder={r.format ? `${r.format} — was ging raus?` : "was ging raus?"}
-                                ariaLabel={`Notiz für @${r.handle} am ${d.dayLabel}`}
-                                onCommit={(v) => {
-                                  if (v === (done[cellKey(r.key, d.iso, 1)] ?? "")) return;
-                                  setDayNote(r, d.iso, 1, v);
-                                }}
-                              />
-                            ) : null}
+                          );
+                        })}
+                      </div>
+                      {/* Aufgeklappter Tag: das Textfeld steht jetzt UNTER den
+                          Kaestchen statt in einer breiter werdenden Spalte - so
+                          bleibt die Tabelle beim Aufklappen gleich breit. */}
+                      {openDayObj ? (
+                        <div className="mt-1.5">
+                          <div className="[font-family:var(--font-mono)] text-[9px] uppercase tracking-[0.08em] text-fg-4 mb-0.5">
+                            {openDayObj.weekday} {openDayObj.dayLabel}
                           </div>
-                        </td>
-                      );
-                    })}
+                          <GrowArea
+                            defaultValue={done[cellKey(r.key, openDayObj.iso, 1)] ?? ""}
+                            placeholder={r.format ? `${r.format} - was ging raus?` : "was ging raus?"}
+                            ariaLabel={`Notiz fuer @${r.handle} am ${openDayObj.dayLabel}`}
+                            onCommit={(v) => {
+                              if (v === (done[cellKey(r.key, openDayObj.iso, 1)] ?? "")) return;
+                              setDayNote(r, openDayObj.iso, 1, v);
+                            }}
+                          />
+                        </div>
+                      ) : null}
+                    </td>
 
                     <td className="px-2.5 py-2 text-right [font-family:var(--font-mono)] text-[12px] [font-variant-numeric:tabular-nums]">
                       {(() => {
