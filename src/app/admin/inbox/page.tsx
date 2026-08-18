@@ -27,7 +27,7 @@ import { KLAR_APPS } from "../../../lib/klarApps";
 import { getReplyTemplates } from "../../../lib/replyTemplateStore";
 import { loadAffiliateChatInbox } from "../../../lib/affiliateChatStore";
 import { listStarredIds } from "../../../lib/inboxStars";
-import { listCollabThreads, COLLAB_ALIASES } from "../../../lib/collabStore";
+import { listCollabThreads, COLLAB_ALIASES, COLLAB_CHANNEL_LABELS } from "../../../lib/collabStore";
 import MailClient, {
   type Conversation,
   type ThreadMessage,
@@ -419,9 +419,10 @@ export default async function InboxPage({
     const inbound = messages.filter((m) => m.direction === "in");
     return {
       id: `collab:${t.app}:${t.contactEmail}`,
-      handle: t.contactEmail.split("@")[0] || t.contactEmail,
+      handle: t.contactHandle || t.contactEmail.split("@")[0] || t.contactEmail,
       displayName: t.contactName,
-      platform: "",
+      // DM-Threads tragen ihre Plattform, Mail-Threads wie bisher nichts.
+      platform: t.channel === "email" ? "" : t.channel,
       profileUrl: null,
       contactEmail: t.contactEmail,
       // Die Adressen stehen auf englischsprachigen App-Kanälen — Vorlagen
@@ -437,7 +438,14 @@ export default async function InboxPage({
       lastInboundAt: inbound.length > 0 ? inbound[inbound.length - 1].at : null,
       lastActivityAt: t.lastActivityAt,
       kind: "collab",
-      collab: { app: t.app, alias: t.alias, address: t.address },
+      collab: {
+        app: t.app,
+        alias: t.alias,
+        address: t.address,
+        channel: t.channel,
+        channelLabel: COLLAB_CHANNEL_LABELS[t.channel] ?? t.channel,
+        handle: t.contactHandle,
+      },
     };
   });
 

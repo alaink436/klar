@@ -62,8 +62,17 @@ export interface Conversation {
   starred?: boolean;
   // Present when kind === "inquiry": the website request + approve/decline state.
   inquiry?: InquiryMeta;
-  // Present when kind === "collab": which public mailbox the thread belongs to.
-  collab?: { app: string; alias: string; address: string | null };
+  // Present when kind === "collab": which public mailbox der Thread gehört.
+  // `channel` unterscheidet Mail-Threads von den seit 2026-08-18 möglichen,
+  // von Hand erfassten DM-Gesprächen — aus denen heraus nichts gesendet wird.
+  collab?: {
+    app: string;
+    alias: string;
+    address: string | null;
+    channel?: string;
+    channelLabel?: string;
+    handle?: string | null;
+  };
 }
 
 // Website contact-form request folded into the inbox. Affiliate inquiries carry
@@ -508,6 +517,15 @@ export default function MailClient({
         setSendMsg({ ok: false, text: "Collab-Postfach unvollständig — kein Empfänger." });
         return;
       }
+      // Von Hand erfasste DM-Gespräche haben keine Mailadresse; hier zu senden
+      // wäre bestenfalls ein Fehler von der Route zurück.
+      if (sel.collab.channel && sel.collab.channel !== "email") {
+        setSendMsg({
+          ok: false,
+          text: `Dieser Thread lief über ${sel.collab.channelLabel ?? sel.collab.channel}. Antworte dort und trage die Antwort unter Collabs von Hand nach.`,
+        });
+        return;
+      }
       if (!composer.subject.trim() || !composer.body.trim()) {
         setSendMsg({ ok: false, text: "Betreff und Nachricht dürfen nicht leer sein." });
         return;
@@ -944,9 +962,13 @@ export default function MailClient({
                   </div>
                 ) : sel.kind === "collab" ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
-                    <span className="kr-chip">Collab-Anfrage</span>
+                    <span className="kr-chip">
+                      {sel.collab?.channel && sel.collab.channel !== "email" ? "Collab-Gespräch" : "Collab-Anfrage"}
+                    </span>
                     <span className="muted" style={{ fontSize: 12 }}>
-                      Eingegangen über {sel.collab?.address ?? "die öffentliche App-Adresse"} — deine Antwort geht per Mail raus und läuft über dieselbe Adresse zurück in diesen Thread.
+                      {sel.collab?.channel && sel.collab.channel !== "email"
+                        ? `Lief über ${sel.collab.channelLabel ?? sel.collab.channel}${sel.collab.handle ? ` mit @${sel.collab.handle}` : ""} und wurde von Hand erfasst. Gesendet wird hier nichts — antworte in der App und trage es unter Collabs nach.`
+                        : `Eingegangen über ${sel.collab?.address ?? "die öffentliche App-Adresse"} — deine Antwort geht per Mail raus und läuft über dieselbe Adresse zurück in diesen Thread.`}
                     </span>
                   </div>
                 ) : sel.kind === "inquiry" && sel.inquiry ? (
@@ -1159,7 +1181,12 @@ export default function MailClient({
                   <>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <span className="muted" style={{ fontSize: 11.5, fontFamily: "var(--font-mono)" }}>
-                    An: {sel.kind === "affiliate-chat" ? "Dashboard-Chat" : sel.contactEmail || "— keine Email"}
+                    An:{" "}
+                    {sel.kind === "affiliate-chat"
+                      ? "Dashboard-Chat"
+                      : sel.collab?.channel && sel.collab.channel !== "email"
+                        ? `${sel.collab.channelLabel ?? sel.collab.channel} — kein Mailversand`
+                        : sel.contactEmail || "— keine Email"}
                   </span>
                   <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 8 }}>
                     <label style={{ fontSize: 11.5, color: "var(--fg-3)", display: "inline-flex", alignItems: "center", gap: 5 }}>
@@ -1218,7 +1245,15 @@ export default function MailClient({
                   onMouseUp={persistComposerH}
                 />
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                  <button className="retro-send" onClick={send} disabled={sending || (sel.kind !== "affiliate-chat" && !sel.contactEmail)}>
+                  <button
+                    className="retro-send"
+                    onClick={send}
+                    disabled={
+                      sending ||
+                      (sel.kind !== "affiliate-chat" && !sel.contactEmail) ||
+                      Boolean(sel.collab?.channel && sel.collab.channel !== "email")
+                    }
+                  >
                     {sending ? "Sende…" : sel.awaiting ? "Nachfassen" : "Senden"}
                   </button>
                   <button

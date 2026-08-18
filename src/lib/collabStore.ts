@@ -132,6 +132,58 @@ export function collabAddressFor(alias: string): string | null {
   return `${alias}@${domain}`;
 }
 
+/** Ein Eintrag pro App für Auswahl-Listen (Alias-Map hat mehrere Aliasse je
+ *  App). Anders als collabAliasRows ohne Adress-Zwang: das manuelle Erfassen
+ *  eines Instagram-DMs braucht keine konfigurierte Inbound-Domain. */
+export function collabAppOptions(): { alias: string; app: string; name: string }[] {
+  const seen = new Set<string>();
+  const out: { alias: string; app: string; name: string }[] = [];
+  for (const [alias, meta] of Object.entries(COLLAB_ALIASES)) {
+    if (seen.has(meta.app)) continue;
+    seen.add(meta.app);
+    out.push({ alias, app: meta.app, name: meta.name });
+  }
+  out.sort((a, b) => (a.app === "studio" ? -1 : b.app === "studio" ? 1 : a.name.localeCompare(b.name)));
+  return out;
+}
+
+// ── Kanäle ──────────────────────────────────────────────────────────────────
+// Bis 2026-08-18 war jede Zeile hier eine Mail an eine Bio-Adresse. Manuell
+// erfasste Gespräche laufen oft über DMs; `channel` hält fest, worüber geredet
+// wurde, `contact_handle` mit wem (bei Mail bleibt contact_email die Identität).
+
+export const COLLAB_CHANNELS = ["email", "instagram", "tiktok", "youtube", "x", "other"] as const;
+export type CollabChannel = (typeof COLLAB_CHANNELS)[number];
+
+export const COLLAB_CHANNEL_LABELS: Record<CollabChannel, string> = {
+  email: "E-Mail",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  youtube: "YouTube",
+  x: "X",
+  other: "Sonstiges",
+};
+
+export function isCollabChannel(v: string): v is CollabChannel {
+  return (COLLAB_CHANNELS as readonly string[]).includes(v);
+}
+
+/** Thread-Schlüssel (= Spalte contact_email). Mail-Threads tragen die Adresse,
+ *  DM-Threads den synthetischen Schlüssel '<channel>:<handle>' — bewusst keine
+ *  gültige Mailadresse, damit die Reply-Route sie ablehnt statt ins Leere zu
+ *  senden. Handle ohne führendes @ und klein, sonst wird aus @Marie und marie
+ *  zweimal derselbe Mensch. */
+export function collabContactKey(channel: CollabChannel, handleOrEmail: string): string {
+  const clean = handleOrEmail.trim().replace(/^@/, "").toLowerCase();
+  return channel === "email" ? clean : `${channel}:${clean}`;
+}
+
+/** true, wenn der Thread-Key eine echte Mailadresse ist (nur dann kann aus der
+ *  Inbox heraus geantwortet werden). */
+export function isEmailContactKey(key: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(key);
+}
+
 // ── Store ───────────────────────────────────────────────────────────────────
 
 export interface CollabMessage {
@@ -148,6 +200,9 @@ export interface CollabMessage {
   spam_score: number | null;
   sent_at: string | null;
   created_at: string;
+  channel: CollabChannel;
+  contact_handle: string | null;
+  manual: boolean;
 }
 
 export interface InsertCollabMessageInput {
@@ -162,6 +217,12 @@ export interface InsertCollabMessageInput {
   external_id?: string | null;
   spam_score?: number | null;
   sent_at?: string | null;
+  channel?: CollabChannel;
+  contact_handle?: string | null;
+  manual?: boolean;
+  /** Nur für manuelle Nachträge: das Gespräch fand früher statt als der
+   *  Eintrag. Ohne Wert setzt Postgres now(). */
+  created_at?: string | null;
 }
 
 /** Append one message. Best-effort: a 409 (duplicate external_id from a
@@ -170,7 +231,7 @@ export async function insertCollabMessage(
   input: InsertCollabMessageInput,
 ): Promise<CollabMessage | null> {
   if (!KLAR_INBOX_KEY) return null;
-  const body = {
+  const body: Record<string, unknown> = {
     app: input.app,
     alias: input.alias,
     contact_email: input.contact_email.trim().toLowerCase(),
@@ -182,7 +243,13 @@ export async function insertCollabMessage(
     external_id: input.external_id ?? null,
     spam_score: input.spam_score ?? null,
     sent_at: input.sent_at ?? null,
+    channel: input.channel ?? "email",
+    contact_handle: input.contact_handle ?? null,
+    manual: input.manual ?? false,
   };
+  // created_at nur mitschicken, wenn es gesetzt ist — sonst gewinnt der
+  // Default now() (ein explizites null würde die NOT-NULL-Spalte sprengen).
+  if (input.created_at) body.created_at = input.created_at;
   try {
     const res = await fetch(`${KLAR_INBOX_URL}/rest/v1/klar_collab_messages`, {
       method: "POST",
@@ -202,8 +269,14 @@ export interface CollabThread {
   app: string;
   alias: string;
   address: string | null;
+  /** Thread-Key: Mailadresse oder '<channel>:<handle>' (siehe collabContactKey). */
   contactEmail: string;
   contactName: string | null;
+  /** Kanal des Threads (aus der ersten Nachricht; ein Thread = ein Kanal). */
+  channel: CollabChannel;
+  contactHandle: string | null;
+  /** true, wenn keine einzige Nachricht des Threads über Mail lief. */
+  manualOnly: boolean;
   messages: CollabMessage[]; // oldest first
   lastActivityAt: string | null;
 }
@@ -242,12 +315,17 @@ export async function listCollabThreads(
       msgs.sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
       const first = msgs[0];
       const named = [...msgs].reverse().find((m) => m.contact_name);
+      const handled = [...msgs].reverse().find((m) => m.contact_handle);
       threads.push({
         app: first.app,
         alias: first.alias,
         address: collabAddressFor(first.alias),
         contactEmail: first.contact_email,
         contactName: named?.contact_name ?? null,
+        // Zeilen von vor Migration 0025 haben kein channel → 'email'.
+        channel: first.channel ?? "email",
+        contactHandle: handled?.contact_handle ?? null,
+        manualOnly: msgs.every((m) => m.manual),
         messages: msgs,
         lastActivityAt: msgs[msgs.length - 1]?.created_at ?? null,
       });

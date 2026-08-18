@@ -15,7 +15,12 @@ import CollabsView from "./CollabsView";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export default async function CollabsPage() {
+export default async function CollabsPage({
+  searchParams,
+}: {
+  // ?msg=… kommt vom Redirect aus /admin/collab/manual.
+  searchParams: Promise<{ msg?: string }>;
+}) {
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
   const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
   const TOTP = process.env.KLAR_TOTP_SECRET ?? "";
@@ -29,6 +34,7 @@ export default async function CollabsPage() {
   const lang = normalizeAdminLang(readCookieFromString(cookieHeader, LANG_COOKIE));
   const t = tAdmin(lang);
   const view = await buildCollabView();
+  const msg = (await searchParams).msg?.slice(0, 400);
 
   const topbar = `
     <span class="crumb"><b>${t.navCollabs}</b>${ICON.chevron}<span>Klar Control</span></span>
@@ -42,7 +48,12 @@ export default async function CollabsPage() {
       <div className="content">
         <h1>{t.navCollabs}</h1>
         <p className="sub">{t.collabsSub}</p>
-        <CollabsView aliases={view.aliases} threads={view.threads} />
+        <CollabsView
+          aliases={view.aliases}
+          threads={view.threads}
+          apps={view.apps}
+          msg={msg}
+        />
       </div>
     </>
   );

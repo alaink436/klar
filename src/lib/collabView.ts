@@ -6,15 +6,19 @@
 import { fmtRelative } from "@/app/admin/_shared";
 import {
   COLLAB_ALIASES,
+  COLLAB_CHANNEL_LABELS,
   collabAddressFor,
+  collabAppOptions,
   listCollabThreads,
   type CollabThread,
 } from "@/lib/collabStore";
-import type { CollabAliasRow, CollabThreadRow } from "@/app/admin/collabs/CollabsView";
+import type { CollabAliasRow, CollabAppOption, CollabThreadRow } from "@/app/admin/collabs/CollabsView";
 
 export interface CollabView {
   aliases: CollabAliasRow[];
   threads: CollabThreadRow[];
+  /** Apps für das Kanal-/App-Dropdown im manuellen Erfassungsformular. */
+  apps: CollabAppOption[];
   /** Threads whose last message came in — the number on the sidebar badge. */
   open: number;
 }
@@ -28,15 +32,27 @@ function toRows(threads: CollabThread[]): CollabThreadRow[] {
   return threads.map((t) => {
     const last = t.messages[t.messages.length - 1];
     const snippet = (last?.body ?? "").replace(/\s+/g, " ").trim().slice(0, 140);
+    const inboundCount = t.messages.filter((m) => m.direction === "in").length;
+    // Drei Zustände statt zwei: seit es manuelle Einträge gibt, ist "letzte
+    // Nachricht ging raus" nicht mehr gleichbedeutend mit "erledigt" — ein
+    // selbst angeschriebener Influencer, der nie geantwortet hat, wäre sonst
+    // als "beantwortet" durchgerutscht.
+    const status: CollabThreadRow["status"] =
+      last?.direction === "in" ? "open" : inboundCount === 0 ? "waiting" : "answered";
     return {
       contactEmail: t.contactEmail,
       contactName: t.contactName,
+      contactHandle: t.contactHandle,
+      channel: t.channel,
+      channelLabel: COLLAB_CHANNEL_LABELS[t.channel] ?? t.channel,
+      manualOnly: t.manualOnly,
       appName: appNames[t.app] ?? t.app,
       address: t.address,
       lastSubject: last?.subject ?? null,
       lastSnippet: snippet,
-      inboundCount: t.messages.filter((m) => m.direction === "in").length,
+      inboundCount,
       unanswered: last?.direction === "in",
+      status,
       whenRel: t.lastActivityAt ? fmtRelative(t.lastActivityAt) : "—",
       inboxHref: `/admin/inbox?f=collab&sel=${encodeURIComponent(`collab:${t.app}:${t.contactEmail}`)}`,
     };
@@ -63,6 +79,7 @@ export async function buildCollabView(): Promise<CollabView> {
   return {
     aliases: collabAliasRows(),
     threads,
+    apps: collabAppOptions(),
     open: threads.filter((t) => t.unanswered).length,
   };
 }
