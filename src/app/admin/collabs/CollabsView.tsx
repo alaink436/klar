@@ -94,7 +94,21 @@ function ManualEntryForm({ apps }: { apps: CollabAppOption[] }) {
   const [open, setOpen] = useState(false);
   const [channel, setChannel] = useState("instagram");
   const [at, setAt] = useState("");
+  const [todo, setTodo] = useState(false);
+  const [todoDue, setTodoDue] = useState("");
   const isEmail = channel === "email";
+
+  // Das Datum wird erst beim Ankreuzen berechnet, nicht beim Rendern: ein
+  // "heute" im Server-Markup und ein anderes im Browser wäre ein
+  // Hydration-Fehler, und über Mitternacht auch noch ein falsches.
+  const toggleTodo = (on: boolean) => {
+    setTodo(on);
+    if (on && !todoDue) {
+      const d = new Date();
+      d.setDate(d.getDate() + 3);
+      setTodoDue(d.toISOString().slice(0, 10));
+    }
+  };
 
   return (
     <Card className="p-0 overflow-hidden mb-6">
@@ -210,6 +224,37 @@ function ManualEntryForm({ apps }: { apps: CollabAppOption[] }) {
               className={cn(inputCls, "resize-y")}
             />
           </label>
+
+          {/* Der Ball liegt jetzt bei der Gegenseite. Wer nachfassen will, sagt
+              es hier einmal — dann steht der Punkt in der To-do-Liste und nicht
+              nur im Kopf. */}
+          <div className="md:col-span-3 flex items-center gap-3 flex-wrap p-3 border border-line rounded-[var(--radius-sm)] bg-surface-2">
+            <label className="inline-flex items-center gap-2 text-[12.5px] text-fg-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                name="todo"
+                value="1"
+                checked={todo}
+                onChange={(e) => toggleTodo(e.target.checked)}
+                className="accent-[var(--fg)]"
+              />
+              Nachfassen als To-do eintragen
+            </label>
+            <label className="inline-flex items-center gap-2 text-[12px] text-fg-3">
+              am
+              <input
+                type="date"
+                name="todo_due"
+                value={todoDue}
+                disabled={!todo}
+                onChange={(e) => setTodoDue(e.target.value)}
+                className={cn(inputCls, "w-auto py-1.5", !todo && "opacity-40")}
+              />
+            </label>
+            <span className="text-fg-4 text-[11px]">
+              Landet als eigener Punkt auf /admin/todos, abhakbar wie jeder andere.
+            </span>
+          </div>
 
           <div className="md:col-span-3 flex items-center gap-3 flex-wrap">
             <Button type="submit" variant="outline">Eintrag speichern</Button>

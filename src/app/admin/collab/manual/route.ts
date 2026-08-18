@@ -9,8 +9,15 @@
 // Bewusst NUR ein Log-Eintrag: hier wird nichts verschickt. Was rausgeht, geht
 // über /admin/collab/reply (Mail via Brevo) — eine DM kann diese App nicht
 // senden, und so zu tun als ob wäre schlimmer als das Feld leer zu lassen.
+//
+// Auf Wunsch legt das Formular zusätzlich einen Punkt in der To-do-Liste an
+// ("Nachfassen: @handle (App)"). Bewusst als Haken und nicht abgeleitet: die
+// To-do-Liste ist die Liste der selbst gefassten Vorsätze (siehe Kopf von
+// lib/todoStore), abgeleitete Arbeit steht in der Arbeitsliste auf
+// /admin/overview. Wer nachfassen will, sagt es hier einmal.
 
 import { NextResponse, type NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 import { readCookie, ctEqual } from "@/app/admin/_shared";
 import {
   COLLAB_ALIASES,
@@ -20,6 +27,7 @@ import {
   isCollabChannel,
   type CollabChannel,
 } from "@/lib/collabStore";
+import { addTodo } from "@/lib/todoStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -107,10 +115,22 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (!row) return back(req, "Eintrag NICHT gespeichert (Supabase-Key fehlt oder Insert abgelehnt)");
 
   const who = channel === "email" ? email : `@${handle}`;
-  return back(
-    req,
+  const appName = COLLAB_ALIASES[alias].name;
+  const noted =
     direction === "out"
-      ? `Notiert: du hast ${who} geschrieben (${COLLAB_ALIASES[alias].name}).`
-      : `Notiert: ${who} hat geschrieben (${COLLAB_ALIASES[alias].name}).`,
-  );
+      ? `Notiert: du hast ${who} geschrieben (${appName}).`
+      : `Notiert: ${who} hat geschrieben (${appName}).`;
+
+  // Optionaler To-do-Punkt. Der Collab-Eintrag steht bereits — ein Fehler beim
+  // To-do darf ihn nicht zurücknehmen, er wird nur gemeldet.
+  if (String(form.get("todo") ?? "") !== "1") return back(req, noted);
+
+  const rawDue = String(form.get("todo_due") ?? "").trim();
+  const due = /^\d{4}-\d{2}-\d{2}$/.test(rawDue) ? rawDue : null;
+  const title = `${direction === "out" ? "Nachfassen" : "Antworten"}: ${who} (${appName})`;
+  const todo = await addTodo(title, due);
+  if (!todo.ok) return back(req, `${noted} ⚠️ To-do NICHT angelegt (${todo.error ?? "?"}).`);
+  revalidatePath("/admin/todos");
+  revalidatePath("/admin/overview");
+  return back(req, `${noted} To-do „${title}“${due ? ` für ${due}` : ""} angelegt.`);
 }

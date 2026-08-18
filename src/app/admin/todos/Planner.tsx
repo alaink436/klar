@@ -158,12 +158,11 @@ export default function Planner({
   // findet man die eigenen To-dos nicht mehr. Die Wahl bleibt im Browser —
   // sie gilt fuer dieses Geraet, nicht fuer den Vault.
   const hidePosts = useSyncExternalStore(subscribeHidePosts, readHidePosts, () => false);
-  // Eingeklappt ist der Normalfall, ausser fuer heute: an dem Tag arbeitet man,
-  // die anderen sechs sollen nur sagen, was ansteht. Sonst deckt eine Woche mit
-  // drei Accounts im Tagesrhythmus die eigenen To-dos komplett zu.
-  const [openPostDays, setOpenPostDays] = useState<Set<string>>(
-    () => new Set(days.filter((d) => d.isToday).map((d) => d.iso)),
-  );
+  // Eingeklappt ist der Normalfall — seit 2026-08-18 auch fuer heute (Alain:
+  // aufgeklappt verwirrt). Der Kopf sagt weiter, wie viele Posts anstehen und
+  // wie viele davon stehen; ein Klick oeffnet den Tag. Sonst deckt eine Woche
+  // mit drei Accounts im Tagesrhythmus die eigenen To-dos komplett zu.
+  const [openPostDays, setOpenPostDays] = useState<Set<string>>(() => new Set<string>());
   const [dragId, setDragId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
