@@ -32,6 +32,8 @@ export interface ViewPost {
   videoUrl: string | null;
   videoLink: string | null;
   ergebnis: string | null;
+  /** Wie die Datei anzuzeigen ist. Vom Server entschieden. */
+  art: "video" | "bild" | "roh";
 }
 
 export default function PostSamples({
@@ -88,7 +90,7 @@ export default function PostSamples({
               <input
                 type="file"
                 name="datei"
-                accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png"
+                accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
                 aria-label={`Post-Video für @${handle} wählen`}
                 className="text-[9px] file:mr-1 file:py-0.5 file:px-1 file:rounded-[3px] file:border file:border-line file:bg-bg file:text-fg file:text-[9px]"
               />
@@ -105,7 +107,7 @@ export default function PostSamples({
             <ul className="mt-2 flex flex-wrap gap-2">
               {posts.map((p) => (
                 <li key={p.id} className="border border-line rounded-[5px] p-1.5" style={{ width: 168 }}>
-                  {p.videoUrl ? (
+                  {p.videoUrl && p.art === "video" ? (
                     <video
                       src={p.videoUrl}
                       controls
@@ -114,6 +116,26 @@ export default function PostSamples({
                       className="w-full rounded-[4px] bg-black"
                       style={{ aspectRatio: "9 / 16", objectFit: "contain" }}
                     />
+                  ) : p.videoUrl && p.art === "bild" ? (
+                    // Signierte Supabase-URL mit Ablauf; next/image wuerde sie
+                    // zwischenspeichern und nach einer Stunde ein totes Bild zeigen.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.videoUrl}
+                      alt={p.titel ?? "Gelaufener Post"}
+                      className="w-full rounded-[4px] bg-black"
+                      style={{ aspectRatio: "9 / 16", objectFit: "contain" }}
+                    />
+                  ) : p.videoUrl ? (
+                    <a
+                      href={p.videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`${MONO} w-full rounded-[4px] border border-line-strong flex items-center justify-center underline decoration-dotted`}
+                      style={{ aspectRatio: "9 / 16", color: "var(--fg-3)" }}
+                    >
+                      HEIC — öffnen
+                    </a>
                   ) : (
                     <div
                       className={`${MONO} w-full rounded-[4px] border border-dashed border-line-strong flex items-center justify-center`}

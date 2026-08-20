@@ -27,6 +27,8 @@ export interface SlotRef {
   videoPfad: string | null;
   videoLink: string | null;
   videoUrl: string | null;
+  /** Wie die Datei anzuzeigen ist. Vom Server entschieden, siehe `medienArt`. */
+  art: "video" | "bild" | "roh";
 }
 
 export default function ReferenceSlot({
@@ -50,7 +52,9 @@ export default function ReferenceSlot({
   const [offen, setOffen] = useState(false);
 
   const hatEigenes = Boolean(eigen?.videoPfad || eigen?.videoLink);
-  const zeigt = eigen?.videoUrl ?? (hatEigenes ? null : geerbt?.ref.videoUrl ?? null);
+  const quelle = eigen?.videoUrl ? eigen : hatEigenes ? null : geerbt?.ref ?? null;
+  const zeigt = quelle?.videoUrl ?? null;
+  const art = quelle?.art ?? "video";
   const w = breit ? 96 : 72;
 
   function feld(patch: Parameters<typeof setChannelReference>[1]): void {
@@ -62,7 +66,7 @@ export default function ReferenceSlot({
   return (
     <div className={`flex gap-1.5 ${pending ? "opacity-60" : ""}`}>
       <div className="shrink-0" style={{ width: w }}>
-        {zeigt ? (
+        {zeigt && art === "video" ? (
           <video
             src={zeigt}
             controls
@@ -71,6 +75,27 @@ export default function ReferenceSlot({
             className="w-full rounded-[4px] border border-line bg-black"
             style={{ aspectRatio: "9 / 16", objectFit: "contain", opacity: hatEigenes ? 1 : 0.65 }}
           />
+        ) : zeigt && art === "bild" ? (
+          // Signierte Supabase-URL mit Ablauf; next/image wuerde sie
+          // zwischenspeichern und nach einer Stunde ein totes Bild ausliefern.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={zeigt}
+            alt={`Referenz für ${etikett}`}
+            className="w-full rounded-[4px] border border-line bg-black"
+            style={{ aspectRatio: "9 / 16", objectFit: "contain", opacity: hatEigenes ? 1 : 0.65 }}
+          />
+        ) : zeigt ? (
+          // HEIC: die Datei ist da, nur kein Browser zeigt sie an.
+          <a
+            href={zeigt}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${MONO} w-full rounded-[4px] border border-line-strong flex items-center justify-center text-center px-1 underline decoration-dotted`}
+            style={{ aspectRatio: "9 / 16", color: "var(--fg-3)" }}
+          >
+            HEIC — öffnen
+          </a>
         ) : (
           <div
             className={`${MONO} w-full rounded-[4px] border border-dashed border-line-strong flex items-center justify-center text-center px-1`}
@@ -92,7 +117,7 @@ export default function ReferenceSlot({
           <input
             type="file"
             name="datei"
-            accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png"
+            accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
             aria-label={`Referenzvideo für ${etikett} wählen`}
             className="block w-full text-[9px] file:mr-1 file:py-0.5 file:px-1 file:rounded-[3px] file:border file:border-line file:bg-bg file:text-fg file:text-[9px]"
           />

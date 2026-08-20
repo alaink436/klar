@@ -67,6 +67,28 @@ export interface ChannelReferencePatch {
   grund?: string | null;
 }
 
+/**
+ * Womit man eine Datei anzeigt.
+ *
+ *   video   spielt im <video>-Tag
+ *   bild    gehoert in ein <img>. Ein JPEG in einem <video> bleibt schwarz,
+ *           und genau das war der Fehler, bis Alain am 2026-08-20 fragte, ob
+ *           er auch Fotos hochladen kann.
+ *   roh     da, aber im Browser nicht darstellbar — HEIC vom iPhone. Dafuer
+ *           zeigt die Oberflaeche einen Verweis statt einer schwarzen Flaeche.
+ */
+export type MedienArt = "video" | "bild" | "roh";
+
+const BILD = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+const ROH = [".heic", ".heif"];
+
+export function medienArt(pfadOderUrl: string | null | undefined): MedienArt {
+  const p = (pfadOderUrl ?? "").toLowerCase().split("?")[0];
+  if (ROH.some((e) => p.endsWith(e))) return "roh";
+  if (BILD.some((e) => p.endsWith(e))) return "bild";
+  return "video";
+}
+
 /** app | app:plattform | app:plattform:handle */
 export const SCOPE_FORM = /^[a-zA-Z0-9._-]+(:[a-zA-Z0-9._-]+){0,2}$/;
 

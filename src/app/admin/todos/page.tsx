@@ -16,7 +16,11 @@ import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listTodos, todosConfigured } from "@/lib/todoStore";
 import { listAccountStatus, listPostLog, listPostTotals } from "@/lib/accountStatus";
 import { listCurrentDirections, listDirectionCounts } from "@/lib/accountDirection";
-import { listChannelReferences, type ChannelReference } from "@/lib/channelReference";
+import {
+  listChannelReferences,
+  medienArt,
+  type ChannelReference,
+} from "@/lib/channelReference";
 import { listPostSamples, type PostSample } from "@/lib/postSample";
 import { ACCOUNTS, APPS, PLATFORM_LABEL, accountKey } from "@/lib/socialAccounts";
 import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
@@ -156,6 +160,7 @@ export default async function TodosPage({
         videoUrl: p.video_url,
         videoLink: p.video_link,
         ergebnis: p.ergebnis,
+        art: medienArt(p.video_pfad),
       })),
     ]),
   );
@@ -169,6 +174,7 @@ export default async function TodosPage({
         videoPfad: r.video_pfad,
         videoLink: r.video_link,
         videoUrl: r.video_url,
+        art: medienArt(r.video_pfad),
       },
     ]),
   );
