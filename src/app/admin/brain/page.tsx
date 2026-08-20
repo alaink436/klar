@@ -18,7 +18,7 @@ import {
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { scopeGraph, hasToken, availableFolders, SHOWCASE_FOLDERS } from "@/lib/brainVault";
-import { readLearnings } from "@/lib/brainStatus";
+import { readLearnings, readVaultChecks } from "@/lib/brainStatus";
 import { listTokens } from "@/lib/apiTokens";
 import { listSecrets } from "@/lib/vault";
 import { buildAgentBriefing, buildBrainBriefing } from "@/lib/agentBriefing";
@@ -65,11 +65,12 @@ export default async function BrainPage({
 
   // Zugang-tab data (same sources /admin/settings used before the move),
   // plus the learnings count — read live from the vault, not from the graph.
-  const [tokenRows, memberRows, secretRows, learnings] = await Promise.all([
+  const [tokenRows, memberRows, secretRows, learnings, checks] = await Promise.all([
     listTokens(),
     listBrainMembers(),
     listSecrets(),
     readLearnings(),
+    readVaultChecks(),
   ]);
 
   // Copyable agent-briefing: a self-contained prompt with the live (proxyable)
@@ -136,6 +137,50 @@ export default async function BrainPage({
           </div>
         )}
         {sp.msg && <div className="flash">{sp.msg}</div>}
+
+        {/* Zustand. Seit dem 2026-08-20 sind STATUS.md, die Registry-Tabelle,
+            Learnings/INDEX.md, der Skill-Bestand und die Supabase-Tabelle
+            erzeugt. Jeder Generator schreibt seine offenen Punkte in die Datei,
+            die er baut, aber die sah nur, wer ihn selbst laufen liess. Hier
+            stehen sie zusammen: eine Liste, kein Bild. Leer heisst sauber. */}
+        {(() => {
+          const offen = checks.reduce((n, c) => n + c.meldungen.length, 0);
+          return (
+            <div className="card" style={{ marginBottom: 16, padding: "18px 22px", display: "block" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap", marginBottom: offen ? 14 : 0 }}>
+                <div className="k" style={{ margin: 0 }}>Zustand</div>
+                <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, lineHeight: 1, fontVariantNumeric: "tabular-nums", color: offen ? "var(--warning, var(--fg))" : "var(--success)" }}>
+                  {offen === 0 ? "sauber" : offen}
+                </div>
+                <p className="s" style={{ margin: 0, flex: 1, minWidth: 240, maxWidth: "60ch" }}>
+                  {offen === 0
+                    ? "Keine offenen Punkte aus den Generatoren."
+                    : "Punkte, die die Generatoren nicht selbst auflösen können. Sie kürzen nichts still, sie melden."}
+                </p>
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                  {checks.map((c) => (
+                    <span key={c.pfad} style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: c.meldungen.length ? "var(--fg-2)" : "var(--fg-4)" }}>
+                      {c.quelle} {c.meldungen.length || "✓"}
+                      {c.stand ? <span style={{ color: "var(--fg-4)" }}> · {c.stand}</span> : null}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {offen > 0 && (
+                <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                  {checks.flatMap((c) =>
+                    c.meldungen.map((m, i) => (
+                      <li key={`${c.pfad}-${i}`} style={{ display: "flex", gap: 12, alignItems: "baseline", padding: "8px 0", borderTop: "1px solid var(--line)" }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-4)", flexShrink: 0, minWidth: 72 }}>{c.quelle}</span>
+                        <span style={{ fontSize: 13, color: "var(--fg-2)" }}>{m}</span>
+                      </li>
+                    )),
+                  )}
+                </ul>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Wächst das Brain? Der Graph darunter zählt DATEIEN, und alle
             Learnings hängen sich an dieselben fünf an — 60 Erkenntnisse sehen

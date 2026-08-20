@@ -269,3 +269,66 @@ export async function readSessions(limit = 40): Promise<SessionEntry[]> {
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, limit);
 }
+
+// ── Zustand: was die Generatoren melden ──────────────────────────────────
+//
+// Seit dem Umbau vom 2026-08-20 werden STATUS.md, die Registry-Tabelle,
+// Learnings/INDEX.md, der Skill-Bestand und die Supabase-Tabelle erzeugt. Jeder
+// Generator schreibt seine offenen Punkte unter eine Überschrift in die Datei,
+// die er baut. Bisher sah die nur, wer ihn selbst laufen liess.
+//
+// Hier werden genau diese Abschnitte eingesammelt. Kein zweiter Datenweg, keine
+// neue Tabelle: die Wahrheit steht schon in den Dateien, sie war nur nicht
+// sichtbar. Findet sich der Abschnitt nicht, gilt die Datei als sauber, denn die
+// Generatoren schreiben ihn nur, wenn es etwas zu melden gibt.
+
+export interface VaultCheck {
+  /** Anzeigename der erzeugten Datei. */
+  quelle: string;
+  /** Vault-Pfad, für den Sprung in den Viewer. */
+  pfad: string;
+  /** Das "Stand:"-Datum, das der Generator hineinschreibt, falls vorhanden. */
+  stand: string | null;
+  /** Die gemeldeten Punkte, Markdown entfernt. */
+  meldungen: string[];
+}
+
+const CHECK_QUELLEN: Array<{ quelle: string; pfad: string }> = [
+  { quelle: "Dashboard", pfad: "STATUS.md" },
+  { quelle: "Learnings", pfad: "Learnings/INDEX.md" },
+  { quelle: "Skills", pfad: "Skills/00-Skill-Registry.md" },
+  { quelle: "Supabase", pfad: "Infrastructure/supabase-projekte.md" },
+];
+
+/** Die Aufzählung unter der Meldungs-Überschrift, bis zur nächsten Überschrift. */
+function meldungenAus(text: string): string[] {
+  const start = text.search(/^#{2,3}\s*⚠️\s*Vom Generator gemeldet|^\*\*Vom Generator gemeldet:\*\*/m);
+  if (start === -1) return [];
+  const rest = text.slice(start).split("\n").slice(1);
+  const out: string[] = [];
+  for (const zeile of rest) {
+    if (/^#{1,3}\s/.test(zeile)) break;
+    const m = zeile.match(/^-\s+(.*)$/);
+    if (!m) continue;
+    // Backticks und Fettdruck raus, der Kasten rendert reinen Text.
+    out.push(m[1].replace(/`/g, "").replace(/\*\*/g, "").trim());
+  }
+  return out.filter(Boolean);
+}
+
+export async function readVaultChecks(): Promise<VaultCheck[]> {
+  const ergebnisse = await Promise.all(
+    CHECK_QUELLEN.map(async ({ quelle, pfad }) => {
+      const res = await fetchNote(pfad, null);
+      if (!res.ok) return { quelle, pfad, stand: null, meldungen: [] };
+      const stand = res.text.match(/^>\s*Stand:\s*(\d{4}-\d{2}-\d{2})/m);
+      return {
+        quelle,
+        pfad,
+        stand: stand ? stand[1] : null,
+        meldungen: meldungenAus(res.text),
+      };
+    }),
+  );
+  return ergebnisse;
+}

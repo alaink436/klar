@@ -27,16 +27,16 @@ import type { RawNode, Group } from "@/lib/brainVault";
 // lavender/cream from brainGraph.json (Skills + Design-Systems dominated, so the
 // whole graph read as purple). Aqua → blue → cyan → teal → mint, no purple.
 const GROUP_COLORS: Record<string, string> = {
-  Projects: "#7BE0CD",        // aqua — pops
-  Skills: "#5E93C9",          // cool blue — the dominant group, kept calm
+  Projects: "#7BE0CD",        // aqua — pops, and now the largest group
+  Reflexe: "#6FD8A6",         // mint — the always-loaded layer
   "Design-Systems": "#56C6E0", // cyan
   Learnings: "#74D6C4",       // teal (brain accent)
-  Agents: "#6FD8A6",          // mint
+  Skills: "#5E93C9",          // cool blue — only the curated registry now
   Infrastructure: "#6FA8D6",  // steel blue
   Research: "#6FA8D6",
   Templates: "#8AA6C9",       // slate
   Studium: "#8AA6C9",
-  "Daily-Logs": "#8AA6C9",
+  Agents: "#8AA6C9",          // retired layer, kept neutral
   _root: "#BFE3FF",           // ice blue — core/top-level notes
 };
 const COOL_DEFAULT = "#8AA6C9";

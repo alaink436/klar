@@ -34,7 +34,16 @@ if not VAULT.is_dir():
 # Folders that must never reach the public/site graph. Secrets + Credentials
 # hold keys; excluding them here means their note *names* never ship in
 # brainGraph.json (the file is read by the public landing graph too).
-SKIP_DIRS = {".git", "node_modules", ".obsidian", ".trash", "Secrets", "Credentials"}
+SKIP_DIRS = {".git", ".claude", "node_modules", ".obsidian", ".trash", "Secrets", "Credentials"}
+
+# Skills/Archive is bought and imported third-party packages, not Alain's
+# knowledge, and it drowned everything else: 834 of 1180 nodes, 70.7 %, while
+# the whole Learnings corpus showed up as 6 dots. Excluded 2026-08-20, which
+# leaves 346 nodes with Projects at 63 % instead of 19 %. The curated
+# 00-Skill-Registry.md stays in, it is hand-written and belongs to him.
+# Matched on the relative path, not the folder name, so an "Archive" elsewhere
+# is unaffected.
+SKIP_PATHS = {"Skills/Archive"}
 
 # top-level folder -> (label, colour). Cool, cohesive palette (aqua/blue/cyan/
 # teal/mint, no purple) — kept in sync with GROUP_COLORS in InteractiveGraph.tsx,
@@ -44,11 +53,11 @@ GROUPS = {
     "Learnings": ("learnings", "#74D6C4"),
     "Skills": ("skills", "#5E93C9"),
     "Design-Systems": ("design", "#56C6E0"),
-    "Agents": ("agents", "#6FD8A6"),
+    "Reflexe": ("reflexe", "#6FD8A6"),
+    "Agents": ("agents", "#8AA6C9"),
     "Infrastructure": ("infra", "#6FA8D6"),
     "Research": ("research", "#6FA8D6"),
     "Templates": ("templates", "#8AA6C9"),
-    "Daily-Logs": ("logs", "#8AA6C9"),
     "Studium": ("studium", "#8AA6C9"),
     "_root": ("core", "#BFE3FF"),
 }
@@ -93,6 +102,11 @@ notes = {}
 stem_index = {}
 for root, dirs, files in os.walk(VAULT):
     dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+    here = str(Path(root).relative_to(VAULT)).replace("\\", "/")
+    dirs[:] = [
+        d for d in dirs
+        if (f"{here}/{d}" if here != "." else d) not in SKIP_PATHS
+    ]
     for fn in files:
         if not fn.endswith(".md"):
             continue
