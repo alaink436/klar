@@ -24,12 +24,14 @@
 import { useState, useTransition } from "react";
 import { DIRECTIONS, type Direction } from "@/lib/accountStates";
 import { FIELD } from "./boardStyles";
-import { loadDirectionHistory, reorientAccount, setDirectionPointer } from "./posting-actions";
+import { loadChannelTimeline, reorientAccount, setDirectionPointer } from "./posting-actions";
+import ReferenceSlot, { type SlotRef } from "./ReferenceSlot";
 import type { BoardAccount } from "./PostingBoard";
 
 interface Verlaufszeile {
-  id: number;
-  richtung: string;
+  art: "richtung" | "referenz";
+  was: string;
+  ebene?: string;
   ab: string;
   bis: string | null;
   grund: string | null;
@@ -48,9 +50,15 @@ function tag(iso: string): string {
 export default function DirectionCell({
   row,
   others,
+  eigen,
+  geerbt,
 }: {
   row: BoardAccount;
   others: BoardAccount[];
+  /** Was an genau diesem Kanal haengt. */
+  eigen?: SlotRef;
+  /** Was gilt, wenn am Kanal nichts haengt — samt Ebene. */
+  geerbt?: { ref: SlotRef; ebene: string } | null;
 }) {
   const [pending, startTransition] = useTransition();
   // Was gewählt wurde, solange der Grund noch fehlt. `null` = keine Umstellung.
@@ -93,7 +101,7 @@ export default function DirectionCell({
       return;
     }
     startTransition(async () => {
-      setVerlauf(await loadDirectionHistory(row.key));
+      setVerlauf(await loadChannelTimeline(row.key));
     });
   }
 
@@ -181,14 +189,18 @@ export default function DirectionCell({
               nichts aufgezeichnet
             </li>
           ) : null}
-          {verlauf.map((v) => (
+          {verlauf.map((v, i) => (
             <li
-              key={v.id}
+              key={`${v.art}-${v.ab}-${i}`}
               className="[font-family:var(--font-mono)] text-[9.5px] leading-snug break-words"
             >
-              <span style={{ color: v.bis ? "var(--fg-3)" : "var(--fg-2)" }}>{v.richtung}</span>{" "}
+              <span style={{ color: "var(--fg-4)" }}>
+                {v.art === "richtung" ? "Richtung" : "Referenz"}
+              </span>{" "}
+              <span style={{ color: v.bis ? "var(--fg-3)" : "var(--fg-2)" }}>{v.was}</span>{" "}
               <span style={{ color: "var(--fg-4)" }}>
                 {tag(v.ab)}–{v.bis ? tag(v.bis) : "läuft"}
+                {v.ebene && v.ebene !== row.key ? ` · ${v.ebene}` : ""}
               </span>
               {v.grund ? <div style={{ color: "var(--fg-4)" }}>{v.grund}</div> : null}
             </li>
@@ -200,18 +212,18 @@ export default function DirectionCell({
           nichts, woran sie hängen könnte. */}
       {laufend ? (
         <div className="mt-1 flex gap-1">
-          {/* Nur noch Anzeige. Das Referenzvideo wird seit 2026-08-20 im Reiter
-              „Referenzen" hochgeladen, und zwar an der Ebene, für die es gelten
-              soll — App, Plattform oder dieser Kanal. Ein zweites Eingabefeld
-              hier wäre ein zweiter Weg zur selben Sache. Eine früher gesetzte
-              Kennung bleibt trotzdem sichtbar, damit sie nicht still verschwindet. */}
-          <div
-            className={`${MONO} flex-1 min-w-0 self-center truncate`}
-            style={{ color: "var(--fg-4)" }}
-            title={row.directionRef || undefined}
-          >
-            {row.directionRef ? `Ref: ${row.directionRef}` : "Referenz im Reiter Referenzen"}
-          </div>
+          {/* Die früher gesetzte Kennung bleibt sichtbar, damit sie beim
+              Umstellen nicht still verschwindet. Das Video selbst hängt
+              darunter am Kanal. */}
+          {row.directionRef ? (
+            <div
+              className={`${MONO} flex-1 min-w-0 self-center truncate`}
+              style={{ color: "var(--fg-4)" }}
+              title={row.directionRef}
+            >
+              Ref: {row.directionRef}
+            </div>
+          ) : null}
           <select
             value={row.directionMirrors}
             aria-label={`Welchen Kanal @${row.handle} spiegelt`}
@@ -236,6 +248,18 @@ export default function DirectionCell({
           </select>
         </div>
       ) : null}
+
+      {/* Das Referenzvideo dieses Kanals. Hängt hier nichts, zeigt der Schalter
+          das geerbte Video der App oder Plattform, und ein Upload überschreibt
+          es nur für diesen Kanal. */}
+      <div className="mt-1.5 pt-1.5 border-t border-line">
+        <ReferenceSlot
+          scope={row.key}
+          eigen={eigen}
+          geerbt={geerbt}
+          etikett={`@${row.handle}`}
+        />
+      </div>
 
       {/* Der Altwert aus dem Freitextfeld verschwindet nicht still. Er steht da,
           solange er etwas anderes sagt als die Richtung — bei den fünf Zeilen,

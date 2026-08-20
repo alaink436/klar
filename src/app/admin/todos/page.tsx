@@ -21,7 +21,7 @@ import { ACCOUNTS, APPS, PLATFORM_LABEL, accountKey } from "@/lib/socialAccounts
 import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 import Planner, { type PlannerDay, type PlannerPosting, type PlannerTodo } from "./Planner";
 import PostingBoard, { type BoardAccount, type BoardDay } from "./PostingBoard";
-import ReferenceView, { type ViewChannel, type ViewScopeRef } from "./ReferenceView";
+import { type SlotRef } from "./ReferenceSlot";
 import WeekNav from "./WeekNav";
 import { viewHref, type TodoView } from "./views";
 
@@ -75,9 +75,8 @@ export default async function TodosPage({
   // verlinken, überlebt einen Reload, und jede Seite holt nur ihre eigenen
   // Daten statt beide Hälften bei jedem Aufruf.
   const view: TodoView =
-    sp.v === "posting" ? "posting" : sp.v === "referenzen" ? "referenzen" : "todo";
+    sp.v === "posting" ? "posting" : "todo";
   const onPosting = view === "posting";
-  const onReferenzen = view === "referenzen";
 
   const today = todayInZurich();
   const start = addDays(mondayOf(today), weekOffset * 7);
@@ -132,14 +131,14 @@ export default async function TodosPage({
   const [directionByKey, directionCounts] = onPosting
     ? await Promise.all([listCurrentDirections(), listDirectionCounts()])
     : [new Map(), {} as Record<string, number>];
-  // Die hinterlegten Ebenen braucht nur der Referenz-Reiter. Der Wochenplan
-  // zeigt sie nicht, und das Board hat die Auswahl nicht mehr: das Video haengt
-  // seit 0030 an der Ebene, nicht an einer Bibliothek, aus der man waehlt.
-  const scopeRefs = onReferenzen ? await listChannelReferences() : new Map();
+  // Die Referenz-Ebenen braucht nur das Board. Seit 2026-08-20 haengt das
+  // Video am Kanal (oder an seiner App), und das Board ist der Ort, an dem
+  // die Kanaele stehen — ein eigener Reiter dafuer war einer zu viel.
+  const scopeRefs = onPosting ? await listChannelReferences() : new Map();
 
   // Flache Formen fuer den Reiter: die Store-Typen tragen Supabase-Feldnamen
   // (`video_pfad`), und die haben in einer Client-Komponente nichts verloren.
-  const scopeRefsFlach: Record<string, ViewScopeRef> = Object.fromEntries(
+  const scopeRefsFlach: Record<string, SlotRef> = Object.fromEntries(
     [...scopeRefs.values()].map((r) => [
       r.scope,
       {
@@ -251,22 +250,6 @@ export default async function TodosPage({
   }
   const boardAccounts = clustered;
 
-  // Der Referenz-Reiter zeigt dieselben Kanaele wie das Board, nur nach App und
-  // Plattform gestapelt. Aufgegebene bleiben draussen: fuer einen Kanal, der
-  // nicht mehr laeuft, ein Referenzvideo zu hinterlegen waere Arbeit ins Leere.
-  const viewChannels: ViewChannel[] = boardAccounts
-    .filter((a) => a.state !== "dropped")
-    .map((a) => ({
-      key: a.key,
-      handle: a.handle,
-      platform: a.key.split(":")[1] ?? "",
-      platformLabel: a.platformLabel,
-      app: a.key.split(":")[0] ?? "",
-      appLabel: a.appLabel,
-      appColor: a.appColor,
-      state: a.state,
-      richtung: a.direction,
-    }));
 
   const boardDays: BoardDay[] = days.map((d) => {
     const dow = new Date(`${d.iso}T12:00:00Z`).getUTCDay();
@@ -337,7 +320,6 @@ export default async function TodosPage({
               [
                 { key: "todo", label: t.todoTabPlanner, href: viewHref("todo", weekOffset) },
                 { key: "posting", label: t.todoTabPosting, href: viewHref("posting", weekOffset) },
-                { key: "referenzen", label: "Referenzen", href: viewHref("referenzen", weekOffset) },
               ] as const
             ).map((tab) => (
               <Link
@@ -353,7 +335,7 @@ export default async function TodosPage({
               </Link>
             ))}
           </div>
-          <div className="pb-2.5" style={{ visibility: onReferenzen ? "hidden" : "visible" }}>
+          <div className="pb-2.5">
             {/* `view` statt einer href-Funktion: Funktionen lassen sich nicht
                 an eine Client-Komponente übergeben. Im Referenz-Reiter bleibt
                 die Zeile stehen, aber unsichtbar: sie steuert dort nichts, und
@@ -368,13 +350,7 @@ export default async function TodosPage({
           </div>
         </div>
 
-        {onReferenzen ? (
-          <ReferenceView
-            channels={viewChannels}
-            refs={scopeRefsFlach}
-            meldung={sp.msg}
-          />
-        ) : onPosting ? (
+        {onPosting ? (
           <PostingBoard
             accounts={boardAccounts}
             days={boardDays}
@@ -383,6 +359,7 @@ export default async function TodosPage({
             totals={postTotals}
             platforms={platformHints}
             today={today}
+            scopeRefs={scopeRefsFlach}
           />
         ) : (
           <Planner

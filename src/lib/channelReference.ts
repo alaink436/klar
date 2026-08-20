@@ -40,7 +40,14 @@ function hdr(extra?: HeadersInit): HeadersInit {
 }
 
 export interface ChannelReference {
+  id: number;
   scope: string;
+  /** "YYYY-MM-DD" — seit wann dieses Video an der Ebene haengt. */
+  ab: string;
+  /** "YYYY-MM-DD" oder null, solange es laeuft. */
+  bis: string | null;
+  /** Warum vom alten Video weg. Steht an der Zeile, die endet. */
+  grund: string | null;
   titel: string | null;
   notiz: string | null;
   video_pfad: string | null;
@@ -56,6 +63,8 @@ export interface ChannelReferencePatch {
   videoPfad?: string | null;
   videoLink?: string | null;
   kennung?: string | null;
+  /** Nur bei einem Videowechsel: warum weg vom alten. */
+  grund?: string | null;
 }
 
 /** app | app:plattform | app:plattform:handle */
@@ -99,12 +108,17 @@ async function signiere(pfad: string): Promise<string | null> {
   }
 }
 
-/** Alle hinterlegten Ebenen, nach `scope`, mit frisch signierter Abspiel-URL. */
+/**
+ * Die LAUFENDEN Ebenen (`bis is null`), nach `scope`, mit signierter Abspiel-URL.
+ *
+ * Geschlossene Zeilen bleiben in der Tabelle stehen und kommen hier nicht mit:
+ * das Board zeigt, was gilt, und der Verlauf wird eigens geholt.
+ */
 export async function listChannelReferences(): Promise<Map<string, ChannelReference>> {
   const out = new Map<string, ChannelReference>();
   if (!KEY) return out;
   try {
-    const res = await fetch(`${REST}?select=*&order=scope.asc&limit=500`, {
+    const res = await fetch(`${REST}?select=*&bis=is.null&order=scope.asc&limit=500`, {
       headers: hdr(),
       cache: "no-store",
     });
@@ -143,7 +157,13 @@ export function aufloesen(
   return null;
 }
 
-/** Anlegen oder aendern. Der `scope` ist der Schluessel und wird nie umgeschrieben. */
+/**
+ * Titel, Notiz oder Kennung der LAUFENDEN Zeile aendern.
+ *
+ * Kein Wechsel: einen Tippfehler im Titel zu richten ist keine Umorientierung
+ * und darf keine Zeile im Verlauf erzeugen. Gibt es noch keine laufende Zeile,
+ * wird eine angelegt — sonst haette eine Notiz nichts, woran sie haengt.
+ */
 export async function saveChannelReference(
   scope: string,
   patch: ChannelReferencePatch,
@@ -152,22 +172,136 @@ export async function saveChannelReference(
   const s = scope.trim();
   if (!SCOPE_FORM.test(s)) return { ok: false, fehler: "unbekannte Ebene" };
 
-  const row: Record<string, unknown> = { scope: s };
+  const row: Record<string, unknown> = {};
   if (patch.titel !== undefined) row.titel = clean(patch.titel, 120);
   if (patch.notiz !== undefined) row.notiz = clean(patch.notiz, 600);
-  if (patch.videoPfad !== undefined) row.video_pfad = clean(patch.videoPfad, 400);
-  if (patch.videoLink !== undefined) row.video_link = clean(patch.videoLink, 500);
   if (patch.kennung !== undefined) row.kennung = clean(patch.kennung, 200);
+  // Ein neues Video ist ein Wechsel und laeuft ueber `wechsleVideo`.
+  if (patch.videoPfad !== undefined || patch.videoLink !== undefined) {
+    return wechsleVideo(s, {
+      videoPfad: patch.videoPfad,
+      videoLink: patch.videoLink,
+      grund: patch.grund ?? null,
+    });
+  }
+  if (!Object.keys(row).length) return { ok: true };
 
   try {
-    const res = await fetch(REST, {
-      method: "POST",
-      headers: hdr({ Prefer: "resolution=merge-duplicates,return=minimal" }),
+    const laufend = await fetch(
+      `${REST}?select=id&scope=eq.${encodeURIComponent(s)}&bis=is.null&limit=1`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    const zeilen = laufend.ok ? ((await laufend.json()) as { id: number }[]) : [];
+    const alt = Array.isArray(zeilen) ? zeilen[0] : undefined;
+
+    if (!alt) {
+      const res = await fetch(REST, {
+        method: "POST",
+        headers: hdr({ Prefer: "return=minimal" }),
+        body: JSON.stringify({ ...row, scope: s }),
+      });
+      return res.ok ? { ok: true } : { ok: false, fehler: `Datenbank antwortete ${res.status}` };
+    }
+
+    const res = await fetch(`${REST}?id=eq.${alt.id}`, {
+      method: "PATCH",
+      headers: hdr({ Prefer: "return=minimal" }),
       body: JSON.stringify(row),
     });
     return res.ok ? { ok: true } : { ok: false, fehler: `Datenbank antwortete ${res.status}` };
   } catch {
     return { ok: false, fehler: "Datenbank nicht erreichbar" };
+  }
+}
+
+/**
+ * Ein neues Video an eine Ebene haengen: die laufende Zeile schliessen, eine
+ * neue anlegen.
+ *
+ * Reihenfolge zaehlt — erst schliessen, dann anlegen. Andersherum laegen fuer
+ * einen Moment zwei Zeilen mit `bis is null` vor, und der Unique-Index aus 0031
+ * wiese das Anlegen ab.
+ *
+ * Titel und Notiz wandern mit: sie beschreiben meist die Ebene und nicht das
+ * einzelne Video, und sie erneut tippen zu muessen waere Arbeit ohne Ertrag.
+ */
+export async function wechsleVideo(
+  scope: string,
+  opts: { videoPfad?: string | null; videoLink?: string | null; grund?: string | null },
+): Promise<{ ok: boolean; fehler?: string }> {
+  if (!KEY) return { ok: false, fehler: "nicht konfiguriert" };
+  const s = scope.trim();
+  if (!SCOPE_FORM.test(s)) return { ok: false, fehler: "unbekannte Ebene" };
+  const tag = new Date().toISOString().slice(0, 10);
+
+  try {
+    const laufend = await fetch(
+      `${REST}?select=*&scope=eq.${encodeURIComponent(s)}&bis=is.null&limit=1`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    const zeilen = laufend.ok ? ((await laufend.json()) as ChannelReference[]) : [];
+    const alt = Array.isArray(zeilen) ? zeilen[0] : undefined;
+
+    const neu = {
+      scope: s,
+      titel: alt?.titel ?? null,
+      notiz: alt?.notiz ?? null,
+      kennung: alt?.kennung ?? null,
+      video_pfad: opts.videoPfad !== undefined ? clean(opts.videoPfad, 400) : alt?.video_pfad ?? null,
+      video_link: opts.videoLink !== undefined ? clean(opts.videoLink, 500) : alt?.video_link ?? null,
+      ab: tag,
+    };
+
+    // Nichts mehr dran? Dann ist es kein Wechsel, sondern ein Wegnehmen: die
+    // laufende Zeile wird geschlossen und keine neue eroeffnet, damit die
+    // Vererbung von der Ebene darueber wieder greift.
+    const leer = !neu.video_pfad && !neu.video_link;
+
+    if (alt) {
+      const bis = alt.ab && String(alt.ab).slice(0, 10) > tag ? String(alt.ab).slice(0, 10) : tag;
+      const zu = await fetch(`${REST}?id=eq.${alt.id}`, {
+        method: "PATCH",
+        headers: hdr({ Prefer: "return=minimal" }),
+        body: JSON.stringify({ bis, grund: clean(opts.grund, 500) }),
+      });
+      if (!zu.ok) return { ok: false, fehler: `Schliessen fehlgeschlagen (${zu.status})` };
+    }
+    if (leer) return { ok: true };
+
+    const res = await fetch(REST, {
+      method: "POST",
+      headers: hdr({ Prefer: "return=minimal" }),
+      body: JSON.stringify(neu),
+    });
+    return res.ok ? { ok: true } : { ok: false, fehler: `Datenbank antwortete ${res.status}` };
+  } catch {
+    return { ok: false, fehler: "Datenbank nicht erreichbar" };
+  }
+}
+
+/**
+ * Der Verlauf aller Ebenen eines Kanals, neueste zuerst.
+ *
+ * Alle drei Ebenen zusammen, weil ein Kanal auch dann betroffen ist, wenn das
+ * Video an seiner App gewechselt hat — von seiner Warte aus ist das derselbe
+ * Vorgang.
+ */
+export async function listChannelReferenceHistory(
+  accountKey: string,
+): Promise<ChannelReference[]> {
+  if (!KEY || !accountKey.trim()) return [];
+  const kette = scopeKette(accountKey);
+  const inListe = kette.map((s) => `"${s}"`).join(",");
+  try {
+    const res = await fetch(
+      `${REST}?select=*&scope=in.(${encodeURIComponent(inListe)})&order=ab.desc,id.desc&limit=100`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return [];
+    const rows = (await res.json()) as ChannelReference[];
+    return Array.isArray(rows) ? rows : [];
+  } catch {
+    return [];
   }
 }
 
@@ -206,44 +340,24 @@ export async function uploadChannelVideo(
       const text = await res.text().catch(() => "");
       return { ok: false, fehler: `Upload ${res.status}: ${text.slice(0, 160)}` };
     }
-    return saveChannelReference(s, { videoPfad: pfad });
+    return wechsleVideo(s, { videoPfad: pfad, grund: null });
   } catch {
     return { ok: false, fehler: "Upload fehlgeschlagen" };
   }
 }
 
 /**
- * Das Video einer Ebene wegnehmen. Bleibt danach nichts uebrig — kein Link,
- * kein Titel, keine Notiz — wird die Zeile geloescht, damit sie die Vererbung
- * nicht laenger als leerer Eintrag blockiert.
+ * Das Video einer Ebene wegnehmen.
+ *
+ * Die laufende Zeile wird geschlossen, nicht geloescht: sie ist der Beleg, dass
+ * dort einmal etwas lief. Danach greift die Vererbung von der Ebene darueber
+ * wieder. Die Datei im Bucket bleibt bewusst liegen — der Verlauf zeigt sonst
+ * auf ein Video, das niemand mehr ansehen kann.
  */
-export async function removeChannelVideo(scope: string): Promise<{ ok: boolean }> {
-  if (!KEY) return { ok: false };
-  const s = scope.trim();
-  try {
-    const jetzt = await fetch(`${REST}?select=*&scope=eq.${encodeURIComponent(s)}&limit=1`, {
-      headers: hdr(),
-      cache: "no-store",
-    });
-    const rows = jetzt.ok ? ((await jetzt.json()) as ChannelReference[]) : [];
-    const zeile = Array.isArray(rows) ? rows[0] : undefined;
-    if (zeile?.video_pfad) {
-      await fetch(`${STORAGE}/object/${BUCKET}/${encodeURI(zeile.video_pfad)}`, {
-        method: "DELETE",
-        headers: hdr(),
-      });
-    }
-    const leerDanach = !zeile?.video_link && !zeile?.titel && !zeile?.notiz && !zeile?.kennung;
-    if (leerDanach) {
-      const res = await fetch(`${REST}?scope=eq.${encodeURIComponent(s)}`, {
-        method: "DELETE",
-        headers: hdr({ Prefer: "return=minimal" }),
-      });
-      return { ok: res.ok };
-    }
-    const res = await saveChannelReference(s, { videoPfad: null });
-    return { ok: res.ok };
-  } catch {
-    return { ok: false };
-  }
+export async function removeChannelVideo(
+  scope: string,
+  grund?: string | null,
+): Promise<{ ok: boolean }> {
+  const res = await wechsleVideo(scope, { videoPfad: null, videoLink: null, grund: grund ?? null });
+  return { ok: res.ok };
 }

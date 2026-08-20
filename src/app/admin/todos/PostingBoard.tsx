@@ -51,6 +51,7 @@ import {
 } from "@/lib/accountStates";
 import { FIELD } from "./boardStyles";
 import DirectionCell from "./DirectionCell";
+import ReferenceSlot, { type SlotRef } from "./ReferenceSlot";
 import {
   addAccount,
   linkChannels,
@@ -164,6 +165,7 @@ export default function PostingBoard({
   totals,
   platforms,
   today,
+  scopeRefs,
 }: {
   accounts: BoardAccount[];
   days: BoardDay[];
@@ -176,6 +178,8 @@ export default function PostingBoard({
   log: Record<string, string>;
   /** Vorschläge fürs Plattform-Feld, aus dem was es schon gibt. */
   platforms: string[];
+  /** Die laufenden Referenz-Ebenen, nach `scope`. App, Plattform und Kanal. */
+  scopeRefs: Record<string, SlotRef>;
 }) {
   const [, startTransition] = useTransition();
   const [openDay, setOpenDay] = useState<string | null>(null);
@@ -870,7 +874,12 @@ export default function PostingBoard({
                     </td>
 
                     <td className="px-2.5 py-2 align-top">
-                      <DirectionCell row={r} others={rows} />
+                      <DirectionCell
+                        row={r}
+                        others={rows}
+                        eigen={scopeRefs[r.key]}
+                        geerbt={erbe(r.key, scopeRefs)}
+                      />
                       {/* Woher das Zeug kommt, steht direkt unter dem, was es
                           ist — beim Posten wird beides in derselben Sekunde
                           gebraucht, und getrennte Spalten hätten die Zeile
@@ -1134,6 +1143,8 @@ export default function PostingBoard({
         </datalist>
       </div>
 
+      <ScopeLeiste rows={rows} scopeRefs={scopeRefs} />
+
       <div className="px-5 py-3 border-t border-line">
         {adding ? (
           <AddAccountForm
@@ -1171,6 +1182,26 @@ export default function PostingBoard({
  * hätte entweder alle umfasst oder wäre am ersten Spaltenrand abgerissen.
  * Die Rinne steht auch in ungebundenen Zeilen, sonst rückte der Text ein.
  */
+/**
+ * Was fuer einen Kanal gilt, wenn an ihm selbst nichts haengt — und ab welcher
+ * Ebene. Dieselbe Regel wie `aufloesen` auf dem Server: der spezifischste
+ * Treffer gewinnt, und eine Zeile zaehlt erst, wenn wirklich ein Video oder ein
+ * Link dranhaengt.
+ */
+function erbe(
+  key: string,
+  refs: Record<string, SlotRef>,
+): { ref: SlotRef; ebene: string } | null {
+  const teile = key.split(":");
+  // Bei i = teile.length waere es die eigene Ebene, und die ist kein Erbe.
+  for (let i = teile.length - 1; i >= 1; i--) {
+    const scope = teile.slice(0, i).join(":");
+    const r = refs[scope];
+    if (r && (r.videoPfad || r.videoLink)) return { ref: r, ebene: scope };
+  }
+  return null;
+}
+
 function LinkLine({ up, down, member }: { up: boolean; down: boolean; member: boolean }) {
   // ⚠️ Die Rinne hängt an der ZELLE (absolut, `inset-y-0`) und nicht im
   // Textfluss. Als Flex-Kind wuchs sie nur mit dem Zellinhalt — rund 50 px —,
@@ -1367,6 +1398,93 @@ function AddAccountForm({
       <Button variant="ghost" size="sm" onClick={onCancel}>
         Abbrechen
       </Button>
+    </div>
+  );
+}
+
+/**
+ * Die Referenz je App und je Plattform, aufklappbar ueber der Kanalliste.
+ *
+ * Warum nicht in der Tabelle: eine App ist keine Zeile im Board, und eine
+ * kuenstliche Zeile dafuer wuerde die Wochenspalten mitschleppen, die dort
+ * nichts bedeuten. Zugeklappt kostet die Leiste eine Zeile Platz.
+ *
+ * Der Ertrag steht im Bestand: die drei Kelva-Kanaele fahren dasselbe, die zwei
+ * Basalt-Motivationskanaele auch. Einmal an der App hochladen statt dreimal am
+ * Kanal ist die Arbeit, die sonst jedes Mal wieder anfaellt.
+ */
+function ScopeLeiste({
+  rows,
+  scopeRefs,
+}: {
+  rows: BoardAccount[];
+  scopeRefs: Record<string, SlotRef>;
+}) {
+  const [offen, setOffen] = useState(false);
+
+  // App -> Plattformen, aus den Kanaelen selbst. Aufgegebene bleiben draussen:
+  // fuer sie ein Video zu hinterlegen waere Arbeit ins Leere.
+  const apps = new Map<string, { label: string; color: string; plattformen: Map<string, string> }>();
+  for (const r of rows) {
+    if (r.state === "dropped") continue;
+    const [app, plattform] = r.key.split(":");
+    if (!app || !plattform) continue;
+    const a = apps.get(app) ?? { label: r.appLabel, color: r.appColor, plattformen: new Map() };
+    a.plattformen.set(plattform, r.platformLabel);
+    apps.set(app, a);
+  }
+
+  const belegt = [...apps.keys()].filter((a) => scopeRefs[a]).length;
+
+  return (
+    <div className="border-t border-line">
+      <button
+        type="button"
+        onClick={() => setOffen((v) => !v)}
+        aria-expanded={offen}
+        className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] w-full text-left px-5 py-2.5 hover:text-fg"
+        style={{ color: "var(--fg-3)" }}
+      >
+        {offen ? "▾" : "▸"} Referenz je App und Plattform ({belegt} von {apps.size} Apps belegt) —
+        gilt fuer alle Kanaele darunter, solange der Kanal nichts Eigenes hat
+      </button>
+
+      {offen ? (
+        <div className="px-5 pb-4 flex flex-wrap gap-6">
+          {[...apps.entries()].map(([app, a]) => (
+            <div key={app} style={{ minWidth: 260 }}>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="inline-block size-2 rounded-full" style={{ background: a.color }} />
+                <span className="text-[12.5px] font-semibold text-fg">{a.label}</span>
+              </div>
+              <ReferenceSlot scope={app} eigen={scopeRefs[app]} etikett={a.label} breit />
+
+              <div className="mt-2 space-y-2 pl-2 border-l border-line">
+                {[...a.plattformen.entries()].map(([p, label]) => (
+                  <div key={p}>
+                    <div
+                      className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] mb-1"
+                      style={{ color: "var(--fg-4)" }}
+                    >
+                      {label}
+                    </div>
+                    <ReferenceSlot
+                      scope={`${app}:${p}`}
+                      eigen={scopeRefs[`${app}:${p}`]}
+                      geerbt={
+                        scopeRefs[app] && (scopeRefs[app].videoPfad || scopeRefs[app].videoLink)
+                          ? { ref: scopeRefs[app], ebene: app }
+                          : null
+                      }
+                      etikett={`${a.label} auf ${label}`}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

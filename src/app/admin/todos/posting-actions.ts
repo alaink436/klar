@@ -26,6 +26,7 @@ import {
   type ReferencePatch,
 } from "@/lib/references";
 import {
+  listChannelReferenceHistory,
   saveChannelReference,
   type ChannelReferencePatch,
 } from "@/lib/channelReference";
@@ -83,6 +84,57 @@ export async function setDirectionPointer(key: string, patch: DirectionPatch): P
   if (!(await requireAdmin())) return;
   await patchCurrent(key, patch);
   revalidatePath("/admin/todos");
+}
+
+export interface Zeitleiste {
+  art: "richtung" | "referenz";
+  /** Was gesetzt wurde: die Richtung, oder der Titel des Videos. */
+  was: string;
+  /** Bei einer Referenz: die Ebene, an der sie hing. */
+  ebene?: string;
+  ab: string;
+  bis: string | null;
+  grund: string | null;
+}
+
+/**
+ * Richtungswechsel und Referenzwechsel eines Kanals in EINER Liste, neueste
+ * zuerst.
+ *
+ * Getrennt zu zeigen hiesse, den Zusammenhang wegzuwerfen: eine neue Richtung
+ * und ein neues Referenzvideo sind fast immer derselbe Entschluss, ein paar
+ * Sekunden auseinander. Nebeneinander liest man das, untereinander nicht.
+ *
+ * Die Referenzen kommen aus allen drei Ebenen des Kanals: hat das Video an
+ * seiner App gewechselt, ist der Kanal genauso betroffen.
+ */
+export async function loadChannelTimeline(key: string): Promise<Zeitleiste[]> {
+  if (!(await requireAdmin())) return [];
+  const [richtungen, referenzen] = await Promise.all([
+    listDirectionHistory(key),
+    listChannelReferenceHistory(key),
+  ]);
+  const alles: Zeitleiste[] = [
+    ...richtungen.map((r) => ({
+      art: "richtung" as const,
+      was: r.richtung,
+      ab: r.ab,
+      bis: r.bis,
+      grund: r.grund,
+    })),
+    ...referenzen.map((r) => ({
+      art: "referenz" as const,
+      was: r.titel || (r.video_pfad ? "hochgeladenes Video" : r.video_link || "Referenz"),
+      ebene: r.scope,
+      ab: String(r.ab).slice(0, 10),
+      bis: r.bis ? String(r.bis).slice(0, 10) : null,
+      grund: r.grund,
+    })),
+  ];
+  // Neueste zuerst; bei gleichem Datum die laufende oben, sie ist die Antwort
+  // auf „was gilt jetzt".
+  alles.sort((a, b) => (a.ab === b.ab ? (a.bis ? 1 : 0) - (b.bis ? 1 : 0) : a.ab < b.ab ? 1 : -1));
+  return alles;
 }
 
 /**
