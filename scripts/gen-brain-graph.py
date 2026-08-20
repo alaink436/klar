@@ -216,11 +216,26 @@ def zaehle(r):
     return blaetter[r]
 zaehle(WURZEL)
 
-# Radius je Tiefe. Die Schritte werden nach aussen kleiner, sonst zerreisst
-# es tiefe Zweige (Projects/<Projekt>/<Unterordner>/Datei).
-RADIUS = [0.0, 0.34, 0.66, 0.90, 1.08, 1.22, 1.33]
+# Radius je Tiefe. Die Schritte werden nach aussen groesser, nicht kleiner:
+# dort sitzen die meisten Knoten (Tiefe 3 traegt 243 von 440), und dort wird
+# der Platz gebraucht.
+RADIUS = [0.0, 0.34, 0.72, 1.06, 1.36, 1.62, 1.84]
 def radius(tiefe: int) -> float:
-    return RADIUS[tiefe] if tiefe < len(RADIUS) else RADIUS[-1] + 0.09 * (tiefe - len(RADIUS) + 1)
+    return RADIUS[tiefe] if tiefe < len(RADIUS) else RADIUS[-1] + 0.20 * (tiefe - len(RADIUS) + 1)
+
+# Radiale Staffelung innerhalb eines Rings.
+#
+# Gemessen am ersten Wurf: die engste Winkelluecke war auf JEDEM Ring 0,81°,
+# naemlich die kleinste Blattscheibe (360° / 445 Blaetter). Der Radius half
+# deshalb nicht, die Enge sass in der Winkelrichtung. Kleinster Abstand
+# 0,0048, also 6,2 px bei SPREAD 1300, bei Punktdurchmessern von 8 bis 42 px:
+# 660 Paare lagen naeher als 26 px beieinander.
+#
+# Benachbarte Blaetter bekommen daher abwechselnd einen anderen Radius. Drei
+# Stufen reichen, und sie kosten nur einen Bruchteil des Ringabstands, also
+# bleiben die Ringe als Ringe lesbar.
+STAFFEL_STUFEN = 3
+STAFFEL_ANTEIL = 0.34   # Anteil des Abstands zum naechsten Ring
 
 P = {}
 def platziere(r, tiefe, a0, a1):
@@ -238,6 +253,41 @@ def platziere(r, tiefe, a0, a1):
         a += anteil
 
 platziere(WURZEL, 0, -math.pi, math.pi)
+
+# Staffeln: je Ring die Knoten nach Winkel sortieren und reihum radial
+# versetzen. Ordner bleiben auf ihrem Ring, sie tragen die Struktur und
+# sollen eine saubere Linie bilden.
+tiefe_von = {}
+def merke_tiefe(r, t):
+    tiefe_von[r] = t
+    for k in kinder.get(r, []):
+        merke_tiefe(k, t + 1)
+merke_tiefe(WURZEL, 0)
+
+# Dateien und Ordner getrennt staffeln. Ordner schwaecher und nur in zwei
+# Stufen: sie tragen die Struktur und sollen als Ring erkennbar bleiben.
+# Ohne ihre Staffelung standen kleine Ordner mit winzigem Sektor Schulter an
+# Schulter (Research neben setup, 0,0048), und die 61 Marken-Ordner unter
+# Design-Systems lagen alle auf 0,0102.
+for nur_ordner, stufen, anteil in ((False, STAFFEL_STUFEN, STAFFEL_ANTEIL),
+                                   (True, 2, STAFFEL_ANTEIL * 0.5)):
+    pro_ring = {}
+    for r, t in tiefe_von.items():
+        if r == WURZEL:
+            continue
+        if r.startswith(ORD) != nur_ordner:
+            continue
+        pro_ring.setdefault(t, []).append(r)
+
+    for t, rs in pro_ring.items():
+        spanne = radius(t + 1) - radius(t) if t + 1 < len(RADIUS) else 0.20
+        schritt = spanne * anteil / max(stufen - 1, 1)
+        rs.sort(key=lambda r: math.atan2(P[bidx[r]][1], P[bidx[r]][0]))
+        for k, r in enumerate(rs):
+            x, y = P[bidx[r]]
+            w = math.atan2(y, x)
+            rr = math.hypot(x, y) + (k % stufen) * schritt
+            P[bidx[r]] = (rr * math.cos(w), rr * math.sin(w))
 
 # Baumkanten. Der dritte Wert markiert sie, damit der Client sie blasser
 # zeichnen kann; ein Client, der nur [a, b] liest, ignoriert ihn.
