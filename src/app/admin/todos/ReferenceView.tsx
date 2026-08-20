@@ -1,406 +1,317 @@
 "use client";
 
-// Der Referenz-Reiter: anlegen, bearbeiten, Video hinterlegen, ansehen.
+// Der Referenz-Reiter: je App, je Plattform und je Kanal ein Feld, in das
+// Alain das Referenzvideo hochlädt. **Das Hochladen ist die Zuordnung** — keine
+// Kennung tippen, keine Auswahlliste.
 //
-// Bis 2026-08-20 hing die Liste als aufklappbares Panel unter der
-// Posting-Tabelle. Erreichbar war sie, auffindbar nicht, und für einen
-// Videospieler war dort schlicht kein Platz. Als eigene Ansicht bekommt sie die
-// Breite, die ein Clip braucht.
+// Die erste Fassung war eine Bibliothek mit Kennungen, aus der man je Kanal
+// einen Eintrag auswählt. Das ging an der Sache vorbei: gemeint war ein Feld
+// dort, wo der Kanal steht.
 //
-// Die Verbindung zum Posting-Reiter steht an jeder Zeile: **wer fährt das
-// gerade**. Ohne sie wären es zwei Listen, die man im Kopf abgleicht, und genau
-// das war der Zustand, aus dem diese ganze Arbeit kam.
+// Die drei Ebenen erben nach unten. Ein Video an der App gilt für alle ihre
+// Kanäle, eines an der Plattform für alle Kanäle dieser Plattform, eines am
+// Kanal nur dort. Der spezifischste Treffer gewinnt, und wo geerbt wird, steht
+// es an der Zeile. Das passt auf den Bestand: die drei Kelva-Kanäle fahren
+// dasselbe, die zwei Basalt-Motivationskanäle auch — einmal an der App
+// hochladen statt dreimal am Kanal.
 //
-// Zwei Wege zum Video, weil es zwei Fälle gibt: die Datei hochladen (dann läuft
-// sie hier im Spieler) oder nur die Adresse des Originals hinterlegen (bei
-// fremden Posts, die sich nicht herunterladen lassen). Beide dürfen
-// gleichzeitig stehen, der Link belegt die Herkunft.
-//
-// Was hier NICHT getippt wird, ist die Machart — Länge, Schnittliste,
+// Was hier NICHT getippt wird, ist die Machart des Videos: Länge, Schnittliste,
 // Kameraführung. Die misst ein Agent bei 10 fps über den ganzen Clip und
-// schreibt sie ins Vault-Manifest unter derselben Kennung. Zwei Fassungen
-// davon wären eine zu viel, und die getippte wäre die schlechtere.
+// schreibt sie ins Vault-Manifest.
 
 import { useState, useTransition } from "react";
 import { FIELD } from "./boardStyles";
-import { dropReference, upsertReference } from "./posting-actions";
+import { setChannelReference } from "./posting-actions";
 
 const MONO = "[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em]";
-const KENNUNG_FORM = /^[a-z0-9._-]+\/[a-zA-Z0-9._-]+$/;
 
-export interface ViewReference {
-  kennung: string;
-  titel: string;
-  herkunft: string | null;
+/** Eine hinterlegte Ebene. `scope` ist app | app:plattform | app:plattform:handle. */
+export interface ViewScopeRef {
+  scope: string;
+  titel: string | null;
   notiz: string | null;
-  ablage: string | null;
-  aktiv: boolean;
   videoPfad: string | null;
   videoLink: string | null;
-  /** Signierte Abspiel-URL, eine Stunde gültig. Vom Server bei jedem Aufruf frisch. */
+  /** Signierte Abspiel-URL, eine Stunde gültig. */
   videoUrl: string | null;
 }
 
-export interface ViewUse {
-  accountKey: string;
+export interface ViewChannel {
+  key: string;
   handle: string;
+  platform: string;
+  platformLabel: string;
+  app: string;
+  appLabel: string;
+  appColor: string;
+  state: string;
   richtung: string;
 }
 
 export default function ReferenceView({
-  references,
-  usage,
+  channels,
+  refs,
   meldung,
 }: {
-  references: ViewReference[];
-  /** Kennung → welche Kanäle sie gerade fahren. Die Brücke zum Posting-Reiter. */
-  usage: Record<string, ViewUse[]>;
+  channels: ViewChannel[];
+  /** Nach `scope`. Enthält nur die Ebenen, an denen wirklich etwas hängt. */
+  refs: Record<string, ViewScopeRef>;
   /** Rückmeldung der Upload-Route, kommt als `?msg=` zurück. */
   meldung?: string;
 }) {
-  const [pending, startTransition] = useTransition();
-  const [fehler, setFehler] = useState<string | null>(null);
-
-  const [kennung, setKennung] = useState("");
-  const [titel, setTitel] = useState("");
-  const [herkunft, setHerkunft] = useState("");
-
-  const aktive = references.filter((r) => r.aktiv);
-  const stillgelegt = references.filter((r) => !r.aktiv);
-  const mitVideo = references.filter((r) => r.videoPfad || r.videoLink).length;
-
-  function anlegen(): void {
-    const k = kennung.trim().toLowerCase();
-    if (!KENNUNG_FORM.test(k)) {
-      setFehler("Kennung braucht die Form <projekt>/<id>, z. B. basalt/avow-gym-fyp");
-      return;
+  // Nach App, dann Plattform gruppieren — dieselbe Reihenfolge, in der Alain
+  // die Kanäle im Posting-Reiter sieht.
+  const apps: { app: string; label: string; color: string; plattformen: Map<string, ViewChannel[]> }[] = [];
+  for (const c of channels) {
+    let a = apps.find((x) => x.app === c.app);
+    if (!a) {
+      a = { app: c.app, label: c.appLabel, color: c.appColor, plattformen: new Map() };
+      apps.push(a);
     }
-    if (!titel.trim()) {
-      setFehler("Ohne Titel stünde die Zeile namenlos in der Auswahl.");
-      return;
-    }
-    setFehler(null);
-    startTransition(async () => {
-      const res = await upsertReference(k, {
-        titel: titel.trim(),
-        herkunft: herkunft.trim() || null,
-        aktiv: true,
-      });
-      if (!res.ok) {
-        setFehler(res.fehler ?? "Speichern fehlgeschlagen");
-        return;
-      }
-      setKennung("");
-      setTitel("");
-      setHerkunft("");
-    });
+    const liste = a.plattformen.get(c.platform) ?? [];
+    liste.push(c);
+    a.plattformen.set(c.platform, liste);
   }
 
+  const belegt = channels.filter((c) => aufloesen(c.key, refs)).length;
+
   return (
-    <div className={pending ? "opacity-60 transition-opacity" : "transition-opacity"}>
+    <div>
       <div className="px-5 py-4 border-b border-line">
-        <p className="text-[12px] leading-snug max-w-[62ch]" style={{ color: "var(--fg-3)" }}>
-          Deine Referenzvideos. Was hier steht, lässt sich im Posting-Reiter jedem Kanal als
-          Richtung-Referenz zuweisen. Die <strong>Kennung</strong> ist der Zeiger, den auch das
-          Manifest im AI-Brain benutzt, und sie lässt sich nachträglich nicht ändern.
+        <p className="text-[12px] leading-snug max-w-[68ch]" style={{ color: "var(--fg-3)" }}>
+          Lade das Referenzvideo dort hoch, wo es gelten soll. An der <strong>App</strong> gilt es
+          für alle ihre Kanäle, an der <strong>Plattform</strong> für alle Kanäle dieser
+          Plattform, am <strong>Kanal</strong> nur dort. Das Genauere gewinnt, und wo ein Kanal
+          erbt, steht es an seiner Zeile.
         </p>
         <p className={`${MONO} mt-2`} style={{ color: "var(--fg-4)" }}>
-          {aktive.length} aktiv · {mitVideo} mit Video · {stillgelegt.length} stillgelegt
+          {belegt} von {channels.length} Kanälen haben eine Referenz
         </p>
       </div>
 
       {meldung ? (
-        <div
-          className="px-5 py-2.5 border-b border-line text-[12px]"
-          style={{ color: "var(--fg-2)" }}
-          role="status"
-        >
+        <div className="px-5 py-2.5 border-b border-line text-[12px]" style={{ color: "var(--fg-2)" }} role="status">
           {meldung}
         </div>
       ) : null}
-      {fehler ? (
-        <div
-          className="px-5 py-2.5 border-b border-line text-[12px]"
-          style={{ color: "var(--fg-2)" }}
-          role="status"
-        >
-          {fehler}
-        </div>
-      ) : null}
 
-      {/* Anlegen steht oben: eine Referenz trägt man ein, während man sie noch
-          vor Augen hat, nicht nachdem man durch die ganze Liste gescrollt ist. */}
-      <div className="px-5 py-3 border-b border-line flex flex-wrap gap-1.5 items-center">
-        <input
-          value={kennung}
-          onChange={(e) => setKennung(e.target.value)}
-          placeholder="basalt/mein-neues-video"
-          aria-label="Kennung der neuen Referenz"
-          className={`${FIELD} [font-family:var(--font-mono)]`}
-          style={{ minWidth: 250 }}
-        />
-        <input
-          value={titel}
-          onChange={(e) => setTitel(e.target.value)}
-          placeholder="Titel"
-          aria-label="Titel der neuen Referenz"
-          className={FIELD}
-          style={{ minWidth: 170 }}
-        />
-        <input
-          value={herkunft}
-          onChange={(e) => setHerkunft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") anlegen();
-          }}
-          placeholder="Herkunft: TikTok-Link, @konto …"
-          aria-label="Herkunft der neuen Referenz"
-          className={`${FIELD} flex-1`}
-          style={{ minWidth: 220 }}
-        />
-        <button
-          type="button"
-          onClick={anlegen}
-          className={`${MONO} px-3 h-8 rounded-[4px] bg-fg text-[var(--accent-fg)]`}
-        >
-          anlegen
-        </button>
-      </div>
+      {apps.map((a) => (
+        <section key={a.app} className="border-b border-line">
+          <div className="px-5 pt-4 pb-2 flex items-center gap-2">
+            <span className="inline-block size-2.5 rounded-full" style={{ background: a.color }} />
+            <h2 className="text-[15px] font-semibold text-fg">{a.label}</h2>
+            <span className={MONO} style={{ color: "var(--fg-4)" }}>
+              gilt für alle Kanäle dieser App
+            </span>
+          </div>
+          <div className="px-5 pb-3">
+            <Slot scope={a.app} eintrag={refs[a.app]} etikett={`${a.label}, ganze App`} />
+          </div>
 
-      {references.length === 0 ? (
-        <p className={`${MONO} px-5 py-6`} style={{ color: "var(--fg-4)" }}>
-          noch keine Referenz eingetragen
-        </p>
-      ) : (
-        <ul>
-          {[...aktive, ...stillgelegt].map((r) => (
-            <ReferenceRow key={r.kennung} r={r} uses={usage[r.kennung] ?? []} />
-          ))}
-        </ul>
-      )}
+          {[...a.plattformen.entries()].map(([plattform, kanaele]) => {
+            const pScope = `${a.app}:${plattform}`;
+            return (
+              <div key={pScope} className="px-5 pb-4 border-t border-line">
+                <div className="pt-3 pb-2 flex items-center gap-2">
+                  <h3 className="text-[13px] font-semibold text-fg-2">{kanaele[0].platformLabel}</h3>
+                  <span className={MONO} style={{ color: "var(--fg-4)" }}>
+                    gilt für alle {a.label}-Kanäle hier
+                  </span>
+                </div>
+                <Slot
+                  scope={pScope}
+                  eintrag={refs[pScope]}
+                  etikett={`${a.label} auf ${kanaele[0].platformLabel}`}
+                />
+
+                <ul className="mt-3 space-y-3 pl-3 border-l border-line">
+                  {kanaele.map((c) => {
+                    const treffer = aufloesen(c.key, refs);
+                    const geerbt = treffer && treffer.ebene !== c.key ? treffer.ebene : null;
+                    return (
+                      <li key={c.key}>
+                        <div className="flex items-baseline gap-2 flex-wrap mb-1.5">
+                          <span className="text-[12.5px] text-fg">@{c.handle}</span>
+                          <span className={MONO} style={{ color: "var(--fg-4)" }}>
+                            {c.state}
+                            {c.richtung ? ` · ${c.richtung}` : " · keine Richtung"}
+                          </span>
+                          {geerbt ? (
+                            <span className={MONO} style={{ color: "var(--fg-3)" }}>
+                              erbt von {geerbt}
+                            </span>
+                          ) : null}
+                        </div>
+                        <Slot
+                          scope={c.key}
+                          eintrag={refs[c.key]}
+                          etikett={`@${c.handle}`}
+                          geerbtVon={geerbt}
+                          geerbtesVideo={geerbt ? treffer?.treffer.videoUrl ?? null : null}
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
+        </section>
+      ))}
     </div>
   );
 }
 
+/** Dieselbe Auflösung wie auf dem Server, damit die Anzeige nicht abweicht. */
+function aufloesen(
+  key: string,
+  refs: Record<string, ViewScopeRef>,
+): { treffer: ViewScopeRef; ebene: string } | null {
+  const teile = key.split(":");
+  for (let i = teile.length; i >= 1; i--) {
+    const scope = teile.slice(0, i).join(":");
+    const r = refs[scope];
+    // Eine Zeile zählt erst als hinterlegt, wenn wirklich etwas dranhängt.
+    if (r && (r.videoPfad || r.videoLink)) return { treffer: r, ebene: scope };
+  }
+  return null;
+}
+
 /**
- * Eine Zeile: links das Video, rechts die Felder.
+ * Ein Feld für eine Ebene: Spieler, Datei-Auswahl, Titel, Link, Notiz.
  *
- * Die Felder schreiben beim Verlassen (`onBlur`), nicht bei jedem Tastendruck —
- * sonst liefe pro Buchstabe ein Schreibvorgang. Dasselbe Muster wie im
- * Posting-Board, damit sich beide Reiter gleich anfühlen.
+ * Der Upload ist ein gewöhnliches Formular an eine Route und keine
+ * Server-Action: 200 MB passen nicht durch deren Serialisierung, und so
+ * funktioniert es auch ohne JavaScript.
  */
-function ReferenceRow({ r, uses }: { r: ViewReference; uses: ViewUse[] }) {
+function Slot({
+  scope,
+  eintrag,
+  etikett,
+  geerbtVon,
+  geerbtesVideo,
+}: {
+  scope: string;
+  eintrag?: ViewScopeRef;
+  etikett: string;
+  geerbtVon?: string | null;
+  geerbtesVideo?: string | null;
+}) {
   const [pending, startTransition] = useTransition();
   const [offen, setOffen] = useState(false);
 
-  function feld(patch: Parameters<typeof upsertReference>[1]): void {
+  const eigenesVideo = eintrag?.videoUrl ?? null;
+  const zeigt = eigenesVideo ?? geerbtesVideo ?? null;
+  const hatEigenes = Boolean(eintrag?.videoPfad || eintrag?.videoLink);
+
+  function feld(patch: Parameters<typeof setChannelReference>[1]): void {
     startTransition(async () => {
-      await upsertReference(r.kennung, patch);
+      await setChannelReference(scope, patch);
     });
   }
 
   return (
-    <li
-      className="border-b border-line px-5 py-4"
-      style={{ opacity: r.aktiv ? 1 : 0.55 }}
-    >
-      <div className="flex gap-5 flex-wrap">
-        {/* Der Spieler ist bewusst schmal und hochkant: fast jede Referenz ist
-            9:16, und in Postkartenbreite sähe man nichts von der Mimik. */}
-        <div className="shrink-0" style={{ width: 168 }}>
-          {r.videoUrl ? (
-            <video
-              src={r.videoUrl}
-              controls
-              preload="metadata"
-              playsInline
-              className="w-full rounded-[6px] border border-line bg-black"
-              style={{ aspectRatio: "9 / 16", objectFit: "contain" }}
-            />
-          ) : (
-            <div
-              className={`${MONO} w-full rounded-[6px] border border-dashed border-line-strong flex items-center justify-center text-center px-2`}
-              style={{ aspectRatio: "9 / 16", color: "var(--fg-4)" }}
-            >
-              kein Video
-              <br />
-              hinterlegt
-            </div>
-          )}
-
-          {/* Ein gewöhnliches Formular an eine Route: eine 200-MB-Datei durch
-              eine Server-Action zu schicken ginge nicht, und so läuft es auch
-              ohne JavaScript. */}
-          <form
-            action="/admin/referenz-video"
-            method="post"
-            encType="multipart/form-data"
-            className="mt-1.5"
+    <div className={`flex gap-3 flex-wrap ${pending ? "opacity-60" : ""}`}>
+      <div className="shrink-0" style={{ width: 108 }}>
+        {zeigt ? (
+          <video
+            src={zeigt}
+            controls
+            preload="metadata"
+            playsInline
+            className="w-full rounded-[5px] border border-line bg-black"
+            style={{ aspectRatio: "9 / 16", objectFit: "contain", opacity: eigenesVideo ? 1 : 0.6 }}
+          />
+        ) : (
+          <div
+            className={`${MONO} w-full rounded-[5px] border border-dashed border-line-strong flex items-center justify-center text-center px-1`}
+            style={{ aspectRatio: "9 / 16", color: "var(--fg-4)" }}
           >
-            <input type="hidden" name="kennung" value={r.kennung} />
-            <input
-              type="file"
-              name="datei"
-              accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png"
-              aria-label={`Video für ${r.kennung} wählen`}
-              className="block w-full text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded-[4px] file:border file:border-line file:bg-bg file:text-fg file:text-[10px]"
-            />
-            <div className="flex gap-1.5 mt-1.5">
+            leer
+          </div>
+        )}
+
+        <form
+          action="/admin/referenz-video"
+          method="post"
+          encType="multipart/form-data"
+          className="mt-1"
+        >
+          <input type="hidden" name="scope" value={scope} />
+          <input
+            type="file"
+            name="datei"
+            accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png"
+            aria-label={`Referenzvideo für ${etikett} wählen`}
+            className="block w-full text-[9px] file:mr-1 file:py-0.5 file:px-1.5 file:rounded-[3px] file:border file:border-line file:bg-bg file:text-fg file:text-[9px]"
+          />
+          <div className="flex gap-1 mt-1">
+            <button
+              type="submit"
+              className={`${MONO} px-1.5 py-0.5 rounded-[3px] border border-line-strong`}
+              style={{ color: "var(--fg-2)" }}
+            >
+              hochladen
+            </button>
+            {eintrag?.videoPfad ? (
               <button
                 type="submit"
-                className={`${MONO} px-2 py-1 rounded-[4px] border border-line-strong`}
-                style={{ color: "var(--fg-2)" }}
-              >
-                hochladen
-              </button>
-              {r.videoPfad ? (
-                <button
-                  type="submit"
-                  name="aktion"
-                  value="entfernen"
-                  className={`${MONO} px-2 py-1 rounded-[4px] border border-line-strong`}
-                  style={{ color: "var(--fg-4)" }}
-                >
-                  entfernen
-                </button>
-              ) : null}
-            </div>
-          </form>
-        </div>
-
-        <div className="flex-1 min-w-[280px] space-y-1.5">
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <code
-              className="[font-family:var(--font-mono)] text-[10.5px]"
-              style={{ color: "var(--fg-4)" }}
-            >
-              {r.kennung}
-            </code>
-            {!r.aktiv ? (
-              <span className={MONO} style={{ color: "var(--fg-4)" }}>
-                stillgelegt
-              </span>
-            ) : null}
-          </div>
-
-          <input
-            defaultValue={r.titel}
-            placeholder="Titel"
-            aria-label={`Titel von ${r.kennung}`}
-            onBlur={(e) => {
-              const v = e.target.value.trim();
-              if (v && v !== r.titel) feld({ titel: v });
-            }}
-            className={`${FIELD} w-full`}
-          />
-          <input
-            defaultValue={r.herkunft ?? ""}
-            placeholder="Herkunft: TikTok-Post, @konto, eigene Aufnahme"
-            aria-label={`Herkunft von ${r.kennung}`}
-            onBlur={(e) => {
-              const v = e.target.value.trim();
-              if (v !== (r.herkunft ?? "")) feld({ herkunft: v || null });
-            }}
-            className={`${FIELD} w-full`}
-          />
-          <input
-            defaultValue={r.videoLink ?? ""}
-            placeholder="Link zum Original (falls die Datei nicht herunterladbar ist)"
-            aria-label={`Videolink von ${r.kennung}`}
-            onBlur={(e) => {
-              const v = e.target.value.trim();
-              if (v !== (r.videoLink ?? "")) feld({ videoLink: v || null });
-            }}
-            className={`${FIELD} w-full [font-family:var(--font-mono)] text-[11px]`}
-          />
-          {r.videoLink ? (
-            <a
-              href={r.videoLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${MONO} inline-block underline decoration-dotted`}
-              style={{ color: "var(--fg-3)" }}
-            >
-              Original öffnen
-            </a>
-          ) : null}
-          <textarea
-            defaultValue={r.notiz ?? ""}
-            placeholder="Deine Notiz. Die gemessene Machart kommt aus dem AI-Brain, nicht hierher."
-            aria-label={`Notiz zu ${r.kennung}`}
-            rows={2}
-            onBlur={(e) => {
-              const v = e.target.value.trim();
-              if (v !== (r.notiz ?? "")) feld({ notiz: v || null });
-            }}
-            className={`${FIELD} w-full h-auto py-1.5 leading-snug resize-y`}
-          />
-
-          {/* Die Brücke zum Posting-Reiter. */}
-          <div className="pt-0.5">
-            {uses.length ? (
-              <div className={MONO} style={{ color: "var(--fg-3)" }}>
-                fährt gerade:{" "}
-                {uses.map((u, i) => (
-                  <span key={u.accountKey}>
-                    {i > 0 ? " · " : ""}@{u.handle} ({u.richtung})
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <div className={MONO} style={{ color: "var(--fg-4)" }}>
-                noch keinem Kanal zugewiesen
-              </div>
-            )}
-          </div>
-
-          <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={() => feld({ aktiv: !r.aktiv })}
-              className={`${MONO} hover:text-fg`}
-              style={{ color: "var(--fg-3)" }}
-            >
-              {r.aktiv ? "stilllegen" : "aktivieren"}
-            </button>
-            {uses.length === 0 ? (
-              <button
-                type="button"
-                onClick={() => setOffen(true)}
-                className={`${MONO} hover:text-fg`}
-                style={{ color: "var(--fg-4)" }}
-              >
-                löschen
-              </button>
-            ) : null}
-            {offen ? (
-              <span className={MONO} style={{ color: "var(--fg-2)" }}>
-                sicher?{" "}
-                <button
-                  type="button"
-                  onClick={() =>
-                    startTransition(async () => {
-                      await dropReference(r.kennung);
-                      setOffen(false);
-                    })
+                name="aktion"
+                value="entfernen"
+                onClick={(e) => {
+                  if (!offen) {
+                    e.preventDefault();
+                    setOffen(true);
                   }
-                  className="underline"
-                >
-                  ja, löschen
-                </button>{" "}
-                <button type="button" onClick={() => setOffen(false)} className="underline">
-                  nein
-                </button>
-              </span>
-            ) : null}
-            {pending ? (
-              <span className={MONO} style={{ color: "var(--fg-4)" }}>
-                speichert …
-              </span>
+                }}
+                className={`${MONO} px-1.5 py-0.5 rounded-[3px] border border-line-strong`}
+                style={{ color: offen ? "var(--fg)" : "var(--fg-4)" }}
+              >
+                {offen ? "sicher?" : "weg"}
+              </button>
             ) : null}
           </div>
-        </div>
+        </form>
       </div>
-    </li>
+
+      <div className="flex-1 min-w-[240px] space-y-1">
+        <input
+          defaultValue={eintrag?.titel ?? ""}
+          placeholder={hatEigenes ? "Titel" : `Titel (optional) — ${etikett}`}
+          aria-label={`Titel der Referenz für ${etikett}`}
+          onBlur={(e) => {
+            const v = e.target.value.trim();
+            if (v !== (eintrag?.titel ?? "")) feld({ titel: v || null });
+          }}
+          className={`${FIELD} w-full`}
+        />
+        <input
+          defaultValue={eintrag?.videoLink ?? ""}
+          placeholder="oder Link zum Original (TikTok, Drive)"
+          aria-label={`Link zur Referenz für ${etikett}`}
+          onBlur={(e) => {
+            const v = e.target.value.trim();
+            if (v !== (eintrag?.videoLink ?? "")) feld({ videoLink: v || null });
+          }}
+          className={`${FIELD} w-full [font-family:var(--font-mono)] text-[11px]`}
+        />
+        <textarea
+          defaultValue={eintrag?.notiz ?? ""}
+          placeholder="Notiz: was an diesem Video übernommen wird"
+          aria-label={`Notiz zur Referenz für ${etikett}`}
+          rows={2}
+          onBlur={(e) => {
+            const v = e.target.value.trim();
+            if (v !== (eintrag?.notiz ?? "")) feld({ notiz: v || null });
+          }}
+          className={`${FIELD} w-full h-auto py-1.5 leading-snug resize-y`}
+        />
+        {geerbtVon && !hatEigenes ? (
+          <p className={MONO} style={{ color: "var(--fg-4)" }}>
+            zeigt gerade das Video von {geerbtVon}. Hier hochladen überschreibt es nur für {etikett}.
+          </p>
+        ) : null}
+      </div>
+    </div>
   );
 }

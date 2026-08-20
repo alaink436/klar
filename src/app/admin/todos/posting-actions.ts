@@ -25,6 +25,10 @@ import {
   saveReference,
   type ReferencePatch,
 } from "@/lib/references";
+import {
+  saveChannelReference,
+  type ChannelReferencePatch,
+} from "@/lib/channelReference";
 import type { AccountStatusPatch, Direction } from "@/lib/accountStates";
 
 async function requireAdmin(): Promise<boolean> {
@@ -118,6 +122,22 @@ export async function upsertReference(
 export async function dropReference(kennung: string): Promise<{ ok: boolean; behalten?: boolean }> {
   if (!(await requireAdmin())) return { ok: false };
   const res = await removeReference(kennung);
+  if (res.ok) revalidatePath("/admin/todos");
+  return res;
+}
+
+/**
+ * Titel, Notiz oder Link an einer Ebene ändern (App, Plattform, Kanal).
+ *
+ * Das Video selbst geht nicht hierüber, sondern durch `/admin/referenz-video`:
+ * 200 MB passen nicht durch die Serialisierung einer Server-Action.
+ */
+export async function setChannelReference(
+  scope: string,
+  patch: ChannelReferencePatch,
+): Promise<{ ok: boolean; fehler?: string }> {
+  if (!(await requireAdmin())) return { ok: false, fehler: "nicht angemeldet" };
+  const res = await saveChannelReference(scope, patch);
   if (res.ok) revalidatePath("/admin/todos");
   return res;
 }

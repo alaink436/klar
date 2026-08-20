@@ -60,16 +60,6 @@ import {
   updateAccount,
 } from "./posting-actions";
 
-/** Eine Referenz aus `klar_reference` — Alains Liste, im Board gepflegt. */
-export interface BoardReference {
-  /** Stabile Kennung `<projekt>/<id>`, identisch mit der im Vault-Manifest. */
-  kennung: string;
-  titel: string;
-  herkunft: string | null;
-  notiz: string | null;
-  aktiv: boolean;
-}
-
 export interface BoardAccount {
   key: string;
   handle: string;
@@ -174,7 +164,6 @@ export default function PostingBoard({
   totals,
   platforms,
   today,
-  references,
 }: {
   accounts: BoardAccount[];
   days: BoardDay[];
@@ -187,8 +176,6 @@ export default function PostingBoard({
   log: Record<string, string>;
   /** Vorschläge fürs Plattform-Feld, aus dem was es schon gibt. */
   platforms: string[];
-  /** Alains Referenzliste aus `klar_reference`. Gepflegt im Panel unter der Tabelle. */
-  references: BoardReference[];
 }) {
   const [, startTransition] = useTransition();
   const [openDay, setOpenDay] = useState<string | null>(null);
@@ -883,7 +870,7 @@ export default function PostingBoard({
                     </td>
 
                     <td className="px-2.5 py-2 align-top">
-                      <DirectionCell row={r} others={rows} references={references} />
+                      <DirectionCell row={r} others={rows} />
                       {/* Woher das Zeug kommt, steht direkt unter dem, was es
                           ist — beim Posten wird beides in derselben Sekunde
                           gebraucht, und getrennte Spalten hätten die Zeile
@@ -1139,19 +1126,6 @@ export default function PostingBoard({
 
         {/* Vorschläge: erst was schon eingetragen ist, dann die Startliste —
             eigene Bezeichnungen sollen sich durchsetzen, nicht meine. */}
-        {/* Die Referenzen kommen aus `klar_reference`, gepflegt im Panel unter
-            der Tabelle. Freitext bleibt moeglich: eine Referenz, die Alain noch
-            nicht eingetragen hat, soll sich trotzdem notieren lassen — das
-            Briefing im Vault meldet sie dann als „steht in keinem Manifest". */}
-        <datalist id="klar-references">
-          {references
-            .filter((r) => r.aktiv)
-            .map((r) => (
-              <option key={r.kennung} value={r.kennung}>
-                {r.titel}
-              </option>
-            ))}
-        </datalist>
         {/* Nischen bekommen keine Startliste: welche es gibt, weiss nur er. */}
         <datalist id="klar-niches">
           {[...new Set(rows.map((r) => r.niche).filter(Boolean))].map((n) => (

@@ -17,6 +17,7 @@ import { revalidatePath } from "next/cache";
 import { readCookie, ctEqual } from "@/app/admin/_shared";
 import { verifyDeviceCookie } from "@/lib/deviceCookie";
 import { removeReferenceVideo, uploadReferenceVideo } from "@/lib/references";
+import { removeChannelVideo, uploadChannelVideo } from "@/lib/channelReference";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,15 +50,19 @@ export async function POST(req: NextRequest): Promise<Response> {
     return back(req, "Datei konnte nicht gelesen werden");
   }
 
+  // Zwei Ziele über dieselbe Route: `scope` hängt das Video an eine Ebene
+  // (App, Plattform, Kanal), `kennung` an einen Bibliothekseintrag. Der Ablauf
+  // ist identisch — Datei prüfen, hochladen, zurück — und zwei Routen wären
+  // zwei Stellen, an denen die Berechtigung geprüft werden müsste.
+  const scope = String(form.get("scope") ?? "").trim();
   const kennung = String(form.get("kennung") ?? "").trim();
-  if (!kennung) return back(req, "keine Referenz angegeben");
+  const ziel = scope || kennung;
+  if (!ziel) return back(req, "keine Ebene angegeben");
 
-  // Wegnehmen läuft über dieselbe Route: der Knopf steht neben dem Spieler, und
-  // eine zweite Route für das Gegenteil wäre nur eine zweite Stelle zum Prüfen.
   if (String(form.get("aktion") ?? "") === "entfernen") {
-    const res = await removeReferenceVideo(kennung);
+    const res = scope ? await removeChannelVideo(scope) : await removeReferenceVideo(kennung);
     revalidatePath("/admin/todos");
-    return back(req, res.ok ? `Video von ${kennung} entfernt` : "Entfernen fehlgeschlagen");
+    return back(req, res.ok ? `Video von ${ziel} entfernt` : "Entfernen fehlgeschlagen");
   }
 
   const datei = form.get("datei");
@@ -69,15 +74,13 @@ export async function POST(req: NextRequest): Promise<Response> {
     );
   }
 
-  const res = await uploadReferenceVideo(
-    kennung,
-    await datei.arrayBuffer(),
-    datei.type,
-    datei.name,
-  );
+  const bytes = await datei.arrayBuffer();
+  const res = scope
+    ? await uploadChannelVideo(scope, bytes, datei.type, datei.name)
+    : await uploadReferenceVideo(kennung, bytes, datei.type, datei.name);
   revalidatePath("/admin/todos");
   return back(
     req,
-    res.ok ? `Video für ${kennung} hochgeladen` : (res.fehler ?? "Upload fehlgeschlagen"),
+    res.ok ? `Video für ${ziel} hochgeladen` : (res.fehler ?? "Upload fehlgeschlagen"),
   );
 }

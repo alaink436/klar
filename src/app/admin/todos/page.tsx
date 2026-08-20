@@ -16,12 +16,12 @@ import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listTodos, todosConfigured } from "@/lib/todoStore";
 import { listAccountStatus, listPostLog, listPostTotals } from "@/lib/accountStatus";
 import { listCurrentDirections, listDirectionCounts } from "@/lib/accountDirection";
-import { listReferences, listReferenceUsage } from "@/lib/references";
+import { listChannelReferences } from "@/lib/channelReference";
 import { ACCOUNTS, APPS, PLATFORM_LABEL, accountKey } from "@/lib/socialAccounts";
 import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 import Planner, { type PlannerDay, type PlannerPosting, type PlannerTodo } from "./Planner";
 import PostingBoard, { type BoardAccount, type BoardDay } from "./PostingBoard";
-import ReferenceView, { type ViewReference, type ViewUse } from "./ReferenceView";
+import ReferenceView, { type ViewChannel, type ViewScopeRef } from "./ReferenceView";
 import WeekNav from "./WeekNav";
 import { viewHref, type TodoView } from "./views";
 
@@ -132,35 +132,24 @@ export default async function TodosPage({
   const [directionByKey, directionCounts] = onPosting
     ? await Promise.all([listCurrentDirections(), listDirectionCounts()])
     : [new Map(), {} as Record<string, number>];
-  // Die Referenzliste brauchen beide: das Board fuer die Auswahl in der Zeile,
-  // der Referenz-Reiter fuer sich selbst. Wer sie gerade faehrt, interessiert
-  // nur den Referenz-Reiter — eine Abfrage, die der Wochenplan nicht bezahlt.
-  const references = onPosting || onReferenzen ? await listReferences() : [];
-  const referenceUsage = onReferenzen ? await listReferenceUsage() : {};
+  // Die hinterlegten Ebenen braucht nur der Referenz-Reiter. Der Wochenplan
+  // zeigt sie nicht, und das Board hat die Auswahl nicht mehr: das Video haengt
+  // seit 0030 an der Ebene, nicht an einer Bibliothek, aus der man waehlt.
+  const scopeRefs = onReferenzen ? await listChannelReferences() : new Map();
 
   // Flache Formen fuer den Reiter: die Store-Typen tragen Supabase-Feldnamen
   // (`video_pfad`), und die haben in einer Client-Komponente nichts verloren.
-  // Das Handle steht im Schluessel selbst (app:plattform:handle) — dieselbe
-  // Zerlegung wie im Briefing im AI-Brain.
-  const viewReferences: ViewReference[] = references.map((r) => ({
-    kennung: r.kennung,
-    titel: r.titel,
-    herkunft: r.herkunft,
-    notiz: r.notiz,
-    ablage: r.ablage,
-    aktiv: r.aktiv,
-    videoPfad: r.video_pfad,
-    videoLink: r.video_link,
-    videoUrl: r.video_url,
-  }));
-  const referenceUses: Record<string, ViewUse[]> = Object.fromEntries(
-    Object.entries(referenceUsage).map(([kennung, zeilen]) => [
-      kennung,
-      zeilen.map((z) => ({
-        accountKey: z.account_key,
-        handle: z.account_key.split(":")[2] ?? z.account_key,
-        richtung: z.richtung,
-      })),
+  const scopeRefsFlach: Record<string, ViewScopeRef> = Object.fromEntries(
+    [...scopeRefs.values()].map((r) => [
+      r.scope,
+      {
+        scope: r.scope,
+        titel: r.titel,
+        notiz: r.notiz,
+        videoPfad: r.video_pfad,
+        videoLink: r.video_link,
+        videoUrl: r.video_url,
+      },
     ]),
   );
 
@@ -261,6 +250,23 @@ export default async function TodosPage({
     }
   }
   const boardAccounts = clustered;
+
+  // Der Referenz-Reiter zeigt dieselben Kanaele wie das Board, nur nach App und
+  // Plattform gestapelt. Aufgegebene bleiben draussen: fuer einen Kanal, der
+  // nicht mehr laeuft, ein Referenzvideo zu hinterlegen waere Arbeit ins Leere.
+  const viewChannels: ViewChannel[] = boardAccounts
+    .filter((a) => a.state !== "dropped")
+    .map((a) => ({
+      key: a.key,
+      handle: a.handle,
+      platform: a.key.split(":")[1] ?? "",
+      platformLabel: a.platformLabel,
+      app: a.key.split(":")[0] ?? "",
+      appLabel: a.appLabel,
+      appColor: a.appColor,
+      state: a.state,
+      richtung: a.direction,
+    }));
 
   const boardDays: BoardDay[] = days.map((d) => {
     const dow = new Date(`${d.iso}T12:00:00Z`).getUTCDay();
@@ -364,8 +370,8 @@ export default async function TodosPage({
 
         {onReferenzen ? (
           <ReferenceView
-            references={viewReferences}
-            usage={referenceUses}
+            channels={viewChannels}
+            refs={scopeRefsFlach}
             meldung={sp.msg}
           />
         ) : onPosting ? (
@@ -377,7 +383,6 @@ export default async function TodosPage({
             totals={postTotals}
             platforms={platformHints}
             today={today}
-            references={references}
           />
         ) : (
           <Planner

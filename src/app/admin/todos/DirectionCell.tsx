@@ -25,7 +25,7 @@ import { useState, useTransition } from "react";
 import { DIRECTIONS, type Direction } from "@/lib/accountStates";
 import { FIELD } from "./boardStyles";
 import { loadDirectionHistory, reorientAccount, setDirectionPointer } from "./posting-actions";
-import type { BoardAccount, BoardReference } from "./PostingBoard";
+import type { BoardAccount } from "./PostingBoard";
 
 interface Verlaufszeile {
   id: number;
@@ -48,12 +48,9 @@ function tag(iso: string): string {
 export default function DirectionCell({
   row,
   others,
-  references,
 }: {
   row: BoardAccount;
   others: BoardAccount[];
-  /** Alains Referenzliste aus `klar_reference`. Er pflegt sie unter der Tabelle. */
-  references: BoardReference[];
 }) {
   const [pending, startTransition] = useTransition();
   // Was gewählt wurde, solange der Grund noch fehlt. `null` = keine Umstellung.
@@ -199,30 +196,22 @@ export default function DirectionCell({
         </ul>
       ) : null}
 
-      {/* Referenz und Spiegelung hängen an der laufenden Richtung. Ohne Richtung
-          gibt es nichts, woran sie hängen könnten. Die Kennungen kommen aus
-          `klar_reference`; Alain pflegt sie unter der Tabelle. Dieselbe
-          Kennung trägt das Vault-Manifest, dort steht die Machart. */}
+      {/* Die Spiegelung hängt an der laufenden Richtung. Ohne Richtung gibt es
+          nichts, woran sie hängen könnte. */}
       {laufend ? (
         <div className="mt-1 flex gap-1">
-          <input
-            list="klar-references"
-            defaultValue={row.directionRef}
-            placeholder="Referenz …"
-            aria-label={`Referenzvideo für @${row.handle}`}
-            onBlur={(e) => {
-              const v = e.target.value.trim();
-              if (v === row.directionRef) return;
-              startTransition(async () => {
-                await setDirectionPointer(row.key, { referenz: v });
-              });
-            }}
-            className={`${FIELD} flex-1 min-w-0`}
-            title={
-              references.find((x) => x.kennung === row.directionRef)?.notiz ??
-              "Kennung aus der Referenzliste unter der Tabelle"
-            }
-          />
+          {/* Nur noch Anzeige. Das Referenzvideo wird seit 2026-08-20 im Reiter
+              „Referenzen" hochgeladen, und zwar an der Ebene, für die es gelten
+              soll — App, Plattform oder dieser Kanal. Ein zweites Eingabefeld
+              hier wäre ein zweiter Weg zur selben Sache. Eine früher gesetzte
+              Kennung bleibt trotzdem sichtbar, damit sie nicht still verschwindet. */}
+          <div
+            className={`${MONO} flex-1 min-w-0 self-center truncate`}
+            style={{ color: "var(--fg-4)" }}
+            title={row.directionRef || undefined}
+          >
+            {row.directionRef ? `Ref: ${row.directionRef}` : "Referenz im Reiter Referenzen"}
+          </div>
           <select
             value={row.directionMirrors}
             aria-label={`Welchen Kanal @${row.handle} spiegelt`}
