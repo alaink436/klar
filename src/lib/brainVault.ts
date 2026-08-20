@@ -105,15 +105,30 @@ export function scopeGraph(allowed: string[] | null): ScopedGraph {
     edges.push([na, nb]);
   }
 
-  // Recompute per-group counts from the surviving nodes (keep group g-index
-  // stable: nodes still carry their original `g`, so we keep ALL_GROUPS order
-  // and just recount). Groups with zero survivors are dropped from the legend
-  // but the g-index is preserved by mapping through the original array.
+  // Recompute per-group counts from the surviving nodes, then renumber the
+  // nodes' `g` alongside the filtered legend.
+  //
+  // The previous comment here claimed the g-index stayed stable because nodes
+  // keep their original `g`. It does not: .filter() re-indexes, so as soon as
+  // one group loses all its nodes, every later group shifts down by one while
+  // the nodes still point at the old slot. The consumer indexes straight into
+  // it (InteractiveGraph: colorForGroup(groups[n.g])), so a folder-scoped
+  // member saw one group painted in another's colour and the last group fell
+  // through to the default. Silent: no crash, no warning, and invisible to the
+  // admin because scopeGraph(null) keeps all groups and the indices line up.
   const counts = new Array(ALL_GROUPS.length).fill(0);
   for (const n of nodes) counts[n.g] = (counts[n.g] ?? 0) + 1;
-  const groups: Group[] = ALL_GROUPS.map((g, gi) => ({ ...g, count: counts[gi] })).filter(
-    (g) => g.count > 0
-  );
+
+  const altZuNeu = new Map<number, number>();
+  const groups: Group[] = [];
+  ALL_GROUPS.forEach((g, gi) => {
+    if (!counts[gi]) return;
+    altZuNeu.set(gi, groups.length);
+    groups.push({ ...g, count: counts[gi] });
+  });
+  for (let i = 0; i < nodes.length; i++) {
+    nodes[i] = { ...nodes[i], g: altZuNeu.get(nodes[i].g) ?? 0 };
+  }
 
   const deg = new Array(nodes.length).fill(0);
   for (const [a, b] of edges) {

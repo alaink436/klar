@@ -20,7 +20,11 @@ export const dynamic = "force-dynamic";
 // that only the service role can read, which also means a new learning ships
 // by uploading a file instead of by redeploying the site.
 const BUCKET = "corpus";
-const FILES = ["tech-stack.md", "tooling.md", "workflow.md", "cost-discipline.md"];
+// payments.md kam am 2026-08-17 als eigene Kategorie dazu und fehlte hier bis
+// zum 2026-08-20. Abonnenten konnten sie deshalb nie bekommen, auch nach einem
+// frischen Korpus-Upload nicht: eine neue Kategorie im Vault fuegt sich hier
+// nicht von selbst hinzu. Wer eine anlegt, traegt sie hier nach.
+const FILES = ["tech-stack.md", "tooling.md", "workflow.md", "payments.md", "cost-discipline.md"];
 
 // One instance serves many requests; half a megabyte of markdown does not need
 // re-downloading for each one. Short TTL so an uploaded corpus goes live on
