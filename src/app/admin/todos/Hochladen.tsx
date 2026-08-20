@@ -18,7 +18,8 @@
 // deshalb bei acht Anläufen keine einzige Datei an. Ein Label aktiviert sein
 // Feld nativ: kein JavaScript, keine Rekursion, in jedem Browser.
 
-import { useId, useRef, useState, useTransition } from "react";
+import { useId, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { dateienUebernehmen, uploadVorbereiten } from "./posting-actions";
 
 const MONO = "[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em]";
@@ -49,7 +50,7 @@ export default function Hochladen({
   const [dateien, setDateien] = useState<File[]>([]);
   const [stand, setStand] = useState<string | null>(null);
   const [laeuft, setLaeuft] = useState(false);
-  const [, startTransition] = useTransition();
+  const router = useRouter();
 
   function uebernehmen(liste: FileList | null): void {
     if (!liste || !liste.length) return;
@@ -97,7 +98,8 @@ export default function Hochladen({
       setDateien([]);
       setStand(`${pfade.length === 1 ? "Datei" : `${pfade.length} Dateien`} übernommen`);
       if (ref.current) ref.current.value = "";
-      startTransition(() => {});
+      // Ohne das bleibt die neue Datei unsichtbar, bis jemand von Hand neu laedt.
+      router.refresh();
     } catch {
       setStand("Upload fehlgeschlagen");
     } finally {

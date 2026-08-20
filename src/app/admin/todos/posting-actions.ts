@@ -218,8 +218,12 @@ export async function uploadVorbereiten(
       ? `posts/${scope.replace(/:/g, "_")}/${tag}-${Date.now()}`
       : `kanal/${scope.replace(/:/g, "_")}/${tag}-${Date.now()}`;
   const ziele = await signierteZiele(ordner, namen);
-  if (ziele.length !== namen.length) return { ok: false, fehler: "Ziele nicht erhalten" };
-  return { ok: true, ziele };
+  // Den echten Grund durchreichen, nicht „ging nicht". Ein Fehler, den niemand
+  // lesen kann, hat Alain am 2026-08-20 acht Anlaeufe gekostet.
+  const kaputt = ziele.find((z) => !z.url);
+  if (kaputt) return { ok: false, fehler: kaputt.fehler ?? "Ziel nicht erhalten" };
+  if (ziele.length !== namen.length) return { ok: false, fehler: "Ziele unvollstaendig" };
+  return { ok: true, ziele: ziele.map((z) => ({ pfad: z.pfad, url: z.url })) };
 }
 
 /**

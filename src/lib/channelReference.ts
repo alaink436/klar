@@ -350,8 +350,8 @@ export async function listChannelReferenceHistory(
 export async function signierteZiele(
   ordner: string,
   namen: string[],
-): Promise<{ pfad: string; url: string }[]> {
-  if (!KEY) return [];
+): Promise<{ pfad: string; url: string; fehler?: string }[]> {
+  if (!KEY) return [{ pfad: "", url: "", fehler: "kein Service-Key gesetzt" }];
   const ziele = await Promise.all(
     namen.map(async (name, i) => {
       const pfad = `${ordner}/${mitEndung(String(i + 1).padStart(2, "0"), name)}`;
@@ -362,16 +362,27 @@ export async function signierteZiele(
           body: JSON.stringify({}),
           cache: "no-store",
         });
-        if (!res.ok) return null;
-        const j = (await res.json()) as { url?: string };
-        if (!j.url) return null;
-        return { pfad, url: `${STORAGE}${j.url.startsWith("/") ? "" : "/"}${j.url}` };
-      } catch {
-        return null;
+        if (!res.ok) {
+          const text = await res.text().catch(() => "");
+          return { pfad, url: "", fehler: `${res.status} ${text.slice(0, 120)}` };
+        }
+        const j = (await res.json()) as { url?: string; signedUrl?: string };
+        const rel = j.url ?? j.signedUrl;
+        if (!rel) return { pfad, url: "", fehler: "Antwort ohne Adresse" };
+        // Je nach Fassung kommt die Adresse mit oder ohne `/storage/v1`.
+        // Beides zusammenzukleben ergaebe eine 404, die niemand erklaeren kann.
+        const voll = rel.startsWith("http")
+          ? rel
+          : rel.includes("/storage/v1/")
+            ? `${URL_BASE}${rel.startsWith("/") ? "" : "/"}${rel}`
+            : `${STORAGE}${rel.startsWith("/") ? "" : "/"}${rel}`;
+        return { pfad, url: voll };
+      } catch (e) {
+        return { pfad, url: "", fehler: e instanceof Error ? e.message : "Fehler" };
       }
     }),
   );
-  return ziele.filter((z): z is { pfad: string; url: string } => z !== null);
+  return ziele;
 }
 
 /** Eine Datei in den Bucket legen und ihren Pfad zurueckgeben. */
