@@ -20,6 +20,11 @@ import {
   type AccountDirection,
   type DirectionPatch,
 } from "@/lib/accountDirection";
+import {
+  removeReference,
+  saveReference,
+  type ReferencePatch,
+} from "@/lib/references";
 import type { AccountStatusPatch, Direction } from "@/lib/accountStates";
 
 async function requireAdmin(): Promise<boolean> {
@@ -86,6 +91,35 @@ export async function setDirectionPointer(key: string, patch: DirectionPatch): P
 export async function loadDirectionHistory(key: string): Promise<AccountDirection[]> {
   if (!(await requireAdmin())) return [];
   return listDirectionHistory(key);
+}
+
+/**
+ * Eine Referenz anlegen oder ändern.
+ *
+ * Gibt einen Fehlertext zurück statt still zu scheitern: die Kennung hat eine
+ * Form (`<projekt>/<id>`), und ein Tippfehler darin ist der wahrscheinliche
+ * Fall — die Kennung ist der Zeiger, den auch das Vault-Manifest benutzt.
+ */
+export async function upsertReference(
+  kennung: string,
+  patch: ReferencePatch,
+): Promise<{ ok: boolean; fehler?: string }> {
+  if (!(await requireAdmin())) return { ok: false, fehler: "nicht angemeldet" };
+  const res = await saveReference(kennung, patch);
+  if (res.ok) revalidatePath("/admin/todos");
+  return res;
+}
+
+/**
+ * Eine Referenz entfernen. Zeigt noch eine Richtung darauf, wird sie nur auf
+ * inaktiv gesetzt — die Kennung bleibt lesbar, sonst stünde in der Richtung ein
+ * Zeiger ins Leere.
+ */
+export async function dropReference(kennung: string): Promise<{ ok: boolean; behalten?: boolean }> {
+  if (!(await requireAdmin())) return { ok: false };
+  const res = await removeReference(kennung);
+  if (res.ok) revalidatePath("/admin/todos");
+  return res;
 }
 
 /**

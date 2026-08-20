@@ -23,10 +23,9 @@
 
 import { useState, useTransition } from "react";
 import { DIRECTIONS, type Direction } from "@/lib/accountStates";
-import { REFERENCE_IDS } from "@/lib/referenceIds";
 import { FIELD } from "./boardStyles";
 import { loadDirectionHistory, reorientAccount, setDirectionPointer } from "./posting-actions";
-import type { BoardAccount } from "./PostingBoard";
+import type { BoardAccount, BoardReference } from "./PostingBoard";
 
 interface Verlaufszeile {
   id: number;
@@ -49,9 +48,12 @@ function tag(iso: string): string {
 export default function DirectionCell({
   row,
   others,
+  references,
 }: {
   row: BoardAccount;
   others: BoardAccount[];
+  /** Alains Referenzliste aus `klar_reference`. Er pflegt sie unter der Tabelle. */
+  references: BoardReference[];
 }) {
   const [pending, startTransition] = useTransition();
   // Was gewählt wurde, solange der Grund noch fehlt. `null` = keine Umstellung.
@@ -199,8 +201,8 @@ export default function DirectionCell({
 
       {/* Referenz und Spiegelung hängen an der laufenden Richtung. Ohne Richtung
           gibt es nichts, woran sie hängen könnten. Die Kennungen kommen aus
-          `lib/referenceIds.ts`, erzeugt aus dem Vault-Manifest — ohne stabile
-          Kennung könnte das Board auf kein Video zeigen. */}
+          `klar_reference`; Alain pflegt sie unter der Tabelle. Dieselbe
+          Kennung trägt das Vault-Manifest, dort steht die Machart. */}
       {laufend ? (
         <div className="mt-1 flex gap-1">
           <input
@@ -216,7 +218,10 @@ export default function DirectionCell({
               });
             }}
             className={`${FIELD} flex-1 min-w-0`}
-            title={REFERENCE_IDS.find((x) => x.id === row.directionRef)?.note ?? ""}
+            title={
+              references.find((x) => x.kennung === row.directionRef)?.notiz ??
+              "Kennung aus der Referenzliste unter der Tabelle"
+            }
           />
           <select
             value={row.directionMirrors}

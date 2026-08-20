@@ -16,6 +16,7 @@ import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listTodos, todosConfigured } from "@/lib/todoStore";
 import { listAccountStatus, listPostLog, listPostTotals } from "@/lib/accountStatus";
 import { listCurrentDirections, listDirectionCounts } from "@/lib/accountDirection";
+import { listReferences } from "@/lib/references";
 import { ACCOUNTS, APPS, PLATFORM_LABEL, accountKey } from "@/lib/socialAccounts";
 import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 import Planner, { type PlannerDay, type PlannerPosting, type PlannerTodo } from "./Planner";
@@ -125,9 +126,9 @@ export default async function TodosPage({
   // Die Richtung braucht nur das Board. Der Wochenplan zeigt sie nicht, und
   // zwei Abfragen fuer eine Ansicht zu bezahlen, die sie nicht anzeigt, waere
   // dieselbe Verschwendung wie bei den Gesamtzahlen darueber.
-  const [directionByKey, directionCounts] = onPosting
-    ? await Promise.all([listCurrentDirections(), listDirectionCounts()])
-    : [new Map(), {} as Record<string, number>];
+  const [directionByKey, directionCounts, references] = onPosting
+    ? await Promise.all([listCurrentDirections(), listDirectionCounts(), listReferences()])
+    : [new Map(), {} as Record<string, number>, []];
 
   const appMeta = new Map(APPS.map((a) => [a.key as string, { label: a.name, color: a.color }]));
   const OTHER = { label: "Weitere", color: "#8C93A8" };
@@ -333,6 +334,7 @@ export default async function TodosPage({
             totals={postTotals}
             platforms={platformHints}
             today={today}
+            references={references}
           />
         ) : (
           <Planner
