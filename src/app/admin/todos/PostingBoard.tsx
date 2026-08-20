@@ -52,6 +52,7 @@ import {
 import { FIELD } from "./boardStyles";
 import DirectionCell from "./DirectionCell";
 import ReferenceSlot, { type SlotRef } from "./ReferenceSlot";
+import { type ViewPost } from "./PostSamples";
 import {
   addAccount,
   linkChannels,
@@ -166,6 +167,7 @@ export default function PostingBoard({
   platforms,
   today,
   scopeRefs,
+  postsByScope,
 }: {
   accounts: BoardAccount[];
   days: BoardDay[];
@@ -180,6 +182,8 @@ export default function PostingBoard({
   platforms: string[];
   /** Die laufenden Referenz-Ebenen, nach `scope`. App, Plattform und Kanal. */
   scopeRefs: Record<string, SlotRef>;
+  /** Gelaufene Posts, nach `scope`. Ein Kanal zeigt seine und die seiner App. */
+  postsByScope: Record<string, ViewPost[]>;
 }) {
   const [, startTransition] = useTransition();
   const [openDay, setOpenDay] = useState<string | null>(null);
@@ -879,6 +883,7 @@ export default function PostingBoard({
                         others={rows}
                         eigen={scopeRefs[r.key]}
                         geerbt={erbe(r.key, scopeRefs)}
+                        posts={postsFuer(r.key, postsByScope)}
                       />
                       {/* Woher das Zeug kommt, steht direkt unter dem, was es
                           ist — beim Posten wird beides in derselben Sekunde
@@ -1182,6 +1187,21 @@ export default function PostingBoard({
  * hätte entweder alle umfasst oder wäre am ersten Spaltenrand abgerissen.
  * Die Rinne steht auch in ungebundenen Zeilen, sonst rückte der Text ein.
  */
+/**
+ * Die Posts, die fuer einen Kanal zaehlen: seine eigenen plus die seiner
+ * Plattform und seiner App.
+ *
+ * Gesammelt statt spezifischster Treffer — anders als bei der Referenz. Bei
+ * einer Sammlung ist mehr richtig: was auf einem Kelva-Kanal lief, ist auch
+ * fuer die anderen beiden ein Vorbild. Bei der Referenz waere mehr mehrdeutig.
+ */
+function postsFuer(key: string, alle: Record<string, ViewPost[]>): ViewPost[] {
+  const teile = key.split(":");
+  const out: ViewPost[] = [];
+  for (let i = teile.length; i >= 1; i--) out.push(...(alle[teile.slice(0, i).join(":")] ?? []));
+  return out;
+}
+
 /**
  * Was fuer einen Kanal gilt, wenn an ihm selbst nichts haengt — und ab welcher
  * Ebene. Dieselbe Regel wie `aufloesen` auf dem Server: der spezifischste

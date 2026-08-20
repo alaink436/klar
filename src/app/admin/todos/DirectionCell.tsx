@@ -26,6 +26,7 @@ import { DIRECTIONS, type Direction } from "@/lib/accountStates";
 import { FIELD } from "./boardStyles";
 import { loadChannelTimeline, reorientAccount, setDirectionPointer } from "./posting-actions";
 import ReferenceSlot, { type SlotRef } from "./ReferenceSlot";
+import PostSamples, { type ViewPost } from "./PostSamples";
 import type { BoardAccount } from "./PostingBoard";
 
 interface Verlaufszeile {
@@ -52,6 +53,7 @@ export default function DirectionCell({
   others,
   eigen,
   geerbt,
+  posts,
 }: {
   row: BoardAccount;
   others: BoardAccount[];
@@ -59,6 +61,8 @@ export default function DirectionCell({
   eigen?: SlotRef;
   /** Was gilt, wenn am Kanal nichts haengt — samt Ebene. */
   geerbt?: { ref: SlotRef; ebene: string } | null;
+  /** Eigene plus geerbte Posts, die hier gelaufen sind. */
+  posts: ViewPost[];
 }) {
   const [pending, startTransition] = useTransition();
   // Was gewählt wurde, solange der Grund noch fehlt. `null` = keine Umstellung.
@@ -260,6 +264,10 @@ export default function DirectionCell({
           etikett={`@${row.handle}`}
         />
       </div>
+
+      {/* Was hier schon gelaufen ist. Zugeklappt eine Zeile; die Kanalzeile
+          traegt bereits Richtung, Referenz, Material und Woche. */}
+      <PostSamples scope={row.key} handle={row.handle} posts={posts} />
 
       {/* Der Altwert aus dem Freitextfeld verschwindet nicht still. Er steht da,
           solange er etwas anderes sagt als die Richtung — bei den fünf Zeilen,

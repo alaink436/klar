@@ -16,12 +16,14 @@ import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listTodos, todosConfigured } from "@/lib/todoStore";
 import { listAccountStatus, listPostLog, listPostTotals } from "@/lib/accountStatus";
 import { listCurrentDirections, listDirectionCounts } from "@/lib/accountDirection";
-import { listChannelReferences } from "@/lib/channelReference";
+import { listChannelReferences, type ChannelReference } from "@/lib/channelReference";
+import { listPostSamples, type PostSample } from "@/lib/postSample";
 import { ACCOUNTS, APPS, PLATFORM_LABEL, accountKey } from "@/lib/socialAccounts";
 import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 import Planner, { type PlannerDay, type PlannerPosting, type PlannerTodo } from "./Planner";
 import PostingBoard, { type BoardAccount, type BoardDay } from "./PostingBoard";
 import { type SlotRef } from "./ReferenceSlot";
+import { type ViewPost } from "./PostSamples";
 import WeekNav from "./WeekNav";
 import { viewHref, type TodoView } from "./views";
 
@@ -134,10 +136,29 @@ export default async function TodosPage({
   // Die Referenz-Ebenen braucht nur das Board. Seit 2026-08-20 haengt das
   // Video am Kanal (oder an seiner App), und das Board ist der Ort, an dem
   // die Kanaele stehen — ein eigener Reiter dafuer war einer zu viel.
-  const scopeRefs = onPosting ? await listChannelReferences() : new Map();
+  // Die leeren Karten brauchen ihren Typ: ohne ihn faellt der Zweig auf `any`
+  // zurueck, und die Umformung darunter verliert jede Pruefung.
+  const [scopeRefs, postSamples]: [Map<string, ChannelReference>, Map<string, PostSample[]>] =
+    onPosting
+      ? await Promise.all([listChannelReferences(), listPostSamples()])
+      : [new Map(), new Map()];
 
   // Flache Formen fuer den Reiter: die Store-Typen tragen Supabase-Feldnamen
   // (`video_pfad`), und die haben in einer Client-Komponente nichts verloren.
+  const postsByScope: Record<string, ViewPost[]> = Object.fromEntries(
+    [...postSamples.entries()].map(([scope, liste]) => [
+      scope,
+      liste.map((p) => ({
+        id: p.id,
+        scope: p.scope,
+        titel: p.titel,
+        notiz: p.notiz,
+        videoUrl: p.video_url,
+        videoLink: p.video_link,
+        ergebnis: p.ergebnis,
+      })),
+    ]),
+  );
   const scopeRefsFlach: Record<string, SlotRef> = Object.fromEntries(
     [...scopeRefs.values()].map((r) => [
       r.scope,
@@ -360,6 +381,7 @@ export default async function TodosPage({
             platforms={platformHints}
             today={today}
             scopeRefs={scopeRefsFlach}
+            postsByScope={postsByScope}
           />
         ) : (
           <Planner

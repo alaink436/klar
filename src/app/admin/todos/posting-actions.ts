@@ -30,6 +30,11 @@ import {
   saveChannelReference,
   type ChannelReferencePatch,
 } from "@/lib/channelReference";
+import {
+  archivePostSample,
+  savePostSample,
+  type PostSamplePatch,
+} from "@/lib/postSample";
 import type { AccountStatusPatch, Direction } from "@/lib/accountStates";
 
 async function requireAdmin(): Promise<boolean> {
@@ -190,6 +195,28 @@ export async function setChannelReference(
 ): Promise<{ ok: boolean; fehler?: string }> {
   if (!(await requireAdmin())) return { ok: false, fehler: "nicht angemeldet" };
   const res = await saveChannelReference(scope, patch);
+  if (res.ok) revalidatePath("/admin/todos");
+  return res;
+}
+
+/**
+ * Ein Feld an einem gelaufenen Post ändern — meist die Notiz, also Alains
+ * Anweisung, worauf sich künftige Posts beziehen sollen.
+ */
+export async function setPostSample(id: number, patch: PostSamplePatch): Promise<{ ok: boolean }> {
+  if (!(await requireAdmin())) return { ok: false };
+  const res = await savePostSample(id, patch);
+  if (res.ok) revalidatePath("/admin/todos");
+  return res;
+}
+
+/**
+ * Einen Post aus der Sammlung nehmen. Er wird stillgelegt, nicht gelöscht: was
+ * einmal lief, bleibt ein Beleg, auch wenn es nicht mehr das Vorbild sein soll.
+ */
+export async function dropPostSample(id: number): Promise<{ ok: boolean }> {
+  if (!(await requireAdmin())) return { ok: false };
+  const res = await archivePostSample(id);
   if (res.ok) revalidatePath("/admin/todos");
   return res;
 }

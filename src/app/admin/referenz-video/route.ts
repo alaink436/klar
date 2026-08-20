@@ -18,6 +18,7 @@ import { readCookie, ctEqual } from "@/app/admin/_shared";
 import { verifyDeviceCookie } from "@/lib/deviceCookie";
 import { removeReferenceVideo, uploadReferenceVideo } from "@/lib/references";
 import { removeChannelVideo, uploadChannelVideo } from "@/lib/channelReference";
+import { uploadPostSample } from "@/lib/postSample";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,9 +76,18 @@ export async function POST(req: NextRequest): Promise<Response> {
   }
 
   const bytes = await datei.arrayBuffer();
-  const res = scope
-    ? await uploadChannelVideo(scope, bytes, datei.type, datei.name)
-    : await uploadReferenceVideo(kennung, bytes, datei.type, datei.name);
+  // `art=post` legt einen gelaufenen Post in die Sammlung des Kanals, statt die
+  // Referenz der Ebene zu wechseln. Zwei verschiedene Fragen, ein Formular:
+  // hier kommt in beiden Faellen eine Datei ueber dieselbe Leitung.
+  const res =
+    String(form.get("art") ?? "") === "post" && scope
+      ? await uploadPostSample(scope, bytes, datei.type, datei.name, {
+          notiz: String(form.get("notiz") ?? ""),
+          ergebnis: String(form.get("ergebnis") ?? ""),
+        })
+      : scope
+        ? await uploadChannelVideo(scope, bytes, datei.type, datei.name)
+        : await uploadReferenceVideo(kennung, bytes, datei.type, datei.name);
   revalidatePath("/admin/todos");
   return back(
     req,
