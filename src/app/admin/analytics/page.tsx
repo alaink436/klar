@@ -7,6 +7,7 @@
 //
 // Zwei Tabs, seit 2026-08-20:
 //   Apps:     User + Umsatz pro App (auth.users, RevenueCat)
+//   getklar.org: Sitzungen auf dem Studio-Auftritt selbst
 //   Landings: Aufrufe pro Landing-Page, aufgeschluesselt nach der Seite,
 //              die den Traffic wirklich bekommt (myloo.org/get, kelva.space/get,
 //              onwavelength.space, ...). Vorher stand hier ein Sammel-Tab
@@ -52,6 +53,7 @@ import AnalyticsClient, {
   type AppsMetric,
   type LandingsPayload,
   type LandingRow,
+  type SitePayload,
 } from "./AnalyticsClient";
 
 export const dynamic = "force-dynamic";
@@ -293,6 +295,83 @@ function buildLandings(
     trackedCount: perLanding.filter((l) => l.tracked).length,
   };
 }
+
+// ===== getklar.org: Sitzungen auf dem Studio-Auftritt =====
+//
+// Dieselbe Tabelle, andere Frage. Die Landings beantworten "welche beworbene
+// Seite zieht"; hier geht es um getklar.org selbst, wo die Apps, das OS und
+// die Rechtstexte liegen. Deshalb fuehrt die Sitzung und nicht der Aufruf: auf
+// einer Seite, auf der man sich umsieht, sagt "wie viele Menschen waren da"
+// mehr als "wie viele Seiten wurden geblaettert".
+//
+// /admin und /api stehen gar nicht erst in der Tabelle (die Track-Route wirft
+// sie weg), Affiliate-Links fallen nur aus der Seitenliste heraus.
+function buildSite(
+  rows: RawPageview[],
+  period: Period,
+  since: string,
+  prevSince: string,
+): SitePayload {
+  const { bucket } = periodWindow(period);
+  const sinceMs = new Date(since).getTime();
+  const prevMs = new Date(prevSince).getTime();
+
+  const own = rows.filter((r) => normalizeSite(r.site ?? "getklar.org") === "getklar.org");
+  const cur: RawPageview[] = [];
+  const prevSessions = new Set<string>();
+  for (const r of own) {
+    const ts = new Date(r.created_at).getTime();
+    if (ts >= sinceMs) cur.push(r);
+    else if (ts >= prevMs) prevSessions.add(r.session_hash);
+  }
+
+  const timeline = bucketTimeline(since, bucket);
+  const perBucket = new Map<string, { visits: number; sessions: Set<string> }>();
+  for (const t of timeline) perBucket.set(t.key, { visits: 0, sessions: new Set() });
+  for (const r of cur) {
+    const b = perBucket.get(bucketOf(r.created_at, bucket));
+    if (!b) continue;
+    b.visits++;
+    b.sessions.add(r.session_hash);
+  }
+
+  const nonAffiliate = cur.filter((r) => !isAffiliatePath(r.path));
+  const pages = topCounts(nonAffiliate.map((r) => normalizePath(r.path)));
+  const referrers = topCounts(cur.map((r) => hostOf(r.referrer)));
+  const countries = topCounts(cur.map((r) => r.country ?? "??"));
+  const browsers = topCounts(cur.map((r) => (r.ua_family ?? "").split(" / ")[0] || "Other"));
+
+  return {
+    period,
+    totalVisits: cur.length,
+    totalSessions: new Set(cur.map((r) => r.session_hash)).size,
+    prevSessions: prevSessions.size,
+    topPage: pages[0]?.label ?? null,
+    topReferrer: referrers[0]?.label ?? null,
+    series: timeline.map((t) => {
+      const b = perBucket.get(t.key)!;
+      return { label: t.label, visits: b.visits, sessions: b.sessions.size };
+    }),
+    pages,
+    referrers,
+    countries,
+    browsers,
+  };
+}
+
+const EMPTY_SITE: SitePayload = {
+  period: "month",
+  totalVisits: 0,
+  totalSessions: 0,
+  prevSessions: 0,
+  topPage: null,
+  topReferrer: null,
+  series: [],
+  pages: [],
+  referrers: [],
+  countries: [],
+  browsers: [],
+};
 
 const EMPTY_LANDINGS: LandingsPayload = {
   period: "month",
@@ -547,11 +626,12 @@ const EMPTY_CHART: AppsChartPayload = {
   note: null,
 };
 
-// Alte Links trugen tab=public|affiliate|funnel. public war die Web-Sicht und
-// wird von landings abgeloest; die anderen beiden gibt es nicht mehr und
-// landen auf dem Apps-Tab, statt auf einer leeren Seite.
+// Alte Links trugen tab=public|affiliate|funnel. `public` war die Sicht auf
+// getklar.org und heisst jetzt `site`; die anderen beiden gibt es nicht mehr
+// und landen auf dem Apps-Tab, statt auf einer leeren Seite.
 function parseTab(t: string | undefined): AnalyticsTab {
-  if (t === "landings" || t === "public") return "landings";
+  if (t === "landings") return "landings";
+  if (t === "site" || t === "public") return "site";
   return "apps";
 }
 
@@ -575,6 +655,7 @@ export default async function AnalyticsPage({
     p?: string;
     tab?: string;
     p_pub?: string;
+    p_site?: string;
     am?: string;
     p_app?: string;
     apps?: string;
@@ -600,21 +681,25 @@ export default async function AnalyticsPage({
 
   const sp = await searchParams;
   const tab = parseTab(sp.tab);
-  // Periode des Landing-Tabs (mit `p` als Rueckfall, damit alte Links tragen).
+  // Periode je Tab (mit `p` als Rueckfall, damit alte Links tragen).
   const landP = parsePeriod(sp.p_pub ?? sp.p);
-  const { since } = periodWindow(landP);
+  const siteP = parsePeriod(sp.p_site ?? sp.p);
+  const activeP = tab === "site" ? siteP : landP;
+  const { since } = periodWindow(activeP);
   // Doppeltes Fenster: die zweite Haelfte ist der Vergleichszeitraum. Beides
   // in EINEM Fetch, weil zwei Abfragen ueber dieselbe kleine Tabelle nur
   // Latenz kosten.
-  const prevSince = daysAgo(periodDays(landP) * 2);
+  const prevSince = daysAgo(periodDays(activeP) * 2);
 
   // The Apps tab doesn't read pageviews, so skip the up-to-10k-row fetch there
   // (it's the default tab, so this matters on every dashboard load).
-  const rows = tab === "landings" ? await fetchPageviews(prevSince) : [];
+  const rows = tab === "apps" ? [] : await fetchPageviews(prevSince);
   const landings: LandingsPayload =
     tab === "landings"
       ? buildLandings(rows, landP, since, prevSince, parseSelectedLandings(sp.lp))
       : EMPTY_LANDINGS;
+  const site: SitePayload =
+    tab === "site" ? buildSite(rows, siteP, since, prevSince) : EMPTY_SITE;
   // Apps tab fans out user-stats + RevenueCat calls per app; only build it when
   // that tab is active.
   const appsData: AppsPayload = tab === "apps" ? await buildApps() : EMPTY_APPS;
@@ -649,10 +734,12 @@ export default async function AnalyticsPage({
         </p>
         <AnalyticsClient
           landings={landings}
+          site={site}
           appsData={appsData}
           appsChart={appsChart}
           tab={tab}
           periodLandings={landP}
+          periodSite={siteP}
         />
       </div>
     </>

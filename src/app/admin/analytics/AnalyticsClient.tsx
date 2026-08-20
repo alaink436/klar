@@ -11,10 +11,11 @@
 
 import Link from "next/link";
 import { AreaChart } from "../tremor/components/AreaChart/AreaChart";
+import { BarChart } from "../tremor/components/BarChart/BarChart";
 import type { AvailableChartColorsKeys } from "../tremor/utils/chartColors";
 
 export type Period = "week" | "month" | "year";
-export type AnalyticsTab = "apps" | "landings";
+export type AnalyticsTab = "apps" | "landings" | "site";
 
 // Per-app users + revenue, the centerpiece of the rebuilt Analytics tab.
 // `hasBackend` = app's Supabase is wired in KLAR_ADMIN_APPS (so user counts are
@@ -107,6 +108,22 @@ export interface LandingsPayload {
   trackedCount: number;
 }
 
+/** getklar.org selbst: Sitzungen, Seiten, Herkunft. */
+export interface SitePayload {
+  period: Period;
+  totalVisits: number;
+  totalSessions: number;
+  /** Sitzungen im gleich langen Fenster davor. */
+  prevSessions: number;
+  topPage: string | null;
+  topReferrer: string | null;
+  series: { label: string; visits: number; sessions: number }[];
+  pages: { label: string; count: number }[];
+  referrers: { label: string; count: number }[];
+  countries: { label: string; count: number }[];
+  browsers: { label: string; count: number }[];
+}
+
 const PERIODS: { id: Period; label: string }[] = [
   { id: "week", label: "7 Tage" },
   { id: "month", label: "30 Tage" },
@@ -117,11 +134,20 @@ const PERIODS: { id: Period; label: string }[] = [
 const TABS: { id: AnalyticsTab; label: string }[] = [
   { id: "apps", label: "Apps" },
   { id: "landings", label: "Landings" },
+  { id: "site", label: "getklar.org" },
 ];
 
-function TabSelector({ active, landP }: { active: AnalyticsTab; landP: Period }) {
+function TabSelector({
+  active,
+  landP,
+  siteP,
+}: {
+  active: AnalyticsTab;
+  landP: Period;
+  siteP: Period;
+}) {
   const hrefFor = (id: AnalyticsTab) => {
-    const params = new URLSearchParams({ tab: id, p_pub: landP });
+    const params = new URLSearchParams({ tab: id, p_pub: landP, p_site: siteP });
     return `/admin/analytics?${params.toString()}`;
   };
   return (
@@ -142,16 +168,7 @@ function TabSelector({ active, landP }: { active: AnalyticsTab; landP: Period })
   );
 }
 
-function PeriodSelector({
-  active,
-  onKeys,
-  allCount,
-}: {
-  active: Period;
-  onKeys: string[];
-  allCount: number;
-}) {
-  const hrefFor = (p: Period) => landingsHref(p, onKeys, allCount);
+function PeriodSelector({ active, hrefFor }: { active: Period; hrefFor: (p: Period) => string }) {
   return (
     <div className="seg" role="tablist" aria-label="Zeitraum">
       {PERIODS.map((p) => (
@@ -264,26 +281,34 @@ function HBar({ data, max }: { data: { label: string; count: number }[]; max?: n
 
 export default function AnalyticsClient({
   landings,
+  site,
   appsData,
   appsChart,
   tab,
   periodLandings,
+  periodSite,
 }: {
   landings: LandingsPayload;
+  site: SitePayload;
   appsData: AppsPayload;
   appsChart: AppsChartPayload;
   tab: AnalyticsTab;
   periodLandings: Period;
+  periodSite: Period;
 }) {
   const onKeys = landings.chips.filter((c) => c.on).map((c) => c.key);
+  const isLandings = tab === "landings";
+  const activePeriod = isLandings ? periodLandings : periodSite;
+  const isEmpty = isLandings ? landings.totalVisits === 0 : site.totalVisits === 0;
 
   return (
     <>
-      <TabSelector active={tab} landP={periodLandings} />
+      <TabSelector active={tab} landP={periodLandings} siteP={periodSite} />
       {/* The Apps tab uses fixed windows (auth.users new-30/7d + RevenueCat's
           own 28-day overview), so a period selector there would be misleading.
-          Nur der Landing-Tab bekommt einen. */}
-      {tab === "landings" ? (
+          Die beiden Pageview-Tabs bekommen einen, jeder mit eigener Periode:
+          wer 7 Tage Landings ansieht, will deswegen nicht 7 Tage getklar.org. */}
+      {tab !== "apps" ? (
         <div
           style={{
             display: "flex",
@@ -295,11 +320,14 @@ export default function AnalyticsClient({
           }}
         >
           <PeriodSelector
-            active={periodLandings}
-            onKeys={onKeys}
-            allCount={landings.chips.length}
+            active={activePeriod}
+            hrefFor={(p) =>
+              isLandings
+                ? landingsHref(p, onKeys, landings.chips.length)
+                : `/admin/analytics?${new URLSearchParams({ tab: "site", p_site: p }).toString()}`
+            }
           />
-          {landings.totalVisits === 0 ? (
+          {isEmpty ? (
             <span
               style={{
                 fontFamily: "var(--font-mono)",
@@ -316,6 +344,7 @@ export default function AnalyticsClient({
       ) : null}
       {tab === "apps" ? <AppsView apps={appsData} chart={appsChart} /> : null}
       {tab === "landings" ? <LandingsView landings={landings} /> : null}
+      {tab === "site" ? <SiteView site={site} /> : null}
     </>
   );
 }
@@ -1010,6 +1039,106 @@ function LandingsView({ landings }: { landings: LandingsPayload }) {
             <code>lib/klarLandings.ts</code>. Affiliate-Links (<code>/i/…</code>) sind bewusst
             ausgenommen.
           </p>
+        </ChartCard>
+      </div>
+    </>
+  );
+}
+
+// ===== getklar.org: der Studio-Auftritt selbst =====
+//
+// Die Sitzung fuehrt, nicht der Aufruf. Auf einer Seite mit Apps, OS und
+// Rechtstexten blaettert ein Mensch mehrere Seiten; "wie viele waren da" ist
+// die Zahl, an der man etwas ablesen kann, "wie viele Seiten wurden geoeffnet"
+// die Zahl darunter. Auf den Landings ist es umgekehrt, dort ist eine Seite
+// die ganze Begegnung.
+
+function SiteView({ site }: { site: SitePayload }) {
+  const delta = deltaOf(site.totalSessions, site.prevSessions);
+  const perSession =
+    site.totalSessions > 0 ? (site.totalVisits / site.totalSessions).toFixed(1) : "—";
+
+  return (
+    <>
+      <div className="cards">
+        <StatRow
+          label="Sitzungen"
+          value={fmtInt(site.totalSessions)}
+          sub={`${periodLabel(site.period)} · ${delta.text} vs. ${prevLabel(site.period)} (${fmtInt(site.prevSessions)})`}
+        />
+        <StatRow
+          label="Aufrufe"
+          value={fmtInt(site.totalVisits)}
+          sub={perSession === "—" ? "keine Aufrufe" : `${perSession} Seiten pro Sitzung`}
+        />
+        <StatRow label="Top-Seite" value={site.topPage ?? "—"} sub="meist besucht" />
+        <StatRow label="Top-Quelle" value={site.topReferrer ?? "—"} sub="Referrer" />
+      </div>
+
+      <h2>Verlauf</h2>
+      <div className="chart">
+        {site.series.length > 0 ? (
+          <AreaChart
+            data={site.series.map((d) => ({
+              label: d.label,
+              Sitzungen: d.sessions,
+              Aufrufe: d.visits,
+            }))}
+            index="label"
+            categories={["Sitzungen", "Aufrufe"]}
+            colors={["ink", "steel"]}
+            valueFormatter={(v) => v.toLocaleString("de-CH")}
+            startEndOnly
+            showLegend
+            className="h-60"
+          />
+        ) : (
+          <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+            Keine Daten im Zeitraum.
+          </p>
+        )}
+      </div>
+
+      <h2>Seiten · Quellen</h2>
+      <div className="chart-grid">
+        <ChartCard title="Seiten">
+          <HBar data={site.pages} />
+          <p className="muted" style={{ fontSize: 12, margin: "14px 0 0" }}>
+            Ohne <code>/admin</code> und <code>/api</code>, die stehen gar nicht erst in der
+            Tabelle. Affiliate-Links (<code>/i/…</code>) sind hier ausgenommen, weil es von
+            denen eine pro Code gibt und sie die Liste sonst fluten.
+          </p>
+        </ChartCard>
+        <ChartCard title="Quellen">
+          <HBar data={site.referrers} />
+          <p className="muted" style={{ fontSize: 12, margin: "14px 0 0" }}>
+            {"„(direkt)“"} heisst: kein Referrer mitgeschickt. Das ist nicht nur
+            direkte Eingabe, sondern auch jeder In-App-Browser, der keinen setzt.
+          </p>
+        </ChartCard>
+      </div>
+
+      <h2>Länder · Browser</h2>
+      <div className="chart-grid">
+        <ChartCard title="Länder">
+          {site.countries.length > 0 ? (
+            <BarChart
+              data={site.countries.map((c) => ({ label: c.label, Aufrufe: c.count }))}
+              index="label"
+              categories={["Aufrufe"]}
+              colors={["ink"]}
+              valueFormatter={(v) => v.toLocaleString("de-CH")}
+              showLegend={false}
+              className="h-52"
+            />
+          ) : (
+            <p className="muted" style={{ fontSize: 13, margin: "12px 0 0" }}>
+              Noch keine Daten.
+            </p>
+          )}
+        </ChartCard>
+        <ChartCard title="Browser">
+          <HBar data={site.browsers} />
         </ChartCard>
       </div>
     </>
