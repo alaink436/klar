@@ -21,7 +21,7 @@ import {
   type ColorMode,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { RawNode, Group } from "@/lib/brainVault";
+import type { RawNode, RawEdge, Group } from "@/lib/brainVault";
 
 // Cool, cohesive node palette keyed by top-level folder — replaces the baked
 // lavender/cream from brainGraph.json (Skills + Design-Systems dominated, so the
@@ -55,6 +55,9 @@ type DotData = {
   path: string;
   hub: boolean;
   active: boolean;
+  /** Ordnerknoten aus dem Baum: traegt einen Pfad fuer den Scope, ist aber
+      keine Notiz und darf deshalb nicht geoeffnet werden. */
+  ordner?: boolean;
 };
 
 function DotNode({ data }: NodeProps) {
@@ -101,7 +104,7 @@ export default function InteractiveGraph({
   height = "100%",
 }: {
   nodes: RawNode[];
-  edges: [number, number][];
+  edges: RawEdge[];
   groups: Group[];
   activePath?: string | null;
   onOpen: (path: string) => void;
@@ -128,10 +131,13 @@ export default function InteractiveGraph({
     );
   }, [nodes]);
 
-  // Layout densification. The baked coords leave an empty middle and push weakly
-  // connected notes onto a sparse outer rim. Pull every node toward the centroid
-  // (low-degree nodes harder, so loose notes move inward and the centre fills),
-  // then a few collision passes so the tighter packing never overlaps.
+  // Seit dem Umbau auf den Ordnerbaum sind die gebackenen Koordinaten eine
+  // Aussage: Ring = Tiefe, Winkel = Zweig. Sie duerfen nicht mehr nachtraeglich
+  // zur Mitte gezogen werden, das war fuer den frueheren Spring-Graph gedacht
+  // und wuerde die Hierarchie genau wieder einebnen. Erkannt wird der Baum an
+  // den dreielementigen Kanten.
+  const istBaum = useMemo(() => edges.some((e) => e.length > 2), [edges]);
+
   const layout = useMemo(() => {
     const N = nodes.length;
     if (N === 0) return [] as { x: number; y: number }[];
@@ -144,12 +150,14 @@ export default function InteractiveGraph({
     let cx = 0, cy = 0;
     for (const n of nodes) { cx += n.x; cy += n.y; }
     cx /= N; cy /= N;
-    // Hubs keep ~0.85 of their radius; leaves are pulled in to ~0.45.
+    // Im Baum-Modus 1:1 uebernehmen, sonst Huben ~0.85 lassen und Blaetter
+    // auf ~0.45 hereinziehen.
     const px = nodes.map((n, i) => {
+      if (istBaum) return { x: n.x * SPREAD, y: n.y * SPREAD };
       const pull = 0.32 + 0.34 * (deg[i] / maxDeg);
       return { x: (cx + (n.x - cx) * pull) * SPREAD, y: (cy + (n.y - cy) * pull) * SPREAD };
     });
-    if (N <= 700) {
+    if (!istBaum && N <= 700) {
       const rad = nodes.map((n) => Math.max(8, Math.min(42, n.r * 1.15)) / 2 + 6);
       for (let it = 0; it < 7; it++) {
         for (let i = 0; i < N; i++) {
@@ -169,7 +177,7 @@ export default function InteractiveGraph({
       }
     }
     return px;
-  }, [nodes, edges]);
+  }, [nodes, edges, istBaum]);
 
   const rfNodes: Node[] = useMemo(
     () =>
@@ -187,6 +195,7 @@ export default function InteractiveGraph({
           color: colorForGroup(groups[n.g]),
           size,
           path: n.p,
+          ordner: n.d === 1,
           hub: hubPaths.has(n.p),
           active: activePath != null && n.p === activePath,
         } satisfies DotData,
@@ -197,18 +206,30 @@ export default function InteractiveGraph({
 
   const rfEdges: Edge[] = useMemo(
     () =>
-      edges.map(([a, b]) => ({
-        id: `e${a}-${b}`,
-        source: String(a),
-        target: String(b),
-      })),
+      edges.map((e) => {
+        const [a, b] = e;
+        const baum = e.length > 2;
+        return {
+          id: `e${a}-${b}${baum ? "t" : ""}`,
+          source: String(a),
+          target: String(b),
+          // Der Ordnerbaum traegt die Struktur, die Wikilinks sind die
+          // Querverweise. Baumkanten deshalb zurueckhaltender zeichnen.
+          style: baum
+            ? { stroke: "var(--line)", strokeWidth: 0.7, opacity: 0.5 }
+            : { stroke: "var(--bx-accent,#74D6C4)", strokeWidth: 1, opacity: 0.35 },
+        };
+      }),
     [edges],
   );
 
   const onNodeClick = useCallback(
     (_: unknown, node: Node) => {
-      const p = (node.data as DotData)?.path;
-      if (p) onOpen(p);
+      const d = node.data as DotData;
+      // Ein Ordner hat einen Pfad, aber keine Datei dahinter. fetchNote wuerde
+      // mit "not a note" antworten; gar nicht erst fragen ist ehrlicher.
+      if (d?.ordner) return;
+      if (d?.path) onOpen(d.path);
     },
     [onOpen],
   );

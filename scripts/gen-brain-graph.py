@@ -160,84 +160,122 @@ for rid, n in notes.items():
 G.add_edges_from(edges)
 deg = dict(G.degree())
 
-# layout: spring on linked nodes (clear core), isolated notes in a calm
-# outer ring grouped by folder so the centre stays readable
-linked = [i for i in range(len(ids)) if deg[i] > 0]
-iso = [i for i in range(len(ids)) if deg[i] == 0]
+# chronological rank
+order_ids = sorted(range(len(ids)), key=lambda i: (notes[ids[i]]["date"], ids[i]))
+rank = {i: r for r, i in enumerate(order_ids)}
+
+# ── Hierarchie: der Ordnerbaum ───────────────────────────────────────────
+#
+# Vorher war das Layout ein Spring-Graph über [[wikilinks]]. Ergebnis am
+# 2026-08-20: 192 von 439 Dateien ohne eine einzige Kante, und darunter
+# CLAUDE.md, 00-Registry.md, alle 54 Reflexe und das halbe Infrastructure.
+# Die sind nicht peripher, sie tragen nur keine Wikilinks. Der Graph mass
+# also Verlinkungsdisziplin und nannte das Ergebnis "verwaist".
+#
+# Ordnerzugehörigkeit dagegen hat jede Datei. Der Baum platziert deshalb
+# alle, und er zeigt die Struktur, die wirklich existiert: Vault → Ordner →
+# Projekt → Datei. Die Wikilink-Kanten bleiben zusätzlich erhalten, sie sind
+# die echten Querverweise; sie werden im Client blasser gezeichnet.
 import numpy as np
 
-sub = G.subgraph(linked)
-# spring gives the cluster structure...
-pos = nx.spring_layout(sub, k=5.5 / math.sqrt(max(len(linked), 1)),
-                       iterations=300, seed=7)
-pts = np.array([pos[i] for i in linked], dtype=float)
-pts -= pts.mean(0)
-pts /= (np.abs(pts).max() or 1.0)
+ORD = "\u00a7"          # Präfix für synthetische Ordnerknoten, kollidiert nie
+WURZEL = ORD            # die Vault-Wurzel selbst
 
-# Degree-radial remap: a uniform packing of 353 nodes is unavoidably
-# dense in the middle. So keep the *angle* from spring (preserves which
-# cluster points where) but set each node's *radius* mostly by degree —
-# hubs stay near the centre with room around them, low-degree leaf notes
-# fan outward. The centre becomes a readable hub skeleton, not a pile.
-n = len(pts)
-th = np.arctan2(pts[:, 1], pts[:, 0])
-r_s = np.hypot(pts[:, 0], pts[:, 1])
-r_s = r_s / (r_s.max() or 1.0)
-dg = np.array([deg[linked[k]] for k in range(n)], dtype=float)
-dn = np.sqrt(dg) / math.sqrt(dg.max() or 1.0)        # 0..1, hubs -> 1
-# spread the high-degree end across a band (don't pin every hub to the
-# same inner radius -> hubs + their labels stop clustering in one spot)
-r_deg = 0.30 + 0.70 * (1.0 - dn) ** 1.15
-r_f = 0.10 * r_s + 0.90 * r_deg
-# deterministic radial + angular jitter so equal-degree nodes don't ring
-jit = np.array([((hash(ids[linked[k]]) % 1000) / 1000.0 - 0.5)
-                for k in range(n)])
-jit2 = np.array([((hash(ids[linked[k]] + "r") % 1000) / 1000.0 - 0.5)
-                 for k in range(n)])
-th = th + jit * 0.26
-# hard inner hole: nothing closer than 0.18 to dead centre
-r_f = np.clip(r_f + jit2 * 0.07, 0.18, None)
-pts = np.stack([r_f * np.cos(th), r_f * np.sin(th)], axis=1)
-pts -= pts.mean(0)
+def eltern(rid: str):
+    """Ordner-Knoten-Id des Elternteils, oder die Wurzel."""
+    teile = rid.split("/")
+    return (ORD + "/".join(teile[:-1])) if len(teile) > 1 else WURZEL
 
-# resolve overlaps with a real gap so nodes don't touch (keep passes
-# low so the degree-radial spread isn't homogenised away)
-MIN_D = 2.1 / math.sqrt(max(n, 1))
-for it in range(55):
-    diff = pts[:, None, :] - pts[None, :, :]
-    d = np.sqrt((diff * diff).sum(-1))
-    np.fill_diagonal(d, 1e9)
-    close = d < MIN_D
-    if not close.any():
-        break
-    unit = diff / d[..., None]
-    force = (np.where(close[..., None], unit * (MIN_D - d)[..., None], 0.0)
-             .sum(1))
-    pts += force * 0.5 * (1.0 - it / 60.0)
-    pts -= pts.mean(0)
+# alle Ordner sammeln, die auf dem Weg zu einer Datei liegen
+ordner = set()
+for rid in ids:
+    teile = rid.split("/")[:-1]
+    for k in range(1, len(teile) + 1):
+        ordner.add(ORD + "/".join(teile[:k]))
 
-# scale so the core fills the view (~1.0); tight halo just outside so
-# BrainGraph's fit-to-view doesn't zoom out and re-shrink the core.
-pts -= pts.mean(0)  # re-centre before measuring the radius
-core_r0 = float(np.hypot(pts[:, 0], pts[:, 1]).max()) or 1.0
-sc = 1.0 / core_r0
-core_pts = pts * sc
-# hard inner hole, applied LAST so no later re-centring can fill it:
-# anything inside HOLE is pushed out along its own angle. Empties the
-# dead centre -> the hub mass sits in a readable ring, not a blob.
-HOLE = 0.30
-rr = np.hypot(core_pts[:, 0], core_pts[:, 1])
-ang = np.arctan2(core_pts[:, 1], core_pts[:, 0])
-rr = np.where(rr < HOLE, HOLE + (HOLE - rr) * 0.5, rr)
-core_pts = np.stack([rr * np.cos(ang), rr * np.sin(ang)], axis=1)
-P = {i: (float(core_pts[k, 0]), float(core_pts[k, 1]))
-     for k, i in enumerate(linked)}
+baum_ids = ids + sorted(ordner) + [WURZEL]
+bidx = {r: i for i, r in enumerate(baum_ids)}
 
-iso.sort(key=lambda i: (notes[ids[i]]["group"], ids[i]))
-for j, i in enumerate(iso):
-    ang = 2 * math.pi * j / max(len(iso), 1)
-    rr = 1.08 + 0.14 * ((j * 7) % 5) / 5.0
-    P[i] = (rr * math.cos(ang), rr * math.sin(ang))
+kinder = {r: [] for r in baum_ids}
+for r in baum_ids:
+    if r == WURZEL:
+        continue
+    e = eltern(r[len(ORD):]) if r.startswith(ORD) else eltern(r)
+    kinder.setdefault(e, []).append(r)
+for k in kinder:
+    # Ordner zuerst, dann Dateien, jeweils alphabetisch: stabil über Läufe
+    kinder[k].sort(key=lambda r: (not r.startswith(ORD), r.lower()))
+
+# Blattzahl je Teilbaum bestimmt, wieviel Winkel er bekommt
+blaetter = {}
+def zaehle(r):
+    if r in blaetter:
+        return blaetter[r]
+    ks = kinder.get(r, [])
+    blaetter[r] = 1 if not ks else sum(zaehle(k) for k in ks)
+    return blaetter[r]
+zaehle(WURZEL)
+
+# Radius je Tiefe. Die Schritte werden nach aussen kleiner, sonst zerreisst
+# es tiefe Zweige (Projects/<Projekt>/<Unterordner>/Datei).
+RADIUS = [0.0, 0.34, 0.66, 0.90, 1.08, 1.22, 1.33]
+def radius(tiefe: int) -> float:
+    return RADIUS[tiefe] if tiefe < len(RADIUS) else RADIUS[-1] + 0.09 * (tiefe - len(RADIUS) + 1)
+
+P = {}
+def platziere(r, tiefe, a0, a1):
+    mitte = (a0 + a1) / 2.0
+    rr = radius(tiefe)
+    P[bidx[r]] = (rr * math.cos(mitte), rr * math.sin(mitte))
+    ks = kinder.get(r, [])
+    if not ks:
+        return
+    gesamt = sum(blaetter[k] for k in ks) or 1
+    a = a0
+    for k in ks:
+        anteil = (a1 - a0) * blaetter[k] / gesamt
+        platziere(k, tiefe + 1, a, a + anteil)
+        a += anteil
+
+platziere(WURZEL, 0, -math.pi, math.pi)
+
+# Baumkanten. Der dritte Wert markiert sie, damit der Client sie blasser
+# zeichnen kann; ein Client, der nur [a, b] liest, ignoriert ihn.
+# Wieviele Dateien tragen ueberhaupt einen Wikilink? Die Zahl bleibt im
+# Zaehler, weil sie etwas ueber die Verlinkungsdisziplin sagt, nicht mehr
+# ueber die Platzierung: platziert werden jetzt alle.
+linked = [i for i in range(len(ids)) if deg[i] > 0]
+
+baumkanten = []
+for r, ks in kinder.items():
+    for k in ks:
+        baumkanten.append((bidx[r], bidx[k]))
+
+# Grad, Rang und Gruppe für die Ordnerknoten ableiten
+def blattnachfahren(r):
+    ks = kinder.get(r, [])
+    if not ks:
+        return [r] if not r.startswith(ORD) else []
+    out = []
+    for k in ks:
+        out += blattnachfahren(k)
+    return out
+
+ordner_info = {}
+for r in baum_ids:
+    if not r.startswith(ORD):
+        continue
+    nachfahren = blattnachfahren(r)
+    raenge = [rank[idx[d]] for d in nachfahren if d in idx]
+    pfad = r[len(ORD):]
+    ordner_info[r] = {
+        "label": (pfad.split("/")[-1] if pfad else "AI-Brain"),
+        "group": (pfad.split("/")[0] if pfad else "_root"),
+        "deg": len(kinder.get(r, [])),
+        # Ein Ordner entsteht mit seiner ersten Datei, nicht später
+        "rank": min(raenge) if raenge else 0,
+        "files": len(nachfahren),
+    }
 
 
 def rad(d):
@@ -245,9 +283,6 @@ def rad(d):
     return round(min(1.3 + math.sqrt(d) * 1.5, 10.0), 2)
 
 
-# chronological rank
-order_ids = sorted(range(len(ids)), key=lambda i: (notes[ids[i]]["date"], ids[i]))
-rank = {i: r for r, i in enumerate(order_ids)}
 
 present = [g for g in GROUPS if any(notes[r]["group"] == g for r in ids)]
 present += sorted({notes[r]["group"] for r in ids} - set(present))
@@ -262,7 +297,7 @@ gindex = {g["key"]: k for k, g in enumerate(groups_out)}
 
 nodes_out = []
 for i, rid in enumerate(ids):
-    x, y = P[i]
+    x, y = P[bidx[rid]]
     nodes_out.append({
         "x": round(x, 4),
         "y": round(y, 4),
@@ -273,20 +308,58 @@ for i, rid in enumerate(ids):
         "p": rid,  # vault-relative path, lets the viewer open the note on click
     })
 
+# Ordnerknoten dahinter. Sie tragen keinen oeffenbaren Pfad ("p": ""), der
+# Viewer laesst sie deshalb beim Klick in Ruhe. Ihr Radius waechst mit der
+# Zahl der Dateien darunter, damit ein grosser Ordner auch gross aussieht.
+ordner_index = {}
+for r in baum_ids:
+    if not r.startswith(ORD):
+        continue
+    info = ordner_info[r]
+    x, y = P[bidx[r]]
+    ordner_index[r] = len(nodes_out)
+    nodes_out.append({
+        "x": round(x, 4),
+        "y": round(y, 4),
+        "r": round(min(3.0 + math.sqrt(info["files"]) * 1.4, 13.0), 2),
+        "g": gindex.get(info["group"], gindex.get("_root", 0)),
+        "c": info["rank"],
+        "l": info["label"][:48],
+        # Ordnerpfad, NICHT zum Oeffnen: scopeGraph() liest daraus die
+        # Top-Ebene, damit ein Ordner im selben Scope landet wie sein Inhalt.
+        "p": r[len(ORD):],
+        "d": 1,          # Ordner, keine Notiz
+    })
+
+# Der Baum indiziert ids + Ordner + Wurzel, die Ausgabe zuerst alle Dateien
+# und danach die Ordner. Diese Abbildung bringt beide zusammen.
+def baum_zu_aus(i):
+    r = baum_ids[i] if i < len(baum_ids) else None
+    if r is None:
+        return 0
+    return ordner_index[r] if r.startswith(ORD) else idx[r]
+
 order_dates = [notes[ids[i]]["date"] for i in order_ids]
 data = {
     "generated": date.today().isoformat(),
     "counts": {
-        "nodes": len(ids),
-        "edges": len(edges),
-        "linked": len(linked),
+        "nodes": len(ids),          # Notizen, ohne die Ordnerknoten
+        "edges": len(edges),        # Wikilinks, ohne die Baumkanten
+        "linked": len(linked),      # Notizen mit mindestens einem Wikilink
+        "folders": len(ordner_index),
+        "tree": len(baumkanten),
     },
     "first": order_dates[0],
     "last": order_dates[-1],
     "order": order_dates,
     "groups": groups_out,
     "nodes": nodes_out,
-    "edges": [[a, b] for a, b in sorted(edges)],
+    # Wikilink-Kanten zuerst, danach die Baumkanten mit Marker 1. Ein Client,
+    # der nur [a, b] destrukturiert, ignoriert den dritten Wert.
+    "edges": (
+        [[baum_zu_aus(a), baum_zu_aus(b)] for a, b in sorted(edges)]
+        + [[baum_zu_aus(a), baum_zu_aus(b), 1] for a, b in baumkanten]
+    ),
 }
 OUT.write_text(json.dumps(data, separators=(",", ":")) + "\n", encoding="utf-8")
 print(

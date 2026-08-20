@@ -35,19 +35,24 @@ export type RawNode = {
   c: number;
   l: string;
   p: string;
+  /** 1 = Ordnerknoten aus dem Baum, keine Notiz. Nicht oeffenbar. */
+  d?: number;
 };
+
+/** [a, b] ist ein Wikilink, [a, b, 1] eine Kante des Ordnerbaums. */
+export type RawEdge = [number, number] | [number, number, number];
 export type Group = { key: string; label: string; color: string; count: number };
 export type Counts = { nodes: number; edges: number; linked: number };
 
 export type ScopedGraph = {
   nodes: RawNode[];
-  edges: [number, number][];
+  edges: RawEdge[];
   groups: Group[];
   counts: Counts;
 };
 
 const ALL_NODES = graph.nodes as RawNode[];
-const ALL_EDGES = graph.edges as [number, number][];
+const ALL_EDGES = graph.edges as RawEdge[];
 const ALL_GROUPS = graph.groups as Group[];
 
 // Top-level folder a vault path belongs to ("Projects/Klar/PROGRESS.md" ->
@@ -97,12 +102,14 @@ export function scopeGraph(allowed: string[] | null): ScopedGraph {
     nodes.push(n);
   });
 
-  const edges: [number, number][] = [];
-  for (const [a, b] of ALL_EDGES) {
-    const na = oldToNew.get(a);
-    const nb = oldToNew.get(b);
+  const edges: RawEdge[] = [];
+  for (const e of ALL_EDGES) {
+    const na = oldToNew.get(e[0]);
+    const nb = oldToNew.get(e[1]);
     if (na === undefined || nb === undefined) continue;
-    edges.push([na, nb]);
+    // Den Baum-Marker mitnehmen, sonst wird jede Baumkante beim Zuschneiden
+    // zu einem Wikilink und der Client zeichnet sie zu kraeftig.
+    edges.push(e.length > 2 ? [na, nb, e[2] as number] : [na, nb]);
   }
 
   // Recompute per-group counts from the surviving nodes, then renumber the
