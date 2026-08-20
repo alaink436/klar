@@ -44,10 +44,9 @@ export const KLAR_LANDINGS: LandingMeta[] = [
   { app: "myloo", site: "myloo.org", path: "/get", repo: "myloo-web", tracked: true },
 
   // Bio von @kelvaapp zeigt auf /get (SOCIAL-ACCOUNTS.md, 2026-08-12).
-  // ⚠️ Das Vercel-Projekt haengt nicht am Repo: der Push vom 2026-08-20 hat
-  // kelva.space NICHT neu ausgeliefert, dort laeuft ein aelterer Build ohne
-  // Beacon. Bis das jemand von Hand deployt, bleibt diese Zeile bei null.
-  { app: "kelva", site: "kelva.space", path: "/get", repo: "kelva-web", tracked: false },
+  // Das Vercel-Projekt haengt nicht am Repo, der Push allein hat hier nichts
+  // ausgeliefert. Am 2026-08-20 von Hand deployt und nachgemessen.
+  { app: "kelva", site: "kelva.space", path: "/get", repo: "kelva-web", tracked: true },
 
   // Basalt laeuft unter dem historischen Slug "wavelength" (siehe klarApps).
   // Die Domain traegt auch die AASA, deshalb ist sie der Landing-Entscheid.

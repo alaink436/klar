@@ -61,10 +61,15 @@ function uaFamily(ua: string): string | null {
   else if (/Safari\//.test(ua) && !/Chrome/.test(ua)) browser = "Safari";
   else if (/OPR\/|Opera\//.test(ua)) browser = "Opera";
   let os = "Other";
-  if (/Windows/.test(ua)) os = "Windows";
-  else if (/Mac OS X/.test(ua)) os = "macOS";
+  // iOS ZUERST. Safari auf dem iPhone schickt "like Mac OS X" mit, also hat
+  // die macOS-Pruefung bis 2026-08-20 jedes iPhone als Mac verbucht. Am
+  // 2026-08-20 an der Produktion nachgemessen: eine echte iPhone-Kennung
+  // landete als "Safari / macOS" in der Tabelle. Android vor Linux aus dem
+  // gleichen Grund, dessen Kennung traegt beides.
+  if (/iPhone|iPad|iPod/.test(ua)) os = "iOS";
   else if (/Android/.test(ua)) os = "Android";
-  else if (/iPhone|iPad|iOS/.test(ua)) os = "iOS";
+  else if (/Windows/.test(ua)) os = "Windows";
+  else if (/Mac OS X|Macintosh/.test(ua)) os = "macOS";
   else if (/Linux/.test(ua)) os = "Linux";
   return `${browser} / ${os}`;
 }
