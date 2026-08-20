@@ -7,9 +7,13 @@ import { fmtRelative } from "@/app/admin/_shared";
 import {
   COLLAB_ALIASES,
   COLLAB_CHANNEL_LABELS,
+  COLLAB_STAGE_LABELS,
   collabAddressFor,
   collabAppOptions,
+  collabThreadKey,
+  listCollabStages,
   listCollabThreads,
+  type CollabStageRow,
   type CollabThread,
 } from "@/lib/collabStore";
 import type { CollabAliasRow, CollabAppOption, CollabThreadRow } from "@/app/admin/collabs/CollabsView";
@@ -23,7 +27,10 @@ export interface CollabView {
   open: number;
 }
 
-function toRows(threads: CollabThread[]): CollabThreadRow[] {
+function toRows(
+  threads: CollabThread[],
+  stages: Map<string, CollabStageRow>,
+): CollabThreadRow[] {
   // App-Slug → Anzeigename (aus der Alias-Map; deckt auch AnimeVault + Studio
   // ab). Threads tragen den ggf. per Text-Erkennung zugeordneten App-Slug.
   const appNames: Record<string, string> = {};
@@ -39,7 +46,12 @@ function toRows(threads: CollabThread[]): CollabThreadRow[] {
     // als "beantwortet" durchgerutscht.
     const status: CollabThreadRow["status"] =
       last?.direction === "in" ? "open" : inboundCount === 0 ? "waiting" : "answered";
+    // Der von Hand gepflegte Stand. Fehlt die Zeile, bleibt es bei null —
+    // "noch nie hingeschaut" ist eine eigene Aussage und wird nicht zu
+    // "Kontakt" geschönt (siehe Migration 0026).
+    const stage = stages.get(collabThreadKey(t.app, t.contactEmail)) ?? null;
     return {
+      app: t.app,
       contactEmail: t.contactEmail,
       contactName: t.contactName,
       contactHandle: t.contactHandle,
@@ -53,6 +65,10 @@ function toRows(threads: CollabThread[]): CollabThreadRow[] {
       inboundCount,
       unanswered: last?.direction === "in",
       status,
+      stage: stage?.stage ?? null,
+      stageLabel: stage ? COLLAB_STAGE_LABELS[stage.stage] : null,
+      stageNote: stage?.note ?? "",
+      stageSince: stage?.updated_at ? fmtRelative(stage.updated_at) : null,
       whenRel: t.lastActivityAt ? fmtRelative(t.lastActivityAt) : "—",
       inboxHref: `/admin/inbox?f=collab&sel=${encodeURIComponent(`collab:${t.app}:${t.contactEmail}`)}`,
     };
@@ -75,7 +91,10 @@ export function collabAliasRows(): CollabAliasRow[] {
 }
 
 export async function buildCollabView(): Promise<CollabView> {
-  const threads = toRows(await listCollabThreads());
+  // Zwei unabhängige Tabellen, parallel geholt — der Stand hängt nicht an den
+  // Nachrichten, und ein Thread ohne Stand ist genauso gültig wie umgekehrt.
+  const [rawThreads, stages] = await Promise.all([listCollabThreads(), listCollabStages()]);
+  const threads = toRows(rawThreads, stages);
   return {
     aliases: collabAliasRows(),
     threads,

@@ -21,10 +21,14 @@ import { revalidatePath } from "next/cache";
 import { readCookie, ctEqual } from "@/app/admin/_shared";
 import {
   COLLAB_ALIASES,
+  COLLAB_NOTE_MAX,
+  COLLAB_STAGE_LABELS,
   collabAppOptions,
   collabContactKey,
   insertCollabMessage,
   isCollabChannel,
+  isCollabStage,
+  setCollabStage,
   type CollabChannel,
 } from "@/lib/collabStore";
 import { addTodo } from "@/lib/todoStore";
@@ -116,10 +120,22 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   const who = channel === "email" ? email : `@${handle}`;
   const appName = COLLAB_ALIASES[alias].name;
-  const noted =
+  let noted =
     direction === "out"
       ? `Notiert: du hast ${who} geschrieben (${appName}).`
       : `Notiert: ${who} hat geschrieben (${appName}).`;
+
+  // Stand ist optional und hat KEINE Vorauswahl: ein Nachtrag zu einem
+  // laufenden Gespräch soll dessen Stufe nicht stillschweigend zurückdrehen.
+  // Leer heisst darum "unverändert lassen", nicht "auf Anfang".
+  const rawStage = String(form.get("stage") ?? "").trim();
+  if (rawStage && isCollabStage(rawStage)) {
+    const stageNote = String(form.get("stage_note") ?? "").trim().slice(0, COLLAB_NOTE_MAX);
+    const st = await setCollabStage(app, contactKey, rawStage, stageNote);
+    noted += st.ok
+      ? ` Stand: ${COLLAB_STAGE_LABELS[rawStage]}.`
+      : ` ⚠️ Stand NICHT gesetzt (${st.error ?? "?"}).`;
+  }
 
   // Optionaler To-do-Punkt. Der Collab-Eintrag steht bereits — ein Fehler beim
   // To-do darf ihn nicht zurücknehmen, er wird nur gemeldet.

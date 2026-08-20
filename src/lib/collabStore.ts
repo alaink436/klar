@@ -12,6 +12,7 @@
 // nichts Neues: der Inbound-Parse auf KLAR_INBOUND_DOMAIN fängt bereits alle
 // local parts der Domain; zusätzliche Domains via KLAR_COLLAB_DOMAINS (CSV).
 import "server-only";
+import { COLLAB_NOTE_MAX, type CollabStage } from "@/lib/collabStages";
 
 const KLAR_INBOX_URL =
   process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
@@ -184,6 +185,15 @@ export function isEmailContactKey(key: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(key);
 }
 
+/** Map-Schlüssel für einen Thread. Trennzeichen ist NUL, weil es weder in
+ *  einem App-Slug noch in einer Adresse vorkommen kann; als Escape
+ *  geschrieben, nie roh (ein rohes 0x00 hat git die Datei 2026-07-11 schon
+ *  einmal für binär halten lassen). Muss überall derselbe sein, wo
+ *  Threads mit etwas anderem zusammengeführt werden (Nachrichten ↔ Stand). */
+export function collabThreadKey(app: string, contactKey: string): string {
+  return `${app}\u0000${contactKey}`;
+}
+
 // ── Store ───────────────────────────────────────────────────────────────────
 
 export interface CollabMessage {
@@ -305,7 +315,7 @@ export async function listCollabThreads(
     const rows = (await res.json()) as CollabMessage[];
     const byThread = new Map<string, CollabMessage[]>();
     for (const m of rows) {
-      const key = `${m.app}\u0000${m.contact_email}`;
+      const key = collabThreadKey(m.app, m.contact_email);
       const arr = byThread.get(key);
       if (arr) arr.push(m);
       else byThread.set(key, [m]);
@@ -334,5 +344,88 @@ export async function listCollabThreads(
     return threads;
   } catch {
     return [];
+  }
+}
+
+// -- Stand (Fortschritt) ----------------------------------------------------
+// Zweite Achse neben "wer schrieb zuletzt": wie weit ist die Zusammenarbeit
+// gediehen? Von Hand gesetzt über /admin/collab/stage, eigene Tabelle
+// (Migration 0026) — klar_collab_messages ist append-only, und ein Zustand
+// ist nichts, was man anhängt.
+//
+// Die Stufen selbst stehen in lib/collabStages, einer Datei ohne
+// "server-only": das Board ist eine Client-Komponente und braucht dieselbe
+// Liste. Hier nur durchgereicht, damit Aufrufer nicht wissen müssen, welche
+// Hälfte woher kommt.
+export {
+  COLLAB_STAGES,
+  COLLAB_STAGE_LABELS,
+  COLLAB_STAGE_HINTS,
+  COLLAB_NOTE_MAX,
+  isCollabStage,
+  type CollabStage,
+} from "@/lib/collabStages";
+
+export interface CollabStageRow {
+  app: string;
+  /** = klar_collab_messages.contact_email, der Thread-Schlüssel. */
+  contact_key: string;
+  stage: CollabStage;
+  note: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Alle gesetzten Stände, indiziert wie listCollabThreads gruppiert
+ *  (collabThreadKey). Fail-soft zu einer leeren Map: das Board muss auch
+ *  dann rendern, wenn diese Tabelle nicht antwortet. */
+export async function listCollabStages(limit = 800): Promise<Map<string, CollabStageRow>> {
+  const out = new Map<string, CollabStageRow>();
+  if (!KLAR_INBOX_KEY) return out;
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_collab_stages?select=*&limit=${limit}`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return out;
+    const rows = (await res.json()) as CollabStageRow[];
+    for (const r of rows) out.set(collabThreadKey(r.app, r.contact_key), r);
+    return out;
+  } catch {
+    return out;
+  }
+}
+
+/**
+ * Stand + Notiz eines Threads setzen. Upsert auf dem Primärschlüssel
+ * (app, contact_key) — die Route weiss nicht, ob schon eine Zeile existiert,
+ * und soll es auch nicht wissen müssen.
+ *
+ * `created_at` wird bewusst nicht mitgeschickt: beim Merge würde es sonst
+ * jedes Mal neu gesetzt, und "seit wann steht das so" wäre immer heute.
+ */
+export async function setCollabStage(
+  app: string,
+  contactKey: string,
+  stage: CollabStage,
+  note: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!KLAR_INBOX_KEY) return { ok: false, error: "not configured" };
+  if (!app || !contactKey) return { ok: false, error: "thread missing" };
+  try {
+    const res = await fetch(`${KLAR_INBOX_URL}/rest/v1/klar_collab_stages`, {
+      method: "POST",
+      headers: { ...hdr(), Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({
+        app,
+        contact_key: contactKey,
+        stage,
+        note: note.slice(0, COLLAB_NOTE_MAX),
+        updated_at: new Date().toISOString(),
+      }),
+    });
+    return res.ok ? { ok: true } : { ok: false, error: `upsert ${res.status}` };
+  } catch {
+    return { ok: false, error: "network" };
   }
 }
