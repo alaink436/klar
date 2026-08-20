@@ -21,11 +21,6 @@ import {
   type DirectionPatch,
 } from "@/lib/accountDirection";
 import {
-  removeReference,
-  saveReference,
-  type ReferencePatch,
-} from "@/lib/references";
-import {
   listChannelReferenceHistory,
   saveChannelReference,
   type ChannelReferencePatch,
@@ -129,7 +124,11 @@ export async function loadChannelTimeline(key: string): Promise<Zeitleiste[]> {
     })),
     ...referenzen.map((r) => ({
       art: "referenz" as const,
-      was: r.titel || (r.video_pfad ? "hochgeladenes Video" : r.video_link || "Referenz"),
+      was:
+        r.titel ||
+        (r.dateien?.length
+          ? `${r.dateien.length} Datei(en)`
+          : r.video_link || "Referenz"),
       ebene: r.scope,
       ab: String(r.ab).slice(0, 10),
       bis: r.bis ? String(r.bis).slice(0, 10) : null,
@@ -152,35 +151,6 @@ export async function loadChannelTimeline(key: string): Promise<Zeitleiste[]> {
 export async function loadDirectionHistory(key: string): Promise<AccountDirection[]> {
   if (!(await requireAdmin())) return [];
   return listDirectionHistory(key);
-}
-
-/**
- * Eine Referenz anlegen oder ändern.
- *
- * Gibt einen Fehlertext zurück statt still zu scheitern: die Kennung hat eine
- * Form (`<projekt>/<id>`), und ein Tippfehler darin ist der wahrscheinliche
- * Fall — die Kennung ist der Zeiger, den auch das Vault-Manifest benutzt.
- */
-export async function upsertReference(
-  kennung: string,
-  patch: ReferencePatch,
-): Promise<{ ok: boolean; fehler?: string }> {
-  if (!(await requireAdmin())) return { ok: false, fehler: "nicht angemeldet" };
-  const res = await saveReference(kennung, patch);
-  if (res.ok) revalidatePath("/admin/todos");
-  return res;
-}
-
-/**
- * Eine Referenz entfernen. Zeigt noch eine Richtung darauf, wird sie nur auf
- * inaktiv gesetzt — die Kennung bleibt lesbar, sonst stünde in der Richtung ein
- * Zeiger ins Leere.
- */
-export async function dropReference(kennung: string): Promise<{ ok: boolean; behalten?: boolean }> {
-  if (!(await requireAdmin())) return { ok: false };
-  const res = await removeReference(kennung);
-  if (res.ok) revalidatePath("/admin/todos");
-  return res;
 }
 
 /**

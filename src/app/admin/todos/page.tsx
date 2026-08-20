@@ -16,11 +16,7 @@ import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listTodos, todosConfigured } from "@/lib/todoStore";
 import { listAccountStatus, listPostLog, listPostTotals } from "@/lib/accountStatus";
 import { listCurrentDirections, listDirectionCounts } from "@/lib/accountDirection";
-import {
-  listChannelReferences,
-  medienArt,
-  type ChannelReference,
-} from "@/lib/channelReference";
+import { listChannelReferences, type ChannelReference } from "@/lib/channelReference";
 import { listPostSamples, type PostSample } from "@/lib/postSample";
 import { ACCOUNTS, APPS, PLATFORM_LABEL, accountKey } from "@/lib/socialAccounts";
 import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
@@ -157,10 +153,9 @@ export default async function TodosPage({
         scope: p.scope,
         titel: p.titel,
         notiz: p.notiz,
-        videoUrl: p.video_url,
+        medien: p.medien,
         videoLink: p.video_link,
         ergebnis: p.ergebnis,
-        art: medienArt(p.video_pfad),
       })),
     ]),
   );
@@ -171,10 +166,8 @@ export default async function TodosPage({
         scope: r.scope,
         titel: r.titel,
         notiz: r.notiz,
-        videoPfad: r.video_pfad,
+        medien: r.medien,
         videoLink: r.video_link,
-        videoUrl: r.video_url,
-        art: medienArt(r.video_pfad),
       },
     ]),
   );

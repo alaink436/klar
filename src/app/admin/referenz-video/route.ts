@@ -16,8 +16,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
 import { readCookie, ctEqual } from "@/app/admin/_shared";
 import { verifyDeviceCookie } from "@/lib/deviceCookie";
-import { removeReferenceVideo, uploadReferenceVideo } from "@/lib/references";
-import { removeChannelVideo, uploadChannelVideo } from "@/lib/channelReference";
+import { removeChannelVideo, uploadChannelFiles } from "@/lib/channelReference";
 import { uploadPostSample } from "@/lib/postSample";
 
 export const runtime = "nodejs";
@@ -51,46 +50,66 @@ export async function POST(req: NextRequest): Promise<Response> {
     return back(req, "Datei konnte nicht gelesen werden");
   }
 
-  // Zwei Ziele über dieselbe Route: `scope` hängt das Video an eine Ebene
-  // (App, Plattform, Kanal), `kennung` an einen Bibliothekseintrag. Der Ablauf
-  // ist identisch — Datei prüfen, hochladen, zurück — und zwei Routen wären
-  // zwei Stellen, an denen die Berechtigung geprüft werden müsste.
+  // Zwei Ziele über dieselbe Route: ohne `art` wird die Referenz der Ebene
+  // gewechselt, mit `art=post` kommt ein gelaufener Post in die Sammlung. Der
+  // Ablauf ist identisch — Dateien prüfen, hochladen, zurück — und zwei Routen
+  // wären zwei Stellen, an denen die Berechtigung geprüft werden müsste.
   const scope = String(form.get("scope") ?? "").trim();
-  const kennung = String(form.get("kennung") ?? "").trim();
-  const ziel = scope || kennung;
-  if (!ziel) return back(req, "keine Ebene angegeben");
+  if (!scope) return back(req, "keine Ebene angegeben");
 
   if (String(form.get("aktion") ?? "") === "entfernen") {
-    const res = scope ? await removeChannelVideo(scope) : await removeReferenceVideo(kennung);
+    const res = await removeChannelVideo(scope);
     revalidatePath("/admin/todos");
-    return back(req, res.ok ? `Video von ${ziel} entfernt` : "Entfernen fehlgeschlagen");
+    return back(req, res.ok ? `Referenz von ${scope} entfernt` : "Entfernen fehlgeschlagen");
   }
 
-  const datei = form.get("datei");
-  if (!(datei instanceof File) || datei.size === 0) return back(req, "keine Datei gewählt");
-  if (datei.size > MAX_BYTES) {
+  // Mehrere Dateien, weil eine Slideshow zwei bis zehn Bilder ist. Die
+  // Reihenfolge im Formular ist die Reihenfolge der Slides.
+  const gewaehlt = form
+    .getAll("datei")
+    .filter((d): d is File => d instanceof File && d.size > 0);
+  const istPost = String(form.get("art") ?? "") === "post";
+
+  if (!gewaehlt.length) {
+    // Ein Post ohne Datei ist trotzdem etwas wert: Alains Anweisung, worauf man
+    // sich beziehen soll, ist die eigentliche Aussage der Zeile.
+    if (istPost && String(form.get("notiz") ?? "").trim()) {
+      const nur = await uploadPostSample(scope, [], {
+        notiz: String(form.get("notiz") ?? ""),
+        ergebnis: String(form.get("ergebnis") ?? ""),
+      });
+      revalidatePath("/admin/todos");
+      return back(req, nur.ok ? "Notiz gespeichert, Datei fehlt noch" : "Speichern fehlgeschlagen");
+    }
+    return back(req, "keine Datei gewählt");
+  }
+
+  const zuGross = gewaehlt.find((d) => d.size > MAX_BYTES);
+  if (zuGross) {
     return back(
       req,
-      `Datei ist ${Math.round(datei.size / 1_048_576)} MB, erlaubt sind 200 MB`,
+      `„${zuGross.name}" ist ${Math.round(zuGross.size / 1_048_576)} MB, erlaubt sind 200 MB`,
     );
   }
 
-  const bytes = await datei.arrayBuffer();
-  // `art=post` legt einen gelaufenen Post in die Sammlung des Kanals, statt die
-  // Referenz der Ebene zu wechseln. Zwei verschiedene Fragen, ein Formular:
-  // hier kommt in beiden Faellen eine Datei ueber dieselbe Leitung.
-  const res =
-    String(form.get("art") ?? "") === "post" && scope
-      ? await uploadPostSample(scope, bytes, datei.type, datei.name, {
-          notiz: String(form.get("notiz") ?? ""),
-          ergebnis: String(form.get("ergebnis") ?? ""),
-        })
-      : scope
-        ? await uploadChannelVideo(scope, bytes, datei.type, datei.name)
-        : await uploadReferenceVideo(kennung, bytes, datei.type, datei.name);
+  const dateien = await Promise.all(
+    gewaehlt.map(async (d) => ({
+      bytes: await d.arrayBuffer(),
+      contentType: d.type,
+      name: d.name,
+    })),
+  );
+
+  const res = istPost
+    ? await uploadPostSample(scope, dateien, {
+        notiz: String(form.get("notiz") ?? ""),
+        ergebnis: String(form.get("ergebnis") ?? ""),
+      })
+    : await uploadChannelFiles(scope, dateien);
   revalidatePath("/admin/todos");
+  const wieviel = dateien.length === 1 ? "Datei" : `${dateien.length} Dateien`;
   return back(
     req,
-    res.ok ? `Video für ${ziel} hochgeladen` : (res.fehler ?? "Upload fehlgeschlagen"),
+    res.ok ? `${wieviel} für ${scope} hochgeladen` : (res.fehler ?? "Upload fehlgeschlagen"),
   );
 }

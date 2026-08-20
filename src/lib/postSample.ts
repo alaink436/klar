@@ -15,15 +15,19 @@
 // Das wichtigste Feld ist `notiz`: Alains Anweisung, worauf sich kuenftige Posts
 // beziehen sollen. Ohne sie waere die Zeile nur ein Video.
 import "server-only";
-import { scopeKette, SCOPE_FORM } from "./channelReference";
+import {
+  legeAb,
+  mitEndung,
+  scopeKette,
+  signiereAlle,
+  SCOPE_FORM,
+  type Medium,
+} from "./channelReference";
 
 const URL_BASE =
   process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
 const KEY = process.env.KLAR_INBOX_SERVICE_KEY ?? "";
 const REST = `${URL_BASE}/rest/v1/klar_post_sample`;
-const BUCKET = "referenzen";
-const STORAGE = `${URL_BASE}/storage/v1`;
-const SIGN_SEKUNDEN = 3600;
 
 function hdr(extra?: HeadersInit): HeadersInit {
   return {
@@ -41,13 +45,14 @@ export interface PostSample {
   titel: string | null;
   /** Alains Anweisung: worauf sich kuenftige Posts beziehen sollen. */
   notiz: string | null;
-  video_pfad: string | null;
+  /** Pfade im Bucket, in Reihenfolge. Ein Carousel bringt mehrere mit. */
+  dateien: string[];
   video_link: string | null;
   gepostet_am: string | null;
   ergebnis: string | null;
   aktiv: boolean;
-  /** Frisch signierte Abspiel-URL, eine Stunde gueltig. */
-  video_url: string | null;
+  /** Frisch signierte Adressen zu `dateien`, eine Stunde gueltig. */
+  medien: Medium[];
 }
 
 export interface PostSamplePatch {
@@ -64,23 +69,6 @@ function clean(v: string | null | undefined, max: number): string | null {
   return s ? s.slice(0, max) : null;
 }
 
-async function signiere(pfad: string): Promise<string | null> {
-  try {
-    const res = await fetch(`${STORAGE}/object/sign/${BUCKET}/${encodeURI(pfad)}`, {
-      method: "POST",
-      headers: hdr(),
-      body: JSON.stringify({ expiresIn: SIGN_SEKUNDEN }),
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    const j = (await res.json()) as { signedURL?: string; signedUrl?: string };
-    const rel = j.signedURL ?? j.signedUrl;
-    if (!rel) return null;
-    return `${STORAGE}${rel.startsWith("/") ? "" : "/"}${rel}`;
-  } catch {
-    return null;
-  }
-}
 
 /** Alle aktiven Posts, nach `scope`. Neueste zuerst. */
 export async function listPostSamples(): Promise<Map<string, PostSample[]>> {
@@ -95,10 +83,10 @@ export async function listPostSamples(): Promise<Map<string, PostSample[]>> {
     const rows = (await res.json()) as PostSample[];
     if (!Array.isArray(rows)) return out;
     const mitUrl = await Promise.all(
-      rows.map(async (r) => ({
-        ...r,
-        video_url: r.video_pfad ? await signiere(r.video_pfad) : null,
-      })),
+      rows.map(async (r) => {
+        const dateien = Array.isArray(r.dateien) ? r.dateien : [];
+        return { ...r, dateien, medien: await signiereAlle(dateien) };
+      }),
     );
     for (const r of mitUrl) {
       const liste = out.get(r.scope) ?? [];
@@ -184,49 +172,49 @@ export async function savePostSample(
 }
 
 /**
- * Einen Post hochladen: erst die Zeile, dann die Datei unter ihrer id.
+ * Einen Post hochladen: erst die Zeile, dann ihre Dateien.
  *
- * Scheitert der Upload, bleibt die Zeile stehen und traegt kein Video. Das ist
+ * Die id wird zuerst gebraucht — sie traegt den Ordner, damit zwei Posts
+ * desselben Kanals sich nicht ueberschreiben. Ein Carousel bringt mehrere
+ * Dateien mit, die laufende Nummer haelt ihre Reihenfolge.
+ *
+ * Scheitert der Upload, bleibt die Zeile stehen und traegt keine Datei. Das ist
  * die bessere Haelfte: Alains Notiz — die Anweisung, worauf man sich beziehen
- * soll — ist auch ohne Datei etwas wert, und er sieht die Zeile und kann die
- * Datei nachreichen.
+ * soll — ist auch ohne Datei etwas wert, und er kann sie nachreichen.
  */
 export async function uploadPostSample(
   scope: string,
-  bytes: ArrayBuffer,
-  contentType: string,
-  dateiname: string,
+  dateien: { bytes: ArrayBuffer; contentType: string; name: string }[],
   patch: PostSamplePatch = {},
 ): Promise<{ ok: boolean; fehler?: string }> {
+  if (!KEY) return { ok: false, fehler: "nicht konfiguriert" };
   const angelegt = await createPostSample(scope, patch);
   if (!angelegt.ok || !angelegt.id) return { ok: false, fehler: angelegt.fehler };
+  if (!dateien.length) return { ok: true };
 
-  const treffer = /\.[a-z0-9]{1,5}$/i.exec(dateiname);
-  const endung = (treffer ? treffer[0] : "").toLowerCase();
-  const pfad = `posts/${scope.trim().replace(/:/g, "_")}/${angelegt.id}${endung || ".mp4"}`;
+  const ordner = `posts/${scope.trim().replace(/:/g, "_")}/${angelegt.id}`;
+  const pfade: string[] = [];
+  for (let i = 0; i < dateien.length; i++) {
+    const d = dateien[i];
+    const pfad = await legeAb(
+      ordner,
+      mitEndung(String(i + 1).padStart(2, "0"), d.name),
+      d.bytes,
+      d.contentType,
+    );
+    if (!pfad) return { ok: false, fehler: `Upload von ${d.name} fehlgeschlagen` };
+    pfade.push(pfad);
+  }
+
   try {
-    const res = await fetch(`${STORAGE}/object/${BUCKET}/${encodeURI(pfad)}`, {
-      method: "POST",
-      headers: {
-        apikey: KEY,
-        Authorization: `Bearer ${KEY}`,
-        "Content-Type": contentType || "application/octet-stream",
-        "x-upsert": "true",
-      },
-      body: Buffer.from(bytes),
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      return { ok: false, fehler: `Upload ${res.status}: ${text.slice(0, 160)}` };
-    }
     const zu = await fetch(`${REST}?id=eq.${angelegt.id}`, {
       method: "PATCH",
       headers: hdr({ Prefer: "return=minimal" }),
-      body: JSON.stringify({ video_pfad: pfad }),
+      body: JSON.stringify({ dateien: pfade }),
     });
-    return zu.ok ? { ok: true } : { ok: false, fehler: "Pfad konnte nicht gespeichert werden" };
+    return zu.ok ? { ok: true } : { ok: false, fehler: "Pfade konnten nicht gespeichert werden" };
   } catch {
-    return { ok: false, fehler: "Upload fehlgeschlagen" };
+    return { ok: false, fehler: "Speichern fehlgeschlagen" };
   }
 }
 

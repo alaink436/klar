@@ -17,6 +17,8 @@
 import { useState, useTransition } from "react";
 import { FIELD } from "./boardStyles";
 import { setChannelReference } from "./posting-actions";
+import FileDrop from "./FileDrop";
+import Medienkachel, { type Medium } from "./Medienkachel";
 
 const MONO = "[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em]";
 
@@ -24,11 +26,9 @@ export interface SlotRef {
   scope: string;
   titel: string | null;
   notiz: string | null;
-  videoPfad: string | null;
+  /** Bei einer Slideshow mehrere, in Reihenfolge. */
+  medien: Medium[];
   videoLink: string | null;
-  videoUrl: string | null;
-  /** Wie die Datei anzuzeigen ist. Vom Server entschieden, siehe `medienArt`. */
-  art: "video" | "bild" | "roh";
 }
 
 export default function ReferenceSlot({
@@ -51,10 +51,9 @@ export default function ReferenceSlot({
   const [pending, startTransition] = useTransition();
   const [offen, setOffen] = useState(false);
 
-  const hatEigenes = Boolean(eigen?.videoPfad || eigen?.videoLink);
-  const quelle = eigen?.videoUrl ? eigen : hatEigenes ? null : geerbt?.ref ?? null;
-  const zeigt = quelle?.videoUrl ?? null;
-  const art = quelle?.art ?? "video";
+  const hatEigenes = Boolean(eigen && (eigen.medien.length > 0 || eigen.videoLink));
+  const quelle = hatEigenes ? eigen : geerbt?.ref;
+  const medien = quelle?.medien ?? [];
   const w = breit ? 96 : 72;
 
   function feld(patch: Parameters<typeof setChannelReference>[1]): void {
@@ -66,36 +65,17 @@ export default function ReferenceSlot({
   return (
     <div className={`flex gap-1.5 ${pending ? "opacity-60" : ""}`}>
       <div className="shrink-0" style={{ width: w }}>
-        {zeigt && art === "video" ? (
-          <video
-            src={zeigt}
-            controls
-            preload="metadata"
-            playsInline
-            className="w-full rounded-[4px] border border-line bg-black"
-            style={{ aspectRatio: "9 / 16", objectFit: "contain", opacity: hatEigenes ? 1 : 0.65 }}
-          />
-        ) : zeigt && art === "bild" ? (
-          // Signierte Supabase-URL mit Ablauf; next/image wuerde sie
-          // zwischenspeichern und nach einer Stunde ein totes Bild ausliefern.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={zeigt}
-            alt={`Referenz für ${etikett}`}
-            className="w-full rounded-[4px] border border-line bg-black"
-            style={{ aspectRatio: "9 / 16", objectFit: "contain", opacity: hatEigenes ? 1 : 0.65 }}
-          />
-        ) : zeigt ? (
-          // HEIC: die Datei ist da, nur kein Browser zeigt sie an.
-          <a
-            href={zeigt}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`${MONO} w-full rounded-[4px] border border-line-strong flex items-center justify-center text-center px-1 underline decoration-dotted`}
-            style={{ aspectRatio: "9 / 16", color: "var(--fg-3)" }}
-          >
-            HEIC — öffnen
-          </a>
+        {medien.length ? (
+          <div className={medien.length > 1 ? "grid grid-cols-2 gap-0.5" : ""}>
+            {medien.map((m, k) => (
+              <Medienkachel
+                key={k}
+                medium={m}
+                alt={`Referenz für ${etikett}, Teil ${k + 1}`}
+                gedimmt={!hatEigenes}
+              />
+            ))}
+          </div>
         ) : (
           <div
             className={`${MONO} w-full rounded-[4px] border border-dashed border-line-strong flex items-center justify-center text-center px-1`}
@@ -114,12 +94,11 @@ export default function ReferenceSlot({
           className="mt-1"
         >
           <input type="hidden" name="scope" value={scope} />
-          <input
-            type="file"
+          <FileDrop
             name="datei"
             accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
-            aria-label={`Referenzvideo für ${etikett} wählen`}
-            className="block w-full text-[9px] file:mr-1 file:py-0.5 file:px-1 file:rounded-[3px] file:border file:border-line file:bg-bg file:text-fg file:text-[9px]"
+            ariaLabel={`Referenz für ${etikett} wählen`}
+            klein
           />
           <div className="flex gap-1 mt-1">
             <button
@@ -129,7 +108,7 @@ export default function ReferenceSlot({
             >
               hoch
             </button>
-            {eigen?.videoPfad ? (
+            {eigen && eigen.medien.length > 0 ? (
               <button
                 type="submit"
                 name="aktion"

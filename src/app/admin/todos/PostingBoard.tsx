@@ -1217,7 +1217,7 @@ function erbe(
   for (let i = teile.length - 1; i >= 1; i--) {
     const scope = teile.slice(0, i).join(":");
     const r = refs[scope];
-    if (r && (r.videoPfad || r.videoLink)) return { ref: r, ebene: scope };
+    if (r && (r.medien.length > 0 || r.videoLink)) return { ref: r, ebene: scope };
   }
   return null;
 }
@@ -1492,7 +1492,8 @@ function ScopeLeiste({
                       scope={`${app}:${p}`}
                       eigen={scopeRefs[`${app}:${p}`]}
                       geerbt={
-                        scopeRefs[app] && (scopeRefs[app].videoPfad || scopeRefs[app].videoLink)
+                        scopeRefs[app] &&
+                        (scopeRefs[app].medien.length > 0 || scopeRefs[app].videoLink)
                           ? { ref: scopeRefs[app], ebene: app }
                           : null
                       }

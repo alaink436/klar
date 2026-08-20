@@ -1,9 +1,9 @@
-// SERVER ONLY. Das Referenzvideo je Ebene — `klar_channel_reference` im
-// Klar-Hub-Supabase exiuwektrqxvycclqfdd, Migration 0030.
+// SERVER ONLY. Die Referenz je Ebene — `klar_channel_reference` im
+// Klar-Hub-Supabase exiuwektrqxvycclqfdd, Migrationen 0030 bis 0034.
 //
 // Der Unterschied zu `lib/references`: dort liegt eine Bibliothek, aus der man
-// auswaehlt. Hier haengt das Video direkt an der Ebene, und **das Hochladen ist
-// die Zuordnung**. Kein Kennungsfeld, keine Liste.
+// auswaehlt. Hier haengt die Referenz direkt an der Ebene, und **das Hochladen
+// ist die Zuordnung**. Kein Kennungsfeld, keine Liste.
 //
 // Drei Ebenen, sie erben nach unten:
 //
@@ -13,12 +13,14 @@
 //
 // Aufgeloest wird von unten nach oben, der spezifischste Treffer gewinnt. Das
 // passt auf Alains Bestand: die drei Kelva-Kanaele fahren dasselbe, die zwei
-// Basalt-Motivationskanaele auch. Einmal an der App hinterlegen statt dreimal
-// am Kanal ist genau die Arbeit, die sonst jedes Mal wieder anfaellt.
+// Basalt-Motivationskanaele auch.
 //
-// Der `scope` ist ein Praefix des `account_key` ("app:plattform:handle"), also
-// ist die Aufloesung reines Abschneiden — es braucht keine zweite Landkarte,
-// die jemand nachziehen muesste.
+// Seit 0034 sind es **mehrere Dateien** je Ebene, in Reihenfolge. Eine
+// Slideshow ist zwei bis zehn Bilder, kein Video; die Reihenfolge ist dabei die
+// Information, und ein Array haelt sie ohne Sortierspalte.
+//
+// Ein Wechsel ist kein Ueberschreiben: die laufende Zeile wird mit Datum und
+// Grund geschlossen (0031) und bleibt im Verlauf sichtbar.
 import "server-only";
 
 const URL_BASE =
@@ -27,6 +29,7 @@ const KEY = process.env.KLAR_INBOX_SERVICE_KEY ?? "";
 const REST = `${URL_BASE}/rest/v1/klar_channel_reference`;
 const BUCKET = "referenzen";
 const STORAGE = `${URL_BASE}/storage/v1`;
+/** Wie lange eine Abspiel-URL gilt. Eine Stunde reicht fuer eine Sitzung am Board. */
 const SIGN_SEKUNDEN = 3600;
 
 function hdr(extra?: HeadersInit): HeadersInit {
@@ -39,41 +42,11 @@ function hdr(extra?: HeadersInit): HeadersInit {
   };
 }
 
-export interface ChannelReference {
-  id: number;
-  scope: string;
-  /** "YYYY-MM-DD" — seit wann dieses Video an der Ebene haengt. */
-  ab: string;
-  /** "YYYY-MM-DD" oder null, solange es laeuft. */
-  bis: string | null;
-  /** Warum vom alten Video weg. Steht an der Zeile, die endet. */
-  grund: string | null;
-  titel: string | null;
-  notiz: string | null;
-  video_pfad: string | null;
-  video_link: string | null;
-  kennung: string | null;
-  /** Signierte Abspiel-URL, eine Stunde gueltig. Nicht in der Datenbank. */
-  video_url: string | null;
-}
-
-export interface ChannelReferencePatch {
-  titel?: string | null;
-  notiz?: string | null;
-  videoPfad?: string | null;
-  videoLink?: string | null;
-  kennung?: string | null;
-  /** Nur bei einem Videowechsel: warum weg vom alten. */
-  grund?: string | null;
-}
-
 /**
  * Womit man eine Datei anzeigt.
  *
  *   video   spielt im <video>-Tag
- *   bild    gehoert in ein <img>. Ein JPEG in einem <video> bleibt schwarz,
- *           und genau das war der Fehler, bis Alain am 2026-08-20 fragte, ob
- *           er auch Fotos hochladen kann.
+ *   bild    gehoert in ein <img>. Ein JPEG in einem <video> bleibt schwarz.
  *   roh     da, aber im Browser nicht darstellbar — HEIC vom iPhone. Dafuer
  *           zeigt die Oberflaeche einen Verweis statt einer schwarzen Flaeche.
  */
@@ -87,6 +60,43 @@ export function medienArt(pfadOderUrl: string | null | undefined): MedienArt {
   if (ROH.some((e) => p.endsWith(e))) return "roh";
   if (BILD.some((e) => p.endsWith(e))) return "bild";
   return "video";
+}
+
+/** Eine anzeigbare Datei: signierte Adresse plus wie sie darzustellen ist. */
+export interface Medium {
+  url: string;
+  art: MedienArt;
+}
+
+export interface ChannelReference {
+  id: number;
+  scope: string;
+  /** "YYYY-MM-DD" — seit wann diese Referenz an der Ebene haengt. */
+  ab: string;
+  /** "YYYY-MM-DD" oder null, solange sie laeuft. */
+  bis: string | null;
+  /** Warum von der alten weg. Steht an der Zeile, die endet. */
+  grund: string | null;
+  titel: string | null;
+  notiz: string | null;
+  /** Pfade im Bucket, in Anzeigereihenfolge. Bei einer Slideshow mehrere. */
+  dateien: string[];
+  /** Adresse des Originals (TikTok-Post, Drive). */
+  video_link: string | null;
+  kennung: string | null;
+  /**
+   * Frisch signierte Adressen zu `dateien`, gueltig eine Stunde. Nicht in der
+   * Datenbank: der Bucket ist privat, und eine gespeicherte Adresse waere
+   * entweder abgelaufen oder fuer immer offen.
+   */
+  medien: Medium[];
+}
+
+export interface ChannelReferencePatch {
+  titel?: string | null;
+  notiz?: string | null;
+  videoLink?: string | null;
+  kennung?: string | null;
 }
 
 /** app | app:plattform | app:plattform:handle */
@@ -112,30 +122,41 @@ export function scopeKette(accountKey: string): string[] {
   return out;
 }
 
-async function signiere(pfad: string): Promise<string | null> {
-  try {
-    const res = await fetch(`${STORAGE}/object/sign/${BUCKET}/${encodeURI(pfad)}`, {
-      method: "POST",
-      headers: hdr(),
-      body: JSON.stringify({ expiresIn: SIGN_SEKUNDEN }),
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    const j = (await res.json()) as { signedURL?: string; signedUrl?: string };
-    const rel = j.signedURL ?? j.signedUrl;
-    if (!rel) return null;
-    return `${STORAGE}${rel.startsWith("/") ? "" : "/"}${rel}`;
-  } catch {
-    return null;
-  }
+/**
+ * Signierte Adressen fuer eine Liste von Pfaden, in derselben Reihenfolge.
+ *
+ * Parallel, weil eine Slideshow schnell zehn Dateien hat und zehn Anfragen
+ * nacheinander spuerbar waeren. Ein Pfad, der ins Leere zeigt, faellt raus:
+ * eine tote Adresse waere schlimmer als eine fehlende, weil die Kachel dann
+ * stumm schwarz bliebe.
+ */
+export async function signiereAlle(pfade: string[]): Promise<Medium[]> {
+  const roh = await Promise.all(
+    pfade.map(async (pfad) => {
+      try {
+        const res = await fetch(`${STORAGE}/object/sign/${BUCKET}/${encodeURI(pfad)}`, {
+          method: "POST",
+          headers: hdr(),
+          body: JSON.stringify({ expiresIn: SIGN_SEKUNDEN }),
+          cache: "no-store",
+        });
+        if (!res.ok) return null;
+        const j = (await res.json()) as { signedURL?: string; signedUrl?: string };
+        const rel = j.signedURL ?? j.signedUrl;
+        if (!rel) return null;
+        return {
+          url: `${STORAGE}${rel.startsWith("/") ? "" : "/"}${rel}`,
+          art: medienArt(pfad),
+        };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return roh.filter((m): m is Medium => m !== null);
 }
 
-/**
- * Die LAUFENDEN Ebenen (`bis is null`), nach `scope`, mit signierter Abspiel-URL.
- *
- * Geschlossene Zeilen bleiben in der Tabelle stehen und kommen hier nicht mit:
- * das Board zeigt, was gilt, und der Verlauf wird eigens geholt.
- */
+/** Die LAUFENDEN Ebenen (`bis is null`), nach `scope`, mit signierten Adressen. */
 export async function listChannelReferences(): Promise<Map<string, ChannelReference>> {
   const out = new Map<string, ChannelReference>();
   if (!KEY) return out;
@@ -147,13 +168,13 @@ export async function listChannelReferences(): Promise<Map<string, ChannelRefere
     if (!res.ok) return out;
     const rows = (await res.json()) as ChannelReference[];
     if (!Array.isArray(rows)) return out;
-    const mitUrl = await Promise.all(
-      rows.map(async (r) => ({
-        ...r,
-        video_url: r.video_pfad ? await signiere(r.video_pfad) : null,
-      })),
+    const mitMedien = await Promise.all(
+      rows.map(async (r) => {
+        const dateien = Array.isArray(r.dateien) ? r.dateien : [];
+        return { ...r, dateien, medien: await signiereAlle(dateien) };
+      }),
     );
-    for (const r of mitUrl) out.set(r.scope, r);
+    for (const r of mitMedien) out.set(r.scope, r);
     return out;
   } catch {
     return out;
@@ -163,8 +184,8 @@ export async function listChannelReferences(): Promise<Map<string, ChannelRefere
 /**
  * Welche Referenz fuer einen Kanal gilt, und von welcher Ebene sie kommt.
  *
- * Eine Zeile zaehlt erst als hinterlegt, wenn sie tatsaechlich ein Video oder
- * einen Link traegt. Eine Zeile, in der nur eine Notiz steht, wuerde sonst die
+ * Eine Zeile zaehlt erst als hinterlegt, wenn wirklich Dateien oder ein Link
+ * dranhaengen. Eine Zeile, in der nur eine Notiz steht, wuerde sonst die
  * Vererbung abschneiden und den Kanal ohne Referenz dastehen lassen, obwohl die
  * App eine hat.
  */
@@ -174,13 +195,13 @@ export function aufloesen(
 ): { treffer: ChannelReference; ebene: string } | null {
   for (const scope of scopeKette(accountKey)) {
     const r = alle.get(scope);
-    if (r && (r.video_pfad || r.video_link)) return { treffer: r, ebene: scope };
+    if (r && (r.dateien.length > 0 || r.video_link)) return { treffer: r, ebene: scope };
   }
   return null;
 }
 
 /**
- * Titel, Notiz oder Kennung der LAUFENDEN Zeile aendern.
+ * Titel, Notiz, Link oder Kennung der LAUFENDEN Zeile aendern.
  *
  * Kein Wechsel: einen Tippfehler im Titel zu richten ist keine Umorientierung
  * und darf keine Zeile im Verlauf erzeugen. Gibt es noch keine laufende Zeile,
@@ -198,14 +219,7 @@ export async function saveChannelReference(
   if (patch.titel !== undefined) row.titel = clean(patch.titel, 120);
   if (patch.notiz !== undefined) row.notiz = clean(patch.notiz, 600);
   if (patch.kennung !== undefined) row.kennung = clean(patch.kennung, 200);
-  // Ein neues Video ist ein Wechsel und laeuft ueber `wechsleVideo`.
-  if (patch.videoPfad !== undefined || patch.videoLink !== undefined) {
-    return wechsleVideo(s, {
-      videoPfad: patch.videoPfad,
-      videoLink: patch.videoLink,
-      grund: patch.grund ?? null,
-    });
-  }
+  if (patch.videoLink !== undefined) row.video_link = clean(patch.videoLink, 500);
   if (!Object.keys(row).length) return { ok: true };
 
   try {
@@ -237,19 +251,20 @@ export async function saveChannelReference(
 }
 
 /**
- * Ein neues Video an eine Ebene haengen: die laufende Zeile schliessen, eine
- * neue anlegen.
+ * Neue Dateien an eine Ebene haengen: die laufende Zeile schliessen, eine neue
+ * anlegen.
  *
  * Reihenfolge zaehlt — erst schliessen, dann anlegen. Andersherum laegen fuer
  * einen Moment zwei Zeilen mit `bis is null` vor, und der Unique-Index aus 0031
  * wiese das Anlegen ab.
  *
- * Titel und Notiz wandern mit: sie beschreiben meist die Ebene und nicht das
- * einzelne Video, und sie erneut tippen zu muessen waere Arbeit ohne Ertrag.
+ * Titel, Notiz und Link wandern mit: sie beschreiben meist die Ebene und nicht
+ * die einzelne Datei, und sie erneut zu tippen waere Arbeit ohne Ertrag.
  */
-export async function wechsleVideo(
+export async function wechsleDateien(
   scope: string,
-  opts: { videoPfad?: string | null; videoLink?: string | null; grund?: string | null },
+  dateien: string[],
+  grund?: string | null,
 ): Promise<{ ok: boolean; fehler?: string }> {
   if (!KEY) return { ok: false, fehler: "nicht konfiguriert" };
   const s = scope.trim();
@@ -264,27 +279,17 @@ export async function wechsleVideo(
     const zeilen = laufend.ok ? ((await laufend.json()) as ChannelReference[]) : [];
     const alt = Array.isArray(zeilen) ? zeilen[0] : undefined;
 
-    const neu = {
-      scope: s,
-      titel: alt?.titel ?? null,
-      notiz: alt?.notiz ?? null,
-      kennung: alt?.kennung ?? null,
-      video_pfad: opts.videoPfad !== undefined ? clean(opts.videoPfad, 400) : alt?.video_pfad ?? null,
-      video_link: opts.videoLink !== undefined ? clean(opts.videoLink, 500) : alt?.video_link ?? null,
-      ab: tag,
-    };
-
-    // Nichts mehr dran? Dann ist es kein Wechsel, sondern ein Wegnehmen: die
-    // laufende Zeile wird geschlossen und keine neue eroeffnet, damit die
-    // Vererbung von der Ebene darueber wieder greift.
-    const leer = !neu.video_pfad && !neu.video_link;
+    // Keine Dateien und kein Link mehr? Dann ist es kein Wechsel, sondern ein
+    // Wegnehmen: die laufende Zeile wird geschlossen und keine neue eroeffnet,
+    // damit die Vererbung von der Ebene darueber wieder greift.
+    const leer = dateien.length === 0 && !alt?.video_link;
 
     if (alt) {
       const bis = alt.ab && String(alt.ab).slice(0, 10) > tag ? String(alt.ab).slice(0, 10) : tag;
       const zu = await fetch(`${REST}?id=eq.${alt.id}`, {
         method: "PATCH",
         headers: hdr({ Prefer: "return=minimal" }),
-        body: JSON.stringify({ bis, grund: clean(opts.grund, 500) }),
+        body: JSON.stringify({ bis, grund: clean(grund, 500) }),
       });
       if (!zu.ok) return { ok: false, fehler: `Schliessen fehlgeschlagen (${zu.status})` };
     }
@@ -293,7 +298,15 @@ export async function wechsleVideo(
     const res = await fetch(REST, {
       method: "POST",
       headers: hdr({ Prefer: "return=minimal" }),
-      body: JSON.stringify(neu),
+      body: JSON.stringify({
+        scope: s,
+        titel: alt?.titel ?? null,
+        notiz: alt?.notiz ?? null,
+        kennung: alt?.kennung ?? null,
+        video_link: alt?.video_link ?? null,
+        dateien,
+        ab: tag,
+      }),
     });
     return res.ok ? { ok: true } : { ok: false, fehler: `Datenbank antwortete ${res.status}` };
   } catch {
@@ -301,19 +314,14 @@ export async function wechsleVideo(
   }
 }
 
-/**
- * Der Verlauf aller Ebenen eines Kanals, neueste zuerst.
- *
- * Alle drei Ebenen zusammen, weil ein Kanal auch dann betroffen ist, wenn das
- * Video an seiner App gewechselt hat — von seiner Warte aus ist das derselbe
- * Vorgang.
- */
+/** Der Verlauf aller Ebenen eines Kanals, neueste zuerst. */
 export async function listChannelReferenceHistory(
   accountKey: string,
 ): Promise<ChannelReference[]> {
   if (!KEY || !accountKey.trim()) return [];
-  const kette = scopeKette(accountKey);
-  const inListe = kette.map((s) => `"${s}"`).join(",");
+  const inListe = scopeKette(accountKey)
+    .map((s) => `"${s}"`)
+    .join(",");
   try {
     const res = await fetch(
       `${REST}?select=*&scope=in.(${encodeURIComponent(inListe)})&order=ab.desc,id.desc&limit=100`,
@@ -327,26 +335,15 @@ export async function listChannelReferenceHistory(
   }
 }
 
-/**
- * Ein hochgeladenes Video an eine Ebene haengen.
- *
- * Der Pfad traegt den Scope, damit im Bucket erkennbar bleibt, wozu eine Datei
- * gehoert. Doppelpunkte gehen dabei in Unterstriche ueber: sie sind in
- * Objektpfaden unnoetig heikel, und der Scope bleibt trotzdem lesbar.
- */
-export async function uploadChannelVideo(
-  scope: string,
+/** Eine Datei in den Bucket legen und ihren Pfad zurueckgeben. */
+export async function legeAb(
+  ordner: string,
+  name: string,
   bytes: ArrayBuffer,
   contentType: string,
-  dateiname: string,
-): Promise<{ ok: boolean; fehler?: string }> {
-  if (!KEY) return { ok: false, fehler: "nicht konfiguriert" };
-  const s = scope.trim();
-  if (!SCOPE_FORM.test(s)) return { ok: false, fehler: "unbekannte Ebene" };
-
-  const treffer = /\.[a-z0-9]{1,5}$/i.exec(dateiname);
-  const endung = (treffer ? treffer[0] : "").toLowerCase();
-  const pfad = `kanal/${s.replace(/:/g, "_")}/referenz${endung || ".mp4"}`;
+): Promise<string | null> {
+  if (!KEY) return null;
+  const pfad = `${ordner}/${name}`;
   try {
     const res = await fetch(`${STORAGE}/object/${BUCKET}/${encodeURI(pfad)}`, {
       method: "POST",
@@ -358,28 +355,65 @@ export async function uploadChannelVideo(
       },
       body: Buffer.from(bytes),
     });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      return { ok: false, fehler: `Upload ${res.status}: ${text.slice(0, 160)}` };
-    }
-    return wechsleVideo(s, { videoPfad: pfad, grund: null });
+    return res.ok ? pfad : null;
   } catch {
-    return { ok: false, fehler: "Upload fehlgeschlagen" };
+    return null;
   }
 }
 
+/** Name mit Endung, sonst `.mp4` — der Bucket prueft den Typ. */
+export function mitEndung(basis: string, dateiname: string): string {
+  const treffer = /\.[a-z0-9]{1,5}$/i.exec(dateiname);
+  return `${basis}${(treffer ? treffer[0] : ".mp4").toLowerCase()}`;
+}
+
 /**
- * Das Video einer Ebene wegnehmen.
+ * Mehrere Dateien an eine Ebene haengen — der Weg fuer eine Slideshow.
+ *
+ * Der Ordner traegt den Scope, damit im Bucket erkennbar bleibt, wozu etwas
+ * gehoert, und das Datum des Wechsels. Die laufende Nummer haelt die
+ * Reihenfolge der Slides. Beides zusammen sorgt dafuer, dass eine zweite Runde
+ * die erste nicht ueberschreibt — der Verlauf zeigt sonst auf Dateien, die es
+ * nicht mehr gibt.
+ */
+export async function uploadChannelFiles(
+  scope: string,
+  dateien: { bytes: ArrayBuffer; contentType: string; name: string }[],
+  grund?: string | null,
+): Promise<{ ok: boolean; fehler?: string }> {
+  if (!KEY) return { ok: false, fehler: "nicht konfiguriert" };
+  const s = scope.trim();
+  if (!SCOPE_FORM.test(s)) return { ok: false, fehler: "unbekannte Ebene" };
+  if (!dateien.length) return { ok: false, fehler: "keine Datei" };
+
+  const ordner = `kanal/${s.replace(/:/g, "_")}/${new Date().toISOString().slice(0, 10)}`;
+  const pfade: string[] = [];
+  for (let i = 0; i < dateien.length; i++) {
+    const d = dateien[i];
+    const pfad = await legeAb(
+      ordner,
+      mitEndung(String(i + 1).padStart(2, "0"), d.name),
+      d.bytes,
+      d.contentType,
+    );
+    if (!pfad) return { ok: false, fehler: `Upload von ${d.name} fehlgeschlagen` };
+    pfade.push(pfad);
+  }
+  return wechsleDateien(s, pfade, grund ?? null);
+}
+
+/**
+ * Die Dateien einer Ebene wegnehmen.
  *
  * Die laufende Zeile wird geschlossen, nicht geloescht: sie ist der Beleg, dass
  * dort einmal etwas lief. Danach greift die Vererbung von der Ebene darueber
- * wieder. Die Datei im Bucket bleibt bewusst liegen — der Verlauf zeigt sonst
- * auf ein Video, das niemand mehr ansehen kann.
+ * wieder. Die Dateien im Bucket bleiben bewusst liegen — der Verlauf zeigt
+ * sonst auf etwas, das niemand mehr ansehen kann.
  */
 export async function removeChannelVideo(
   scope: string,
   grund?: string | null,
 ): Promise<{ ok: boolean }> {
-  const res = await wechsleVideo(scope, { videoPfad: null, videoLink: null, grund: grund ?? null });
+  const res = await wechsleDateien(scope, [], grund ?? null);
   return { ok: res.ok };
 }
