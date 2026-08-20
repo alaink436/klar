@@ -43,13 +43,15 @@ import { Button } from "@/components/ui/button";
 import {
   ACCOUNT_STATES,
   ACCOUNT_STATE_LABEL,
-  FORMAT_HINTS,
   MAX_PER_DAY,
   STEER_ROUNDS,
   WEEKDAYS,
   WEEKDAY_SHORT,
   type AccountState,
 } from "@/lib/accountStates";
+import { REFERENCE_IDS } from "@/lib/referenceIds";
+import { FIELD } from "./boardStyles";
+import DirectionCell from "./DirectionCell";
 import {
   addAccount,
   linkChannels,
@@ -86,6 +88,16 @@ export interface BoardAccount {
   /** Wie oft an einem Posting-Tag gepostet wird (1–4). */
   perDay: number;
   note: string;
+  /** Laufende Richtung aus `klar_account_direction`, leer wenn noch keine. */
+  direction: string;
+  /** Seit wann sie läuft ("YYYY-MM-DD"). */
+  directionSince: string;
+  /** Kennung der Referenz aus dem Vault-Manifest, Form `<projekt>/<id>`. */
+  directionRef: string;
+  /** `key` des Kanals, dessen Richtung übernommen wird. */
+  directionMirrors: string;
+  /** Wie viele Richtungen der Kanal schon hinter sich hat. */
+  priorDirections: number;
 }
 
 export interface BoardDay {
@@ -103,8 +115,6 @@ export interface BoardApp {
   label: string;
 }
 
-const FIELD =
-  "h-8 px-2 text-[12px] [font-family:var(--font-body)] text-fg bg-bg border border-line rounded-[4px] focus:border-fg focus:outline-none";
 const HEAD =
   "[font-family:var(--font-mono)] text-[9.5px] font-semibold uppercase tracking-[0.12em] text-fg-4 text-left px-2.5 py-2 whitespace-nowrap";
 // Ob die Heute-Liste offen steht — im Browser, nicht im Vault: die Wahl gilt
@@ -641,7 +651,7 @@ export default function PostingBoard({
               {/* Nische und „eingesteuert" gehören in eine Zelle: das Häkchen
                   bedeutet nichts ohne das Ziel, auf das es sich bezieht. */}
               <th className={HEAD} style={{ minWidth: 170 }}>Zielnische</th>
-              <th className={HEAD} style={{ minWidth: 250 }}>Format, Material &amp; Konto</th>
+              <th className={HEAD} style={{ minWidth: 280 }}>Richtung, Material &amp; Konto</th>
               {/* Notiz steht neben dem Format, nicht hinter der Woche: was du
                   dir überlegt hast, gehört neben das, worauf es sich bezieht —
                   sonst liest man es erst, wenn man ganz nach rechts scrollt. */}
@@ -861,21 +871,7 @@ export default function PostingBoard({
                     </td>
 
                     <td className="px-2.5 py-2 align-top">
-                      <input
-                        list="klar-formats"
-                        defaultValue={r.format}
-                        placeholder="Slideshow …"
-                        aria-label={`Format von @${r.handle}`}
-                        onBlur={(e) => {
-                          const v = e.target.value.trim();
-                          if (v === r.format) return;
-                          startTransition(async () => {
-                            patchRow({ key: r.key, format: v });
-                            await updateAccount(r.key, { format: v });
-                          });
-                        }}
-                        className={`${FIELD} w-full`}
-                      />
+                      <DirectionCell row={r} others={rows} />
                       {/* Woher das Zeug kommt, steht direkt unter dem, was es
                           ist — beim Posten wird beides in derselben Sekunde
                           gebraucht, und getrennte Spalten hätten die Zeile
@@ -1131,9 +1127,15 @@ export default function PostingBoard({
 
         {/* Vorschläge: erst was schon eingetragen ist, dann die Startliste —
             eigene Bezeichnungen sollen sich durchsetzen, nicht meine. */}
-        <datalist id="klar-formats">
-          {[...new Set([...rows.map((r) => r.format).filter(Boolean), ...FORMAT_HINTS])].map((f) => (
-            <option key={f} value={f} />
+        {/* Die Referenzen kommen aus dem Vault-Manifest (Projects/00-Referenzen.md),
+            erzeugt nach lib/referenceIds.ts. Freitext bleibt moeglich: eine
+            Referenz, die noch niemand ins Manifest geschrieben hat, soll sich
+            trotzdem notieren lassen. */}
+        <datalist id="klar-references">
+          {REFERENCE_IDS.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.note}
+            </option>
           ))}
         </datalist>
         {/* Nischen bekommen keine Startliste: welche es gibt, weiss nur er. */}

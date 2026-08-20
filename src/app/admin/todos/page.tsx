@@ -15,6 +15,7 @@ import { ICON, readCookieFromString } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listTodos, todosConfigured } from "@/lib/todoStore";
 import { listAccountStatus, listPostLog, listPostTotals } from "@/lib/accountStatus";
+import { listCurrentDirections, listDirectionCounts } from "@/lib/accountDirection";
 import { ACCOUNTS, APPS, PLATFORM_LABEL, accountKey } from "@/lib/socialAccounts";
 import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 import Planner, { type PlannerDay, type PlannerPosting, type PlannerTodo } from "./Planner";
@@ -121,6 +122,12 @@ export default async function TodosPage({
     listPostLog(days[0].iso, days[6].iso),
   ]);
   const postTotals = onPosting ? await listPostTotals() : {};
+  // Die Richtung braucht nur das Board. Der Wochenplan zeigt sie nicht, und
+  // zwei Abfragen fuer eine Ansicht zu bezahlen, die sie nicht anzeigt, waere
+  // dieselbe Verschwendung wie bei den Gesamtzahlen darueber.
+  const [directionByKey, directionCounts] = onPosting
+    ? await Promise.all([listCurrentDirections(), listDirectionCounts()])
+    : [new Map(), {} as Record<string, number>];
 
   const appMeta = new Map(APPS.map((a) => [a.key as string, { label: a.name, color: a.color }]));
   const OTHER = { label: "Weitere", color: "#8C93A8" };
@@ -149,6 +156,11 @@ export default async function TodosPage({
         steeredRounds: saved?.steered_rounds ?? [],
         perDay: saved?.per_day ?? 1,
         note: saved?.note ?? "",
+        direction: directionByKey.get(key)?.richtung ?? "",
+        directionSince: directionByKey.get(key)?.ab ?? "",
+        directionRef: directionByKey.get(key)?.referenz ?? "",
+        directionMirrors: directionByKey.get(key)?.spiegelt ?? "",
+        priorDirections: directionCounts[key] ?? 0,
       };
     }),
   );
@@ -176,6 +188,11 @@ export default async function TodosPage({
         steeredRounds: s.steered_rounds ?? [],
         perDay: s.per_day ?? 1,
         note: s.note ?? "",
+        direction: directionByKey.get(s.account_key)?.richtung ?? "",
+        directionSince: directionByKey.get(s.account_key)?.ab ?? "",
+        directionRef: directionByKey.get(s.account_key)?.referenz ?? "",
+        directionMirrors: directionByKey.get(s.account_key)?.spiegelt ?? "",
+        priorDirections: directionCounts[s.account_key] ?? 0,
       };
     });
 

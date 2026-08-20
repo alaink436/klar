@@ -55,10 +55,37 @@ export function rhythmLabel(rhythm: number[]): string {
 }
 
 /**
+ * Die Richtung eines Kanals — was dort gemacht wird, nicht worüber.
+ *
+ * Geschlossene Liste, im Gegensatz zum alten Freitextfeld `format`. Der Grund
+ * steht ausführlich in Migration 0027: nach vier Monaten Freitext trugen drei
+ * Zeilen dieselbe Richtung in drei Schreibweisen, und damit liess sich nicht
+ * mehr fragen, welche Richtung über alle Kanäle am besten läuft.
+ *
+ * Bewusst kurz und **aus dem Bestand abgeleitet, nicht ausgedacht**: das sind
+ * genau die drei Richtungen, die am 2026-08-20 tatsächlich auf Zeilen standen.
+ * Eine vierte aufzunehmen, die niemand fährt, wäre wieder geraten.
+ *
+ * Ergänzen heisst: hier UND den `check` in Migration 0027 nachziehen — dasselbe
+ * Paar wie bei `state` seit 0017.
+ */
+export const DIRECTIONS = ["Talking Head", "Slideshow", "Empfehlungen"] as const;
+
+export type Direction = (typeof DIRECTIONS)[number];
+
+export function isDirection(v: unknown): v is Direction {
+  return DIRECTIONS.includes(v as Direction);
+}
+
+/**
  * Startvorschläge fürs Format-Feld. Nur ein Anfang: die Liste im Board wird um
  * alles ergänzt, was schon irgendwo eingetragen ist, damit sich die eigenen
  * Bezeichnungen von selbst durchsetzen statt gegen eine feste Auswahl zu
  * kämpfen.
+ *
+ * VERALTET seit 0027: die Richtung steht jetzt in `klar_account_direction` und
+ * kommt aus `DIRECTIONS`. Diese Liste trägt nur noch den Altbestand im
+ * `format`-Feld, der beim Umstellen nicht verschwinden soll.
  */
 export const FORMAT_HINTS = [
   "Slideshow",

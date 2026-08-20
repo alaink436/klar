@@ -13,7 +13,14 @@ import {
   saveAccountStatus,
   setPostDone,
 } from "@/lib/accountStatus";
-import type { AccountStatusPatch } from "@/lib/accountStates";
+import {
+  listDirectionHistory,
+  patchCurrent,
+  reorient,
+  type AccountDirection,
+  type DirectionPatch,
+} from "@/lib/accountDirection";
+import type { AccountStatusPatch, Direction } from "@/lib/accountStates";
 
 async function requireAdmin(): Promise<boolean> {
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
@@ -40,6 +47,45 @@ export async function markPosted(
   if (!(await requireAdmin())) return;
   await setPostDone(key, day, slot, done, note);
   revalidatePath("/admin/todos");
+}
+
+/**
+ * Neu orientieren: die laufende Richtung schliessen, eine neue anlegen.
+ *
+ * Der Grund gehört an die alte Zeile — er beantwortet, warum aufgehört wurde.
+ * Ohne Grund geht es auch; ein erzwungenes Textfeld führt nur zu „weiss nicht".
+ */
+export async function reorientAccount(
+  key: string,
+  richtung: Direction,
+  opts: { referenz?: string | null; spiegelt?: string | null; grund?: string | null } = {},
+): Promise<void> {
+  if (!(await requireAdmin())) return;
+  await reorient(key, richtung, opts);
+  revalidatePath("/admin/todos");
+}
+
+/**
+ * Referenz oder Spiegelung der laufenden Richtung ändern. Kein Wechsel: eine
+ * falsch getippte Referenz zu korrigieren ist keine Neuorientierung und darf
+ * keine Zeile im Verlauf erzeugen.
+ */
+export async function setDirectionPointer(key: string, patch: DirectionPatch): Promise<void> {
+  if (!(await requireAdmin())) return;
+  await patchCurrent(key, patch);
+  revalidatePath("/admin/todos");
+}
+
+/**
+ * Der Verlauf eines Kanals, für das Aufklappen im Board.
+ *
+ * Wird erst auf Klick geholt statt mit der Seite mitzuladen: das Board zeigt
+ * normalerweise nur die Zahl, und 24 Verläufe bei jedem Seitenaufruf wären
+ * Ladezeit für etwas, das fast nie jemand aufmacht.
+ */
+export async function loadDirectionHistory(key: string): Promise<AccountDirection[]> {
+  if (!(await requireAdmin())) return [];
+  return listDirectionHistory(key);
 }
 
 /**
