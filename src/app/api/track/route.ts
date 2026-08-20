@@ -1,10 +1,18 @@
-// Privacy-friendly visitor beacon for getklar.org.
+// Privacy-friendly visitor beacon for getklar.org AND the app landing pages.
 //
 // Receives POSTs from the AnalyticsTracker client component on every
 // pageview. Writes a row into klar_pageviews (anime-vault Supabase) via
 // service-role key. No cookies, no PII. session_hash is sha256(daily salt
 // + ip + user-agent) so a session is implicit-pseudonymous and rotates
 // daily without the visitor noticing.
+//
+// Seit 2026-08-20 schicken auch myloo.org, kelva.space, onwavelength.space
+// und trubel.space hierher. Sie sind eigene Vercel-Projekte, also kommt der
+// POST cross-origin. Deshalb: OPTIONS-Handler + CORS-Header, und der Host
+// landet als `site` in der Zeile. `site` wird SERVERSEITIG aus Origin/Referer
+// abgeleitet und nie aus dem Body genommen: der Body ist Client-Behauptung,
+// der Origin-Header ist vom Browser gesetzt und schon durch isAllowedOrigin
+// gelaufen. Ohne die Spalte waere /get auf zwei Domains dieselbe Zeile.
 //
 // Fail-silent on every error path: tracking must never block a pageview.
 // Skips /admin and /api paths (admin shouldn't track itself).
@@ -20,6 +28,7 @@ import {
   isAllowedOrigin,
   rateLimit,
 } from "@/lib/apiGuards";
+import { normalizeSite } from "@/lib/klarLandings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,43 +74,81 @@ function dailySalt(): string {
   return sha256(`${SALT}|${today}`);
 }
 
+// Von welcher Domain kam der Aufruf. Origin zuerst, Referer als Rueckfall
+// (dieselbe Reihenfolge, die isAllowedOrigin fuer die Zulassung benutzt:
+// sonst koennte eine Anfrage ueber den einen Header zugelassen und ueber den
+// anderen einem falschen Host zugeschrieben werden). Bleibt beides leer,
+// stammt der Aufruf vom eigenen Host.
+function siteOf(req: Request): string {
+  const raw = req.headers.get("origin") ?? req.headers.get("referer") ?? "";
+  if (!raw) return "getklar.org";
+  try {
+    return normalizeSite(new URL(raw).hostname);
+  } catch {
+    return "getklar.org";
+  }
+}
+
+// sendBeacon kann keine Header setzen. Ein Blob mit application/json waere
+// deshalb ein preflight-pflichtiger Request, und sendBeacon kann keinen
+// Preflight, und der Aufruf faellt still aus. Die Landing-Seiten schicken darum
+// text/plain (CORS-safelisted); req.json() liest den Body unabhaengig vom
+// Content-Type. Diese Header sind fuer den Fall, dass ein Client doch die
+// fetch-Variante nimmt und die Antwort lesen will.
+function corsHeaders(req: Request): HeadersInit {
+  const origin = req.headers.get("origin");
+  if (!origin || !isAllowedOrigin(req)) return {};
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
+    Vary: "Origin",
+  };
+}
+
+export async function OPTIONS(req: Request): Promise<Response> {
+  return new Response(null, { status: 204, headers: corsHeaders(req) });
+}
+
 export async function POST(req: Request): Promise<Response> {
+  const cors = corsHeaders(req);
   if (!SERVICE_KEY || !SALT) {
     // Misconfigured. Don't break the visitor, just no-op.
-    return new Response(null, { status: 204 });
+    return new Response(null, { status: 204, headers: cors });
   }
 
   // Drop anything that didn't come from our own pages and anything obviously
   // oversized. Both are silent (204) on purpose — we never want to surface
   // analytics errors to the visitor.
   if (exceedsContentLength(req, MAX_BODY_BYTES))
-    return new Response(null, { status: 204 });
-  if (!isAllowedOrigin(req)) return new Response(null, { status: 204 });
+    return new Response(null, { status: 204, headers: cors });
+  if (!isAllowedOrigin(req)) return new Response(null, { status: 204, headers: cors });
 
   // Cheap-flood guard: cap a single client to 60 pageviews / minute. Real
   // humans burst nowhere near this; bots that get past the UA filter below
   // can still try, but they won't bloat klar_pageviews.
   const ip = clientIp(req);
   const rl = rateLimit("track", ip, 60, 60 * 1000);
-  if (!rl.ok) return new Response(null, { status: 204 });
+  if (!rl.ok) return new Response(null, { status: 204, headers: cors });
 
   let body: { path?: unknown; referrer?: unknown };
   try {
     body = await req.json();
   } catch {
-    return new Response(null, { status: 204 });
+    return new Response(null, { status: 204, headers: cors });
   }
 
   const path = trim(typeof body.path === "string" ? body.path : "", 200);
   if (!path || path.startsWith("/admin") || path.startsWith("/api")) {
-    return new Response(null, { status: 204 });
+    return new Response(null, { status: 204, headers: cors });
   }
   const referrer = trim(typeof body.referrer === "string" ? body.referrer : "", 200);
 
   const ua = req.headers.get("user-agent") ?? "";
   // Block obvious bots; they bloat the table without telling us anything useful.
   if (/bot|crawler|spider|preview|prerender|headless/i.test(ua)) {
-    return new Response(null, { status: 204 });
+    return new Response(null, { status: 204, headers: cors });
   }
 
   const country = trim(req.headers.get("x-vercel-ip-country"), 4);
@@ -113,7 +160,7 @@ export async function POST(req: Request): Promise<Response> {
   try {
     const ac = new AbortController();
     const t = setTimeout(() => ac.abort(), 1500);
-    await fetch(`${SUPABASE_URL}/rest/v1/klar_pageviews`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/klar_pageviews`, {
       method: "POST",
       headers: {
         apikey: SERVICE_KEY,
@@ -122,6 +169,7 @@ export async function POST(req: Request): Promise<Response> {
         Prefer: "return=minimal",
       },
       body: JSON.stringify({
+        site: siteOf(req),
         path,
         referrer,
         country,
@@ -132,8 +180,16 @@ export async function POST(req: Request): Promise<Response> {
       signal: ac.signal,
     });
     clearTimeout(t);
-  } catch {
-    // swallow
+    // Bis 2026-08-20 wurde das Ergebnis gar nicht angesehen. Als die
+    // site-Spalte dazukam, nahm PostgREST die Insert-Zeile nicht mehr an und
+    // NICHTS sagte etwas: der Besucher bekam 204, die Tabelle blieb leer, und
+    // im Dashboard sah das aus wie "niemand kommt". Der Besucher merkt
+    // weiterhin nichts, aber die Logs sagen es jetzt.
+    if (!res.ok) {
+      console.error("[track] insert rejected", res.status, await res.text().catch(() => ""));
+    }
+  } catch (e) {
+    console.error("[track] insert failed", e);
   }
-  return new Response(null, { status: 204 });
+  return new Response(null, { status: 204, headers: cors });
 }

@@ -5,6 +5,16 @@
 // to <AnalyticsClient> which renders the Recharts charts. Auth gated by
 // klar_admin cookie (set on first ?key= visit to /admin) or ?key=.
 //
+// Zwei Tabs, seit 2026-08-20:
+//   Apps:     User + Umsatz pro App (auth.users, RevenueCat)
+//   Landings: Aufrufe pro Landing-Page, aufgeschluesselt nach der Seite,
+//              die den Traffic wirklich bekommt (myloo.org/get, kelva.space/get,
+//              onwavelength.space, ...). Vorher stand hier ein Sammel-Tab
+//              "Public" ueber alle getklar.org-Pfade plus zwei Tabs
+//              (Affiliate-Landings, Funnel), die die Landing-Frage nicht
+//              beantwortet haben. Wer optimieren will, muss pro Seite sehen,
+//              was ankommt. Genau das ist jetzt der zweite Tab.
+//
 // Env: KLAR_ADMIN_KEY, KLAR_INBOX_SUPABASE_URL (default anime-vault),
 //      KLAR_INBOX_SERVICE_KEY.
 
@@ -17,9 +27,7 @@ import {
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import {
   getApps,
-  sbGet,
   fetchAppUserStats,
-  type AdminApp,
 } from "../../../lib/adminApps";
 import { getRcConfigs, fetchRcOverview } from "../../../lib/revenuecat";
 import {
@@ -28,16 +36,22 @@ import {
   type Bucket,
   type UserSeries,
 } from "../../../lib/appMetrics";
-import { KLAR_APPS, LISTED_APPS, resolveBackendKey, findKlarApp } from "../../../lib/klarApps";
+import { KLAR_APPS, LISTED_APPS, resolveBackendKey } from "../../../lib/klarApps";
+import {
+  RESOLVED_LANDINGS,
+  landingKey,
+  normalizePath,
+  normalizeSite,
+} from "../../../lib/klarLandings";
 import AnalyticsClient, {
-  type AnalyticsPayload,
   type Period,
-  type FunnelPayload,
   type AnalyticsTab,
   type AppsPayload,
   type AppRow,
   type AppsChartPayload,
   type AppsMetric,
+  type LandingsPayload,
+  type LandingRow,
 } from "./AnalyticsClient";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +63,8 @@ const SERVICE_KEY = process.env.KLAR_INBOX_SERVICE_KEY ?? "";
 
 interface RawPageview {
   created_at: string;
+  /** Host, seit der site-Migration. Alt-Zeilen sind auf getklar.org gesetzt. */
+  site: string | null;
   path: string;
   referrer: string | null;
   country: string | null;
@@ -60,10 +76,12 @@ function daysAgo(n: number): string {
   return new Date(Date.now() - n * 86_400_000).toISOString();
 }
 
+function periodDays(p: Period): number {
+  return p === "year" ? 365 : p === "month" ? 30 : 7;
+}
+
 function periodWindow(p: Period): { since: string; bucket: "day" | "month" } {
-  if (p === "year") return { since: daysAgo(365), bucket: "month" };
-  if (p === "month") return { since: daysAgo(30), bucket: "day" };
-  return { since: daysAgo(7), bucket: "day" };
+  return { since: daysAgo(periodDays(p)), bucket: p === "year" ? "month" : "day" };
 }
 
 async function fetchPageviews(since: string): Promise<RawPageview[]> {
@@ -73,7 +91,7 @@ async function fetchPageviews(since: string): Promise<RawPageview[]> {
     // not a realtime monitor — a half-minute stale window is fine and avoids
     // hammering Supabase on every tab/period switch.
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/klar_pageviews?select=created_at,path,referrer,country,session_hash,ua_family&created_at=gte.${encodeURIComponent(since)}&order=created_at.desc&limit=10000`,
+      `${SUPABASE_URL}/rest/v1/klar_pageviews?select=created_at,site,path,referrer,country,session_hash,ua_family&created_at=gte.${encodeURIComponent(since)}&order=created_at.desc&limit=10000`,
       {
         headers: {
           apikey: SERVICE_KEY,
@@ -113,263 +131,186 @@ function hostOf(url: string | null): string {
   }
 }
 
-function timeline(
+// Affiliate-Landings liegen auf /i/<slug>/<code> und sind KEINE Landing-Pages
+// im Sinne dieses Tabs: davon gibt es pro Code eine, sie wuerden die Liste
+// fluten und beantworten eine andere Frage (welcher Partner bringt was).
+// Sie fallen deshalb ueberall hier heraus.
+function isAffiliatePath(path: string): boolean {
+  return /^\/i\/[a-z0-9-]+\/[^/?#]+/i.test(path);
+}
+
+// ===== Landings: Aufrufe pro beworbener Seite =====
+//
+// Eine Zeile in klar_pageviews gehoert zu einer Landing, wenn (site, path) in
+// KLAR_LANDINGS steht. Alles andere auf einer bekannten Landing-Domain (und
+// auf getklar.org) laeuft als "Andere Seiten" mit. Das ist der Aufhaenger,
+// wenn ein Pfad umbenannt wurde: die Zahl verschwindet dann nicht, sie wandert
+// nur sichtbar in die Restliste, statt still auf null zu fallen.
+
+/** Stabile Farbe pro Landing, an der Reihenfolge der Registry festgemacht. */
+const LANDING_CHART_COLORS = ["blue", "emerald", "violet", "amber", "cyan", "pink", "lime", "fuchsia"];
+function colorForLanding(key: string): string {
+  const i = RESOLVED_LANDINGS.findIndex((l) => landingKey(l.site, l.path) === key);
+  return LANDING_CHART_COLORS[(i < 0 ? 0 : i) % LANDING_CHART_COLORS.length];
+}
+
+/** Zu welcher Landing gehoert diese Zeile, oder null. */
+function keyOfRow(r: RawPageview): string | null {
+  const site = normalizeSite(r.site ?? "getklar.org");
+  const path = normalizePath(r.path);
+  const hit = RESOLVED_LANDINGS.find(
+    (l) => l.site === site && normalizePath(l.path) === path,
+  );
+  return hit ? landingKey(hit.site, hit.path) : null;
+}
+
+function bucketOf(iso: string, bucket: Bucket): string {
+  return bucket === "day" ? iso.slice(0, 10) : iso.slice(0, 7);
+}
+
+/**
+ * `rows` deckt das doppelte Fenster ab: die aktuelle Periode UND die davor.
+ * Der Vergleich ist der Punkt der Uebung: "42 Aufrufe" sagt nichts, "42 nach
+ * 17" sagt, ob die letzte Content-Runde etwas bewegt hat.
+ */
+function buildLandings(
   rows: RawPageview[],
-  bucket: "day" | "month",
+  period: Period,
   since: string,
-): { label: string; visits: number; sessions: number }[] {
-  const map = new Map<string, { visits: number; sessions: Set<string> }>();
-  const startMs = new Date(since).getTime();
-  const now = Date.now();
-  const stepMs = bucket === "day" ? 86_400_000 : 30 * 86_400_000;
-  for (let t = startMs; t <= now; t += stepMs) {
-    const key = bucket === "day"
-      ? new Date(t).toISOString().slice(0, 10)
-      : new Date(t).toISOString().slice(0, 7);
-    map.set(key, { visits: 0, sessions: new Set() });
-  }
-  for (const r of rows) {
-    const key = bucket === "day" ? r.created_at.slice(0, 10) : r.created_at.slice(0, 7);
-    let b = map.get(key);
-    if (!b) {
-      b = { visits: 0, sessions: new Set() };
-      map.set(key, b);
-    }
-    b.visits++;
-    b.sessions.add(r.session_hash);
-  }
-  return [...map.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([key, v]) => ({
-      label: bucket === "day"
-        ? `${key.slice(8, 10)}.${key.slice(5, 7)}`
-        : `${key.slice(5, 7)}/${key.slice(2, 4)}`,
-      visits: v.visits,
-      sessions: v.sessions.size,
-    }));
-}
-
-// Affiliate-Landings live at /i/<slug>/<code>. Tracking writes the path
-// verbatim into klar_pageviews; we just regex-split it back out here. Slug
-// is matched against KLAR_APPS so renamed paths and typos drop out.
-function parseAffiliatePath(path: string): { slug: string; code: string } | null {
-  const m = /^\/i\/([a-z0-9-]+)\/([^/?#]+)/i.exec(path);
-  if (!m) return null;
-  return { slug: m[1].toLowerCase(), code: m[2] };
-}
-
-function aggregateAffiliates(rows: RawPageview[]): AnalyticsPayload["affiliates"] {
-  const perAppHits = new Map<string, number>();
-  const codeHits = new Map<string, number>();
-  for (const r of rows) {
-    const a = parseAffiliatePath(r.path);
-    if (!a) continue;
-    perAppHits.set(a.slug, (perAppHits.get(a.slug) ?? 0) + 1);
-    const key = `${a.slug}/${a.code}`;
-    codeHits.set(key, (codeHits.get(key) ?? 0) + 1);
-  }
-  const perApp = [...perAppHits.entries()]
-    .map(([slug, hits]) => {
-      const meta = findKlarApp(slug);
-      return { slug, name: meta?.name ?? slug, hits };
-    })
-    .sort((a, b) => b.hits - a.hits);
-  const topCodes = [...codeHits.entries()]
-    .map(([k, hits]) => {
-      const [slug, code] = k.split("/");
-      return { slug, code, hits };
-    })
-    .sort((a, b) => b.hits - a.hits)
-    .slice(0, 8);
-  const totalHits = perApp.reduce((s, a) => s + a.hits, 0);
-  return { totalHits, uniqueCodes: codeHits.size, perApp, topCodes };
-}
-
-function aggregate(rows: RawPageview[], period: Period, since: string): AnalyticsPayload {
-  void period;
+  prevSince: string,
+  selected: Set<string>,
+): LandingsPayload {
   const { bucket } = periodWindow(period);
-  const totalVisits = rows.length;
-  const uniqueSessions = new Set(rows.map((r) => r.session_hash)).size;
-  const series = timeline(rows, bucket, since);
+  const sinceMs = new Date(since).getTime();
+  const prevMs = new Date(prevSince).getTime();
 
-  // For "Top pages" we strip affiliate landing paths so the list doesn't get
-  // dominated by every individual /i/<slug>/<code>. They show up in the
-  // dedicated Affiliate-Landings section instead.
-  const nonAffiliate = rows.filter((r) => !parseAffiliatePath(r.path));
-  const pages = topCounts(nonAffiliate.map((r) => r.path));
-  const referrers = topCounts(rows.map((r) => hostOf(r.referrer)));
-  const countries = topCounts(rows.map((r) => r.country ?? "??"));
-  const browsers = topCounts(rows.map((r) => (r.ua_family ?? "").split(" / ")[0] || "Other"));
-  const affiliates = aggregateAffiliates(rows);
+  const cur: RawPageview[] = [];
+  const prev: RawPageview[] = [];
+  for (const r of rows) {
+    if (isAffiliatePath(r.path)) continue;
+    const t = new Date(r.created_at).getTime();
+    if (t >= sinceMs) cur.push(r);
+    else if (t >= prevMs) prev.push(r);
+  }
+
+  const prevByKey = new Map<string, number>();
+  for (const r of prev) {
+    const k = keyOfRow(r);
+    if (!k) continue;
+    prevByKey.set(k, (prevByKey.get(k) ?? 0) + 1);
+  }
+
+  // Pro Landing sammeln: Aufrufe, Sessions, Referrer, Tagesverlauf.
+  interface Acc {
+    visits: number;
+    sessions: Set<string>;
+    referrers: string[];
+    perBucket: Map<string, number>;
+  }
+  const acc = new Map<string, Acc>();
+  const fresh = (): Acc => ({ visits: 0, sessions: new Set(), referrers: [], perBucket: new Map() });
+  for (const l of RESOLVED_LANDINGS) acc.set(landingKey(l.site, l.path), fresh());
+
+  const otherPages: string[] = [];
+  for (const r of cur) {
+    const k = keyOfRow(r);
+    if (!k) {
+      const site = normalizeSite(r.site ?? "getklar.org");
+      otherPages.push(`${site}${normalizePath(r.path) === "/" ? "/" : normalizePath(r.path)}`);
+      continue;
+    }
+    const a = acc.get(k)!;
+    a.visits++;
+    a.sessions.add(r.session_hash);
+    a.referrers.push(hostOf(r.referrer));
+    const b = bucketOf(r.created_at, bucket);
+    a.perBucket.set(b, (a.perBucket.get(b) ?? 0) + 1);
+  }
+
+  const timeline = bucketTimeline(since, bucket);
+
+  const perLanding: LandingRow[] = RESOLVED_LANDINGS.map((l) => {
+    const key = landingKey(l.site, l.path);
+    const a = acc.get(key)!;
+    const refs = topCounts(a.referrers, 3);
+    return {
+      key,
+      app: l.app,
+      name: l.name,
+      icon: l.icon,
+      label: l.label,
+      url: `https://${l.label}`,
+      primary: l.primary,
+      tracked: l.tracked,
+      repo: l.repo,
+      visits: a.visits,
+      sessions: a.sessions.size,
+      prevVisits: prevByKey.get(key) ?? 0,
+      topReferrer: refs[0]?.label ?? null,
+      referrers: refs,
+      color: colorForLanding(key),
+      spark: timeline.map((t) => a.perBucket.get(t.key) ?? 0),
+    };
+  }).sort((a, b) => b.visits - a.visits || Number(b.primary) - Number(a.primary));
+
+  // Zeitreihe: eine Linie pro angehaktem Landing.
+  const shown = perLanding.filter((l) => selected.has(l.key));
+  const data: Record<string, number | string>[] = timeline.map((t) => ({ label: t.label }));
+  const categories: string[] = [];
+  const colors: string[] = [];
+  for (const l of shown) {
+    categories.push(l.label);
+    colors.push(l.color);
+    timeline.forEach((_, i) => {
+      data[i][l.label] = l.spark[i] ?? 0;
+    });
+  }
+
+  const totalVisits = perLanding.reduce((s, l) => s + l.visits, 0);
+  const totalPrev = perLanding.reduce((s, l) => s + l.prevVisits, 0);
+  const allSessions = new Set<string>();
+  for (const r of cur) if (keyOfRow(r)) allSessions.add(r.session_hash);
 
   return {
+    period,
+    perLanding,
     totalVisits,
-    uniqueSessions,
-    topPage: pages[0]?.label ?? null,
-    topReferrer: referrers[0]?.label ?? null,
-    series,
-    pages,
-    referrers,
-    countries,
-    browsers,
-    affiliates,
+    totalPrev,
+    totalSessions: allSessions.size,
+    best: perLanding.find((l) => l.visits > 0)?.label ?? null,
+    categories,
+    colors,
+    data,
+    chips: perLanding.map((l) => ({
+      key: l.key,
+      label: l.label,
+      on: selected.has(l.key),
+      color: l.color,
+    })),
+    otherPages: topCounts(otherPages, 8),
+    // Wieviele Landings liefern ueberhaupt Daten. Steht 0 da, obwohl Traffic
+    // laeuft, ist der Beacon nicht deployt und nicht der Content das Problem.
+    withData: perLanding.filter((l) => l.visits > 0).length,
+    trackedCount: perLanding.filter((l) => l.tracked).length,
   };
 }
 
-// ===== Funnel data (Stage A) =====
-//
-// For each KLAR_APP (full marketing roster), we want:
-//   1) Landing-clicks  -> from anime-vault klar_pageviews /i/<slug>/<code>
-//   2) Install-refs    -> from that app's Supabase (sbGet)
-//   3) Premium subs    -> from that app's Supabase (sbGet)
-//
-// Only apps registered in KLAR_ADMIN_APPS env have a connected Supabase.
-// Others get hasBackend=false and the UI will surface "Backend pending".
-//
-// Wavelength: referrals (status counts) + referral_conversions (paid count).
-// Yarn-Stash: uses Awin path — profiles.referred_by_code_id (install count)
-//             + awin_conversions (premium count). We try both shapes by
-//             attempting the WL shape first then YS shape per app.
+const EMPTY_LANDINGS: LandingsPayload = {
+  period: "month",
+  perLanding: [],
+  totalVisits: 0,
+  totalPrev: 0,
+  totalSessions: 0,
+  best: null,
+  categories: [],
+  colors: [],
+  data: [],
+  chips: [],
+  otherPages: [],
+  withData: 0,
+  trackedCount: 0,
+};
 
-interface AppFunnel {
-  slug: string;
-  name: string;
-  hasBackend: boolean;
-  clicks: number;
-  installs: number;
-  premiums: number;
-  installRate: number; // installs / clicks
-  premiumRate: number; // premiums / installs
-}
-
-function clickCountFor(slug: string, rows: RawPageview[]): number {
-  let n = 0;
-  for (const r of rows) {
-    const a = parseAffiliatePath(r.path);
-    if (a && a.slug === slug) n++;
-  }
-  return n;
-}
-
-async function fetchAppInstallsAndPremiums(
-  app: AdminApp,
-  since: string,
-): Promise<{ installs: number; premiums: number; ok: boolean }> {
-  // ---- Wavelength richer schema ----
-  // Installs = distinct user_ids in `referrals` (clipboard/uni-link attribution).
-  // Premiums = paid "initial_purchase" or "trial_conversion" events in
-  // `referral_revenue_events` that actually count_for_payout (excludes
-  // sandbox / self-referral / beyond-cap / paused / terminated).
-  //
-  // We try this shape first because it's the source-of-truth schema; if the
-  // tables aren't there yet (PostgREST 404) sbGet returns [] and we fall
-  // through to the generic shape below.
-  try {
-    const [refs, paidEvents] = await Promise.all([
-      sbGet(
-        app,
-        `referrals?select=id,user_id&created_at=gte.${encodeURIComponent(since)}&limit=10000`,
-        { revalidate: 30 },
-      ),
-      // Premium = paid revenue events that survived the guards. We filter
-      // event_type in (initial_purchase, trial_conversion) so renewals don't
-      // double-count the same user.
-      sbGet(
-        app,
-        `referral_revenue_events?select=user_id&event_type=in.(initial_purchase,trial_conversion)&counts_for_payout=eq.true&event_at=gte.${encodeURIComponent(since)}&limit=10000`,
-        { revalidate: 30 },
-      ),
-    ]);
-    if (refs.length > 0 || paidEvents.length > 0) {
-      const installs = new Set(refs.map((r) => r.user_id).filter(Boolean)).size || refs.length;
-      const premiums = new Set(paidEvents.map((r) => r.user_id).filter(Boolean)).size || paidEvents.length;
-      return { installs, premiums, ok: true };
-    }
-  } catch {
-    /* fallthrough */
-  }
-  // ---- Yarn-Stash dual-path shape ----
-  // Installs = profiles with referred_by_code_id set.
-  // Premiums = approved awin_conversions OR paid referral_revenue_events if
-  // both rails exist. We sum what's there.
-  try {
-    const [profiles, awin, paidEventsYs] = await Promise.all([
-      sbGet(
-        app,
-        `profiles?select=id&referred_by_code_id=not.is.null&created_at=gte.${encodeURIComponent(since)}&limit=10000`,
-        { revalidate: 30 },
-      ),
-      sbGet(
-        app,
-        `awin_conversions?select=id&created_at=gte.${encodeURIComponent(since)}&limit=10000`,
-        { revalidate: 30 },
-      ),
-      sbGet(
-        app,
-        `referral_revenue_events?select=id&event_type=in.(initial_purchase,trial_conversion)&counts_for_payout=eq.true&event_at=gte.${encodeURIComponent(since)}&limit=10000`,
-        { revalidate: 30 },
-      ),
-    ]);
-    const installs = profiles.length;
-    const premiums = awin.length + paidEventsYs.length;
-    return { installs, premiums, ok: installs > 0 || premiums > 0 };
-  } catch {
-    return { installs: 0, premiums: 0, ok: false };
-  }
-}
-
-// Anime Vault runs on promillio's recycled Supabase project, so its backend
-// numbers arrive under the key `promillio` (see appBackendKey in lib/klarApps).
-// Listing the roster instead of KLAR_APPS keeps the retired Promillo entry out
-// — it used to render a second, empty Anime-Vault row right next to the real
-// one. Pageviews of the /promillo website page still resolve to "Promillo"
-// via findKlarApp, which reads the full roster.
-
-async function buildFunnel(
-  rows: RawPageview[],
-  since: string,
-): Promise<FunnelPayload> {
-  const backendApps = getApps();
-  const bySlug = new Map(backendApps.map((a) => [a.slug, a]));
-  const perApp: AppFunnel[] = await Promise.all(
-    LISTED_APPS.map(async (meta) => {
-      const slug = meta.slug;
-      // Clicks come from /i/<brand-slug> links, installs from the backend the
-      // app actually runs on — those two keys differ for Anime Vault.
-      const clicks = clickCountFor(slug, rows);
-      const backend = bySlug.get(resolveBackendKey(meta, bySlug));
-      if (!backend) {
-        return {
-          slug,
-          name: meta.name,
-          hasBackend: false,
-          clicks,
-          installs: 0,
-          premiums: 0,
-          installRate: 0,
-          premiumRate: 0,
-        };
-      }
-      const r = await fetchAppInstallsAndPremiums(backend, since);
-      const installRate = clicks > 0 ? r.installs / clicks : 0;
-      const premiumRate = r.installs > 0 ? r.premiums / r.installs : 0;
-      return {
-        slug,
-        name: meta.name,
-        hasBackend: true,
-        clicks,
-        installs: r.installs,
-        premiums: r.premiums,
-        installRate,
-        premiumRate,
-      };
-    }),
-  );
-  const totalClicks = perApp.reduce((s, a) => s + a.clicks, 0);
-  const totalInstalls = perApp.reduce((s, a) => s + a.installs, 0);
-  const totalPremiums = perApp.reduce((s, a) => s + a.premiums, 0);
-  return { perApp, totalClicks, totalInstalls, totalPremiums };
-}
 
 // ===== Apps data: users (auth.users via RPC) + revenue (RevenueCat) =====
 //
@@ -607,8 +548,11 @@ const EMPTY_CHART: AppsChartPayload = {
   note: null,
 };
 
+// Alte Links trugen tab=public|affiliate|funnel. public war die Web-Sicht und
+// wird von landings abgeloest; die anderen beiden gibt es nicht mehr und
+// landen auf dem Apps-Tab, statt auf einer leeren Seite.
 function parseTab(t: string | undefined): AnalyticsTab {
-  if (t === "public" || t === "affiliate" || t === "funnel") return t;
+  if (t === "landings" || t === "public") return "landings";
   return "apps";
 }
 
@@ -617,12 +561,13 @@ function parsePeriod(p: string | undefined): Period {
   return "month";
 }
 
-const EMPTY_FUNNEL: FunnelPayload = {
-  perApp: [],
-  totalClicks: 0,
-  totalInstalls: 0,
-  totalPremiums: 0,
-};
+/** `lp` = csv der angehakten Landings. Fehlt er, sind alle an. */
+function parseSelectedLandings(raw: string | undefined): Set<string> {
+  const all = new Set(RESOLVED_LANDINGS.map((l) => landingKey(l.site, l.path)));
+  if (!raw) return all;
+  const sel = new Set(raw.split(",").map((s) => s.trim()).filter((s) => all.has(s)));
+  return sel.size > 0 ? sel : all;
+}
 
 export default async function AnalyticsPage({
   searchParams,
@@ -631,11 +576,10 @@ export default async function AnalyticsPage({
     p?: string;
     tab?: string;
     p_pub?: string;
-    p_aff?: string;
-    p_fun?: string;
     am?: string;
     p_app?: string;
     apps?: string;
+    lp?: string;
   }>;
 }) {
   // Auth: matches /admin route — requires klar_device (HMAC-verified) + klar_admin
@@ -657,23 +601,21 @@ export default async function AnalyticsPage({
 
   const sp = await searchParams;
   const tab = parseTab(sp.tab);
-  // Per-tab period (with legacy `p` fallback so old links still work)
-  const pubP = parsePeriod(sp.p_pub ?? sp.p);
-  const affP = parsePeriod(sp.p_aff ?? sp.p);
-  const funP = parsePeriod(sp.p_fun ?? sp.p);
-  const activePeriod: Period = tab === "affiliate" ? affP : tab === "funnel" ? funP : pubP;
-  const { since } = periodWindow(activePeriod);
+  // Periode des Landing-Tabs (mit `p` als Rueckfall, damit alte Links tragen).
+  const landP = parsePeriod(sp.p_pub ?? sp.p);
+  const { since } = periodWindow(landP);
+  // Doppeltes Fenster: die zweite Haelfte ist der Vergleichszeitraum. Beides
+  // in EINEM Fetch, weil zwei Abfragen ueber dieselbe kleine Tabelle nur
+  // Latenz kosten.
+  const prevSince = daysAgo(periodDays(landP) * 2);
 
   // The Apps tab doesn't read pageviews, so skip the up-to-10k-row fetch there
   // (it's the default tab, so this matters on every dashboard load).
-  const rows = tab === "apps" ? [] : await fetchPageviews(since);
-  const data = aggregate(rows, activePeriod, since);
-  // Funnel fans out 2 Supabase calls × ~6 apps. Only the funnel tab actually
-  // renders that payload, so we skip the fan-out on public/affiliate tabs
-  // and hand an empty funnel to the client (it knows to display zeroes
-  // there anyway because those tabs don't read it).
-  const funnel: FunnelPayload =
-    tab === "funnel" ? await buildFunnel(rows, since) : EMPTY_FUNNEL;
+  const rows = tab === "landings" ? await fetchPageviews(prevSince) : [];
+  const landings: LandingsPayload =
+    tab === "landings"
+      ? buildLandings(rows, landP, since, prevSince, parseSelectedLandings(sp.lp))
+      : EMPTY_LANDINGS;
   // Apps tab fans out user-stats + RevenueCat calls per app; only build it when
   // that tab is active.
   const appsData: AppsPayload = tab === "apps" ? await buildApps() : EMPTY_APPS;
@@ -702,19 +644,16 @@ export default async function AnalyticsPage({
       <div className="content">
         <h1>Analytics</h1>
         <p className="sub">
-          App-User kommen aus <code>auth.users</code>, Umsatz aus RevenueCat, Web-Zahlen
-          aus den eigenen Pageviews — drei Quellen, die sich nicht gegenseitig pruefen.
+          App-User kommen aus <code>auth.users</code>, Umsatz aus RevenueCat, Landing-Zahlen
+          aus den eigenen Pageviews. Drei Quellen, die sich nicht gegenseitig pruefen.
           Web-Tracking ist privacy-friendly, keine Cookies, kein Pixel.
         </p>
         <AnalyticsClient
-          data={data}
-          funnel={funnel}
+          landings={landings}
           appsData={appsData}
           appsChart={appsChart}
           tab={tab}
-          periodPublic={pubP}
-          periodAffiliate={affP}
-          periodFunnel={funP}
+          periodLandings={landP}
         />
       </div>
     </>

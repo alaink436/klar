@@ -1,0 +1,113 @@
+// Welche Landing-Page zu welcher App gehoert.
+//
+// Bis 2026-08-20 wusste das niemand an einer Stelle: die Bio-Links standen im
+// Vault (SOCIAL-ACCOUNTS.md), die Domains in vier fremden Repos, und das
+// Dashboard zeigte gar keine. Diese Datei ist die Antwort auf "welche Seite
+// bewirbt welche App", und gleichzeitig der Filter, mit dem Analytics aus
+// klar_pageviews die Landing-Zeilen herausschneidet.
+//
+// `site` ist der Host, wie ihn /api/track aus Origin/Referer schreibt (ohne
+// www.). `path` ist der exakte Pfad. Beide zusammen sind der Schluessel, denn
+// /get gibt es auf zwei Domains.
+//
+// Eine Seite steht hier NUR, wenn sie den Beacon wirklich mitliefert. Sonst
+// zeigt das Dashboard eine Null, die wie "niemand kommt" aussieht, obwohl sie
+// "wir messen nicht" heisst. Siehe `tracked`.
+
+import { findKlarApp, type KlarAppMeta } from "./klarApps";
+
+export interface LandingMeta {
+  /** Slug der App aus KLAR_APPS. */
+  app: string;
+  /** Host ohne Schema und ohne www., so wie er in klar_pageviews.site steht. */
+  site: string;
+  /** Exakter Pfad, mit fuehrendem Slash. */
+  path: string;
+  /**
+   * true = diese Seite ist der Link, der in der Bio / unter den Videos steht.
+   * Genau eine pro App. Die Nebenseiten (Startseite einer Domain, deren /get
+   * beworben wird) laufen als Kontext mit.
+   */
+  primary: boolean;
+  /** Repo, in dem der Beacon sitzt. Steht in der UI als Herkunftshinweis. */
+  repo: string;
+  /** false = Beacon noch nicht deployt, Zahlen sind noch keine Aussage. */
+  tracked: boolean;
+}
+
+export const KLAR_LANDINGS: LandingMeta[] = [
+  // MyLoo: die Videos verlinken /get, die Startseite faengt Direkteingaben.
+  { app: "myloo", site: "myloo.org", path: "/get", primary: true, repo: "myloo-web", tracked: true },
+  { app: "myloo", site: "myloo.org", path: "/", primary: false, repo: "myloo-web", tracked: true },
+
+  // Kelva: Bio von @kelvaapp zeigt auf /get (SOCIAL-ACCOUNTS.md, 2026-08-12).
+  { app: "kelva", site: "kelva.space", path: "/get", primary: true, repo: "kelva-web", tracked: true },
+  { app: "kelva", site: "kelva.space", path: "/", primary: false, repo: "kelva-web", tracked: true },
+
+  // Basalt laeuft unter dem historischen Slug "wavelength" (siehe klarApps).
+  // Die Domain traegt auch die AASA, deshalb ist sie der Landing-Entscheid.
+  { app: "wavelength", site: "onwavelength.space", path: "/", primary: true, repo: "wavelength-web", tracked: true },
+  { app: "wavelength", site: "getklar.org", path: "/basalt", primary: false, repo: "klar", tracked: true },
+
+  { app: "trubel", site: "trubel.space", path: "/", primary: true, repo: "trubel-web", tracked: true },
+
+  // Liegt auf getklar.org selbst, wird also seit jeher mitgeschrieben.
+  { app: "yarn-stash", site: "getklar.org", path: "/yarnstash", primary: true, repo: "klar", tracked: true },
+];
+
+export interface ResolvedLanding extends LandingMeta {
+  /** "myloo.org/get": was in der UI steht und was man im Browser eintippt. */
+  label: string;
+  meta: KlarAppMeta | undefined;
+  name: string;
+  icon: string;
+}
+
+function labelFor(l: LandingMeta): string {
+  return l.path === "/" ? l.site : `${l.site}${l.path}`;
+}
+
+export function resolveLanding(l: LandingMeta): ResolvedLanding {
+  const meta = findKlarApp(l.app);
+  return {
+    ...l,
+    label: labelFor(l),
+    meta,
+    name: meta?.name ?? l.app,
+    icon: meta?.icon ?? "/logo/klar-symbol.png",
+  };
+}
+
+export const RESOLVED_LANDINGS: ResolvedLanding[] = KLAR_LANDINGS.map(resolveLanding);
+
+/** Stabiler Schluessel fuer Map-Lookups und URL-Parameter. */
+export function landingKey(site: string, path: string): string {
+  return `${site}${path === "/" ? "/" : path}`;
+}
+
+/**
+ * Host so normalisieren, wie ihn /api/track schreibt: klein, ohne www., ohne
+ * Port. Beide Seiten benutzen diese Funktion, damit der Vergleich nicht an
+ * einem "www." scheitert, das nur eine der beiden Seiten kennt.
+ */
+export function normalizeSite(host: string): string {
+  return host.toLowerCase().replace(/^www\./, "").split(":")[0];
+}
+
+/**
+ * Pfad so normalisieren, dass /get, /get/ und /get?utm=... dieselbe Seite
+ * sind. Query und Hash kommen ohnehin nie an (der Tracker schickt nur
+ * pathname), der Trailing Slash aber schon.
+ */
+export function normalizePath(path: string): string {
+  const clean = path.split(/[?#]/)[0] || "/";
+  if (clean === "/") return "/";
+  return clean.replace(/\/+$/, "") || "/";
+}
+
+/** Findet die Landing-Definition zu einer gemessenen Zeile, sonst undefined. */
+export function findLanding(site: string, path: string): ResolvedLanding | undefined {
+  const s = normalizeSite(site);
+  const p = normalizePath(path);
+  return RESOLVED_LANDINGS.find((l) => l.site === s && normalizePath(l.path) === p);
+}

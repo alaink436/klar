@@ -11,11 +11,10 @@
 
 import Link from "next/link";
 import { AreaChart } from "../tremor/components/AreaChart/AreaChart";
-import { BarChart } from "../tremor/components/BarChart/BarChart";
 import type { AvailableChartColorsKeys } from "../tremor/utils/chartColors";
 
 export type Period = "week" | "month" | "year";
-export type AnalyticsTab = "apps" | "public" | "affiliate" | "funnel";
+export type AnalyticsTab = "apps" | "landings";
 
 // Per-app users + revenue, the centerpiece of the rebuilt Analytics tab.
 // `hasBackend` = app's Supabase is wired in KLAR_ADMIN_APPS (so user counts are
@@ -69,41 +68,45 @@ export interface AppsChartPayload {
   note: string | null;
 }
 
-export interface AppFunnelRow {
-  slug: string;
+// Eine beworbene Seite. `label` ist die Adresse, wie man sie eintippt
+// ("myloo.org/get"), `primary` markiert die Seite, die wirklich in der Bio und
+// unter den Videos steht. Die anderen laufen als Kontext mit.
+export interface LandingRow {
+  key: string;
+  app: string;
   name: string;
-  hasBackend: boolean;
-  clicks: number;
-  installs: number;
-  premiums: number;
-  installRate: number;
-  premiumRate: number;
-}
-
-export interface FunnelPayload {
-  perApp: AppFunnelRow[];
-  totalClicks: number;
-  totalInstalls: number;
-  totalPremiums: number;
-}
-
-export interface AnalyticsPayload {
-  totalVisits: number;
-  uniqueSessions: number;
-  topPage: string | null;
+  icon: string;
+  label: string;
+  url: string;
+  primary: boolean;
+  tracked: boolean;
+  repo: string;
+  visits: number;
+  sessions: number;
+  /** Aufrufe im gleich langen Fenster davor. */
+  prevVisits: number;
   topReferrer: string | null;
-  series: { label: string; visits: number; sessions: number }[];
-  pages: { label: string; count: number }[];
   referrers: { label: string; count: number }[];
-  countries: { label: string; count: number }[];
-  browsers: { label: string; count: number }[];
-  // Affiliate-Landings: hits on /i/<slug>/<code> aggregated by app slug.
-  affiliates: {
-    totalHits: number;
-    uniqueCodes: number;
-    perApp: { slug: string; name: string; hits: number }[];
-    topCodes: { slug: string; code: string; hits: number }[];
-  };
+  color: string;
+  /** Aufrufe pro Bucket, aelteste zuerst. Die Balken hinter der Zahl. */
+  spark: number[];
+}
+
+export interface LandingsPayload {
+  period: Period;
+  perLanding: LandingRow[];
+  totalVisits: number;
+  totalPrev: number;
+  totalSessions: number;
+  best: string | null;
+  categories: string[];
+  colors: string[];
+  data: Record<string, number | string>[];
+  chips: { key: string; label: string; on: boolean; color: string }[];
+  /** Gemessene Seiten, die in keiner Landing-Definition stehen. */
+  otherPages: { label: string; count: number }[];
+  withData: number;
+  trackedCount: number;
 }
 
 const PERIODS: { id: Period; label: string }[] = [
@@ -113,26 +116,14 @@ const PERIODS: { id: Period; label: string }[] = [
 ];
 
 
-const TABS: { id: AnalyticsTab; label: string; periodParam: "p_pub" | "p_aff" | "p_fun" }[] = [
-  { id: "apps", label: "Apps", periodParam: "p_pub" },
-  { id: "public", label: "Public", periodParam: "p_pub" },
-  { id: "affiliate", label: "Affiliate-Landings", periodParam: "p_aff" },
-  { id: "funnel", label: "Funnel", periodParam: "p_fun" },
+const TABS: { id: AnalyticsTab; label: string }[] = [
+  { id: "apps", label: "Apps" },
+  { id: "landings", label: "Landings" },
 ];
 
-function TabSelector({
-  active,
-  pubP,
-  affP,
-  funP,
-}: {
-  active: AnalyticsTab;
-  pubP: Period;
-  affP: Period;
-  funP: Period;
-}) {
+function TabSelector({ active, landP }: { active: AnalyticsTab; landP: Period }) {
   const hrefFor = (id: AnalyticsTab) => {
-    const params = new URLSearchParams({ tab: id, p_pub: pubP, p_aff: affP, p_fun: funP });
+    const params = new URLSearchParams({ tab: id, p_pub: landP });
     return `/admin/analytics?${params.toString()}`;
   };
   return (
@@ -155,26 +146,14 @@ function TabSelector({
 
 function PeriodSelector({
   active,
-  tab,
-  pubP,
-  affP,
-  funP,
+  onKeys,
+  allCount,
 }: {
   active: Period;
-  tab: AnalyticsTab;
-  pubP: Period;
-  affP: Period;
-  funP: Period;
+  onKeys: string[];
+  allCount: number;
 }) {
-  const hrefFor = (p: Period) => {
-    const params = new URLSearchParams({
-      tab,
-      p_pub: tab === "public" ? p : pubP,
-      p_aff: tab === "affiliate" ? p : affP,
-      p_fun: tab === "funnel" ? p : funP,
-    });
-    return `/admin/analytics?${params.toString()}`;
-  };
+  const hrefFor = (p: Period) => landingsHref(p, onKeys, allCount);
   return (
     <div className="seg" role="tablist" aria-label="Zeitraum">
       {PERIODS.map((p) => (
@@ -285,217 +264,28 @@ function HBar({ data, max }: { data: { label: string; count: number }[]; max?: n
   );
 }
 
-function FunnelBar({ value, max, color }: { value: number; max: number; color: string }) {
-  const pct = max > 0 ? Math.max(2, (value / max) * 100) : 0;
-  return (
-    <span
-      aria-hidden
-      style={{
-        display: "block",
-        height: 10,
-        borderRadius: 5,
-        background: "var(--surface-2)",
-        overflow: "hidden",
-        position: "relative",
-      }}
-    >
-      <span
-        style={{
-          display: "block",
-          height: "100%",
-          width: `${pct}%`,
-          background: color,
-          borderRadius: 5,
-          transition: "width .25s ease",
-        }}
-      />
-    </span>
-  );
-}
-
-function pct(n: number): string {
-  if (!isFinite(n) || n <= 0) return "—";
-  return `${(n * 100).toFixed(n >= 0.1 ? 1 : 2)}%`;
-}
-
-function AppFunnelCard({ row }: { row: AppFunnelRow }) {
-  const max = Math.max(row.clicks, row.installs, row.premiums, 1);
-  return (
-    <div className="card" style={{ padding: 22 }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          gap: 12,
-          marginBottom: 14,
-        }}
-      >
-        <h3
-          style={{
-            margin: 0,
-            fontFamily: "var(--font-display)",
-            fontWeight: 700,
-            fontSize: 18,
-            letterSpacing: "-.01em",
-            color: "var(--fg)",
-          }}
-        >
-          {row.name}
-        </h3>
-        <span
-          className={`pill${row.hasBackend ? " live" : ""}`}
-          style={{ fontSize: 9 }}
-        >
-          {row.hasBackend ? "live" : "Backend pending"}
-        </span>
-      </div>
-      <div style={{ display: "grid", gap: 14 }}>
-        <div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              fontSize: 12,
-              fontFamily: "var(--font-mono)",
-              color: "var(--fg-3)",
-              textTransform: "uppercase",
-              letterSpacing: ".1em",
-              marginBottom: 4,
-            }}
-          >
-            <span>Landing-Klicks</span>
-            <span style={{ color: "var(--fg)", fontWeight: 600 }}>{row.clicks}</span>
-          </div>
-          <FunnelBar value={row.clicks} max={max} color="var(--chart-1)" />
-        </div>
-        <div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              fontSize: 12,
-              fontFamily: "var(--font-mono)",
-              color: "var(--fg-3)",
-              textTransform: "uppercase",
-              letterSpacing: ".1em",
-              marginBottom: 4,
-            }}
-          >
-            <span>Installs · Referrals</span>
-            <span style={{ color: "var(--fg)", fontWeight: 600 }}>
-              {row.hasBackend ? row.installs : "—"}
-              {row.hasBackend && row.clicks > 0 ? (
-                <span style={{ color: "var(--fg-3)", marginLeft: 6, fontWeight: 400 }}>
-                  ({pct(row.installRate)})
-                </span>
-              ) : null}
-            </span>
-          </div>
-          <FunnelBar value={row.installs} max={max} color="var(--chart-2)" />
-        </div>
-        <div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              fontSize: 12,
-              fontFamily: "var(--font-mono)",
-              color: "var(--fg-3)",
-              textTransform: "uppercase",
-              letterSpacing: ".1em",
-              marginBottom: 4,
-            }}
-          >
-            <span>Premium · Paid</span>
-            <span style={{ color: "var(--fg)", fontWeight: 600 }}>
-              {row.hasBackend ? row.premiums : "—"}
-              {row.hasBackend && row.installs > 0 ? (
-                <span style={{ color: "var(--fg-3)", marginLeft: 6, fontWeight: 400 }}>
-                  ({pct(row.premiumRate)})
-                </span>
-              ) : null}
-            </span>
-          </div>
-          <FunnelBar value={row.premiums} max={max} color="var(--chart-3)" />
-        </div>
-      </div>
-      {!row.hasBackend ? (
-        <p className="muted" style={{ fontSize: 12, margin: "14px 0 0" }}>
-          Affiliate-Backend für {row.name} noch nicht ausgerollt. Nur Landing-Klicks
-          werden via klar_pageviews getrackt. Stage-B-Rollout startet aus dem Chat.
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function FunnelView({ funnel }: { funnel: FunnelPayload }) {
-  const overallInstallRate = funnel.totalClicks > 0 ? funnel.totalInstalls / funnel.totalClicks : 0;
-  const overallPremiumRate = funnel.totalInstalls > 0 ? funnel.totalPremiums / funnel.totalInstalls : 0;
-  return (
-    <>
-      <div className="cards">
-        <StatRow label="Klicks gesamt" value={funnel.totalClicks} sub="alle Affiliate-Landings" />
-        <StatRow label="Installs · Referrals" value={funnel.totalInstalls} sub={`Conv-Rate ${pct(overallInstallRate)}`} />
-        <StatRow label="Premium · Paid" value={funnel.totalPremiums} sub={`Conv-Rate ${pct(overallPremiumRate)}`} />
-        <StatRow
-          label="Apps mit Backend"
-          value={funnel.perApp.filter((a) => a.hasBackend).length}
-          sub={`von ${funnel.perApp.length} insgesamt`}
-        />
-      </div>
-      <h2>Pro App</h2>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          gap: 14,
-        }}
-      >
-        {funnel.perApp.map((row) => (
-          <AppFunnelCard key={row.slug} row={row} />
-        ))}
-      </div>
-    </>
-  );
-}
-
 export default function AnalyticsClient({
-  data,
-  funnel,
+  landings,
   appsData,
   appsChart,
   tab,
-  periodPublic,
-  periodAffiliate,
-  periodFunnel,
+  periodLandings,
 }: {
-  data: AnalyticsPayload;
-  funnel: FunnelPayload;
+  landings: LandingsPayload;
   appsData: AppsPayload;
   appsChart: AppsChartPayload;
   tab: AnalyticsTab;
-  periodPublic: Period;
-  periodAffiliate: Period;
-  periodFunnel: Period;
+  periodLandings: Period;
 }) {
-  const period: Period =
-    tab === "affiliate" ? periodAffiliate : tab === "funnel" ? periodFunnel : periodPublic;
-  const isEmpty = data.totalVisits === 0 && funnel.totalClicks === 0;
+  const onKeys = landings.chips.filter((c) => c.on).map((c) => c.key);
 
   return (
     <>
-      <TabSelector
-        active={tab}
-        pubP={periodPublic}
-        affP={periodAffiliate}
-        funP={periodFunnel}
-      />
+      <TabSelector active={tab} landP={periodLandings} />
       {/* The Apps tab uses fixed windows (auth.users new-30/7d + RevenueCat's
           own 28-day overview), so a period selector there would be misleading.
-          Only the visitor/affiliate/funnel tabs get one. */}
-      {tab !== "apps" ? (
+          Nur der Landing-Tab bekommt einen. */}
+      {tab === "landings" ? (
         <div
           style={{
             display: "flex",
@@ -507,13 +297,11 @@ export default function AnalyticsClient({
           }}
         >
           <PeriodSelector
-            active={period}
-            tab={tab}
-            pubP={periodPublic}
-            affP={periodAffiliate}
-            funP={periodFunnel}
+            active={periodLandings}
+            onKeys={onKeys}
+            allCount={landings.chips.length}
           />
-          {isEmpty ? (
+          {landings.totalVisits === 0 ? (
             <span
               style={{
                 fontFamily: "var(--font-mono)",
@@ -529,9 +317,7 @@ export default function AnalyticsClient({
         </div>
       ) : null}
       {tab === "apps" ? <AppsView apps={appsData} chart={appsChart} /> : null}
-      {tab === "funnel" ? <FunnelView funnel={funnel} /> : null}
-      {tab === "affiliate" ? <AffiliateLandingsView data={data} /> : null}
-      {tab === "public" ? <PublicView data={data} period={period} /> : null}
+      {tab === "landings" ? <LandingsView landings={landings} /> : null}
     </>
   );
 }
@@ -805,6 +591,7 @@ const CHART_DOT: Record<string, string> = {
   cyan: "#06b6d4",
   pink: "#ec4899",
   lime: "#84cc16",
+  fuchsia: "#d946ef",
 };
 function dotColor(c: string): string {
   return CHART_DOT[c] ?? "var(--fg-3)";
@@ -973,155 +760,270 @@ function AppsView({ apps, chart }: { apps: AppsPayload; chart: AppsChartPayload 
   );
 }
 
-function PublicView({ data, period }: { data: AnalyticsPayload; period: Period }) {
+// ===== Landings tab: Aufrufe pro beworbener Seite =====
+//
+// Die Frage, die dieser Tab beantwortet, ist nicht "wieviel Web-Traffic haben
+// wir" sondern "welche der beworbenen Seiten bekommt ihn". Deshalb steht jede
+// Landing als eigene Zeile mit eigenem Verlauf da, statt als Pfad in einer
+// Top-Seiten-Liste unterzugehen, und jede Zahl hat ihren Vergleichswert aus
+// der Vorperiode neben sich. Eine Zahl ohne Vorher ist keine Entscheidung.
+
+/** URL des Landing-Tabs, Auswahl erhalten. `lp` faellt weg, wenn alle an sind. */
+function landingsHref(period: Period, onKeys: string[], allCount: number): string {
+  const p = new URLSearchParams({ tab: "landings", p_pub: period });
+  if (onKeys.length > 0 && onKeys.length < allCount) p.set("lp", onKeys.join(","));
+  return `/admin/analytics?${p.toString()}`;
+}
+
+/** "↑ 38 %" / "↓ 12 %" / "neu" / "—", plus der Ton dazu. */
+function deltaOf(cur: number, prev: number): { text: string; tone: string } {
+  if (cur === 0 && prev === 0) return { text: "—", tone: "var(--fg-4)" };
+  if (prev === 0) return { text: "neu", tone: "var(--fg)" };
+  const p = Math.round(((cur - prev) / prev) * 100);
+  if (p === 0) return { text: "±0 %", tone: "var(--fg-3)" };
+  return {
+    text: `${p > 0 ? "↑" : "↓"} ${Math.abs(p)} %`,
+    tone: p > 0 ? "var(--fg)" : "var(--fg-3)",
+  };
+}
+
+function periodLabel(p: Period): string {
+  return p === "week" ? "letzte 7 Tage" : p === "year" ? "letzte 12 Monate" : "letzte 30 Tage";
+}
+
+function prevLabel(p: Period): string {
+  return p === "week" ? "7 Tage davor" : p === "year" ? "12 Monate davor" : "30 Tage davor";
+}
+
+function LandingCard({ row, period }: { row: LandingRow; period: Period }) {
+  const delta = deltaOf(row.visits, row.prevVisits);
   return (
-    <>
-      <div className="cards">
-        <StatRow
-          label="Visits"
-          value={data.totalVisits}
-          sub={
-            period === "week"
-              ? "letzte 7 Tage"
-              : period === "year"
-                ? "letzte 12 Monate"
-                : "letzte 30 Tage"
-          }
+    <div className="card" style={{ padding: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 14 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={row.icon}
+          alt=""
+          width={30}
+          height={30}
+          style={{ borderRadius: 7, flexShrink: 0 }}
         />
-        <StatRow label="Sessions" value={data.uniqueSessions} sub="unique pro Tag" />
-        <StatRow label="Top-Seite" value={data.topPage ?? "—"} sub="meist besucht" />
-        <StatRow label="Top-Quelle" value={data.topReferrer ?? "—"} sub="referrer" />
-      </div>
-
-      <h2>Verlauf</h2>
-      <div className="chart">
-        <AreaChart
-          data={data.series.map((d) => ({ label: d.label, Visits: d.visits, Sessions: d.sessions }))}
-          index="label"
-          categories={["Visits", "Sessions"]}
-          colors={["ink", "steel"]}
-          valueFormatter={(v) => v.toLocaleString("de-CH")}
-          startEndOnly
-          showLegend
-          className="h-60"
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: "var(--fg)" }}>{row.name}</span>
+            {row.primary ? (
+              <span
+                title="Diese Adresse steht in der Bio und unter den Videos"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 9,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "var(--fg-3)",
+                  border: "1px solid var(--line-strong)",
+                  borderRadius: 4,
+                  padding: "1px 5px",
+                }}
+              >
+                Beworben
+              </span>
+            ) : null}
+          </div>
+          <a
+            href={row.url}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: "block",
+              fontFamily: "var(--font-mono)",
+              fontSize: 11.5,
+              color: "var(--fg-3)",
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+            title={row.url}
+          >
+            {row.label}
+          </a>
+        </div>
+        <span
+          aria-hidden
+          style={{
+            width: 10,
+            height: 10,
+            borderRadius: 3,
+            background: dotColor(row.color),
+            flexShrink: 0,
+          }}
         />
       </div>
 
-      <h2>Top-Seiten</h2>
-      <div className="chart-grid">
-        <ChartCard title="Seiten">
-          <HBar data={data.pages} />
-        </ChartCard>
-        <ChartCard title="Quellen">
-          <HBar data={data.referrers} />
-        </ChartCard>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
+        <span
+          style={{
+            fontSize: 30,
+            lineHeight: 1,
+            fontVariantNumeric: "tabular-nums",
+            color: row.visits > 0 ? "var(--fg)" : "var(--fg-4)",
+          }}
+        >
+          {fmtInt(row.visits)}
+        </span>
+        <span style={{ fontSize: 12, color: "var(--fg-3)" }}>Aufrufe</span>
+        <span
+          style={{
+            marginLeft: "auto",
+            fontSize: 12,
+            fontFamily: "var(--font-mono)",
+            color: delta.tone,
+          }}
+        >
+          {delta.text}
+        </span>
+      </div>
+      <div style={{ fontSize: 11.5, color: "var(--fg-4)", marginTop: 5 }}>
+        {periodLabel(period)} · {fmtInt(row.sessions)} Sessions · {prevLabel(period)}:{" "}
+        {fmtInt(row.prevVisits)}
       </div>
 
-      <h2>Geo · Browser</h2>
-      <div className="chart-grid">
-        <ChartCard title="Länder">
-          <BarChart
-            data={(data.countries.length ? data.countries : [{ label: "—", count: 0 }]).map((c) => ({ label: c.label, Visits: c.count }))}
-            index="label"
-            categories={["Visits"]}
-            colors={["ink"]}
-            valueFormatter={(v) => v.toLocaleString("de-CH")}
-            showLegend={false}
-            className="h-52"
-          />
-        </ChartCard>
-        <ChartCard title="Browser">
-          <HBar data={data.browsers} />
-        </ChartCard>
+      <div style={{ marginTop: 14 }}>
+        <Sparkline values={row.spark} />
       </div>
-    </>
+
+      <div style={{ fontSize: 11.5, color: "var(--fg-4)", marginTop: 10 }}>
+        {row.visits > 0 ? (
+          <>
+            Top-Quelle: <span style={{ color: "var(--fg-3)" }}>{row.topReferrer ?? "(direkt)"}</span>
+          </>
+        ) : (
+          <>
+            Noch kein Aufruf gemessen · Beacon in <code>{row.repo}</code>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
-function AffiliateLandingsView({ data }: { data: AnalyticsPayload }) {
+function LandingsView({ landings }: { landings: LandingsPayload }) {
+  const onKeys = landings.chips.filter((c) => c.on).map((c) => c.key);
+  const allCount = landings.chips.length;
+  const total = deltaOf(landings.totalVisits, landings.totalPrev);
+
   return (
     <>
       <div className="cards">
         <StatRow
-          label="Klicks gesamt"
-          value={data.affiliates.totalHits}
-          sub="auf /i/<slug>/<code>"
+          label="Aufrufe gesamt"
+          value={fmtInt(landings.totalVisits)}
+          sub={`${periodLabel(landings.period)} · ${total.text} vs. ${prevLabel(landings.period)} (${fmtInt(landings.totalPrev)})`}
         />
         <StatRow
-          label="Aktive Codes"
-          value={data.affiliates.uniqueCodes}
-          sub="einzigartig"
+          label="Sessions"
+          value={fmtInt(landings.totalSessions)}
+          sub="unique pro Tag, über alle Landings"
         />
         <StatRow
-          label="Apps mit Klicks"
-          value={data.affiliates.perApp.length}
-          sub="von 6 Klar-Apps"
+          label="Stärkste Seite"
+          value={landings.best ?? "—"}
+          sub={landings.best ? "meiste Aufrufe im Zeitraum" : "noch keine Aufrufe"}
+        />
+        <StatRow
+          label="Seiten mit Daten"
+          value={`${landings.withData} / ${landings.trackedCount}`}
+          sub={
+            landings.withData === 0
+              ? "Beacon noch nicht deployt?"
+              : "gemessene von definierten Landings"
+          }
         />
       </div>
+
+      <h2>Verlauf</h2>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        {landings.chips.map((c) => {
+          const toggled = c.on ? onKeys.filter((k) => k !== c.key) : [...onKeys, c.key];
+          // Die letzte abzuschalten zeigt wieder alle. Eine leere Auswahl
+          // waere ein Diagramm, das nichts behauptet.
+          const next = toggled.length === 0 ? landings.chips.map((x) => x.key) : toggled;
+          return (
+            <Link
+              key={c.key}
+              href={landingsHref(landings.period, next, allCount)}
+              prefetch
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                padding: "5px 11px",
+                borderRadius: 999,
+                fontSize: 12,
+                fontFamily: "var(--font-mono)",
+                border: "1px solid var(--line-strong)",
+                background: c.on ? "var(--surface-2)" : "var(--surface)",
+                color: c.on ? "var(--fg)" : "var(--fg-4)",
+              }}
+            >
+              <span
+                style={{
+                  width: 9,
+                  height: 9,
+                  borderRadius: 3,
+                  background: dotColor(c.color),
+                  display: "inline-block",
+                  opacity: c.on ? 1 : 0.35,
+                }}
+              />
+              {c.label}
+            </Link>
+          );
+        })}
+      </div>
+      <div className="chart">
+        {landings.categories.length > 0 && landings.data.length > 0 ? (
+          <AreaChart
+            data={landings.data}
+            index="label"
+            categories={landings.categories}
+            colors={landings.colors as AvailableChartColorsKeys[]}
+            valueFormatter={(v) => v.toLocaleString("de-CH")}
+            showLegend
+            startEndOnly
+            className="h-72"
+          />
+        ) : (
+          <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+            Keine Seite ausgewählt.
+          </p>
+        )}
+      </div>
+
+      <h2>Pro Landing</h2>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gap: 14,
+        }}
+      >
+        {landings.perLanding.map((row) => (
+          <LandingCard key={row.key} row={row} period={landings.period} />
+        ))}
+      </div>
+
+      <h2>Andere Seiten</h2>
       <div className="chart-grid">
-        <ChartCard title="Klicks pro App">
-          {data.affiliates.perApp.length > 0 ? (
-            <BarChart
-              data={data.affiliates.perApp.map((a) => ({ label: a.name, Klicks: a.hits }))}
-              index="label"
-              categories={["Klicks"]}
-              colors={["ink"]}
-              valueFormatter={(v) => v.toLocaleString("de-CH")}
-              showLegend={false}
-              className="h-56"
-            />
-          ) : (
-            <p className="muted" style={{ fontSize: 13, margin: "12px 0 0" }}>
-              Noch keine Klicks auf Affiliate-Landings.
-            </p>
-          )}
-        </ChartCard>
-        <ChartCard title="Top-Codes">
-          {data.affiliates.topCodes.length > 0 ? (
-            <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0, display: "grid", gap: 8 }}>
-              {data.affiliates.topCodes.map((c) => (
-                <li
-                  key={`${c.slug}/${c.code}`}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "minmax(0, 1fr) 38px",
-                    gap: 10,
-                    alignItems: "baseline",
-                    fontSize: 13,
-                  }}
-                >
-                  <span
-                    style={{
-                      color: "var(--fg)",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 12,
-                    }}
-                    title={`/i/${c.slug}/${c.code}`}
-                  >
-                    <span style={{ color: "var(--fg-3)" }}>{c.slug}/</span>
-                    {c.code}
-                  </span>
-                  <span
-                    style={{
-                      fontVariantNumeric: "tabular-nums",
-                      color: "var(--fg-2)",
-                      textAlign: "right",
-                      fontSize: 12,
-                    }}
-                  >
-                    {c.hits}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="muted" style={{ fontSize: 13, margin: "12px 0 0" }}>
-              Noch keine Code-Klicks.
-            </p>
-          )}
+        <ChartCard title="Gemessen, aber keine Landing">
+          <HBar data={landings.otherPages} />
+          <p className="muted" style={{ fontSize: 12, margin: "14px 0 0" }}>
+            Alles, was auf einer getrackten Domain aufgerufen wurde und in keiner
+            Landing-Definition steht: Rechtstexte, Support, Einladungslinks. Taucht hier ein
+            Pfad auf, der eigentlich eine Landing ist, wurde er umbenannt und gehört in{" "}
+            <code>lib/klarLandings.ts</code>. Affiliate-Links (<code>/i/…</code>) sind bewusst
+            ausgenommen.
+          </p>
         </ChartCard>
       </div>
     </>
