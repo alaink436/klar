@@ -35,7 +35,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -850,11 +849,15 @@ export default function VaultManager({ rows, lang }: { rows: VaultRow[]; lang: A
                   {t.cancel}
                 </Button>
               </AlertDialogCancel>
-              <AlertDialogAction asChild>
-                <Button type="submit" variant="danger">
-                  {t.deleteSubmit}
-                </Button>
-              </AlertDialogAction>
+              {/* NOT wrapped in AlertDialogAction: that renders a
+                  DialogPrimitive.Close, so the click closes the dialog, React
+                  unmounts this <form>, and the POST never leaves the browser.
+                  The delete silently did nothing while the UI looked fine.
+                  The rotate dialog above submits with a plain button for the
+                  same reason; only Cancel belongs in AlertDialogCancel. */}
+              <Button type="submit" variant="danger">
+                {t.deleteSubmit}
+              </Button>
             </AlertDialogFooter>
           </form>
         </AlertDialogContent>
