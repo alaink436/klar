@@ -51,7 +51,6 @@ import {
 } from "@/lib/accountStates";
 import { FIELD } from "./boardStyles";
 import DirectionCell from "./DirectionCell";
-import ReferencePanel from "./ReferencePanel";
 import {
   addAccount,
   linkChannels,
@@ -1160,11 +1159,6 @@ export default function PostingBoard({
           ))}
         </datalist>
       </div>
-
-      <ReferencePanel
-        references={references}
-        benutzt={new Set(rows.map((r) => r.directionRef).filter(Boolean))}
-      />
 
       <div className="px-5 py-3 border-t border-line">
         {adding ? (

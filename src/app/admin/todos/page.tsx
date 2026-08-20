@@ -16,11 +16,12 @@ import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listTodos, todosConfigured } from "@/lib/todoStore";
 import { listAccountStatus, listPostLog, listPostTotals } from "@/lib/accountStatus";
 import { listCurrentDirections, listDirectionCounts } from "@/lib/accountDirection";
-import { listReferences } from "@/lib/references";
+import { listReferences, listReferenceUsage } from "@/lib/references";
 import { ACCOUNTS, APPS, PLATFORM_LABEL, accountKey } from "@/lib/socialAccounts";
 import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 import Planner, { type PlannerDay, type PlannerPosting, type PlannerTodo } from "./Planner";
 import PostingBoard, { type BoardAccount, type BoardDay } from "./PostingBoard";
+import ReferenceView, { type ViewReference, type ViewUse } from "./ReferenceView";
 import WeekNav from "./WeekNav";
 import { viewHref, type TodoView } from "./views";
 
@@ -50,7 +51,7 @@ function mondayOf(iso: string): string {
 export default async function TodosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ w?: string; v?: string }>;
+  searchParams: Promise<{ w?: string; v?: string; msg?: string }>;
 }) {
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
   const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
@@ -73,8 +74,10 @@ export default async function TodosPage({
   // Die Ansicht steht in `?v=`, nicht im Client-State: so lässt sie sich
   // verlinken, überlebt einen Reload, und jede Seite holt nur ihre eigenen
   // Daten statt beide Hälften bei jedem Aufruf.
-  const view: TodoView = sp.v === "posting" ? "posting" : "todo";
+  const view: TodoView =
+    sp.v === "posting" ? "posting" : sp.v === "referenzen" ? "referenzen" : "todo";
   const onPosting = view === "posting";
+  const onReferenzen = view === "referenzen";
 
   const today = todayInZurich();
   const start = addDays(mondayOf(today), weekOffset * 7);
@@ -126,9 +129,40 @@ export default async function TodosPage({
   // Die Richtung braucht nur das Board. Der Wochenplan zeigt sie nicht, und
   // zwei Abfragen fuer eine Ansicht zu bezahlen, die sie nicht anzeigt, waere
   // dieselbe Verschwendung wie bei den Gesamtzahlen darueber.
-  const [directionByKey, directionCounts, references] = onPosting
-    ? await Promise.all([listCurrentDirections(), listDirectionCounts(), listReferences()])
-    : [new Map(), {} as Record<string, number>, []];
+  const [directionByKey, directionCounts] = onPosting
+    ? await Promise.all([listCurrentDirections(), listDirectionCounts()])
+    : [new Map(), {} as Record<string, number>];
+  // Die Referenzliste brauchen beide: das Board fuer die Auswahl in der Zeile,
+  // der Referenz-Reiter fuer sich selbst. Wer sie gerade faehrt, interessiert
+  // nur den Referenz-Reiter — eine Abfrage, die der Wochenplan nicht bezahlt.
+  const references = onPosting || onReferenzen ? await listReferences() : [];
+  const referenceUsage = onReferenzen ? await listReferenceUsage() : {};
+
+  // Flache Formen fuer den Reiter: die Store-Typen tragen Supabase-Feldnamen
+  // (`video_pfad`), und die haben in einer Client-Komponente nichts verloren.
+  // Das Handle steht im Schluessel selbst (app:plattform:handle) — dieselbe
+  // Zerlegung wie im Briefing im AI-Brain.
+  const viewReferences: ViewReference[] = references.map((r) => ({
+    kennung: r.kennung,
+    titel: r.titel,
+    herkunft: r.herkunft,
+    notiz: r.notiz,
+    ablage: r.ablage,
+    aktiv: r.aktiv,
+    videoPfad: r.video_pfad,
+    videoLink: r.video_link,
+    videoUrl: r.video_url,
+  }));
+  const referenceUses: Record<string, ViewUse[]> = Object.fromEntries(
+    Object.entries(referenceUsage).map(([kennung, zeilen]) => [
+      kennung,
+      zeilen.map((z) => ({
+        accountKey: z.account_key,
+        handle: z.account_key.split(":")[2] ?? z.account_key,
+        richtung: z.richtung,
+      })),
+    ]),
+  );
 
   const appMeta = new Map(APPS.map((a) => [a.key as string, { label: a.name, color: a.color }]));
   const OTHER = { label: "Weitere", color: "#8C93A8" };
@@ -297,6 +331,7 @@ export default async function TodosPage({
               [
                 { key: "todo", label: t.todoTabPlanner, href: viewHref("todo", weekOffset) },
                 { key: "posting", label: t.todoTabPosting, href: viewHref("posting", weekOffset) },
+                { key: "referenzen", label: "Referenzen", href: viewHref("referenzen", weekOffset) },
               ] as const
             ).map((tab) => (
               <Link
@@ -312,9 +347,11 @@ export default async function TodosPage({
               </Link>
             ))}
           </div>
-          <div className="pb-2.5">
+          <div className="pb-2.5" style={{ visibility: onReferenzen ? "hidden" : "visible" }}>
             {/* `view` statt einer href-Funktion: Funktionen lassen sich nicht
-                an eine Client-Komponente übergeben. */}
+                an eine Client-Komponente übergeben. Im Referenz-Reiter bleibt
+                die Zeile stehen, aber unsichtbar: sie steuert dort nichts, und
+                sie ganz wegzunehmen liesse die Kopfzeile springen. */}
             <WeekNav
               lang={lang}
               weekLabel={weekLabel}
@@ -325,7 +362,13 @@ export default async function TodosPage({
           </div>
         </div>
 
-        {onPosting ? (
+        {onReferenzen ? (
+          <ReferenceView
+            references={viewReferences}
+            usage={referenceUses}
+            meldung={sp.msg}
+          />
+        ) : onPosting ? (
           <PostingBoard
             accounts={boardAccounts}
             days={boardDays}
