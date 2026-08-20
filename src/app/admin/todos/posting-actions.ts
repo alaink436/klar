@@ -22,12 +22,17 @@ import {
 } from "@/lib/accountDirection";
 import {
   listChannelReferenceHistory,
+  removeChannelVideo,
   saveChannelReference,
+  signierteZiele,
+  wechsleDateien,
   type ChannelReferencePatch,
 } from "@/lib/channelReference";
 import {
   archivePostSample,
+  createPostSample,
   savePostSample,
+  setPostFiles,
   type PostSamplePatch,
 } from "@/lib/postSample";
 import type { AccountStatusPatch, Direction } from "@/lib/accountStates";
@@ -156,8 +161,8 @@ export async function loadDirectionHistory(key: string): Promise<AccountDirectio
 /**
  * Titel, Notiz oder Link an einer Ebene ändern (App, Plattform, Kanal).
  *
- * Das Video selbst geht nicht hierüber, sondern durch `/admin/referenz-video`:
- * 200 MB passen nicht durch die Serialisierung einer Server-Action.
+ * Die Dateien selbst gehen nicht hierüber, sondern per `uploadVorbereiten`
+ * direkt vom Browser in den Bucket — an Vercels 4,5-MB-Body vorbei.
  */
 export async function setChannelReference(
   scope: string,
@@ -187,6 +192,68 @@ export async function setPostSample(id: number, patch: PostSamplePatch): Promise
 export async function dropPostSample(id: number): Promise<{ ok: boolean }> {
   if (!(await requireAdmin())) return { ok: false };
   const res = await archivePostSample(id);
+  if (res.ok) revalidatePath("/admin/todos");
+  return res;
+}
+
+/**
+ * Ziele für einen Upload besorgen, in die der Browser direkt schreibt.
+ *
+ * Die Datei geht nicht über unseren Server: eine Vercel-Funktion nimmt nur
+ * 4,5 MB Body an, und die Oberfläche verspricht 200 MB. Was der Browser
+ * bekommt, ist ein Einmal-Token je Pfad; der Service-Key bleibt hier.
+ */
+export async function uploadVorbereiten(
+  scope: string,
+  namen: string[],
+  art: "referenz" | "post",
+): Promise<{ ok: boolean; ziele?: { pfad: string; url: string }[]; fehler?: string }> {
+  if (!(await requireAdmin())) return { ok: false, fehler: "nicht angemeldet" };
+  if (!namen.length) return { ok: false, fehler: "keine Datei" };
+  const tag = new Date().toISOString().slice(0, 10);
+  // Der Ordner trägt Ebene und Tag, damit eine zweite Runde die erste nicht
+  // überschreibt — der Verlauf zeigt sonst auf Dateien, die es nicht mehr gibt.
+  const ordner =
+    art === "post"
+      ? `posts/${scope.replace(/:/g, "_")}/${tag}-${Date.now()}`
+      : `kanal/${scope.replace(/:/g, "_")}/${tag}-${Date.now()}`;
+  const ziele = await signierteZiele(ordner, namen);
+  if (ziele.length !== namen.length) return { ok: false, fehler: "Ziele nicht erhalten" };
+  return { ok: true, ziele };
+}
+
+/**
+ * Die fertig hochgeladenen Pfade an der Ebene bzw. am Post festhalten.
+ *
+ * Erst hier entsteht die Zeile. Wäre es andersherum, stünde nach einem
+ * abgebrochenen Upload ein Eintrag da, der auf nichts zeigt.
+ */
+export async function dateienUebernehmen(
+  scope: string,
+  pfade: string[],
+  art: "referenz" | "post",
+  extra: { notiz?: string; ergebnis?: string; grund?: string } = {},
+): Promise<{ ok: boolean; fehler?: string }> {
+  if (!(await requireAdmin())) return { ok: false, fehler: "nicht angemeldet" };
+  if (art === "post") {
+    const angelegt = await createPostSample(scope, {
+      notiz: extra.notiz ?? null,
+      ergebnis: extra.ergebnis ?? null,
+    });
+    if (!angelegt.ok || !angelegt.id) return { ok: false, fehler: angelegt.fehler };
+    const res = await setPostFiles(angelegt.id, pfade);
+    revalidatePath("/admin/todos");
+    return res.ok ? { ok: true } : { ok: false, fehler: "Pfade nicht gespeichert" };
+  }
+  const res = await wechsleDateien(scope, pfade, extra.grund ?? null);
+  if (res.ok) revalidatePath("/admin/todos");
+  return res;
+}
+
+/** Die Dateien einer Ebene wegnehmen. Die Zeile wird geschlossen, nicht gelöscht. */
+export async function referenzEntfernen(scope: string): Promise<{ ok: boolean }> {
+  if (!(await requireAdmin())) return { ok: false };
+  const res = await removeChannelVideo(scope);
   if (res.ok) revalidatePath("/admin/todos");
   return res;
 }

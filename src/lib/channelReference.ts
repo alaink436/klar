@@ -335,6 +335,45 @@ export async function listChannelReferenceHistory(
   }
 }
 
+/**
+ * Signierte Ziele, in die der BROWSER direkt hochlaedt.
+ *
+ * Der Grund ist hart: eine Datei durch eine Vercel-Funktion zu schicken geht
+ * nur bis 4,5 MB Body. Die Oberflaeche verspricht 200 MB, also kann der Weg
+ * ueber den eigenen Server nicht der richtige sein — ein Handyvideo reisst das
+ * Limit sofort. Mit einem signierten Ziel geht die Datei vom Browser direkt in
+ * den Bucket und beruehrt Vercel gar nicht.
+ *
+ * Das Ziel gilt kurz und nur fuer genau diesen einen Pfad. Der Service-Key
+ * bleibt dabei auf dem Server; der Browser bekommt nur den Einmal-Token.
+ */
+export async function signierteZiele(
+  ordner: string,
+  namen: string[],
+): Promise<{ pfad: string; url: string }[]> {
+  if (!KEY) return [];
+  const ziele = await Promise.all(
+    namen.map(async (name, i) => {
+      const pfad = `${ordner}/${mitEndung(String(i + 1).padStart(2, "0"), name)}`;
+      try {
+        const res = await fetch(`${STORAGE}/object/upload/sign/${BUCKET}/${encodeURI(pfad)}`, {
+          method: "POST",
+          headers: hdr(),
+          body: JSON.stringify({}),
+          cache: "no-store",
+        });
+        if (!res.ok) return null;
+        const j = (await res.json()) as { url?: string };
+        if (!j.url) return null;
+        return { pfad, url: `${STORAGE}${j.url.startsWith("/") ? "" : "/"}${j.url}` };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return ziele.filter((z): z is { pfad: string; url: string } => z !== null);
+}
+
 /** Eine Datei in den Bucket legen und ihren Pfad zurueckgeben. */
 export async function legeAb(
   ordner: string,

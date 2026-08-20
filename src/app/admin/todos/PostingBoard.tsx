@@ -168,6 +168,7 @@ export default function PostingBoard({
   today,
   scopeRefs,
   postsByScope,
+  meldung,
 }: {
   accounts: BoardAccount[];
   days: BoardDay[];
@@ -184,6 +185,8 @@ export default function PostingBoard({
   scopeRefs: Record<string, SlotRef>;
   /** Gelaufene Posts, nach `scope`. Ein Kanal zeigt seine und die seiner App. */
   postsByScope: Record<string, ViewPost[]>;
+  /** Rueckmeldung der Upload-Route, kommt als `?msg=` zurueck. */
+  meldung?: string;
 }) {
   const [, startTransition] = useTransition();
   const [openDay, setOpenDay] = useState<string | null>(null);
@@ -1147,6 +1150,19 @@ export default function PostingBoard({
           ))}
         </datalist>
       </div>
+
+      {/* Was die Upload-Route zurueckmeldet. Ohne diese Zeile war jeder Fehler
+          unsichtbar — auch „keine Datei gewaehlt", und genau das kam am
+          2026-08-20 achtmal hintereinander vor, ohne dass es jemand sah. */}
+      {meldung ? (
+        <div
+          className="px-5 py-2.5 border-t border-line text-[12px]"
+          style={{ color: "var(--fg-2)" }}
+          role="status"
+        >
+          {meldung}
+        </div>
+      ) : null}
 
       <ScopeLeiste rows={rows} scopeRefs={scopeRefs} />
 

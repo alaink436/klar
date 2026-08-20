@@ -218,6 +218,21 @@ export async function uploadPostSample(
   }
 }
 
+/** Die hochgeladenen Pfade an einem Post festhalten. */
+export async function setPostFiles(id: number, pfade: string[]): Promise<{ ok: boolean }> {
+  if (!KEY || !Number.isFinite(id)) return { ok: false };
+  try {
+    const res = await fetch(`${REST}?id=eq.${id}`, {
+      method: "PATCH",
+      headers: hdr({ Prefer: "return=minimal" }),
+      body: JSON.stringify({ dateien: pfade }),
+    });
+    return { ok: res.ok };
+  } catch {
+    return { ok: false };
+  }
+}
+
 /**
  * Einen Post aus der Sammlung nehmen. Er wird auf inaktiv gesetzt, nicht
  * geloescht: ein Post, der einmal lief, bleibt ein Beleg, auch wenn er nicht

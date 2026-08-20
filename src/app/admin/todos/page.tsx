@@ -381,6 +381,7 @@ export default async function TodosPage({
             today={today}
             scopeRefs={scopeRefsFlach}
             postsByScope={postsByScope}
+            meldung={sp.msg}
           />
         ) : (
           <Planner

@@ -16,8 +16,8 @@
 
 import { useState, useTransition } from "react";
 import { FIELD } from "./boardStyles";
-import { setChannelReference } from "./posting-actions";
-import FileDrop from "./FileDrop";
+import { referenzEntfernen, setChannelReference } from "./posting-actions";
+import Hochladen from "./Hochladen";
 import Medienkachel, { type Medium } from "./Medienkachel";
 
 const MONO = "[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em]";
@@ -85,48 +85,30 @@ export default function ReferenceSlot({
           </div>
         )}
 
-        {/* Gewöhnliches Formular an eine Route: 200 MB passen nicht durch die
-            Serialisierung einer Server-Action, und so geht es auch ohne JS. */}
-        <form
-          action="/admin/referenz-video"
-          method="post"
-          encType="multipart/form-data"
-          className="mt-1"
-        >
-          <input type="hidden" name="scope" value={scope} />
-          <FileDrop
-            name="datei"
-            accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
-            ariaLabel={`Referenz für ${etikett} wählen`}
-            klein
-          />
-          <div className="flex gap-1 mt-1">
+        {/* Die Datei geht direkt in den Bucket, nicht durch unseren Server:
+            eine Vercel-Funktion nimmt nur 4,5 MB Body an. */}
+        <div className="mt-1">
+          <Hochladen scope={scope} art="referenz" etikett={etikett} klein />
+          {eigen && eigen.medien.length > 0 ? (
             <button
-              type="submit"
-              className={`${MONO} px-1.5 py-0.5 rounded-[3px] border border-line-strong`}
-              style={{ color: "var(--fg-2)" }}
+              type="button"
+              onClick={() => {
+                if (!offen) {
+                  setOffen(true);
+                  return;
+                }
+                startTransition(async () => {
+                  await referenzEntfernen(scope);
+                  setOffen(false);
+                });
+              }}
+              className={`${MONO} mt-1 px-1.5 py-0.5 rounded-[3px] border border-line-strong`}
+              style={{ color: offen ? "var(--fg)" : "var(--fg-4)" }}
             >
-              hoch
+              {offen ? "sicher?" : "weg"}
             </button>
-            {eigen && eigen.medien.length > 0 ? (
-              <button
-                type="submit"
-                name="aktion"
-                value="entfernen"
-                onClick={(e) => {
-                  if (!offen) {
-                    e.preventDefault();
-                    setOffen(true);
-                  }
-                }}
-                className={`${MONO} px-1.5 py-0.5 rounded-[3px] border border-line-strong`}
-                style={{ color: offen ? "var(--fg)" : "var(--fg-4)" }}
-              >
-                {offen ? "sicher?" : "weg"}
-              </button>
-            ) : null}
-          </div>
-        </form>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex-1 min-w-0 space-y-1">

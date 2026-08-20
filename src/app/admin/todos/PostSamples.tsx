@@ -21,7 +21,7 @@
 import { useState, useTransition } from "react";
 import { FIELD } from "./boardStyles";
 import { dropPostSample, setPostSample } from "./posting-actions";
-import FileDrop from "./FileDrop";
+import Hochladen from "./Hochladen";
 import Medienkachel, { type Medium } from "./Medienkachel";
 
 const MONO = "[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em]";
@@ -51,6 +51,7 @@ export default function PostSamples({
   const [offen, setOffen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [notiz, setNotiz] = useState("");
+  const [ergebnis, setErgebnis] = useState("");
 
   return (
     <div className="mt-1.5 pt-1.5 border-t border-line">
@@ -69,41 +70,36 @@ export default function PostSamples({
           {/* Die Notiz steht VOR dem Dateifeld, nicht dahinter: sie ist der
               eigentliche Inhalt der Zeile. Ein Post ohne Anweisung ist nur ein
               Video, und hinterher tippt sie niemand nach. */}
-          <form action="/admin/referenz-video" method="post" encType="multipart/form-data">
-            <input type="hidden" name="scope" value={scope} />
-            <input type="hidden" name="art" value="post" />
+          {/* Die Notiz steht VOR der Datei, nicht dahinter: sie ist der
+              eigentliche Inhalt der Zeile. Ein Post ohne Anweisung ist nur ein
+              Video, und hinterher tippt sie niemand nach. */}
+          <input
+            value={notiz}
+            onChange={(e) => setNotiz(e.target.value)}
+            placeholder="Worauf soll man sich beziehen? z. B. gleicher Hook, ruhigerer Schnitt"
+            aria-label={`Anweisung zum neuen Post für @${handle}`}
+            className={`${FIELD} w-full`}
+          />
+          <div className="flex gap-1.5 mt-1 items-start flex-wrap">
             <input
-              name="notiz"
-              value={notiz}
-              onChange={(e) => setNotiz(e.target.value)}
-              placeholder="Worauf soll man sich beziehen? z. B. gleicher Hook, ruhigerer Schnitt"
-              aria-label={`Anweisung zum neuen Post für @${handle}`}
-              className={`${FIELD} w-full`}
+              value={ergebnis}
+              onChange={(e) => setErgebnis(e.target.value)}
+              placeholder="Ergebnis (12k Views …)"
+              aria-label={`Ergebnis des neuen Posts für @${handle}`}
+              className={FIELD}
+              style={{ maxWidth: 150 }}
             />
-            <div className="flex gap-1.5 mt-1 items-center flex-wrap">
-              <input
-                name="ergebnis"
-                placeholder="Ergebnis (12k Views …)"
-                aria-label={`Ergebnis des neuen Posts für @${handle}`}
-                className={FIELD}
-                style={{ maxWidth: 150 }}
+            <div style={{ minWidth: 170 }}>
+              <Hochladen
+                scope={scope}
+                art="post"
+                etikett={`@${handle}`}
+                klein
+                knopf="Post dazu"
+                extra={() => ({ notiz, ergebnis })}
               />
-              <div style={{ minWidth: 150 }}>
-                <FileDrop
-                  name="datei"
-                  accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
-                  ariaLabel={`Dateien des Posts für @${handle} wählen`}
-                  klein
-                />
-              </div>
-              <button
-                type="submit"
-                className={`${MONO} px-2 py-1 rounded-[3px] bg-fg text-[var(--accent-fg)]`}
-              >
-                Post dazu
-              </button>
             </div>
-          </form>
+          </div>
 
           {posts.length ? (
             <ul className="mt-2 flex flex-wrap gap-2">
