@@ -57,7 +57,7 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Klar · Indie App Studio",
   description:
-    "Zero tech background, self-taught, six apps shipped in public. Trubel, MyLoo, Wavelength, Yarn-Stash, Kelva, ThrottleUp.",
+    "Zero tech background, self-taught, seven apps shipped in public. Trubel, MyLoo, Anime Vault, Yarn-Stash, Kelva, ThrottleUp, Basalt.",
   metadataBase: new URL("https://getklar.org"),
   openGraph: {
     title: "Klar · Indie App Studio",

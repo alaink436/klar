@@ -107,14 +107,21 @@ export const KLAR_APPS: KlarAppMeta[] = [
   },
   // slug stays "wavelength": it is the key into the affiliate schema, the
   // Supabase project and referrals.app. Only the display name changed.
-  // BUILD, not LIVE: what is live in the App Store under this bundle is still
-  // the old Wavelength calendar app. Basalt has not been submitted yet.
+  //
+  // LIVE since 2026-08-13. This entry read BUILD ("Basalt has not been
+  // submitted yet") until 2026-08-20, which was wrong by a week and made the
+  // marketing page understate a shipped app. Measured, not assumed: the iTunes
+  // lookup for id6762440839 returns "Basalt- Follow Through", version 2.0.0,
+  // currentVersionReleaseDate 2026-08-13. The repo is already on 2.1.0 build
+  // 14, so `release` carries the STORE version, not the local one.
   {
     slug: "wavelength",
     name: "Basalt",
     // The slug stays historical, the icon does not: this is Basalt's own.
     icon: "/icons/basalt-v3.webp",
-    status: "BUILD",
+    status: "LIVE",
+    release: "v2.0.0",
+    appStoreUrl: "https://apps.apple.com/app/id6762440839",
     publicSite: true,
   },
   // Promillo was paused 2026-06-30 and its Supabase project was recycled for

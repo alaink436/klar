@@ -15,7 +15,7 @@ import OsShell from "./os/OsShell";
 // their own URLs.
 
 // The price is indexed to the evidence, not to scarcity. What is for sale here
-// is what six live apps taught one person, so the thing that makes it worth
+// is what seven live apps taught one person, so the thing that makes it worth
 // more is those apps earning more: a vault behind $200 a month is a hobby
 // notebook, the same vault behind $10,000 a month is a manual. Every time the
 // apps cross a step, both prices go up.
@@ -55,7 +55,7 @@ export const metadata = {
     `The exact vault structure, agent conventions and LLM Council setup behind Klar Studios' shipped App Store apps. Free system, ${money(NOW.data)} playbook, honest scars included.`,
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Klar OS: one person, six shipped apps",
+    title: "Klar OS: one person, seven shipped apps",
     description:
       `The free working system of a solo founder who ships with AI agents daily. The scars behind it: the ${money(NOW.data)} Playbook.`,
     url: "/",
@@ -65,7 +65,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Klar OS: one person, six shipped apps",
+    title: "Klar OS: one person, seven shipped apps",
     description:
       `The free working system of a solo founder who ships with AI agents daily. The scars behind it: the ${money(NOW.data)} Playbook.`,
     images: ["/os/og.png"],
@@ -177,7 +177,7 @@ const DETAILS = {
           <h2>Five months of vault data</h2>
           <p className="lede" style={{ margin: 0 }}>
             The templates cost nothing because they were never the valuable
-            part. This took five months and six shipped apps.
+            part. This took five months and seven shipped apps.
           </p>
         </div>
       </div>
@@ -225,7 +225,7 @@ export default async function Home() {
         <div className="masthead">
           <h1 className="wordmark"><span>Klar</span> <span className="l2">OS</span></h1>
           <p className="lede" style={{ margin: 0 }}>
-            One person shipped six apps to the App Store working with AI agents
+            One person shipped seven apps to the App Store working with AI agents
             every day. Three things came out of it. Two are free, one is not.
             Pick one to open it.
           </p>

@@ -31,7 +31,7 @@ const PANELS = [
     n: "03",
     price: "$49",
     title: "The AI brain",
-    line: "The real vault: 1,165 notes, 5,314 links, 254 learnings from five months and six shipped apps.",
+    line: "The real vault: 1,165 notes, 5,314 links, 254 learnings from five months and seven shipped apps.",
     art: "brain",
     cta: "See the data",
     paid: true,
