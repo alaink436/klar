@@ -11,8 +11,10 @@ import {
   collabAddressFor,
   collabAppOptions,
   collabThreadKey,
+  listCollabKontakte,
   listCollabStages,
   listCollabThreads,
+  type CollabKontaktRow,
   type CollabStageRow,
   type CollabThread,
 } from "@/lib/collabStore";
@@ -30,6 +32,7 @@ export interface CollabView {
 function toRows(
   threads: CollabThread[],
   stages: Map<string, CollabStageRow>,
+  kontakte: Map<string, CollabKontaktRow>,
 ): CollabThreadRow[] {
   // App-Slug → Anzeigename (aus der Alias-Map; deckt auch AnimeVault + Studio
   // ab). Threads tragen den ggf. per Text-Erkennung zugeordneten App-Slug.
@@ -49,7 +52,14 @@ function toRows(
     // Der von Hand gepflegte Stand. Fehlt die Zeile, bleibt es bei null —
     // "noch nie hingeschaut" ist eine eigene Aussage und wird nicht zu
     // "Kontakt" geschönt (siehe Migration 0026).
-    const stage = stages.get(collabThreadKey(t.app, t.contactEmail)) ?? null;
+    const schluessel = collabThreadKey(t.app, t.contactEmail);
+    const stage = stages.get(schluessel) ?? null;
+    // Wie oft WIR geschrieben haben. Zusammen mit `inboundCount` ist das die
+    // Bedingung fuer die zweite Adresse: zweimal raus, nichts zurueck. Die Zahl
+    // wird hier gerechnet und nicht gespeichert — als Spalte waere sie eine
+    // zweite, driftende Fassung derselben Auskunft.
+    const outboundCount = t.messages.filter((m) => m.direction === "out").length;
+    const kontakt = kontakte.get(schluessel) ?? null;
     return {
       app: t.app,
       contactEmail: t.contactEmail,
@@ -63,6 +73,9 @@ function toRows(
       lastSubject: last?.subject ?? null,
       lastSnippet: snippet,
       inboundCount,
+      outboundCount,
+      zweiteEmail: kontakt?.zweite_email ?? "",
+      zweiteEmailQuelle: kontakt?.quelle ?? "",
       unanswered: last?.direction === "in",
       status,
       stage: stage?.stage ?? null,
@@ -93,8 +106,12 @@ export function collabAliasRows(): CollabAliasRow[] {
 export async function buildCollabView(): Promise<CollabView> {
   // Zwei unabhängige Tabellen, parallel geholt — der Stand hängt nicht an den
   // Nachrichten, und ein Thread ohne Stand ist genauso gültig wie umgekehrt.
-  const [rawThreads, stages] = await Promise.all([listCollabThreads(), listCollabStages()]);
-  const threads = toRows(rawThreads, stages);
+  const [rawThreads, stages, kontakte] = await Promise.all([
+    listCollabThreads(),
+    listCollabStages(),
+    listCollabKontakte(),
+  ]);
+  const threads = toRows(rawThreads, stages, kontakte);
   return {
     aliases: collabAliasRows(),
     threads,

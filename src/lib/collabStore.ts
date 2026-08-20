@@ -366,6 +366,84 @@ export {
   type CollabStage,
 } from "@/lib/collabStages";
 
+export interface CollabKontaktRow {
+  app: string;
+  /** = klar_collab_messages.contact_email, derselbe Schluessel wie beim Stand. */
+  contact_key: string;
+  /** Ausweichadresse, wenn auf der ersten zweimal nichts kam. */
+  zweite_email: string | null;
+  /** Woher sie stammt (Impressum, Linktree, DM). */
+  quelle: string | null;
+}
+
+/**
+ * Die zweiten Adressen, nach Thread-Schluessel (collabThreadKey).
+ *
+ * Fail-soft zu einer leeren Map, gleiche Haltung wie bei den Staenden: das
+ * Board muss auch dann stehen, wenn diese Tabelle nicht antwortet — eine
+ * fehlende Zweitadresse ist kein Grund, die Liste nicht zu zeigen.
+ */
+export async function listCollabKontakte(limit = 800): Promise<Map<string, CollabKontaktRow>> {
+  const out = new Map<string, CollabKontaktRow>();
+  if (!KLAR_INBOX_KEY) return out;
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_collab_kontakte?select=app,contact_key,zweite_email,quelle&limit=${limit}`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    if (!res.ok) return out;
+    const rows = (await res.json()) as CollabKontaktRow[];
+    if (!Array.isArray(rows)) return out;
+    for (const r of rows) out.set(collabThreadKey(r.app, r.contact_key), r);
+    return out;
+  } catch {
+    return out;
+  }
+}
+
+/**
+ * Die zweite Adresse setzen oder wegnehmen.
+ *
+ * Leerer Text loescht die Zeile statt sie mit einem leeren Feld stehen zu
+ * lassen: „hier gibt es keine zweite Adresse" und „hier hat noch niemand
+ * nachgesehen" sollen nicht gleich aussehen.
+ */
+export async function setCollabZweiteEmail(
+  app: string,
+  contactKey: string,
+  zweiteEmail: string,
+  quelle: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!KLAR_INBOX_KEY) return { ok: false, error: "not configured" };
+  if (!app || !contactKey) return { ok: false, error: "thread missing" };
+  const adresse = zweiteEmail.trim().slice(0, 200);
+  const woher = quelle.trim().slice(0, 200);
+  try {
+    if (!adresse) {
+      const res = await fetch(
+        `${KLAR_INBOX_URL}/rest/v1/klar_collab_kontakte` +
+          `?app=eq.${encodeURIComponent(app)}&contact_key=eq.${encodeURIComponent(contactKey)}`,
+        { method: "DELETE", headers: { ...hdr(), Prefer: "return=minimal" } },
+      );
+      return res.ok ? { ok: true } : { ok: false, error: `delete ${res.status}` };
+    }
+    const res = await fetch(`${KLAR_INBOX_URL}/rest/v1/klar_collab_kontakte`, {
+      method: "POST",
+      headers: { ...hdr(), Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({
+        app,
+        contact_key: contactKey,
+        zweite_email: adresse,
+        quelle: woher || null,
+        updated_at: new Date().toISOString(),
+      }),
+    });
+    return res.ok ? { ok: true } : { ok: false, error: `upsert ${res.status}` };
+  } catch {
+    return { ok: false, error: "network" };
+  }
+}
+
 export interface CollabStageRow {
   app: string;
   /** = klar_collab_messages.contact_email, der Thread-Schlüssel. */

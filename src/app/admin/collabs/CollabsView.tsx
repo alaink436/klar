@@ -59,6 +59,13 @@ export interface CollabThreadRow {
   lastSubject: string | null;
   lastSnippet: string;
   inboundCount: number;
+  /** Wie oft wir geschrieben haben. Ab zwei ohne Antwort wird die zweite
+   *  Adresse angeboten. */
+  outboundCount: number;
+  /** Ausweichadresse, wenn auf der ersten nichts kam. Leer = keine hinterlegt. */
+  zweiteEmail: string;
+  /** Woher sie stammt (Impressum, Linktree, DM). */
+  zweiteEmailQuelle: string;
   unanswered: boolean;
   /** open = die Gegenseite schrieb zuletzt · waiting = angeschrieben, nie eine
    *  Antwort bekommen · answered = wir schrieben zuletzt, Antwort gab es schon. */
@@ -348,7 +355,8 @@ function StageCell({ row }: { row: CollabThreadRow }) {
   const [noteOpen, setNoteOpen] = useState(false);
 
   return (
-    <form method="POST" action="/admin/collab/stage" className="flex flex-col gap-1.5 min-w-[190px]">
+    <div className="flex flex-col gap-1.5 min-w-[190px]">
+    <form method="POST" action="/admin/collab/stage" className="flex flex-col gap-1.5">
       <input type="hidden" name="app" value={row.app} />
       <input type="hidden" name="contact_key" value={row.contactEmail} />
 
@@ -420,6 +428,9 @@ function StageCell({ row }: { row: CollabThreadRow }) {
         </>
       )}
     </form>
+
+      <ZweiteAdresse row={row} />
+    </div>
   );
 }
 
@@ -638,3 +649,70 @@ export default function CollabsView({
     </>
   );
 }
+
+
+/**
+ * Die Ausweichadresse eines Threads.
+ *
+ * Angeboten wird sie erst, wenn wir **zweimal geschrieben und nie eine Antwort
+ * bekommen** haben — vorher ist sie nur ein Feld, das man ignoriert. Steht
+ * schon eine drin, bleibt sie immer sichtbar, sonst wäre sie nach der ersten
+ * Antwort unauffindbar.
+ *
+ * Die Bedingung wird hier gestellt und nicht auf dem Server: die Route soll
+ * eine Eingabe nicht wegen einer Zählung abweisen, wenn Alain es einmal besser
+ * weiss. Die Zahlen kommen aus den Nachrichten und werden nirgends gespeichert.
+ */
+function ZweiteAdresse({ row }: { row: CollabThreadRow }) {
+  const zweimalOhneAntwort = row.outboundCount >= 2 && row.inboundCount === 0;
+  const [offen, setOffen] = useState(false);
+
+  if (!zweimalOhneAntwort && !row.zweiteEmail) return null;
+
+  if (!offen && !row.zweiteEmail) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOffen(true)}
+        className="self-start text-[11px] text-fg-3 underline underline-offset-2 hover:text-fg"
+        title={`${row.outboundCount}× geschrieben, keine Antwort`}
+      >
+        zweite Adresse eintragen
+      </button>
+    );
+  }
+
+  return (
+    <form
+      method="POST"
+      action="/admin/collab/zweite-email"
+      className="flex flex-col gap-1 pt-1.5 border-t border-line"
+    >
+      <input type="hidden" name="app" value={row.app} />
+      <input type="hidden" name="contact_key" value={row.contactEmail} />
+
+      <span className="text-fg-4 text-[10px]">
+        {row.outboundCount}× geschrieben, keine Antwort
+      </span>
+
+      <input
+        name="zweite_email"
+        defaultValue={row.zweiteEmail}
+        placeholder="zweite Adresse oder Weg"
+        aria-label={`Zweite Adresse für ${row.contactEmail}`}
+        className="w-full px-2 py-1.5 text-[12px] bg-bg text-fg border border-line-strong rounded-[var(--radius-sm)] focus:border-fg focus:outline-none"
+      />
+      <input
+        name="quelle"
+        defaultValue={row.zweiteEmailQuelle}
+        placeholder="woher? Impressum, Linktree, DM"
+        aria-label={`Woher die zweite Adresse für ${row.contactEmail} stammt`}
+        className="w-full px-2 py-1 text-[11px] bg-bg text-fg-2 border border-line rounded-[var(--radius-sm)] focus:border-fg focus:outline-none"
+      />
+      <Button type="submit" variant="outline" className="self-start">
+        {row.zweiteEmail ? "Adresse ändern" : "Adresse merken"}
+      </Button>
+    </form>
+  );
+}
+
