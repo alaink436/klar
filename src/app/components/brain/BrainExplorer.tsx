@@ -23,20 +23,36 @@ const stemOf = (p: string) =>
 
 type TreeNode = { name: string; path?: string; children: Map<string, TreeNode> };
 
+// Der Graph traegt neben den Notizen auch Ordner als eigene Knoten (189 von
+// 631), weil die Baumkanten daran haengen. Fuer die Dateiliste sind sie keine
+// Dateien, und `p` ist ihr einziges Unterscheidungsmerkmal: eine Notiz endet
+// auf .md, ein Ordner nicht.
+//
+// Vorher bekam schlicht das letzte Segment jedes Knotens einen `path`. Damit
+// wurde ein Ordner zum Knopf, `renderTree` prueft `child.path` VOR den
+// Kindern, und die Kinder wurden nie gezeichnet: die 92 Notizen unter
+// Design-Systems/ waren ueber die Liste unerreichbar. Ein Klick darauf rief
+// `openNote("Design-Systems")`, und `fetchNote` weist alles ohne .md mit 400
+// ab -- das war der "Fehler 400" im Lesebereich.
+const isNote = (p: string) => /\.md$/i.test(p);
+
 function buildTree(nodes: RawNode[]): TreeNode {
   const root: TreeNode = { name: "", children: new Map() };
   for (const n of nodes) {
+    // Der Wurzelknoten des Vaults hat einen leeren Pfad. Ohne diese Zeile
+    // entsteht daraus ein namenloser Ast in der Liste.
+    if (!n.p) continue;
     const parts = n.p.split("/");
     let cur = root;
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
-      const isFile = i === parts.length - 1;
+      const isLast = i === parts.length - 1;
       let child = cur.children.get(part);
       if (!child) {
         child = { name: part, children: new Map() };
         cur.children.set(part, child);
       }
-      if (isFile) child.path = n.p;
+      if (isLast && isNote(n.p)) child.path = n.p;
       cur = child;
     }
   }
@@ -178,6 +194,9 @@ export default function BrainExplorer({
     const full = new Map<string, string>();
     const stem = new Map<string, string>();
     for (const n of nodes) {
+      // Nur Notizen. Ein Ordnerknoten hier hiesse, dass ein [[Design-Systems]]
+      // auf den Ordner aufloest und der Klick in denselben 400er laeuft.
+      if (!isNote(n.p)) continue;
       full.set(n.p.toLowerCase(), n.p);
       full.set(n.p.toLowerCase().replace(/\.md$/, ""), n.p);
       const s = stemOf(n.p);
