@@ -68,9 +68,8 @@ export interface AppsChartPayload {
   note: string | null;
 }
 
-// Eine beworbene Seite. `label` ist die Adresse, wie man sie eintippt
-// ("myloo.org/get"), `primary` markiert die Seite, die wirklich in der Bio und
-// unter den Videos steht. Die anderen laufen als Kontext mit.
+// Die beworbene Seite einer App, genau eine je App. `label` ist die Adresse,
+// wie man sie eintippt ("myloo.org/get").
 export interface LandingRow {
   key: string;
   app: string;
@@ -78,7 +77,6 @@ export interface LandingRow {
   icon: string;
   label: string;
   url: string;
-  primary: boolean;
   tracked: boolean;
   repo: string;
   visits: number;
@@ -811,23 +809,6 @@ function LandingCard({ row, period }: { row: LandingRow; period: Period }) {
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <span style={{ fontSize: 14, fontWeight: 600, color: "var(--fg)" }}>{row.name}</span>
-            {row.primary ? (
-              <span
-                title="Diese Adresse steht in der Bio und unter den Videos"
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 9,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: "var(--fg-3)",
-                  border: "1px solid var(--line-strong)",
-                  borderRadius: 4,
-                  padding: "1px 5px",
-                }}
-              >
-                Beworben
-              </span>
-            ) : null}
           </div>
           <a
             href={row.url}
@@ -897,9 +878,14 @@ function LandingCard({ row, period }: { row: LandingRow; period: Period }) {
           <>
             Top-Quelle: <span style={{ color: "var(--fg-3)" }}>{row.topReferrer ?? "(direkt)"}</span>
           </>
-        ) : (
+        ) : row.tracked ? (
           <>
             Noch kein Aufruf gemessen · Beacon in <code>{row.repo}</code>
+          </>
+        ) : (
+          <>
+            Wird nicht gemessen · Beacon in <code>{row.repo}</code> committet, aber nicht
+            ausgeliefert. Diese Null heisst nicht {"„niemand kommt“"}.
           </>
         )}
       </div>

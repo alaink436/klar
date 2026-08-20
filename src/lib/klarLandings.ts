@@ -23,36 +23,40 @@ export interface LandingMeta {
   site: string;
   /** Exakter Pfad, mit fuehrendem Slash. */
   path: string;
-  /**
-   * true = diese Seite ist der Link, der in der Bio / unter den Videos steht.
-   * Genau eine pro App. Die Nebenseiten (Startseite einer Domain, deren /get
-   * beworben wird) laufen als Kontext mit.
-   */
-  primary: boolean;
   /** Repo, in dem der Beacon sitzt. Steht in der UI als Herkunftshinweis. */
   repo: string;
   /** false = Beacon noch nicht deployt, Zahlen sind noch keine Aussage. */
   tracked: boolean;
 }
 
+/**
+ * GENAU EINE Landing pro App. Bis 2026-08-20 standen hier zwei fuer MyLoo,
+ * Kelva und Basalt (Startseite neben /get, getklar.org/basalt neben
+ * onwavelength.space). Das war als Kontext gedacht und las sich als Unschaerfe:
+ * zwei Zahlen fuer dieselbe App, und keine davon war die Antwort. Alains
+ * Entscheid: eine Adresse je App, die beworbene.
+ *
+ * Was dadurch wegfaellt, verschwindet nicht. Die Startseiten und
+ * getklar.org/basalt werden weiter gemessen und stehen im Tab unter
+ * "Andere Seiten".
+ */
 export const KLAR_LANDINGS: LandingMeta[] = [
-  // MyLoo: die Videos verlinken /get, die Startseite faengt Direkteingaben.
-  { app: "myloo", site: "myloo.org", path: "/get", primary: true, repo: "myloo-web", tracked: true },
-  { app: "myloo", site: "myloo.org", path: "/", primary: false, repo: "myloo-web", tracked: true },
+  { app: "myloo", site: "myloo.org", path: "/get", repo: "myloo-web", tracked: true },
 
-  // Kelva: Bio von @kelvaapp zeigt auf /get (SOCIAL-ACCOUNTS.md, 2026-08-12).
-  { app: "kelva", site: "kelva.space", path: "/get", primary: true, repo: "kelva-web", tracked: true },
-  { app: "kelva", site: "kelva.space", path: "/", primary: false, repo: "kelva-web", tracked: true },
+  // Bio von @kelvaapp zeigt auf /get (SOCIAL-ACCOUNTS.md, 2026-08-12).
+  // ⚠️ Das Vercel-Projekt haengt nicht am Repo: der Push vom 2026-08-20 hat
+  // kelva.space NICHT neu ausgeliefert, dort laeuft ein aelterer Build ohne
+  // Beacon. Bis das jemand von Hand deployt, bleibt diese Zeile bei null.
+  { app: "kelva", site: "kelva.space", path: "/get", repo: "kelva-web", tracked: false },
 
   // Basalt laeuft unter dem historischen Slug "wavelength" (siehe klarApps).
   // Die Domain traegt auch die AASA, deshalb ist sie der Landing-Entscheid.
-  { app: "wavelength", site: "onwavelength.space", path: "/", primary: true, repo: "wavelength-web", tracked: true },
-  { app: "wavelength", site: "getklar.org", path: "/basalt", primary: false, repo: "klar", tracked: true },
+  { app: "wavelength", site: "onwavelength.space", path: "/", repo: "wavelength-web", tracked: true },
 
-  { app: "trubel", site: "trubel.space", path: "/", primary: true, repo: "trubel-web", tracked: true },
+  { app: "trubel", site: "trubel.space", path: "/", repo: "trubel-web", tracked: true },
 
   // Liegt auf getklar.org selbst, wird also seit jeher mitgeschrieben.
-  { app: "yarn-stash", site: "getklar.org", path: "/yarnstash", primary: true, repo: "klar", tracked: true },
+  { app: "yarn-stash", site: "getklar.org", path: "/yarnstash", repo: "klar", tracked: true },
 ];
 
 export interface ResolvedLanding extends LandingMeta {

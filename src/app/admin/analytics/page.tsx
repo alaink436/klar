@@ -240,7 +240,6 @@ function buildLandings(
       icon: l.icon,
       label: l.label,
       url: `https://${l.label}`,
-      primary: l.primary,
       tracked: l.tracked,
       repo: l.repo,
       visits: a.visits,
@@ -251,7 +250,7 @@ function buildLandings(
       color: colorForLanding(key),
       spark: timeline.map((t) => a.perBucket.get(t.key) ?? 0),
     };
-  }).sort((a, b) => b.visits - a.visits || Number(b.primary) - Number(a.primary));
+  }).sort((a, b) => b.visits - a.visits || a.label.localeCompare(b.label));
 
   // Zeitreihe: eine Linie pro angehaktem Landing.
   const shown = perLanding.filter((l) => selected.has(l.key));
