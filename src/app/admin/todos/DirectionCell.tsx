@@ -350,15 +350,37 @@ export default function DirectionCell({
   const platz1 = row.directions.find((d) => d.slot === 1) ?? null;
   const platz2 = row.directions.find((d) => d.slot === 2) ?? null;
 
+  /**
+   * „Laeuft mit" braucht etwas, WOMIT es laeuft.
+   *
+   * Die erste Fassung bot den zweiten Platz auch an, wenn der erste leer war.
+   * Am 2026-08-21 hat Alain genau das getan: auf einem Kanal ohne Richtung ein
+   * zweites Format gesetzt (`myloo:instagram:mylooapp`, einer der fuenf, die
+   * 0027 bewusst ohne Richtung gelassen hat). Ergebnis war ein „laeuft mit",
+   * das neben nichts lief — geschrieben wurde es korrekt, es ergab nur keinen
+   * Sinn. Sein Satz dazu: „man kann es aber nicht nebendran laufen lassen".
+   *
+   * Deshalb steht der Knopf erst da, wenn Platz 1 eine Richtung traegt.
+   */
+  const zweitMoeglich = Boolean(platz1);
+
   return (
     <div>
       <RichtungsPlatz row={row} others={others} slot={1} laufend={platz1} />
 
-      {platz2 || zweitOffen ? (
+      {platz2 || (zweitOffen && zweitMoeglich) ? (
         <div className="mt-1.5 pt-1.5 border-t border-dashed border-line">
           <RichtungsPlatz row={row} others={others} slot={2} laufend={platz2} />
+          {/* Der Bestand aus der ersten Fassung. Nicht still wegraeumen: die
+              Zeile gehoert Alain, und ein Agent korrigiert seine Richtungen
+              nicht von selbst. Sichtbar machen reicht. */}
+          {platz2 && !platz1 ? (
+            <div className={`${MONO} mt-1`} style={{ color: "var(--fg-3)" }}>
+              läuft neben nichts — auf Platz 1 oben eine Richtung setzen
+            </div>
+          ) : null}
         </div>
-      ) : (
+      ) : zweitMoeglich ? (
         <button
           type="button"
           onClick={() => setZweitOffen(true)}
@@ -368,6 +390,10 @@ export default function DirectionCell({
         >
           + zweites Format
         </button>
+      ) : (
+        <div className={`${MONO} mt-1`} style={{ color: "var(--fg-4)" }}>
+          zweites Format: erst eine Richtung oben
+        </div>
       )}
 
       {/* Das Referenzvideo dieses Kanals. Hängt hier nichts, zeigt der Schalter
