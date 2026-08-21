@@ -28,6 +28,50 @@ const ACCEPT =
 /** Dasselbe Limit wie am Bucket. Ein Referenzclip ist 10 bis 30 Sekunden. */
 const MAX_BYTES = 209_715_200;
 
+/**
+ * Der Bucket nimmt genau diese Typen an, sonst antwortet er 400 — **mit leerem
+ * Body**, also ohne jeden Hinweis. Und `File.type` ist oft leer: Windows kennt
+ * `.mov` und `.heic` nicht immer, und was per Drag-and-drop aus manchen Apps
+ * kommt, hat gar keinen Typ. Vorher ging dann `application/octet-stream` raus,
+ * der Bucket wies ab, und in der Zeile stand nur „fehlgeschlagen (400)".
+ * Am 2026-08-21 nachgemessen: `application/octet-stream` und leer → 400,
+ * `video/quicktime` und `image/heic` → 200.
+ *
+ * Deshalb entscheidet die Endung, nicht der Browser.
+ */
+const TYP_JE_ENDUNG: Record<string, string> = {
+  mp4: "video/mp4",
+  m4v: "video/mp4",
+  mov: "video/quicktime",
+  qt: "video/quicktime",
+  webm: "video/webm",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  heic: "image/heic",
+  heif: "image/heif",
+};
+
+const ERLAUBT = new Set(Object.values(TYP_JE_ENDUNG));
+
+/**
+ * Womit die Datei in den Bucket geht.
+ *
+ * Die Endung gewinnt vor `File.type`: sie steht am Dateinamen, den der Server
+ * ohnehin uebernimmt, und ist damit die Angabe, die zum abgelegten Objekt passt.
+ * Nur wenn die Endung unbekannt ist, zaehlt der Browser — und auch dann nur,
+ * wenn der Bucket den Typ ueberhaupt annimmt.
+ */
+function inhaltsTyp(datei: File): string | null {
+  const endung = datei.name.toLowerCase().split(".").pop() ?? "";
+  const ausEndung = TYP_JE_ENDUNG[endung];
+  if (ausEndung) return ausEndung;
+  const ausBrowser = (datei.type || "").toLowerCase().split(";")[0].trim();
+  return ERLAUBT.has(ausBrowser) ? ausBrowser : null;
+}
+
 export default function Hochladen({
   scope,
   art,
@@ -60,6 +104,13 @@ export default function Hochladen({
       setStand(`${zuGross.name} ist ${Math.round(zuGross.size / 1_048_576)} MB, erlaubt sind 200`);
       return;
     }
+    // Beim Auswaehlen sagen, nicht erst nach dem Hochladen: sonst laeuft eine
+    // 80-MB-Datei durch und wird am Ende abgewiesen.
+    const fremd = gewaehlt.find((f) => !inhaltsTyp(f));
+    if (fremd) {
+      setStand(`${fremd.name}: Endung wird nicht angenommen (mp4, mov, webm, jpg, png, heic)`);
+      return;
+    }
     setStand(null);
     setDateien(gewaehlt);
   }
@@ -78,13 +129,29 @@ export default function Hochladen({
       for (let i = 0; i < dateien.length; i++) {
         setStand(`lade ${i + 1} von ${dateien.length} …`);
         const ziel = vor.ziele[i];
+        const typ = inhaltsTyp(dateien[i]);
+        if (!typ) {
+          setStand(`${dateien[i].name}: Endung wird nicht angenommen`);
+          return;
+        }
         const res = await fetch(ziel.url, {
           method: "PUT",
-          headers: { "Content-Type": dateien[i].type || "application/octet-stream" },
+          headers: { "Content-Type": typ },
           body: dateien[i],
         });
         if (!res.ok) {
-          setStand(`Upload von ${dateien[i].name} fehlgeschlagen (${res.status})`);
+          // Der Bucket antwortet bei einem abgewiesenen Typ mit leerem Body.
+          // Eine nackte Zahl hat Alain schon einmal einen Abend gekostet, also
+          // steht hier notfalls die Vermutung statt gar nichts.
+          const grund = await res.text().catch(() => "");
+          setStand(
+            `${dateien[i].name}: Bucket antwortete ${res.status}` +
+              (grund.trim()
+                ? ` — ${grund.slice(0, 120)}`
+                : res.status === 400
+                  ? ` — Typ ${typ} abgewiesen`
+                  : ""),
+          );
           return;
         }
         pfade.push(ziel.pfad);
