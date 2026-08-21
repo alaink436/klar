@@ -175,6 +175,40 @@ function RichtungsPlatz({
         ))}
       </select>
 
+      {/* Die eigene Variante der Richtung (0038). Steht direkt unter der
+          Auswahl, weil sie zu ihr gehoert: „Slideshow" sagt die Bauform,
+          „Widget" sagt, womit sie gebaut wird.
+
+          Beim Verlassen gespeichert, nicht bei jedem Tastendruck, und ohne
+          Verlaufseintrag — von `Widget` auf `Widgets` umzutippen ist eine
+          Korrektur. Wer die Machart wirklich wechselt, wechselt die Richtung
+          oder beendet den Platz; beides schreibt Verlauf.
+
+          Nur sichtbar, wenn eine Richtung steht: eine Variante von nichts
+          waere genau der Freitext, den 0027 abgeschafft hat. */}
+      {richtung ? (
+        <input
+          // Das Feld ist unkontrolliert (defaultValue), damit Tippen nicht bei
+          // jedem Zeichen ueber den Server laeuft. Ein `key` aus Platz und
+          // Richtung erzwingt den Neuaufbau beim Richtungswechsel — sonst
+          // stuende die Variante der ALTEN Richtung noch im Kasten, und
+          // „Widget" gehoert nicht zu „Talking Head".
+          key={`${slot}-${richtung}`}
+          defaultValue={laufend?.variante ?? ""}
+          placeholder="eigene Variante (z. B. Widget)"
+          aria-label={`Variante der Richtung ${richtung} bei @${row.handle}`}
+          maxLength={80}
+          onBlur={(e) => {
+            const v = e.target.value.trim();
+            if (v === (laufend?.variante ?? "")) return;
+            startTransition(async () => {
+              await setDirectionPointer(row.key, { variante: v || null }, slot);
+            });
+          }}
+          className={`${FIELD} w-full mt-1`}
+        />
+      ) : null}
+
       {/* Seit wann, und wie viele es vorher schon gab. Die Zahl ist der Einstieg
           in den Verlauf — ohne sie wüsste niemand, dass es einen gibt. */}
       {richtung || frueher > 0 ? (
@@ -213,7 +247,10 @@ function RichtungsPlatz({
       {wechsel || beendenOffen ? (
         <div className="mt-1.5 border border-line-strong rounded-[5px] p-1.5">
           <div className={`${MONO} mb-1`} style={{ color: "var(--fg-3)" }}>
-            {wechsel ? `${richtung} → ${wechsel}` : `${richtung} → aus`}
+            {(() => {
+              const von = laufend?.variante ? `${richtung} · ${laufend.variante}` : richtung;
+              return wechsel ? `${von} → ${wechsel}` : `${von} → aus`;
+            })()}
           </div>
           <input
             value={grund}

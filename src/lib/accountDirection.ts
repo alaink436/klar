@@ -54,6 +54,15 @@ export interface AccountDirection {
   /** 1 = Hauptformat, 2 = mitlaufendes. Alles vor 0037 steht auf 1. */
   slot: Slot;
   richtung: Direction;
+  /**
+   * Freie Variante INNERHALB der Richtung (0038), etwa `Widget` gegen
+   * `Higgsfield` bei derselben Slideshow.
+   *
+   * Ergaenzt die feste Liste, ersetzt sie nicht: `richtung` bleibt ueber alle
+   * Kanaele zaehlbar, die Variante unterscheidet innerhalb. Die Liste wieder
+   * zu oeffnen haette zurueck zu dem gefuehrt, was 0027 abgeschafft hat.
+   */
+  variante: string | null;
   /** Kennung aus Projects/00-Referenzen.md im AI-Brain, Form `<projekt>/<id>`. */
   referenz: string | null;
   /** `account_key` des Kanals, dessen Richtung übernommen wird. */
@@ -68,6 +77,8 @@ export interface AccountDirection {
 export interface DirectionPatch {
   referenz?: string | null;
   spiegelt?: string | null;
+  /** Die Variante zu aendern ist eine Korrektur, kein Wechsel: kein Verlauf. */
+  variante?: string | null;
 }
 
 export function accountDirectionConfigured(): boolean {
@@ -213,6 +224,7 @@ export async function reorient(
   opts: {
     referenz?: string | null;
     spiegelt?: string | null;
+    variante?: string | null;
     grund?: string | null;
     /** Welcher Steckplatz. Ohne Angabe das Hauptformat. */
     slot?: Slot;
@@ -252,6 +264,7 @@ export async function reorient(
         account_key: account,
         slot,
         richtung,
+        variante: clean(opts.variante, 80),
         referenz: clean(opts.referenz, 200),
         spiegelt: clean(opts.spiegelt, 200),
         ab: tag,
@@ -277,6 +290,7 @@ export async function patchCurrent(
   const row: Record<string, unknown> = {};
   if (patch.referenz !== undefined) row.referenz = clean(patch.referenz, 200);
   if (patch.spiegelt !== undefined) row.spiegelt = clean(patch.spiegelt, 200);
+  if (patch.variante !== undefined) row.variante = clean(patch.variante, 80);
   if (!Object.keys(row).length) return { ok: true };
   const s: Slot = istSlot(slot) ? slot : 1;
 

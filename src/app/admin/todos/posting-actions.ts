@@ -157,7 +157,9 @@ export async function loadChannelTimeline(key: string, slot: Slot = 1): Promise<
   const alles: Zeitleiste[] = [
     ...richtungen.map((r) => ({
       art: "richtung" as const,
-      was: r.richtung,
+      // Mit Variante, sonst stuenden im Verlauf dreimal „Slideshow" und man
+      // saehe nicht, dass die Macharten verschieden waren.
+      was: r.variante ? `${r.richtung} · ${r.variante}` : r.richtung,
       ab: r.ab,
       bis: r.bis,
       grund: r.grund,

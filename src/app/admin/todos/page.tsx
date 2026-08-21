@@ -154,6 +154,7 @@ export default async function TodosPage({
     (directionByKey.get(key) ?? []).map((d) => ({
       slot: d.slot,
       richtung: d.richtung,
+      variante: d.variante ?? "",
       ab: d.ab,
       referenz: d.referenz ?? "",
       spiegelt: d.spiegelt ?? "",
@@ -315,7 +316,11 @@ export default async function TodosPage({
                 perDay: a.perDay,
                 handle: a.handle,
                 platformLabel: a.platformLabel,
-                richtungen: a.directions.map((d) => d.richtung),
+                // Richtung samt Variante, damit die Karte „Slideshow · Widget"
+                // zeigt und nicht zweimal dasselbe Wort fuer zwei Macharten.
+                richtungen: a.directions.map((d) =>
+                  d.variante ? `${d.richtung} · ${d.variante}` : d.richtung,
+                ),
                 format: a.format,
                 appLabel: a.appLabel,
                 appColor: a.appColor,

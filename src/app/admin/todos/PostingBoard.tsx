@@ -107,6 +107,8 @@ export interface ViewDirection {
   /** 1 = Hauptformat, 2 = mitlaufendes. */
   slot: 1 | 2;
   richtung: string;
+  /** Freie Variante innerhalb der Richtung, etwa `Widget`. Leer, wenn keine. */
+  variante: string;
   /** Seit wann sie läuft ("YYYY-MM-DD"). */
   ab: string;
   /** Kennung der Referenz aus dem Vault-Manifest, Form `<projekt>/<id>`. */
