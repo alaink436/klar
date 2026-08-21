@@ -113,31 +113,45 @@ export default function Hochladen({
     }
     setStand(null);
     setDateien(gewaehlt);
+    // **Bei einer Referenz direkt hochladen.** Vorher wartete das Feld auf einen
+    // zweiten Klick auf „hoch". Am 2026-08-21 hat Alain zwei Slides gewaehlt,
+    // das Feld sagte „2 Dateien", und dort blieb es stehen: wer Dateien
+    // auswaehlt, hat in seinem Kopf hochgeladen, nicht vorbereitet.
+    //
+    // Bei einem Post nicht: dort gehoeren Notiz und Ergebnis zur selben Zeile
+    // und werden erst beim Absenden gelesen. Losschicken, bevor sie getippt
+    // sind, wuerde sie leer festschreiben. Deshalb bleibt dort der Knopf.
+    if (art === "referenz") void hoch(gewaehlt);
   }
 
-  async function hoch(): Promise<void> {
-    if (!dateien.length || laeuft) return;
+  /**
+   * Die Liste kommt als Parameter, nicht aus dem State: `setDateien` wirkt erst
+   * beim naechsten Rendern, und der Aufruf steht direkt dahinter.
+   */
+  async function hoch(liste?: File[]): Promise<void> {
+    const zuTun = liste ?? dateien;
+    if (!zuTun.length || laeuft) return;
     setLaeuft(true);
     setStand("bereite vor …");
     try {
-      const vor = await uploadVorbereiten(scope, dateien.map((d) => d.name), art);
+      const vor = await uploadVorbereiten(scope, zuTun.map((d) => d.name), art);
       if (!vor.ok || !vor.ziele) {
         setStand(vor.fehler ?? "Vorbereiten fehlgeschlagen");
         return;
       }
       const pfade: string[] = [];
-      for (let i = 0; i < dateien.length; i++) {
-        setStand(`lade ${i + 1} von ${dateien.length} …`);
+      for (let i = 0; i < zuTun.length; i++) {
+        setStand(`lade ${i + 1} von ${zuTun.length} …`);
         const ziel = vor.ziele[i];
-        const typ = inhaltsTyp(dateien[i]);
+        const typ = inhaltsTyp(zuTun[i]);
         if (!typ) {
-          setStand(`${dateien[i].name}: Endung wird nicht angenommen`);
+          setStand(`${zuTun[i].name}: Endung wird nicht angenommen`);
           return;
         }
         const res = await fetch(ziel.url, {
           method: "PUT",
           headers: { "Content-Type": typ },
-          body: dateien[i],
+          body: zuTun[i],
         });
         if (!res.ok) {
           // Der Bucket antwortet bei einem abgewiesenen Typ mit leerem Body.
@@ -145,7 +159,7 @@ export default function Hochladen({
           // steht hier notfalls die Vermutung statt gar nichts.
           const grund = await res.text().catch(() => "");
           setStand(
-            `${dateien[i].name}: Bucket antwortete ${res.status}` +
+            `${zuTun[i].name}: Bucket antwortete ${res.status}` +
               (grund.trim()
                 ? ` — ${grund.slice(0, 120)}`
                 : res.status === 400
@@ -209,28 +223,34 @@ export default function Hochladen({
           style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
         />
         <span className={MONO} style={{ color: ueber ? "var(--fg-2)" : "var(--fg-4)" }}>
-          {dateien.length === 0
-            ? "ziehen oder wählen"
-            : dateien.length === 1
-              ? dateien[0].name.slice(0, 22)
-              : `${dateien.length} Dateien`}
+          {laeuft
+            ? "lädt …"
+            : dateien.length === 0
+              ? (knopf ?? "ziehen oder wählen, lädt sofort")
+              : dateien.length === 1
+                ? dateien[0].name.slice(0, 22)
+                : `${dateien.length} Dateien`}
         </span>
       </label>
 
+      {/* Kein Knopf mehr, der den Upload erst startet — das Auswaehlen tut es.
+          Was hier steht, ist der Stand, und nur wenn etwas liegen geblieben ist
+          eine Wiederholung. */}
       <div className="flex gap-1 mt-1 items-center flex-wrap">
-        <button
-          type="button"
-          onClick={hoch}
-          disabled={!dateien.length || laeuft}
-          className={`${MONO} px-1.5 py-0.5 rounded-[3px] border border-line-strong`}
-          style={{ color: dateien.length && !laeuft ? "var(--fg-2)" : "var(--fg-4)" }}
-        >
-          {knopf ?? "hoch"}
-        </button>
         {stand ? (
           <span className={MONO} style={{ color: "var(--fg-3)" }} role="status">
             {stand}
           </span>
+        ) : null}
+        {dateien.length > 0 && !laeuft ? (
+          <button
+            type="button"
+            onClick={() => hoch()}
+            className={`${MONO} px-1.5 py-0.5 rounded-[3px] border border-line-strong`}
+            style={{ color: "var(--fg-2)" }}
+          >
+            {art === "referenz" ? "nochmal" : "absenden"}
+          </button>
         ) : null}
       </div>
     </div>
