@@ -67,6 +67,19 @@ export interface PlannerPosting {
   slot: number;
   perDay: number;
   handle: string;
+  /**
+   * Die Plattform, ausgeschrieben.
+   *
+   * Ohne sie ist die Karte nicht eindeutig: Handles wiederholen sich ueber
+   * Plattformen hinweg. `kelva:instagram:kelvaapp` und `kelva:tiktok:kelvaapp`
+   * heissen beide `@kelvaapp`, `clairmentklarclear` liegt ebenfalls zweimal.
+   * Zwei Karten sahen damit gleich aus, und beim Abhaken war nicht zu sehen,
+   * welche gemeint war.
+   */
+  platformLabel: string;
+  /** Die laufenden Richtungen, Hauptformat zuerst. Leer, wenn keine gesetzt. */
+  richtungen: string[];
+  /** Altwert aus dem Freitextfeld. Nur noch Rueckfall, wenn keine Richtung steht. */
   format: string;
   appLabel: string;
   appColor: string;
@@ -460,10 +473,21 @@ export default function Planner({
             {p.handle ? `@${p.handle}` : "Handle fehlt"}
             {p.perDay > 1 ? <span className="text-fg-4"> · {p.slot}/{p.perDay}</span> : null}
           </span>
+          {/* App UND Plattform. Der farbige Rand links sagt schon die App, aber
+              Farbe allein trennt zwei Kanaele derselben App nicht, und genau
+              die sind der haeufige Fall. */}
           <span className="block [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-4">
-            Posting · {p.appLabel}
-            {p.format ? ` · ${p.format}` : ""}
+            {p.appLabel}
+            {p.platformLabel ? ` · ${p.platformLabel}` : ""}
           </span>
+          {/* Die Richtung, nicht mehr der Altwert aus dem Format-Feld: der trug
+              Saetze wie „Hier henrylove-Format abusen". Steht keine Richtung,
+              faellt es auf den Altwert zurueck, damit nichts still verschwindet. */}
+          {p.richtungen.length || p.format ? (
+            <span className="block [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-4 break-words">
+              {p.richtungen.length ? p.richtungen.join(" + ") : p.format}
+            </span>
+          ) : null}
         </span>
       </button>
     );

@@ -15,12 +15,7 @@ import { ICON, readCookieFromString } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listTodos, todosConfigured } from "@/lib/todoStore";
 import { listAccountStatus, listPostLog, listPostTotals } from "@/lib/accountStatus";
-import {
-  listCurrentDirections,
-  listDirectionCounts,
-  slotKey,
-  type AccountDirection,
-} from "@/lib/accountDirection";
+import { listCurrentDirections, listDirectionCounts, slotKey } from "@/lib/accountDirection";
 import { listChannelReferences, type ChannelReference } from "@/lib/channelReference";
 import { listPostSamples, type PostSample } from "@/lib/postSample";
 import { ACCOUNTS, APPS, PLATFORM_LABEL, accountKey } from "@/lib/socialAccounts";
@@ -136,12 +131,16 @@ export default async function TodosPage({
     listPostLog(days[0].iso, days[6].iso),
   ]);
   const postTotals = onPosting ? await listPostTotals() : {};
-  // Die Richtung braucht nur das Board. Der Wochenplan zeigt sie nicht, und
-  // zwei Abfragen fuer eine Ansicht zu bezahlen, die sie nicht anzeigt, waere
-  // dieselbe Verschwendung wie bei den Gesamtzahlen darueber.
-  const [directionByKey, directionCounts] = onPosting
-    ? await Promise.all([listCurrentDirections(), listDirectionCounts()])
-    : [new Map<string, AccountDirection[]>(), {} as Record<string, number>];
+  // Die laufenden Richtungen brauchen inzwischen BEIDE Ansichten: seit
+  // 2026-08-21 steht die Richtung auch auf der Abhak-Karte im Wochenplan, weil
+  // dort vorher nur Handle und App standen und zwei Kanaele derselben App
+  // damit gleich aussahen.
+  //
+  // Die ZAEHLER bleiben beim Board. Die Zahl „N vorher" ist der Einstieg in den
+  // Verlauf, und den klappt man nur dort auf; eine zweite Abfrage fuer etwas,
+  // das der Wochenplan nicht anzeigt, waere weiterhin Verschwendung.
+  const directionByKey = await listCurrentDirections();
+  const directionCounts = onPosting ? await listDirectionCounts() : {};
 
   /**
    * Die laufenden Richtungen eines Kanals als flache Form fuer die Zeile.
@@ -315,6 +314,8 @@ export default async function TodosPage({
                 slot,
                 perDay: a.perDay,
                 handle: a.handle,
+                platformLabel: a.platformLabel,
+                richtungen: a.directions.map((d) => d.richtung),
                 format: a.format,
                 appLabel: a.appLabel,
                 appColor: a.appColor,
