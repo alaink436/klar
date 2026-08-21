@@ -14,11 +14,14 @@ import {
   setPostDone,
 } from "@/lib/accountStatus";
 import {
+  beendeRichtung,
   listDirectionHistory,
   patchCurrent,
   reorient,
+  istSlot,
   type AccountDirection,
   type DirectionPatch,
+  type Slot,
 } from "@/lib/accountDirection";
 import {
   listChannelReferenceHistory,
@@ -73,10 +76,34 @@ export async function markPosted(
 export async function reorientAccount(
   key: string,
   richtung: Direction,
-  opts: { referenz?: string | null; spiegelt?: string | null; grund?: string | null } = {},
+  opts: {
+    referenz?: string | null;
+    spiegelt?: string | null;
+    grund?: string | null;
+    /** 1 = Hauptformat, 2 = mitlaufendes. Ohne Angabe das Hauptformat. */
+    slot?: Slot;
+  } = {},
 ): Promise<void> {
   if (!(await requireAdmin())) return;
   await reorient(key, richtung, opts);
+  revalidatePath("/admin/todos");
+}
+
+/**
+ * Ein mitlaufendes Format beenden, ohne Ersatz.
+ *
+ * Der Fall, fuer den Platz 2 ueberhaupt existiert: das teure Format faellt weg,
+ * weil das Guthaben beim Generierungs-Anbieter endlich ist, und das guenstige
+ * laeuft allein weiter. Das ist kein Wechsel, also legt es keine neue Zeile an.
+ */
+export async function stopDirection(
+  key: string,
+  slot: Slot,
+  grund?: string | null,
+): Promise<void> {
+  if (!(await requireAdmin())) return;
+  if (!istSlot(slot)) return;
+  await beendeRichtung(key, slot, grund);
   revalidatePath("/admin/todos");
 }
 
@@ -85,9 +112,13 @@ export async function reorientAccount(
  * falsch getippte Referenz zu korrigieren ist keine Neuorientierung und darf
  * keine Zeile im Verlauf erzeugen.
  */
-export async function setDirectionPointer(key: string, patch: DirectionPatch): Promise<void> {
+export async function setDirectionPointer(
+  key: string,
+  patch: DirectionPatch,
+  slot: Slot = 1,
+): Promise<void> {
   if (!(await requireAdmin())) return;
-  await patchCurrent(key, patch);
+  await patchCurrent(key, patch, istSlot(slot) ? slot : 1);
   revalidatePath("/admin/todos");
 }
 
@@ -113,11 +144,15 @@ export interface Zeitleiste {
  * Die Referenzen kommen aus allen drei Ebenen des Kanals: hat das Video an
  * seiner App gewechselt, ist der Kanal genauso betroffen.
  */
-export async function loadChannelTimeline(key: string): Promise<Zeitleiste[]> {
+export async function loadChannelTimeline(key: string, slot: Slot = 1): Promise<Zeitleiste[]> {
   if (!(await requireAdmin())) return [];
+  const s: Slot = istSlot(slot) ? slot : 1;
   const [richtungen, referenzen] = await Promise.all([
-    listDirectionHistory(key),
-    listChannelReferenceHistory(key),
+    listDirectionHistory(key, s),
+    // Die Referenzen haengen am KANAL, nicht am Steckplatz. Sie gehoeren
+    // deshalb genau einmal in die Ansicht, und zwar zum Hauptformat. Sie an
+    // beiden Plaetzen zu zeigen waere dieselbe Geschichte zweimal.
+    s === 1 ? listChannelReferenceHistory(key) : Promise.resolve([]),
   ]);
   const alles: Zeitleiste[] = [
     ...richtungen.map((r) => ({
@@ -153,9 +188,12 @@ export async function loadChannelTimeline(key: string): Promise<Zeitleiste[]> {
  * normalerweise nur die Zahl, und 24 Verläufe bei jedem Seitenaufruf wären
  * Ladezeit für etwas, das fast nie jemand aufmacht.
  */
-export async function loadDirectionHistory(key: string): Promise<AccountDirection[]> {
+export async function loadDirectionHistory(
+  key: string,
+  slot?: Slot,
+): Promise<AccountDirection[]> {
   if (!(await requireAdmin())) return [];
-  return listDirectionHistory(key);
+  return listDirectionHistory(key, slot);
 }
 
 /**

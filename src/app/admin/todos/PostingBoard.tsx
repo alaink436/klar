@@ -89,16 +89,32 @@ export interface BoardAccount {
   /** Wie oft an einem Posting-Tag gepostet wird (1–4). */
   perDay: number;
   note: string;
-  /** Laufende Richtung aus `klar_account_direction`, leer wenn noch keine. */
-  direction: string;
+  /**
+   * Die LAUFENDEN Richtungen des Kanals, nach Steckplatz sortiert.
+   *
+   * Seit Migration 0037 sind es bis zu zwei: Platz 1 ist das Hauptformat,
+   * Platz 2 laeuft daneben mit. Leer, solange der Kanal keine Richtung hat —
+   * das ist der Normalfall fuer alles Neue und keine Ausnahme.
+   *
+   * Vorher standen hier vier Einzelfelder. Bei zwei Formaten waeren das acht
+   * gewesen, und die Zeile haette die Reihenfolge selbst erfinden muessen.
+   */
+  directions: ViewDirection[];
+}
+
+/** Eine laufende Richtung auf ihrem Steckplatz, flach fuer die Anzeige. */
+export interface ViewDirection {
+  /** 1 = Hauptformat, 2 = mitlaufendes. */
+  slot: 1 | 2;
+  richtung: string;
   /** Seit wann sie läuft ("YYYY-MM-DD"). */
-  directionSince: string;
+  ab: string;
   /** Kennung der Referenz aus dem Vault-Manifest, Form `<projekt>/<id>`. */
-  directionRef: string;
+  referenz: string;
   /** `key` des Kanals, dessen Richtung übernommen wird. */
-  directionMirrors: string;
-  /** Wie viele Richtungen der Kanal schon hinter sich hat. */
-  priorDirections: number;
+  spiegelt: string;
+  /** Wie viele Richtungen dieser Platz schon hinter sich hat. */
+  frueher: number;
 }
 
 export interface BoardDay {

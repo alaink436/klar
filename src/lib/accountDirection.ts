@@ -29,9 +29,30 @@ function hdr(extra?: HeadersInit): HeadersInit {
   };
 }
 
+/**
+ * Steckplatz einer Richtung. 1 ist das Hauptformat, 2 laeuft daneben mit.
+ *
+ * Bis Migration 0037 gab es nur einen. Der zweite kam, weil ein teures und ein
+ * guenstiges Format gleichzeitig laufen sollen statt nacheinander — siehe den
+ * Kopf von `migrations/0037_zweites_format.sql`.
+ */
+export type Slot = 1 | 2;
+export const SLOTS: readonly Slot[] = [1, 2];
+
+export function istSlot(v: unknown): v is Slot {
+  return v === 1 || v === 2;
+}
+
+/** Schluessel fuer Karten, die je Kanal UND Platz zaehlen. */
+export function slotKey(key: string, slot: Slot): string {
+  return `${key}#${slot}`;
+}
+
 export interface AccountDirection {
   id: number;
   account_key: string;
+  /** 1 = Hauptformat, 2 = mitlaufendes. Alles vor 0037 steht auf 1. */
+  slot: Slot;
   richtung: Direction;
   /** Kennung aus Projects/00-Referenzen.md im AI-Brain, Form `<projekt>/<id>`. */
   referenz: string | null;
@@ -65,29 +86,45 @@ function heute(): string {
 function normalize(r: AccountDirection): AccountDirection {
   return {
     ...r,
+    // Alte Zeilen ohne Platz gibt es nach 0037 nicht mehr, aber eine Antwort
+    // aus einem Cache oder einem aelteren Deploy koennte sie noch tragen.
+    slot: istSlot(r.slot) ? r.slot : 1,
     ab: String(r.ab).slice(0, 10),
     bis: r.bis ? String(r.bis).slice(0, 10) : null,
   };
 }
 
 /**
- * Die laufende Richtung je Kanal (`bis is null`), nach `account_key`.
+ * Die laufenden Richtungen je Kanal (`bis is null`), nach `account_key`.
+ *
+ * Seit 0037 sind es bis zu ZWEI je Kanal, nach Steckplatz sortiert: Platz 1
+ * zuerst. Die Sortierung ist nicht Kosmetik — das Board ist eine Tabelle, die
+ * man ueberfliegt, und zwei Zeilen ohne feste Reihenfolge stuenden mal so, mal
+ * so. Deshalb kommt die Reihenfolge aus den Daten, nicht aus der Antwort.
  *
  * Ein Kanal ohne Eintrag fehlt in der Karte — das ist der Normalfall für alles,
- * was noch keine Richtung hat, und keine Ausnahme.
+ * was noch keine Richtung hat, und keine Ausnahme. Ein Kanal mit nur einem
+ * zweiten Format (Platz 1 aufgegeben, Platz 2 laeuft weiter) hat eine Liste
+ * der Laenge eins, deren einziger Eintrag `slot === 2` traegt.
  */
-export async function listCurrentDirections(): Promise<Map<string, AccountDirection>> {
-  const out = new Map<string, AccountDirection>();
+export async function listCurrentDirections(): Promise<Map<string, AccountDirection[]>> {
+  const out = new Map<string, AccountDirection[]>();
   if (!KEY) return out;
   try {
-    const res = await fetch(`${REST}?select=*&bis=is.null&limit=500`, {
+    const res = await fetch(`${REST}?select=*&bis=is.null&order=slot.asc&limit=500`, {
       headers: hdr(),
       cache: "no-store",
     });
     if (!res.ok) return out;
     const rows = (await res.json()) as AccountDirection[];
     if (!Array.isArray(rows)) return out;
-    for (const r of rows) if (isDirection(r.richtung)) out.set(r.account_key, normalize(r));
+    for (const r of rows) {
+      if (!isDirection(r.richtung)) continue;
+      const liste = out.get(r.account_key) ?? [];
+      liste.push(normalize(r));
+      out.set(r.account_key, liste);
+    }
+    for (const liste of out.values()) liste.sort((a, b) => a.slot - b.slot);
     return out;
   } catch {
     return out;
@@ -110,26 +147,42 @@ export async function listDirectionCounts(): Promise<Record<string, number>> {
   const out: Record<string, number> = {};
   if (!KEY) return out;
   try {
-    const res = await fetch(`${REST}?select=account_key&bis=not.is.null&limit=5000`, {
+    const res = await fetch(`${REST}?select=account_key,slot&bis=not.is.null&limit=5000`, {
       headers: hdr(),
       cache: "no-store",
     });
     if (!res.ok) return out;
-    const rows = (await res.json()) as { account_key: string }[];
+    const rows = (await res.json()) as { account_key: string; slot: number }[];
     if (!Array.isArray(rows)) return out;
-    for (const r of rows) out[r.account_key] = (out[r.account_key] ?? 0) + 1;
+    // Gezaehlt wird je Kanal UND Platz, Schluessel `key#slot`. Sonst stuende
+    // neben dem guenstigen Zweitformat die Zahl der Wechsel des Hauptformats,
+    // und das Aufklappen zeigte einen Verlauf, der nicht dazugehoert.
+    for (const r of rows) {
+      const k = slotKey(r.account_key, istSlot(r.slot) ? r.slot : 1);
+      out[k] = (out[k] ?? 0) + 1;
+    }
     return out;
   } catch {
     return out;
   }
 }
 
-/** Der volle Verlauf eines Kanals, neueste zuerst. Für das Aufklappen im Board. */
-export async function listDirectionHistory(key: string): Promise<AccountDirection[]> {
+/**
+ * Der Verlauf eines Kanals, neueste zuerst. Für das Aufklappen im Board.
+ *
+ * Ohne `slot` kommt alles, mit `slot` nur dieser Steckplatz. Das Board klappt
+ * je Platz auf, weil ein Hauptformat und ein mitlaufendes zwei Geschichten
+ * sind und nicht eine.
+ */
+export async function listDirectionHistory(
+  key: string,
+  slot?: Slot,
+): Promise<AccountDirection[]> {
   if (!KEY || !key.trim()) return [];
   try {
+    const filter = slot ? `&slot=eq.${slot}` : "";
     const res = await fetch(
-      `${REST}?select=*&account_key=eq.${encodeURIComponent(key)}&order=ab.desc,id.desc&limit=100`,
+      `${REST}?select=*&account_key=eq.${encodeURIComponent(key)}${filter}&order=ab.desc,id.desc&limit=100`,
       { headers: hdr(), cache: "no-store" },
     );
     if (!res.ok) return [];
@@ -157,15 +210,22 @@ export async function listDirectionHistory(key: string): Promise<AccountDirectio
 export async function reorient(
   key: string,
   richtung: Direction,
-  opts: { referenz?: string | null; spiegelt?: string | null; grund?: string | null } = {},
+  opts: {
+    referenz?: string | null;
+    spiegelt?: string | null;
+    grund?: string | null;
+    /** Welcher Steckplatz. Ohne Angabe das Hauptformat. */
+    slot?: Slot;
+  } = {},
 ): Promise<{ ok: boolean }> {
   if (!KEY || !key.trim() || !isDirection(richtung)) return { ok: false };
   const account = key.trim().slice(0, 200);
+  const slot: Slot = istSlot(opts.slot) ? opts.slot : 1;
   const tag = heute();
 
   try {
     const laufend = await fetch(
-      `${REST}?select=id,richtung,ab&account_key=eq.${encodeURIComponent(account)}&bis=is.null&limit=1`,
+      `${REST}?select=id,richtung,ab&account_key=eq.${encodeURIComponent(account)}&slot=eq.${slot}&bis=is.null&limit=1`,
       { headers: hdr(), cache: "no-store" },
     );
     const offen = laufend.ok ? ((await laufend.json()) as AccountDirection[]) : [];
@@ -190,6 +250,7 @@ export async function reorient(
       headers: hdr({ Prefer: "return=minimal" }),
       body: JSON.stringify({
         account_key: account,
+        slot,
         richtung,
         referenz: clean(opts.referenz, 200),
         spiegelt: clean(opts.spiegelt, 200),
@@ -207,22 +268,73 @@ export async function reorient(
  * ein Wechsel wird. Gibt es noch keine laufende Zeile, passiert nichts: ein
  * Zeiger ohne Richtung hätte nichts, woran er hängt.
  */
-export async function patchCurrent(key: string, patch: DirectionPatch): Promise<{ ok: boolean }> {
+export async function patchCurrent(
+  key: string,
+  patch: DirectionPatch,
+  slot: Slot = 1,
+): Promise<{ ok: boolean }> {
   if (!KEY || !key.trim()) return { ok: false };
   const row: Record<string, unknown> = {};
   if (patch.referenz !== undefined) row.referenz = clean(patch.referenz, 200);
   if (patch.spiegelt !== undefined) row.spiegelt = clean(patch.spiegelt, 200);
   if (!Object.keys(row).length) return { ok: true };
+  const s: Slot = istSlot(slot) ? slot : 1;
 
   try {
     const res = await fetch(
-      `${REST}?account_key=eq.${encodeURIComponent(key.trim())}&bis=is.null`,
+      `${REST}?account_key=eq.${encodeURIComponent(key.trim())}&slot=eq.${s}&bis=is.null`,
       {
         method: "PATCH",
         headers: hdr({ Prefer: "return=minimal" }),
         body: JSON.stringify(row),
       },
     );
+    return { ok: res.ok };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/**
+ * Einen Steckplatz beenden, ohne eine neue Richtung anzulegen.
+ *
+ * `reorient()` kann das nicht: es ist ein WECHSEL und legt immer eine neue
+ * Zeile an. Genau das will man beim mitlaufenden Format aber nicht — wer das
+ * teure Format aufgibt, weil das Guthaben beim Anbieter zur Neige geht, hoert
+ * damit auf und faengt nichts Neues an.
+ *
+ * Der Grund gehoert wie beim Wechsel an die geschlossene Zeile: die Frage, die
+ * man spaeter stellt, ist „warum haben wir damit aufgehoert".
+ *
+ * Platz 2 zu beenden laesst Platz 1 unberuehrt, und umgekehrt. Es rutscht
+ * nichts nach; sonst hiesse ein alter Verlaufseintrag rueckwirkend etwas
+ * anderes, als er zum Zeitpunkt seiner Entstehung hiess.
+ */
+export async function beendeRichtung(
+  key: string,
+  slot: Slot,
+  grund?: string | null,
+): Promise<{ ok: boolean }> {
+  if (!KEY || !key.trim() || !istSlot(slot)) return { ok: false };
+  const account = key.trim().slice(0, 200);
+  const tag = heute();
+  try {
+    const laufend = await fetch(
+      `${REST}?select=id,ab&account_key=eq.${encodeURIComponent(account)}&slot=eq.${slot}&bis=is.null&limit=1`,
+      { headers: hdr(), cache: "no-store" },
+    );
+    const offen = laufend.ok ? ((await laufend.json()) as AccountDirection[]) : [];
+    const alt = Array.isArray(offen) ? offen[0] : undefined;
+    // Nichts zu beenden ist kein Fehler: der Knopf steht nur da, wenn etwas
+    // laeuft, aber zwei Klicks hintereinander duerfen nicht rot werden.
+    if (!alt) return { ok: true };
+
+    const bis = alt.ab && String(alt.ab).slice(0, 10) > tag ? String(alt.ab).slice(0, 10) : tag;
+    const res = await fetch(`${REST}?id=eq.${alt.id}`, {
+      method: "PATCH",
+      headers: hdr({ Prefer: "return=minimal" }),
+      body: JSON.stringify({ bis, grund: clean(grund, 500) }),
+    });
     return { ok: res.ok };
   } catch {
     return { ok: false };

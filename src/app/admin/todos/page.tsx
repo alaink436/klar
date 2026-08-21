@@ -15,13 +15,22 @@ import { ICON, readCookieFromString } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listTodos, todosConfigured } from "@/lib/todoStore";
 import { listAccountStatus, listPostLog, listPostTotals } from "@/lib/accountStatus";
-import { listCurrentDirections, listDirectionCounts } from "@/lib/accountDirection";
+import {
+  listCurrentDirections,
+  listDirectionCounts,
+  slotKey,
+  type AccountDirection,
+} from "@/lib/accountDirection";
 import { listChannelReferences, type ChannelReference } from "@/lib/channelReference";
 import { listPostSamples, type PostSample } from "@/lib/postSample";
 import { ACCOUNTS, APPS, PLATFORM_LABEL, accountKey } from "@/lib/socialAccounts";
 import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 import Planner, { type PlannerDay, type PlannerPosting, type PlannerTodo } from "./Planner";
-import PostingBoard, { type BoardAccount, type BoardDay } from "./PostingBoard";
+import PostingBoard, {
+  type BoardAccount,
+  type BoardDay,
+  type ViewDirection,
+} from "./PostingBoard";
 import { type SlotRef } from "./ReferenceSlot";
 import { type ViewPost } from "./PostSamples";
 import WeekNav from "./WeekNav";
@@ -132,7 +141,25 @@ export default async function TodosPage({
   // dieselbe Verschwendung wie bei den Gesamtzahlen darueber.
   const [directionByKey, directionCounts] = onPosting
     ? await Promise.all([listCurrentDirections(), listDirectionCounts()])
-    : [new Map(), {} as Record<string, number>];
+    : [new Map<string, AccountDirection[]>(), {} as Record<string, number>];
+
+  /**
+   * Die laufenden Richtungen eines Kanals als flache Form fuer die Zeile.
+   *
+   * Seit Migration 0037 sind es bis zu zwei: Platz 1 ist das Hauptformat,
+   * Platz 2 laeuft daneben mit. Frueher standen die vier Felder direkt an der
+   * Zeile; mit zwei Formaten waeren das acht, und die naechste Erweiterung
+   * zwoelf. Deshalb eine Liste.
+   */
+  const richtungenVon = (key: string): ViewDirection[] =>
+    (directionByKey.get(key) ?? []).map((d) => ({
+      slot: d.slot,
+      richtung: d.richtung,
+      ab: d.ab,
+      referenz: d.referenz ?? "",
+      spiegelt: d.spiegelt ?? "",
+      frueher: directionCounts[slotKey(key, d.slot)] ?? 0,
+    }));
   // Die Referenz-Ebenen braucht nur das Board. Seit 2026-08-20 haengt das
   // Video am Kanal (oder an seiner App), und das Board ist der Ort, an dem
   // die Kanaele stehen — ein eigener Reiter dafuer war einer zu viel.
@@ -199,11 +226,7 @@ export default async function TodosPage({
         steeredRounds: saved?.steered_rounds ?? [],
         perDay: saved?.per_day ?? 1,
         note: saved?.note ?? "",
-        direction: directionByKey.get(key)?.richtung ?? "",
-        directionSince: directionByKey.get(key)?.ab ?? "",
-        directionRef: directionByKey.get(key)?.referenz ?? "",
-        directionMirrors: directionByKey.get(key)?.spiegelt ?? "",
-        priorDirections: directionCounts[key] ?? 0,
+        directions: richtungenVon(key),
       };
     }),
   );
@@ -231,11 +254,7 @@ export default async function TodosPage({
         steeredRounds: s.steered_rounds ?? [],
         perDay: s.per_day ?? 1,
         note: s.note ?? "",
-        direction: directionByKey.get(s.account_key)?.richtung ?? "",
-        directionSince: directionByKey.get(s.account_key)?.ab ?? "",
-        directionRef: directionByKey.get(s.account_key)?.referenz ?? "",
-        directionMirrors: directionByKey.get(s.account_key)?.spiegelt ?? "",
-        priorDirections: directionCounts[s.account_key] ?? 0,
+        directions: richtungenVon(s.account_key),
       };
     });
 

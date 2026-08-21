@@ -14,20 +14,39 @@
 //     beim Umstellen nach dem Grund, statt sofort zu schreiben — der Grund ist
 //     die einzige Information, die es nur in dieser Sekunde gibt.
 //
+// **ZWEI FORMATE GLEICHZEITIG** (Migration 0037). 0027 liess je Kanal genau
+// eine laufende Richtung zu. Seit 2026-08-21 laufen zwei: ein Hauptformat auf
+// Platz 1 und ein mitlaufendes auf Platz 2. Der Anlass war handfest — ein
+// generierter Spot kostet Credits bei einem Anbieter mit endlichem Abo, und
+// daneben soll ein günstiges Format MITLAUFEN statt es abzulösen.
+//
+// Beide Plätze haben dieselbe Bedienung, deshalb steht sie einmal da und wird
+// zweimal gerendert. Zwei Fassungen derselben Zelle wären in einem halben Jahr
+// zwei verschiedene Zellen.
+//
+// Was Platz 2 zusätzlich hat, ist „beenden": aufhören ohne Ersatz. `reorient()`
+// kann das nicht, es legt immer eine neue Zeile an. Wer das teure Format
+// aufgibt, weil das Guthaben zur Neige geht, fängt aber nichts Neues an.
+//
 // Ein Kanal OHNE bisherige Richtung wird direkt gesetzt: da ist nichts zu
 // begründen, und eine Rückfrage wäre nur im Weg.
 //
 // Der Verlauf steht als Zahl daneben, nicht als Zeitleiste (Alains Entscheid
 // vom 2026-08-20): 24 Kanäle mit ausgeklappter Geschichte wären nicht mehr
-// lesbar. Ein Klick auf die Zahl holt sie nach.
+// lesbar. Ein Klick auf die Zahl holt sie nach, je Platz getrennt.
 
 import { useState, useTransition } from "react";
 import { DIRECTIONS, type Direction } from "@/lib/accountStates";
 import { FIELD } from "./boardStyles";
-import { loadChannelTimeline, reorientAccount, setDirectionPointer } from "./posting-actions";
+import {
+  loadChannelTimeline,
+  reorientAccount,
+  setDirectionPointer,
+  stopDirection,
+} from "./posting-actions";
 import ReferenceSlot, { type SlotRef } from "./ReferenceSlot";
 import PostSamples, { type ViewPost } from "./PostSamples";
-import type { BoardAccount } from "./PostingBoard";
+import type { BoardAccount, ViewDirection } from "./PostingBoard";
 
 interface Verlaufszeile {
   art: "richtung" | "referenz";
@@ -48,36 +67,43 @@ function tag(iso: string): string {
     : d.toLocaleDateString("de-CH", { day: "2-digit", month: "2-digit" });
 }
 
-export default function DirectionCell({
+/**
+ * Ein Steckplatz: Auswahl, Verlauf, Referenzkennung, Spiegelung.
+ *
+ * `laufend` ist `null`, solange auf diesem Platz nichts läuft — dann ist die
+ * Auswahl leer und alles darunter fällt weg, weil es nichts gibt, woran es
+ * hängen könnte.
+ */
+function RichtungsPlatz({
   row,
   others,
-  eigen,
-  geerbt,
-  posts,
+  slot,
+  laufend,
 }: {
   row: BoardAccount;
   others: BoardAccount[];
-  /** Was an genau diesem Kanal haengt. */
-  eigen?: SlotRef;
-  /** Was gilt, wenn am Kanal nichts haengt — samt Ebene. */
-  geerbt?: { ref: SlotRef; ebene: string } | null;
-  /** Eigene plus geerbte Posts, die hier gelaufen sind. */
-  posts: ViewPost[];
+  slot: 1 | 2;
+  laufend: ViewDirection | null;
 }) {
   const [pending, startTransition] = useTransition();
   // Was gewählt wurde, solange der Grund noch fehlt. `null` = keine Umstellung.
   const [wechsel, setWechsel] = useState<Direction | null>(null);
   const [grund, setGrund] = useState("");
   const [verlauf, setVerlauf] = useState<Verlaufszeile[] | null>(null);
+  // Zweistufig, wie „weg" beim Referenzvideo: ein Klick zeigt die Rückfrage,
+  // der zweite führt aus. Ein mitlaufendes Format versehentlich zu beenden
+  // kostet den Verlauf nicht, aber es schreibt eine Zeile, die nicht stimmt.
+  const [beendenOffen, setBeendenOffen] = useState(false);
 
-  const laufend = row.direction;
+  const richtung = laufend?.richtung ?? "";
+  const frueher = laufend?.frueher ?? 0;
 
   function waehle(v: string): void {
-    if (!v || v === laufend) return;
+    if (!v || v === richtung) return;
     const d = v as Direction;
-    if (!laufend) {
+    if (!richtung) {
       startTransition(async () => {
-        await reorientAccount(row.key, d);
+        await reorientAccount(row.key, d, { slot });
       });
       return;
     }
@@ -88,7 +114,7 @@ export default function DirectionCell({
     const d = wechsel;
     if (!d) return;
     startTransition(async () => {
-      await reorientAccount(row.key, d, { grund: grund.trim() || null });
+      await reorientAccount(row.key, d, { grund: grund.trim() || null, slot });
       setWechsel(null);
       setGrund("");
     });
@@ -99,25 +125,49 @@ export default function DirectionCell({
     setGrund("");
   }
 
+  function beende(): void {
+    if (!beendenOffen) {
+      setBeendenOffen(true);
+      return;
+    }
+    startTransition(async () => {
+      await stopDirection(row.key, slot, grund.trim() || null);
+      setBeendenOffen(false);
+      setGrund("");
+    });
+  }
+
   function zeigeVerlauf(): void {
     if (verlauf) {
       setVerlauf(null);
       return;
     }
     startTransition(async () => {
-      setVerlauf(await loadChannelTimeline(row.key));
+      setVerlauf(await loadChannelTimeline(row.key, slot));
     });
   }
 
   return (
     <div className={pending ? "opacity-60 transition-opacity" : "transition-opacity"}>
+      {/* Platz 2 sagt, was er ist. Platz 1 braucht keine Beschriftung: er steht
+          oben und ist der Normalfall. */}
+      {slot === 2 ? (
+        <div className={`${MONO} mb-0.5`} style={{ color: "var(--fg-4)" }}>
+          läuft mit
+        </div>
+      ) : null}
+
       <select
-        value={laufend}
-        aria-label={`Richtung von @${row.handle}`}
+        value={richtung}
+        aria-label={
+          slot === 1
+            ? `Richtung von @${row.handle}`
+            : `Mitlaufendes Format von @${row.handle}`
+        }
         onChange={(e) => waehle(e.target.value)}
         className={`${FIELD} w-full cursor-pointer`}
       >
-        <option value="">— keine Richtung —</option>
+        <option value="">{slot === 1 ? "— keine Richtung —" : "— kein zweites —"}</option>
         {DIRECTIONS.map((d) => (
           <option key={d} value={d}>
             {d}
@@ -127,12 +177,12 @@ export default function DirectionCell({
 
       {/* Seit wann, und wie viele es vorher schon gab. Die Zahl ist der Einstieg
           in den Verlauf — ohne sie wüsste niemand, dass es einen gibt. */}
-      {laufend || row.priorDirections > 0 ? (
+      {richtung || frueher > 0 ? (
         <div className={`flex items-center gap-1.5 mt-1 ${MONO}`}>
-          {row.directionSince ? (
-            <span style={{ color: "var(--fg-4)" }}>seit {tag(row.directionSince)}</span>
+          {laufend?.ab ? (
+            <span style={{ color: "var(--fg-4)" }}>seit {tag(laufend.ab)}</span>
           ) : null}
-          {row.priorDirections > 0 ? (
+          {frueher > 0 ? (
             <button
               type="button"
               onClick={zeigeVerlauf}
@@ -140,7 +190,18 @@ export default function DirectionCell({
               className="underline decoration-dotted hover:text-fg"
               style={{ color: "var(--fg-3)" }}
             >
-              {row.priorDirections} vorher
+              {frueher} vorher
+            </button>
+          ) : null}
+          {richtung ? (
+            <button
+              type="button"
+              onClick={beende}
+              className="ml-auto underline decoration-dotted hover:text-fg"
+              style={{ color: beendenOffen ? "var(--fg)" : "var(--fg-4)" }}
+              title="Aufhören, ohne ein neues Format zu setzen"
+            >
+              {beendenOffen ? "sicher?" : "beenden"}
             </button>
           ) : null}
         </div>
@@ -148,35 +209,44 @@ export default function DirectionCell({
 
       {/* Der Grund gehört an die Richtung, die ENDET — die Frage, die man später
           stellt, ist „warum haben wir damit aufgehört", nicht „warum haben wir
-          damit angefangen". */}
-      {wechsel ? (
+          damit angefangen". Deshalb teilen Wechsel und Beenden dasselbe Feld. */}
+      {wechsel || beendenOffen ? (
         <div className="mt-1.5 border border-line-strong rounded-[5px] p-1.5">
           <div className={`${MONO} mb-1`} style={{ color: "var(--fg-3)" }}>
-            {laufend} → {wechsel}
+            {wechsel ? `${richtung} → ${wechsel}` : `${richtung} → aus`}
           </div>
           <input
             value={grund}
             autoFocus
             placeholder="Warum weg von der alten? (darf leer bleiben)"
-            aria-label={`Grund für den Richtungswechsel bei @${row.handle}`}
+            aria-label={`Grund für das Ende von ${richtung} bei @${row.handle}`}
             onChange={(e) => setGrund(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") bestaetige();
-              if (e.key === "Escape") abbrechen();
+              if (e.key === "Enter") {
+                if (wechsel) bestaetige();
+                else beende();
+              }
+              if (e.key === "Escape") {
+                abbrechen();
+                setBeendenOffen(false);
+              }
             }}
             className={`${FIELD} w-full`}
           />
           <div className="flex gap-1.5 mt-1.5">
             <button
               type="button"
-              onClick={bestaetige}
+              onClick={wechsel ? bestaetige : beende}
               className={`${MONO} px-2 py-1 rounded-[4px] bg-fg text-[var(--accent-fg)]`}
             >
-              wechseln
+              {wechsel ? "wechseln" : "beenden"}
             </button>
             <button
               type="button"
-              onClick={abbrechen}
+              onClick={() => {
+                abbrechen();
+                setBeendenOffen(false);
+              }}
               className={`${MONO} px-2 py-1 rounded-[4px] border border-line-strong`}
               style={{ color: "var(--fg-3)" }}
             >
@@ -214,27 +284,27 @@ export default function DirectionCell({
 
       {/* Die Spiegelung hängt an der laufenden Richtung. Ohne Richtung gibt es
           nichts, woran sie hängen könnte. */}
-      {laufend ? (
+      {richtung ? (
         <div className="mt-1 flex gap-1">
           {/* Die früher gesetzte Kennung bleibt sichtbar, damit sie beim
               Umstellen nicht still verschwindet. Das Video selbst hängt
               darunter am Kanal. */}
-          {row.directionRef ? (
+          {laufend?.referenz ? (
             <div
               className={`${MONO} flex-1 min-w-0 self-center truncate`}
               style={{ color: "var(--fg-4)" }}
-              title={row.directionRef}
+              title={laufend.referenz}
             >
-              Ref: {row.directionRef}
+              Ref: {laufend.referenz}
             </div>
           ) : null}
           <select
-            value={row.directionMirrors}
+            value={laufend?.spiegelt ?? ""}
             aria-label={`Welchen Kanal @${row.handle} spiegelt`}
             onChange={(e) => {
               const v = e.target.value;
               startTransition(async () => {
-                await setDirectionPointer(row.key, { spiegelt: v });
+                await setDirectionPointer(row.key, { spiegelt: v }, slot);
               });
             }}
             className={`${FIELD} cursor-pointer shrink-0`}
@@ -252,6 +322,53 @@ export default function DirectionCell({
           </select>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+export default function DirectionCell({
+  row,
+  others,
+  eigen,
+  geerbt,
+  posts,
+}: {
+  row: BoardAccount;
+  others: BoardAccount[];
+  /** Was an genau diesem Kanal haengt. */
+  eigen?: SlotRef;
+  /** Was gilt, wenn am Kanal nichts haengt — samt Ebene. */
+  geerbt?: { ref: SlotRef; ebene: string } | null;
+  /** Eigene plus geerbte Posts, die hier gelaufen sind. */
+  posts: ViewPost[];
+}) {
+  // Platz 2 kostet zugeklappt eine Zeile. Er steht offen, sobald dort etwas
+  // laeuft; solange nicht, reicht ein Knopf. 24 Kanaele mit einem leeren
+  // Zweitfeld waeren 24 Zeilen fuer nichts.
+  const [zweitOffen, setZweitOffen] = useState(false);
+
+  const platz1 = row.directions.find((d) => d.slot === 1) ?? null;
+  const platz2 = row.directions.find((d) => d.slot === 2) ?? null;
+
+  return (
+    <div>
+      <RichtungsPlatz row={row} others={others} slot={1} laufend={platz1} />
+
+      {platz2 || zweitOffen ? (
+        <div className="mt-1.5 pt-1.5 border-t border-dashed border-line">
+          <RichtungsPlatz row={row} others={others} slot={2} laufend={platz2} />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setZweitOffen(true)}
+          className={`${MONO} mt-1 hover:text-fg`}
+          style={{ color: "var(--fg-4)" }}
+          title="Ein zweites Format, das daneben mitläuft"
+        >
+          + zweites Format
+        </button>
+      )}
 
       {/* Das Referenzvideo dieses Kanals. Hängt hier nichts, zeigt der Schalter
           das geerbte Video der App oder Plattform, und ein Upload überschreibt
@@ -273,7 +390,7 @@ export default function DirectionCell({
           solange er etwas anderes sagt als die Richtung — bei den fünf Zeilen,
           die gar keine Richtung enthielten (Verweise auf fremde Konten, ein
           abgeschnittener Satz), ist er das Einzige, was davon übrig ist. */}
-      {row.format && row.format !== laufend ? (
+      {row.format && row.format !== platz1?.richtung && row.format !== platz2?.richtung ? (
         <div
           className="mt-1 [font-family:var(--font-mono)] text-[9.5px] leading-snug break-words"
           style={{ color: "var(--fg-4)" }}
