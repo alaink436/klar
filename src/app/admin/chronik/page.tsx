@@ -21,10 +21,6 @@ import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
 export default async function ChronikPage() {
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
   const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
@@ -104,15 +100,17 @@ export default async function ChronikPage() {
                       >
                         {t.chronikBlocked}
                       </span>
-                      <span style={{ fontSize: 12.5, color: "var(--fg-2)" }}
-                        dangerouslySetInnerHTML={{ __html: esc(b) }} />
+                      {/* Stand hier als dangerouslySetInnerHTML mit einem
+                          eigenen esc() davor. In JSX ist das genau {b}, nur
+                          umstaendlicher, und es wird zur Luecke, sobald jemand
+                          das esc() vergisst. Die Hilfsfunktion ist mit weg. */}
+                      <span style={{ fontSize: 12.5, color: "var(--fg-2)" }}>{b}</span>
                     </li>
                   ))}
                   {g.rest.map((n, i) => (
                     <li key={`n${i}`} style={{ display: "flex", gap: 9, alignItems: "baseline", padding: "3px 0" }}>
                       <span style={{ color: "var(--fg-4)", flexShrink: 0, fontSize: 12 }}>·</span>
-                      <span style={{ fontSize: 12.5, color: "var(--fg-3)" }}
-                        dangerouslySetInnerHTML={{ __html: esc(n) }} />
+                      <span style={{ fontSize: 12.5, color: "var(--fg-3)" }}>{n}</span>
                     </li>
                   ))}
                 </ul>

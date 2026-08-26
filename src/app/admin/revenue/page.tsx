@@ -22,22 +22,18 @@ import RevenueAffiliateTable, { type RevenueRow } from "./RevenueAffiliateTable"
 import MonthlyBarChart from "../MonthlyBarChart";
 
 import { AdminTopbar } from "../AdminTopbar";
+import { Kennzahlen, type Kennzahl } from "../Kennzahlen";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 async function revenueMain(apps: AdminApp[]): Promise<{
-  htmlTop: string;
+  kennzahlen: Kennzahl[];
   series: { label: string; gross: number; payout: number }[];
-  htmlMid: string;
   tableRows: RevenueRow[];
+  /** Nichts verdrahtet: die Seite sagt das, statt vier Nullen zu zeigen. */
+  keineApps: boolean;
 }> {
-  if (apps.length === 0)
-    return {
-      htmlTop: `<h1>Einnahmen</h1><p class="sub">Noch keine Apps konfiguriert, darum gibt es hier nichts zu zeigen.</p>`,
-      series: [],
-      htmlMid: "",
-      tableRows: [],
-    };
+  if (apps.length === 0) return { kennzahlen: [], series: [], tableRows: [], keineApps: true };
   const monthly = new Map<string, { gross: number; payout: number }>();
   let totalGross = 0, totalPayout = 0, totalOpen = 0, totalAff = 0;
 
@@ -71,12 +67,12 @@ async function revenueMain(apps: AdminApp[]): Promise<{
       return { label: `${mm}/${yy.slice(2)}`, gross: v.gross, payout: v.payout };
     });
 
-  const cards = `<div class="cards">
-    <div class="card"><div class="k">Affiliate-Umsatz gesamt</div><div class="v">${eur(totalGross)}</div><div class="s">von geworbenen Usern</div></div>
-    <div class="card"><div class="k">Auszahlung an Affiliates</div><div class="v">${eur(totalPayout)}</div><div class="s">verbucht (50% Anteil)</div></div>
-    <div class="card"><div class="k">Davon offen</div><div class="v">${eur(totalOpen)}</div><div class="s">noch nicht ausgezahlt</div></div>
-    <div class="card"><div class="k">Affiliates gesamt</div><div class="v">${totalAff}</div></div>
-  </div>`;
+  const kennzahlen: Kennzahl[] = [
+    { label: "Affiliate-Umsatz gesamt", wert: eur(totalGross), zusatz: "von geworbenen Usern" },
+    { label: "Auszahlung an Affiliates", wert: eur(totalPayout), zusatz: "verbucht (50% Anteil)" },
+    { label: "Davon offen", wert: eur(totalOpen), zusatz: "noch nicht ausgezahlt" },
+    { label: "Affiliates gesamt", wert: totalAff },
+  ];
 
   const tableRows: RevenueRow[] = perApp.map((r) => ({
     slug: r.app.slug,
@@ -90,10 +86,7 @@ async function revenueMain(apps: AdminApp[]): Promise<{
     openFmt: eur(r.open),
   }));
 
-  const htmlTop = `<h1>Einnahmen</h1><p class="sub">Nur <em>affiliate-attribuierter</em> Umsatz — nicht der gesamte App-Umsatz. Der stuende in Analytics und kommt aus einer anderen Quelle.</p>
-    ${cards}<h2>Pro Monat</h2>`;
-  const htmlMid = `<h2>Pro App</h2>`;
-  return { htmlTop, series, htmlMid, tableRows };
+  return { kennzahlen, series, tableRows, keineApps: false };
 }
 
 export default async function RevenuePage() {
@@ -109,17 +102,35 @@ export default async function RevenuePage() {
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
   const apps = getApps();
-  const { htmlTop, series, htmlMid, tableRows } = await revenueMain(apps);
+  const { kennzahlen, series, tableRows, keineApps } = await revenueMain(apps);
 
   return (
     <>
       <title>Einnahmen · Klar Control</title>
       <AdminTopbar titel="Einnahmen" />
       <div className="content">
-        <div dangerouslySetInnerHTML={{ __html: htmlTop }} />
-        {series.length ? <MonthlyBarChart series={series} currency={REPORTING_CURRENCY} /> : null}
-        <div dangerouslySetInnerHTML={{ __html: htmlMid }} />
-        {tableRows.length ? <RevenueAffiliateTable rows={tableRows} /> : null}
+        <h1>Einnahmen</h1>
+        {keineApps ? (
+          <p className="sub">Noch keine Apps konfiguriert, darum gibt es hier nichts zu zeigen.</p>
+        ) : (
+          <p className="sub">
+            Nur <em>affiliate-attribuierter</em> Umsatz, nicht der gesamte App-Umsatz. Der stuende in Analytics und
+            kommt aus einer anderen Quelle.
+          </p>
+        )}
+        <Kennzahlen zahlen={kennzahlen} />
+        {series.length ? (
+          <>
+            <h2>Pro Monat</h2>
+            <MonthlyBarChart series={series} currency={REPORTING_CURRENCY} />
+          </>
+        ) : null}
+        {tableRows.length ? (
+          <>
+            <h2>Pro App</h2>
+            <RevenueAffiliateTable rows={tableRows} />
+          </>
+        ) : null}
       </div>
     </>
   );
