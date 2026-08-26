@@ -18,7 +18,10 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { SidebarInset, SidebarProvider, SidebarRail } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/sonner";
 import AdminSidebar from "./AdminSidebar";
+import { Kommandopalette } from "./Kommandopalette";
+import { FormulareOhneSprung } from "./FormulareOhneSprung";
 import type { AdminLang } from "./_i18n";
 import { DEFAULT_NAV_PREFS, type NavPrefs } from "./_nav";
 
@@ -60,6 +63,12 @@ export default function AdminShell({
       <AdminSidebar active={activeFromPath(path)} apps={apps} lang={lang} collabOpen={collabOpen} prefs={navPrefs} />
       <SidebarRail />
       <SidebarInset className="main">{children}</SidebarInset>
+      {/* Beide leben hier, weil hier der Rahmen steht: die Palette braucht den
+          Sidebar-Kontext zum Ein- und Ausklappen, und Meldungen sollen einen
+          Seitenwechsel ueberleben, statt mit der Seite zu verschwinden. */}
+      <Kommandopalette lang={lang} prefs={navPrefs} apps={apps} />
+      <FormulareOhneSprung />
+      <Toaster />
     </SidebarProvider>
   );
 }

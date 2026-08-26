@@ -18,6 +18,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Sun } from "@/components/animate-ui/icons/sun";
 import { Moon } from "@/components/animate-ui/icons/moon";
+import { Search } from "lucide-react";
+import { paletteOeffnen } from "./Kommandopalette";
 
 declare global {
   interface Window {
@@ -47,6 +49,20 @@ export function AdminTopbar({
         </svg>
         <span>{bereich}</span>
       </span>
+      {/* Der Weg zur Palette muss sichtbar sein. Ein Kuerzel, das nirgends
+          steht, kennt nur, wer es gebaut hat. Deshalb ein benannter Knopf und
+          nicht nur ein Symbol, mit dem Kuerzel als Beschriftung daneben. */}
+      <button
+        type="button"
+        onClick={paletteOeffnen}
+        className="ml-auto flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface)] py-1.5 pl-2.5 pr-2 text-[12px] text-[var(--fg-3)] transition-colors hover:border-[var(--line-strong)] hover:text-[var(--fg)]"
+      >
+        <Search className="size-3.5" />
+        <span>Springen</span>
+        <kbd className="ml-1 rounded-[4px] border border-[var(--line)] bg-[var(--surface-2)] px-1.5 py-0.5 [font-family:var(--font-mono)] text-[9.5px] text-[var(--fg-4)]">
+          Strg K
+        </kbd>
+      </button>
       {rechts}
       <Tooltip>
         <TooltipTrigger asChild>

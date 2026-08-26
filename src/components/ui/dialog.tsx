@@ -21,7 +21,21 @@ export function DialogOverlay({ className, ...props }: React.ComponentProps<type
   );
 }
 
-export function DialogContent({ className, children, ...props }: React.ComponentProps<typeof DialogPrimitive.Content>) {
+export function DialogContent({
+  className,
+  children,
+  showCloseButton = false,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  /**
+   * 2026-08-26 ergaenzt. Diese Fassung hat nie ein X in der Ecke gehabt, ihre
+   * Dialoge schliessen ueber ihre eigenen Knoepfe. Neuere Registry-Komponenten
+   * (CommandDialog) reichen das Prop aber durch, und ohne die Signatur bricht
+   * `tsc` in fremdem Code. Der Standard ist `false`, damit kein bestehender
+   * Dialog ploetzlich ein Kreuz bekommt; wer eins will, sagt es ausdruecklich.
+   */
+  showCloseButton?: boolean;
+}) {
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -34,6 +48,17 @@ export function DialogContent({ className, children, ...props }: React.Component
         {...props}
       >
         {children}
+        {showCloseButton ? (
+          <DialogPrimitive.Close
+            data-slot="dialog-close"
+            className="absolute right-4 top-4 rounded-[var(--radius-sm)] p-1 text-fg-4 transition-colors hover:text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            aria-label="Schliessen"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </DialogPrimitive.Close>
+        ) : null}
       </DialogPrimitive.Content>
     </DialogPortal>
   );

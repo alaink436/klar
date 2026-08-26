@@ -29,7 +29,15 @@ const SECURITY_HEADERS = [
       // the session is already created.
       "form-action 'self' https://*.supabase.co https://api.brevo.com https://checkout.stripe.com",
       "object-src 'none'",
-      "upgrade-insecure-requests",
+      // Produktion only, aus demselben Grund wie 'unsafe-eval' weiter oben, nur
+      // andersherum. Lokal laeuft der Server auf http, und die Admin-Routen
+      // leiten mit einer ABSOLUTEN Adresse zurueck. Der Browser stuft die auf
+      // https hoch, wo nichts lauscht, und jeder fetch, der einer solchen
+      // Weiterleitung folgt, stirbt mit ERR_SSL_PROTOCOL_ERROR. Genau das hat
+      // am 2026-08-26 die Aktionen ohne Seitenwechsel lokal unpruefbar
+      // gemacht. In Produktion ist ohnehin alles https, dort aendert sich
+      // durch diese Zeile nichts.
+      ...(process.env.NODE_ENV === "production" ? ["upgrade-insecure-requests"] : []),
     ].join("; "),
   },
   // HSTS: 1 year + subdomains, eligible for HSTS preload registry

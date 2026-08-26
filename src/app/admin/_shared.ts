@@ -219,6 +219,12 @@ export const STYLE = `
  --sidebar-border:var(--line);--sidebar-ring:var(--fg-4);
 }
 
+/* Ein Formular, das gerade laeuft (siehe FormulareOhneSprung.tsx). Frueher war
+   der Beleg, dass etwas passiert, der Seitenaufbau selbst. Faellt der weg,
+   braucht der Klick ein anderes Zeichen, sonst drueckt man ihn zweimal. */
+form[data-klar-laeuft="ja"]{opacity:.6;pointer-events:none}
+form[data-klar-laeuft="ja"] button{cursor:progress}
+
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15.5px;line-height:1.5;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-feature-settings:"kern","liga","calt","ss01"}
