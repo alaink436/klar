@@ -13,7 +13,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  ICON,
   readCookieFromString,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
@@ -32,6 +31,7 @@ import BrainAccessManager, {
   type FolderOpt,
 } from "./BrainAccessManager";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -117,15 +117,11 @@ export default async function BrainPage({
 
   // Zugang is the default tab; the graph opens only via the explicit ?tab=graph.
   const defaultTab = sp.tab === "graph" ? "graph" : "zugang";
-  const topbar = `
-    <span class="crumb"><b>AI-Brain</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   return (
     <>
       <title>AI-Brain · Klar Control</title>
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel="AI-Brain" />
       <div className="content" style={{ maxWidth: "none" }}>
         <PageHeader eyebrow="Klar Control" title="AI-Brain">
           Dein Wissensspeicher als Graph plus die Zugänge dazu, API-Tokens für Remote-Agents und Lese-Mitglieder für /brain.

@@ -22,6 +22,7 @@ import { Toaster } from "@/components/ui/sonner";
 import AdminSidebar from "./AdminSidebar";
 import { Kommandopalette } from "./Kommandopalette";
 import { FormulareOhneSprung } from "./FormulareOhneSprung";
+import { TabellenGriffe } from "./TabellenGriffe";
 import type { AdminLang } from "./_i18n";
 import { DEFAULT_NAV_PREFS, type NavPrefs } from "./_nav";
 
@@ -68,6 +69,7 @@ export default function AdminShell({
           Seitenwechsel ueberleben, statt mit der Seite zu verschwinden. */}
       <Kommandopalette lang={lang} prefs={navPrefs} apps={apps} />
       <FormulareOhneSprung />
+      <TabellenGriffe />
       <Toaster />
     </SidebarProvider>
   );

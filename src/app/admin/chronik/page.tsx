@@ -17,6 +17,7 @@ import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { readActiveProjects, readSessions } from "@/lib/brainStatus";
 import { LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -60,15 +61,11 @@ export default async function ChronikPage() {
     else byDay.set(s.date, [s]);
   }
 
-  const topbar = `
-    <span class="crumb"><b>${t.navChronik}</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="${t.themeToggle}" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   return (
     <>
       <title>Chronik · Klar Control</title>
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel={t.navChronik} />
       <div className="content">
         <h1>{t.navChronik}</h1>
         <p className="sub">{t.chronikSub}</p>

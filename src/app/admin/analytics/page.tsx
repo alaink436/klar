@@ -22,7 +22,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  ICON,
   readCookieFromString,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
@@ -56,6 +55,7 @@ import AnalyticsClient, {
   type SitePayload,
 } from "./AnalyticsClient";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -709,10 +709,6 @@ export default async function AnalyticsPage({
   const appsSelected = parseSelectedApps(sp.apps);
   const appsChart: AppsChartPayload =
     tab === "apps" ? await buildAppsChart(appsMetric, appsChartPeriod, appsSelected) : EMPTY_CHART;
-  const topbar = `
-    <span class="crumb"><b>Analytics</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   // React 19 hoists <title>, <link>, <style>, <script> into <head> automatically
   // when they appear inside a page tree. We rely on that to inject the admin
@@ -724,7 +720,7 @@ export default async function AnalyticsPage({
       {/* Smoke + Glass embeds (same as /admin route). suppressHydrationWarning:
           SMOKE_BG_SCRIPT sets width/height on the canvas at runtime, which is
           fine but trips React's SSR→client diff. */}
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel="Analytics" />
       <div className="content">
         <h1>Analytics</h1>
         <p className="sub">

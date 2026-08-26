@@ -12,11 +12,11 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  ICON,
   readCookieFromString,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -216,15 +216,11 @@ export default async function BookingsPage() {
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
   const result = await loadBookings();
-  const topbar = `
-    <span class="crumb"><b>Bookings</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   return (
     <>
       <title>Bookings · Klar Control</title>
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel="Bookings" />
       <div className="content">
         <h1>Bookings</h1>
         <Body result={result} />

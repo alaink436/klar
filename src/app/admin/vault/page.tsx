@@ -9,7 +9,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  ICON,
   readCookieFromString,
 } from "../_shared";
 import { DATE_LOCALE, LANG_COOKIE, flashText, normalizeAdminLang, tAdmin } from "../_i18n";
@@ -20,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import VaultManager, { type VaultRow } from "./VaultManager";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -64,15 +64,11 @@ export default async function VaultPage({
   const active = rows.filter((r) => r.lastUsed !== "—").length;
 
   const ready = vaultReady();
-  const topbar = `
-    <span class="crumb"><b>${t.vaultTitle}</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="${t.themeToggle}" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   return (
     <>
       <title>Vault · Klar Control</title>
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel={t.vaultTitle} />
       <div className="content">
         <h1>{t.vaultTitle}</h1>
         <p className="sub">

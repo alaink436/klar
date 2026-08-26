@@ -12,7 +12,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  ICON,
   readCookieFromString,
   eur,
   REPORTING_CURRENCY,
@@ -22,6 +21,7 @@ import { getApps, sbGet, type AdminApp } from "../../../lib/adminApps";
 import RevenueAffiliateTable, { type RevenueRow } from "./RevenueAffiliateTable";
 import MonthlyBarChart from "../MonthlyBarChart";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -110,15 +110,11 @@ export default async function RevenuePage() {
 
   const apps = getApps();
   const { htmlTop, series, htmlMid, tableRows } = await revenueMain(apps);
-  const topbar = `
-    <span class="crumb"><b>Einnahmen</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   return (
     <>
       <title>Einnahmen · Klar Control</title>
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel="Einnahmen" />
       <div className="content">
         <div dangerouslySetInnerHTML={{ __html: htmlTop }} />
         {series.length ? <MonthlyBarChart series={series} currency={REPORTING_CURRENCY} /> : null}

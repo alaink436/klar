@@ -9,7 +9,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  ICON,
   readCookieFromString,
   esc,
 } from "../_shared";
@@ -21,6 +20,7 @@ import {
   type ReplyTemplateRow,
 } from "../../../lib/replyTemplateStore";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -179,15 +179,11 @@ export default async function ReplyTemplatesPage({
   const sp = await searchParams;
   const main = await replyTemplatesMain();
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
-  const topbar = `
-    <span class="crumb"><b>Antwort-Vorlagen</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   return (
     <>
       <title>Antwort-Vorlagen · Klar Control</title>
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel="Antwort-Vorlagen" />
       <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
     </>
   );

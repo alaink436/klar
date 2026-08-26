@@ -44,6 +44,7 @@ import ContentChart, { type ContentChartRow } from "./ContentChart";
 import AccountBoard from "@/app/components/accounts/AccountBoard";
 import type { ReactNode } from "react";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -446,10 +447,6 @@ export default async function ContentPage({
     ? new Map<string, NativeCount>()
     : await getNativeCounts(data.accounts.map((a) => ({ platform: a.platform, username: a.username })));
 
-  const topbar = `
-    <span class="crumb"><b>Content</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   // App attribution + visibility: ?hide=slug,slug blendet App-Buckets aus.
   // Chip counts use the unfiltered sets so hidden apps stay toggleable.
@@ -569,7 +566,7 @@ export default async function ContentPage({
   return (
     <>
       <title>Content · Klar Control</title>
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel="Content" />
       <div className="content">
         <PageHeader eyebrow="Marketing-Infrastruktur" title="Content">
           Alle Accounts über die fünf Apps auf einen Blick — und darunter, was über Blotato

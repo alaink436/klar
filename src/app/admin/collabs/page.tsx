@@ -12,6 +12,7 @@ import { buildCollabView } from "@/lib/collabView";
 import { LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 import CollabsView from "./CollabsView";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -36,15 +37,11 @@ export default async function CollabsPage({
   const view = await buildCollabView();
   const msg = (await searchParams).msg?.slice(0, 400);
 
-  const topbar = `
-    <span class="crumb"><b>${t.navCollabs}</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="${t.themeToggle}" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   return (
     <>
       <title>Collabs · Klar Control</title>
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel={t.navCollabs} />
       <div className="content">
         <h1>{t.navCollabs}</h1>
         <p className="sub">{t.collabsSub}</p>

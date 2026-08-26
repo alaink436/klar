@@ -219,6 +219,18 @@ export const STYLE = `
  --sidebar-border:var(--line);--sidebar-ring:var(--fg-4);
 }
 
+/* Griffe an den Tabellen (siehe TabellenGriffe.tsx): Suchfeld darueber,
+   Sortierung auf der Kopfzeile. Der Pfeil steht nur an der Spalte, nach der
+   gerade sortiert wird; ein Pfeil an jeder Spalte waere Rauschen. */
+.klar-tabellengriff{display:flex;align-items:center;gap:10px;margin:0 0 8px}
+.klar-tabellengriff input[type="search"]{flex:0 1 260px;padding:6px 10px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font-family:var(--font-body);font-size:12.5px}
+.klar-tabellengriff input[type="search"]:focus{outline:none;border-color:var(--line-strong)}
+.klar-tabellenzahl{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-4)}
+th[data-klar-sortierbar="ja"]{cursor:pointer;user-select:none}
+th[data-klar-sortierbar="ja"]:hover{color:var(--fg)}
+th[data-klar-sortiert="auf"]::after{content:" 91";color:var(--fg-3)}
+th[data-klar-sortiert="ab"]::after{content:" 93";color:var(--fg-3)}
+
 /* Ein Formular, das gerade laeuft (siehe FormulareOhneSprung.tsx). Frueher war
    der Beleg, dass etwas passiert, der Seitenaufbau selbst. Faellt der weg,
    braucht der Klick ein anderes Zeichen, sonst drueckt man ihn zweimal. */

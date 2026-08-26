@@ -22,6 +22,7 @@ import NavSettings from "./NavSettings";
 import { LANG_COOKIE, normalizeAdminLang } from "../_i18n";
 import { NAV_COOKIE, parseNavPrefs } from "../_nav";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -66,15 +67,11 @@ export default async function SettingsPage({
   const flashRaw = sp.err ?? sp.msg ?? null;
   const isErr = Boolean(sp.err);
 
-  const topbar = `
-    <span class="crumb"><b>Einstellungen</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   return (
     <>
       <title>Einstellungen · Klar Control</title>
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel="Einstellungen" />
       <div className="content">
         <h1>Einstellungen</h1>
         {flashRaw ? (

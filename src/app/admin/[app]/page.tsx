@@ -15,7 +15,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  ICON,
   readCookieFromString,
   esc,
   eur,
@@ -26,6 +25,7 @@ import { getApp, sbGet, setupLandingUrl, listInfluencers, type AdminApp, type In
 import { listOutreachTargets, type OutreachTarget } from "../../../lib/outreachStore";
 import { getTrackingUrl, type BrandKey } from "../../affiliate/_shared/brands";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -329,15 +329,11 @@ export default async function AppDetailPage({
   const sp = await searchParams;
   const main = await appMain(appObj);
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
-  const topbar = `
-    <span class="crumb"><b>${esc(appObj.name)}</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   return (
     <>
       <title>{`${appObj.name} · Klar Control`}</title>
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel={appObj.name} />
       <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
     </>
   );

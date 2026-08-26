@@ -31,6 +31,7 @@ import { type ViewPost } from "./PostSamples";
 import WeekNav from "./WeekNav";
 import { viewHref, type TodoView } from "./views";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -340,15 +341,11 @@ export default async function TodosPage({
     ]),
   ];
 
-  const topbar = `
-    <span class="crumb"><b>${t.navTodos}</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="${t.themeToggle}" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   return (
     <>
       <title>To-do · Klar Control</title>
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel={t.navTodos} />
       <div className="content" style={{ maxWidth: "none" }}>
         <h1>{t.navTodos}</h1>
         {!todosConfigured() ? (

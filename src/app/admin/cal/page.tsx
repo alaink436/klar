@@ -11,11 +11,11 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  ICON,
   readCookieFromString,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -30,15 +30,11 @@ export default async function CalPage() {
   const device = await verifyDeviceCookie(readCookieFromString(cookieHeader, "klar_device"), DEV);
   if (!device) redirect("/admin/login");
   if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
-  const topbar = `
-    <span class="crumb"><b>Cal Admin</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   return (
     <>
       <title>Cal Admin · Klar Control</title>
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel="Cal Admin" />
       <div className="content">
         <div style={{ margin: "-24px -28px -28px -28px", height: "calc(100vh - 56px)", position: "relative" }}>
           <iframe

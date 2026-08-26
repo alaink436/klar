@@ -11,8 +11,8 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  ICON,
-  readCookieFromString,} from "../_shared";
+  readCookieFromString,
+} from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { setupLandingUrl } from "../../../lib/adminApps";
 import {
@@ -39,6 +39,7 @@ import MailClient, {
 // (Laufzeit-TypeError bei .includes), tsc/build merken davon nichts.
 import { INBOX_FILTERS, type InboxFilter } from "./inboxFilters";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -464,15 +465,12 @@ export default async function InboxPage({
   const appMail = await listAppTemplates();
   const senderEnabled = process.env.KLAR_OUTREACH_SENDER === "on";
   const cronSet = Boolean(process.env.CRON_SECRET);
-  const inboundSet = Boolean(process.env.KLAR_INBOUND_DOMAIN);  const topbar = `
-    <span class="crumb"><b>Inbox</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
+  const inboundSet = Boolean(process.env.KLAR_INBOUND_DOMAIN);
 
   return (
     <>
       <title>Inbox · Klar Control</title>
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel="Inbox" />
       {flashMsg && <div className="flash" style={{ margin: "12px 36px 0" }}>{flashMsg}</div>}
       <MailClient
         conversations={conversations}

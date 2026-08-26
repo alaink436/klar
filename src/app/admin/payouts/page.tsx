@@ -14,7 +14,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  ICON,
   readCookieFromString,
   esc,
   eur,
@@ -22,6 +21,7 @@ import {
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps, sbGet, type AdminApp } from "../../../lib/adminApps";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -167,15 +167,11 @@ export default async function PayoutsPage({
   const apps = getApps();
   const main = await payoutsMain(apps);
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
-  const topbar = `
-    <span class="crumb"><b>Auszahlungen</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   return (
     <>
       <title>Auszahlungen · Klar Control</title>
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel="Auszahlungen" />
       <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
     </>
   );

@@ -14,7 +14,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  ICON,
   readCookieFromString,
   esc,
   fmtRelative,
@@ -53,6 +52,7 @@ import OutreachAddForm, { type AddFormApp } from "./OutreachAddForm";
 import OutreachSuppressions, { type SuppressionRowData } from "./OutreachSuppressions";
 import OutreachTargets from "./OutreachTargets";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -528,16 +528,12 @@ export default async function OutreachPage({
     : "pipeline";
 
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
-  const topbar = `
-    <span class="crumb"><b>Outreach</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   return (
     <>
       <title>Outreach · Klar Control</title>
       {autoRefresh ? <meta httpEquiv="refresh" content="15" /> : null}
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel="Outreach" />
       <div className="content">
         {result.configured ? (
           <>

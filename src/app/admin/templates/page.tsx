@@ -13,7 +13,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  ICON,
   readCookieFromString,
   esc,
 } from "../_shared";
@@ -21,6 +20,7 @@ import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listAppTemplates, isOutreachConfigured, type AppMailTemplate } from "../../../lib/outreachStore";
 import { KLAR_APPS } from "../../../lib/klarApps";
 
+import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -174,15 +174,11 @@ export default async function TemplatesPage({
   const sp = await searchParams;
   const main = await templatesMain();
   const flash = sp.msg ? `<div class="flash">${esc(sp.msg)}</div>` : "";
-  const topbar = `
-    <span class="crumb"><b>Templates</b>${ICON.chevron}<span>Klar Control</span></span>
-    <button type="button" class="tbtn" aria-label="Theme wechseln" onclick="klarToggleTheme()">${ICON.sun}${ICON.moon}</button>
-  `;
 
   return (
     <>
       <title>Templates · Klar Control</title>
-      <div className="topbar" dangerouslySetInnerHTML={{ __html: topbar }} />
+      <AdminTopbar titel="Templates" />
       <div className="content" dangerouslySetInnerHTML={{ __html: flash + main }} />
     </>
   );
