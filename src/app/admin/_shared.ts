@@ -180,63 +180,55 @@ export const STYLE = `
  --shadow:0 1px 3px rgba(0,0,0,.45),0 8px 24px -8px rgba(0,0,0,.55);
  --shadow-lg:0 4px 14px rgba(0,0,0,.55),0 18px 48px -16px rgba(0,0,0,.7);
 }}
+/* ===== Bruecke zu den Library-Komponenten (2026-08-25) =====
+   Oben stehen die Klar-Tokens. Hier bekommen die shadcn-Namen ihre Werte,
+   damit alles, was aus einer Registry kommt (shadcn, animate-ui, magicui),
+   ohne Nacharbeit im Klar-Look steht statt im Fabrik-Grau.
+
+   Warum hier und nicht in globals.css: die Klar-Tokens schalten weiter oben
+   in DIESEM Block zwischen hell und dunkel um. Wer sich per var() an sie
+   haengt, macht die Umschaltung mit und braucht keinen zweiten Dark-Zweig.
+   Genau eine Sektion, nicht drei.
+
+   Eine Falle: --accent heisst bei uns seit je die Primaerfarbe (Tiefschwarz),
+   bei shadcn ist es die leise Hover-Flaeche. Wir behalten unsere Bedeutung,
+   weil der Bestand darauf steht. Wer eine Registry-Komponente holt, die
+   bg-accent als Hover benutzt, bekommt eine kraeftige Flaeche und stellt sie
+   auf bg-secondary um. In der Schiene ist das schon getan: --sidebar-accent
+   zeigt auf --surface-2 und ist davon unberuehrt.
+   (Ohne Schraegstriche geschrieben: der ganze Block ist ein Template-Literal,
+   ein Gegenapostroph darin beendet die Zeichenkette.) */
+:root,[data-theme="dark"],[data-theme="light"]{
+ --background:var(--bg);--foreground:var(--fg);
+ --card:var(--surface);--card-foreground:var(--fg);
+ --popover:var(--surface);--popover-foreground:var(--fg);
+ --primary:var(--accent);--primary-foreground:var(--accent-fg);
+ --secondary:var(--surface-2);--secondary-foreground:var(--fg);
+ --muted:var(--surface-2);--muted-foreground:var(--fg-3);
+ --accent-foreground:var(--accent-fg);
+ --destructive:var(--danger);--destructive-foreground:#fff;
+ --border:var(--line);--input:var(--line);--ring:var(--fg-4);
+
+ /* Die Schiene liegt auf Papier, der Inhalt als Flaeche darin. Das ist der
+    Griff, den wir von Cakeday uebernehmen: der Rahmen tritt zurueck, damit
+    der Inhalt vorne steht. Vorher trug die Schiene einen eigenen Verlauf und
+    stand damit gleichberechtigt neben dem, was sie einrahmt. */
+ --sidebar:var(--bg);--sidebar-foreground:var(--fg-2);
+ --sidebar-primary:var(--accent);--sidebar-primary-foreground:var(--accent-fg);
+ --sidebar-accent:var(--surface-2);--sidebar-accent-foreground:var(--fg);
+ --sidebar-border:var(--line);--sidebar-ring:var(--fg-4);
+}
+
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15.5px;line-height:1.5;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-feature-settings:"kern","liga","calt","ss01"}
 a{color:inherit;text-decoration:none}
 ::selection{background:var(--accent);color:var(--accent-fg)}
 
-.layout{display:flex;min-height:100vh}
-.side{width:240px;flex-shrink:0;border-right:1px solid var(--line);padding:18px 14px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:1px;overflow-y:auto;background:linear-gradient(180deg,var(--surface) 0%,var(--bg) 100%)}
-.side::-webkit-scrollbar{width:4px}
-.side::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
-
-.brand{padding:6px 8px 16px;display:flex;align-items:center;gap:12px;color:var(--fg)}
-.brand-mark{width:40px;height:40px;border-radius:10px;overflow:hidden;flex-shrink:0;background:var(--surface-2);display:flex;align-items:center;justify-content:center;border:1px solid var(--line)}
-[data-theme="dark"] .brand-mark{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10);box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 4px 14px -6px rgba(0,0,0,.5)}
-.brand-mark img{width:100%;height:100%;object-fit:contain;display:block}
-.brand-text{display:flex;flex-direction:column;gap:2px;line-height:1;min-width:0}
-.brand-text .brand-name{font-family:var(--font-display);font-weight:800;font-size:24px;letter-spacing:-.02em;color:var(--fg)}
-.brand-text .brand-sub{font-family:var(--font-mono);color:var(--fg-4);font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.22em;margin-top:3px}
-
-.navsec{font-family:var(--font-mono);font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:var(--fg-4);padding:0 12px;margin:18px 0 6px;display:flex;align-items:center;gap:8px}
-.navsec::after{content:"";flex:1;height:1px;background:var(--line)}
-
-/* Collapsible nav group (Creator). The section head doubles as the toggle:
-   a caret in front, the "paused" note after the label, the rule filling the
-   rest — same silhouette as a plain .navsec so the sidebar keeps its rhythm. */
-.navgroup{margin:0}
-.navsec-toggle{cursor:pointer;list-style:none;user-select:none}
-.navsec-toggle::-webkit-details-marker{display:none}
-.navsec-toggle::before{content:"";width:0;height:0;border-left:4px solid currentColor;border-top:3px solid transparent;border-bottom:3px solid transparent;transition:transform 120ms cubic-bezier(.2,.6,.3,1);flex-shrink:0}
-.navgroup[open]>.navsec-toggle::before{transform:rotate(90deg)}
-.navsec-toggle:hover{color:var(--fg-2)}
-.navsec-note{font-size:9px;letter-spacing:.08em;color:var(--fg-4);opacity:.75;text-transform:none;font-weight:500}
-
-/* Count pill on a nav row (unanswered collab requests). */
-.nav-badge{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 5px;border-radius:999px;background:var(--danger);color:#fff;font-family:var(--font-mono);font-size:9.5px;font-weight:700;line-height:1;flex-shrink:0}
-.nav.on .nav-badge{background:var(--accent-fg);color:var(--fg)}
-.nav-appicon{width:16px;height:16px;border-radius:4px;object-fit:cover;display:block}
-
-/* Reorderable rows: the line marks where the dragged entry would land. */
-.nav[draggable="true"]{cursor:grab}
-.nav[draggable="true"]:active{cursor:grabbing}
-.nav-drop{box-shadow:inset 0 2px 0 0 var(--fg)}
-
-.nav{display:flex;align-items:center;gap:10px;padding:7px 11px;color:var(--fg-3);font-family:var(--font-body);font-size:13px;font-weight:500;border-radius:var(--radius-sm);transition:color 90ms cubic-bezier(.2,.6,.3,1),background 90ms cubic-bezier(.2,.6,.3,1);margin:1px 0}
-.nav .d{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;color:var(--fg-4);flex-shrink:0;transition:color 90ms cubic-bezier(.2,.6,.3,1)}
-.nav .d svg{width:14px;height:14px;stroke-width:1.8;transition:transform 140ms cubic-bezier(.2,.6,.3,1)}
-.nav:hover{color:var(--fg);background:var(--surface-2)}
-.nav:hover .d{color:var(--fg-2)}
-.nav:hover .d svg{transform:rotate(-14deg)}
-.nav.on{color:var(--fg);background:var(--surface-2);font-weight:600}
-.nav.on .d{color:var(--fg)}
-.nav.muted{color:var(--fg-4)}
-
-.spacer{flex:1;min-height:18px}
-.logout{color:var(--fg-4);border-top:1px solid var(--line);margin-top:8px;padding-top:12px;border-radius:0}
-.logout:hover{color:var(--danger);background:transparent}
-.logout:hover .d{color:var(--danger)}
+/* Die Schiene wohnt seit 2026-08-25 in components/ui/sidebar. Was hier stand
+   (.layout .side .brand .navsec .nav .spacer .logout, mit ihren Dark-Zweigen),
+   war rund sechzig Zeilen Handarbeit fuer Breite, Haftung, Scrollbalken und
+   Zustaende. Nichts davon hatte danach noch ein Element im Dokument. */
 
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
 .topbar{display:flex;align-items:center;gap:14px;padding:14px 36px;border-bottom:1px solid var(--line);font-family:var(--font-body);font-size:13px;color:var(--fg-3);position:sticky;top:0;background:color-mix(in oklab,var(--bg) 86%,transparent);backdrop-filter:blur(10px);z-index:5}
@@ -475,10 +467,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 
 /* ===== Liquid Glass Layer (dark-mode only, smoke-bg behind glass cards) ===== */
 /* Smoke canvas: full-viewport, fixed behind everything, fades to 0 in light mode */
-#klar-smoke-bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-2;display:block;opacity:0;transition:opacity .6s ease;pointer-events:none}
-[data-theme="dark"] #klar-smoke-bg{opacity:.55}
-/* Aurora wash disabled — pure greyscale stack on top of smoke */
-.klar-aurora{display:none}
+
 /* Dark theme: VS Ink & Steel — monochrome charcoal, glass cards over smoke */
 [data-theme="dark"]{
   --bg:#0A0A0A;
@@ -519,7 +508,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 /* Iframe-wrap in dark: glassy frame */
 [data-theme="dark"] .iframewrap{background:rgba(17,17,17,.62);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
 
-@media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none}html{scroll-behavior:auto}.card{transition:none}#klar-smoke-bg{display:none}.klar-aurora{display:none}}
+@media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none}html{scroll-behavior:auto}.card{transition:none}}
 @media(max-width:820px){
  .layout{flex-direction:column}
  .side{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px;border-right:0;border-bottom:1px solid var(--line);padding:12px 14px;background:var(--surface)}
@@ -694,29 +683,7 @@ export const GLASS_SVG_DEFS = `<svg class="klar-glass-defs" aria-hidden="true" w
 // Vanilla WebGL2 smoke animation, ported from VS spooky-smoke-animation.tsx.
 // Renders only when theme=dark, pauses on tab-hidden, dpr*0.5 for GPU savings.
 // Smoke color in violet-cyan range (Klar brand-ish), opacity moderate.
-export const SMOKE_BG_SCRIPT = String.raw`(function(){
-  if (typeof window === 'undefined' || !window.WebGL2RenderingContext) return;
-  var c = document.getElementById('klar-smoke-bg');
-  if (!c) return;
-  var gl = c.getContext('webgl2', { antialias: false, preserveDrawingBuffer: false });
-  if (!gl) { c.style.display = 'none'; return; }
-  var VS = '#version 300 es\nprecision highp float;\nin vec4 position;\nvoid main(){gl_Position=position;}';
-  var FS = '#version 300 es\nprecision highp float;\nout vec4 O;\nuniform float time;\nuniform vec2 resolution;\nuniform vec3 u_color;\n#define FC gl_FragCoord.xy\n#define R resolution\n#define T (time+660.)\nfloat rnd(vec2 p){p=fract(p*vec2(12.9898,78.233));p+=dot(p,p+34.56);return fract(p.x*p.y);}\nfloat noise(vec2 p){vec2 i=floor(p),f=fract(p),u=f*f*(3.-2.*f);return mix(mix(rnd(i),rnd(i+vec2(1,0)),u.x),mix(rnd(i+vec2(0,1)),rnd(i+1.),u.x),u.y);}\nfloat fbm(vec2 p){float t=.0,a=1.;for(int i=0;i<5;i++){t+=a*noise(p);p*=mat2(1,-1.2,.2,1.2)*2.;a*=.5;}return t;}\nvoid main(){vec2 uv=(FC-.5*R)/R.y;vec3 col=vec3(1);uv.x+=.25;uv*=vec2(2,1);float n=fbm(uv*.28-vec2(T*.01,0));n=noise(uv*3.+n*2.);col.r-=fbm(uv+vec2(0,T*.015)+n);col.g-=fbm(uv*1.003+vec2(0,T*.015)+n+.003);col.b-=fbm(uv*1.006+vec2(0,T*.015)+n+.006);col=mix(col,u_color,dot(col,vec3(.21,.71,.07)));col=mix(vec3(.04),col,min(time*.1,1.));col=clamp(col,.04,1.);O=vec4(col,1);}';
-  function compile(type, src){ var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.warn('smoke shader:', gl.getShaderInfoLog(s)); return null; } return s; }
-  var vs = compile(gl.VERTEX_SHADER, VS), fs = compile(gl.FRAGMENT_SHADER, FS);
-  if (!vs || !fs) return;
-  var prog = gl.createProgram(); gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.warn('smoke link:', gl.getProgramInfoLog(prog)); return; }
-  var buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,1,-1,-1,1,1,1,-1]), gl.STATIC_DRAW);
-  var pos = gl.getAttribLocation(prog, 'position'); gl.enableVertexAttribArray(pos); gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
-  var uRes = gl.getUniformLocation(prog, 'resolution'), uTime = gl.getUniformLocation(prog, 'time'), uColor = gl.getUniformLocation(prog, 'u_color');
-  // Smoke colour: pure neutral grey, no hue cast
-  var color = [0.45, 0.45, 0.45];
-  function resize(){ var dpr = Math.max(0.5, (window.devicePixelRatio || 1) * 0.5); c.width = Math.floor(window.innerWidth * dpr); c.height = Math.floor(window.innerHeight * dpr); gl.viewport(0, 0, c.width, c.height); }
-  resize(); window.addEventListener('resize', resize, { passive: true });
-  var raf, last = 0, interval = 1000 / 30; // 30 fps target
-  function loop(now){ raf = requestAnimationFrame(loop); if (document.hidden) return; if (now - last < interval) return; last = now; gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT); gl.useProgram(prog); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.uniform2f(uRes, c.width, c.height); gl.uniform1f(uTime, now * 0.001); gl.uniform3fv(uColor, color); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
-  raf = requestAnimationFrame(loop);
-  document.addEventListener('visibilitychange', function(){ if (!document.hidden) last = 0; });
-})();`;
+// SMOKE_BG_SCRIPT ist am 2026-08-25 ausgebaut (Alains Entscheid, zusammen mit
+// der Aurora). Es hielt hinter jedem Admin-Bild eine WebGL-Schleife mit 30 Bildern
+// je Sekunde am Laufen, und der Canvas dazu steht nicht mehr im Layout. Wer den
+// Rauch zurueckholen will, findet ihn in der Git-Historie dieser Datei.

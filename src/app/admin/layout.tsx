@@ -1,7 +1,7 @@
 // Shared admin chrome. Everything that is identical on every /admin page lives
 // here ONCE and persists across client-side menu switches:
 //   - fonts + the big STYLE constant + theme init/toggle scripts + glass defs
-//   - the smoke-bg canvas (its WebGL loop mounts once, survives SPA nav)
+//   - (bis 2026-08-25 auch der Rauch-Canvas; ausgebaut, siehe unten)
 //   - the confirm modal HTML + script
 // Previously each page re-injected the multi-KB inline <style> on every menu
 // switch, which is what made navigation flicker/feel slow (and forced SPA view
@@ -20,7 +20,6 @@ import {
   THEME_INIT_SCRIPT,
   THEME_TOGGLE_SCRIPT,
   GLASS_SVG_DEFS,
-  SMOKE_BG_SCRIPT,
   MODAL_HTML,
   MODAL_SCRIPT,
 } from "./_shared";
@@ -37,6 +36,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // Sidebar badge. Cached for a minute inside countOpenCollabs, so it does not
   // add a PostgREST round-trip to every single admin navigation.
   const collabOpen = await countOpenCollabs();
+  // Ob die Schiene ein- oder ausgeklappt war. shadcn schreibt diese Cookie
+  // beim Umschalten; ohne sie hier klappt die Schiene beim ersten Bild kurz
+  // auf und dann wieder zu.
+  const sidebarOpen = jar.get("sidebar_state")?.value !== "false";
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -45,10 +48,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <style dangerouslySetInnerHTML={{ __html: STYLE }} />
       <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       <script dangerouslySetInnerHTML={{ __html: THEME_TOGGLE_SCRIPT }} />
-      <div className="klar-aurora" aria-hidden="true" />
+      {/* Aurora und Rauch sind am 2026-08-25 ausgebaut (Alains Entscheid).
+          Beides lag hinter jeder Seite in Bewegung und war der Grund, warum
+          das Dashboard unruhiger wirkte als es musste. Der Rauch kostete
+          zusaetzlich eine dauerhaft laufende WebGL-Schleife. Die Glas-Flaechen
+          bleiben, sie liegen jetzt direkt auf dem Untergrund. */}
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
-      <canvas id="klar-smoke-bg" aria-hidden="true" suppressHydrationWarning />
-      <AdminShell apps={apps} lang={lang} collabOpen={collabOpen} navPrefs={navPrefs}>
+      <AdminShell apps={apps} lang={lang} collabOpen={collabOpen} navPrefs={navPrefs} sidebarOpen={sidebarOpen}>
         {children}
       </AdminShell>
       {/* Confirm dialog hoisted here so it survives client-side menu switches.
@@ -57,7 +63,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           page renders later. Per-page injection was removed from outreach +
           [app] to avoid a duplicate #klar-modal id. */}
       <div dangerouslySetInnerHTML={{ __html: MODAL_HTML }} />
-      <script dangerouslySetInnerHTML={{ __html: SMOKE_BG_SCRIPT }} />
       <script dangerouslySetInnerHTML={{ __html: MODAL_SCRIPT }} />
     </>
   );

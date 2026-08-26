@@ -26,13 +26,18 @@ export default function LangSwitch({ lang }: { lang: AdminLang }) {
   }
 
   return (
-    <div className="mt-3">
-      <div className="navsec">{t.langSection}</div>
+    // Beim Einklappen der Schiene verschwindet der Schalter: zwei Kuerzel
+    // nebeneinander sind auf Symbolbreite nicht mehr zu treffen, und die
+    // Sprache stellt man ohnehin einmal ein und dann nie wieder.
+    <div className="mt-2 px-1 group-data-[collapsible=icon]:hidden">
+      <div className="mb-1 px-2 text-[9.5px] font-semibold uppercase tracking-[0.14em] text-[var(--fg-4)] [font-family:var(--font-mono)]">
+        {t.langSection}
+      </div>
       <div
         role="group"
         aria-label={t.langAria}
         title={t.langHint}
-        className="mx-3 flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface)] p-0.5"
+        className="flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface)] p-0.5"
         style={{ opacity: pending ? 0.6 : 1 }}
       >
         {ADMIN_LANGS.map((code) => {

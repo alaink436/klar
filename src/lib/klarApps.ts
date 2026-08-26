@@ -96,6 +96,20 @@ export const KLAR_APPS: KlarAppMeta[] = [
     appStoreUrl: "https://apps.apple.com/app/id6761271923",
     publicSite: true,
   },
+  // ThrottleUp hat sein Supabase-Projekt am 2026-08-24 an Cakeday abgegeben,
+  // derselbe Vorgang wie Promillo -> Anime Vault weiter unten. Nachgemessen im
+  // Projekt mpqapdnixzgolmfyckla, nicht angenommen: das Schema heisst dort
+  // `moto_archiv` (5 Tabellen), daneben liegt `cakeday` mit 29, und die
+  // einzigen drei auth.users stammen alle vom 24.08. Was Klar Control unter
+  // "ThrottleUp" zaehlte, waren also Cakeday-Konten.
+  //
+  // `listed: false` haelt den Eintrag aus jeder Admin-Liste heraus (Analytics,
+  // Kacheln der Uebersicht, Schiene), laesst aber historische Zeilen aus
+  // Outreach, Affiliate und Pageviews weiter einen Namen finden.
+  //
+  // `publicSite` bleibt bewusst stehen: die App ist im App Store nach wie vor
+  // da (id6761712527), nur ihr Backend ist es nicht mehr. Die Marketing-Seite
+  // ist eine andere Frage als das Dashboard.
   {
     slug: "moto",
     name: "ThrottleUp",
@@ -104,6 +118,7 @@ export const KLAR_APPS: KlarAppMeta[] = [
     release: "v1.0.3 · build 14",
     appStoreUrl: "https://apps.apple.com/app/id6761712527",
     publicSite: true,
+    listed: false,
   },
   // slug stays "wavelength": it is the key into the affiliate schema, the
   // Supabase project and referrals.app. Only the display name changed.
