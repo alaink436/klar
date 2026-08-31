@@ -127,6 +127,10 @@ export interface LearningStats {
   recent: LearningEntry[];
   /** Tag eines Eintrags, der am längsten zurückliegt — für "seit wann". */
   oldest: string | null;
+  /** Einträge je Kalenderwoche (Montagsdatum), älteste zuerst, Lücken als 0. */
+  byWeek: { week: string; count: number }[];
+  /** Häufigste Tags mit Anteil am Bestand. */
+  topTags: { tag: string; count: number; share: number }[];
 }
 
 export async function readLearnings(recentCount = 5): Promise<LearningStats | null> {
@@ -157,12 +161,58 @@ export async function readLearnings(recentCount = 5): Promise<LearningStats | nu
   const within = (days: number) =>
     entries.filter((e) => now - Date.parse(`${e.date}T12:00:00Z`) <= days * dayMs).length;
 
+  // Wochenverlauf, nicht Monate. Gemessen am 2026-08-31 deckt der ganze Bestand
+  // erst vier Monate ab, davon 265 von 398 im August: als Monatsbalken sind das
+  // drei Striche neben einem Turm. Dieselben Daten je Woche ergeben 18 Punkte
+  // mit sichtbarem Rhythmus. Luecken werden mit 0 gefuellt, sonst schoebe eine
+  // stille Woche die Balken zusammen und zeigte einen Takt, den es nicht gab.
+  const monday = (iso: string): string => {
+    const d = new Date(`${iso}T12:00:00Z`);
+    const shift = (d.getUTCDay() + 6) % 7; // Montag = 0
+    d.setUTCDate(d.getUTCDate() - shift);
+    return d.toISOString().slice(0, 10);
+  };
+  const counts = new Map<string, number>();
+  for (const e of entries) {
+    const w = monday(e.date);
+    counts.set(w, (counts.get(w) ?? 0) + 1);
+  }
+  const byWeek: { week: string; count: number }[] = [];
+  const firstWeek = entries[entries.length - 1] ? monday(entries[entries.length - 1].date) : null;
+  const lastWeek = entries[0] ? monday(entries[0].date) : null;
+  if (firstWeek && lastWeek) {
+    const cur = new Date(`${firstWeek}T12:00:00Z`);
+    const end = new Date(`${lastWeek}T12:00:00Z`);
+    while (cur <= end) {
+      const key = cur.toISOString().slice(0, 10);
+      byWeek.push({ week: key, count: counts.get(key) ?? 0 });
+      cur.setUTCDate(cur.getUTCDate() + 7);
+    }
+  }
+
+  // Tags, haeufigste zuerst. Der Anteil steht dabei, weil ein Tag ueber ~15 %
+  // nichts mehr eingrenzt — das ist beim Suchen wichtiger als die nackte Zahl.
+  const tagCounts = new Map<string, number>();
+  for (const e of entries) {
+    for (const t of e.tags) {
+      const key = t.toLowerCase();
+      if (!key) continue;
+      tagCounts.set(key, (tagCounts.get(key) ?? 0) + 1);
+    }
+  }
+  const topTags = [...tagCounts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 8)
+    .map(([tag, count]) => ({ tag, count, share: count / entries.length }));
+
   return {
     total: entries.length,
     last7: within(7),
     last30: within(30),
     recent: entries.slice(0, recentCount),
     oldest: entries[entries.length - 1]?.date ?? null,
+    byWeek: byWeek.slice(-16),
+    topTags,
   };
 }
 

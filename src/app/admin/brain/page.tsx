@@ -106,6 +106,17 @@ export default async function BrainPage({
     prefix: t.prefix,
     scopes: t.scopes,
     secretIds: t.vault_secret_ids ?? [],
+    releaseUntil: t.vault_release_until
+      ? new Date(t.vault_release_until).toLocaleString("de-CH", {
+          day: "2-digit",
+          month: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "",
+    releaseExpired: Boolean(
+      t.vault_release_until && Date.parse(t.vault_release_until) <= Date.now(),
+    ),
     secretLabels: (t.vault_secret_ids ?? []).map((sid) => secretLabelById.get(sid) ?? sid),
     lastUsed: t.last_used_at ? new Date(t.last_used_at).toLocaleDateString("de-CH") : "—",
     revoked: Boolean(t.revoked_at),
@@ -126,8 +137,9 @@ export default async function BrainPage({
     checked: SHOWCASE_FOLDERS.includes(g.key),
   }));
 
-  // Zugang is the default tab; the graph opens only via the explicit ?tab=graph.
-  const defaultTab = sp.tab === "graph" ? "graph" : "zugang";
+  // The graph is the landing view: opening /admin/brain means wanting to see the
+  // brain, not its access list. Zugang opens via ?tab=zugang or the tab itself.
+  const defaultTab = sp.tab === "zugang" ? "zugang" : "graph";
 
   return (
     <>
@@ -218,7 +230,97 @@ export default async function BrainPage({
                 bleiben es dort fünf Punkte — gewachsen ist trotzdem, was hier steht.
               </p>
             </div>
-            <ul style={{ listStyle: "none", margin: "16px 0 0", padding: 0 }}>
+            {/* Verlauf und Themen. Beides steckte schon in den Daten und wurde
+                weggeworfen: die Monatsverteilung beantwortet "wann habe ich
+                gelernt", die Tags "woran". Eine Serie, also eine Farbe und keine
+                Legende; der Titel benennt sie. Reines SVG/CSS, damit die Karte
+                serverseitig rendert und kein Bundle kostet. */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 26, marginTop: 20 }}>
+              {learnings.byWeek.length > 1 && (() => {
+                const max = Math.max(...learnings.byWeek.map((w) => w.count), 1);
+                const kurz = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
+                return (
+                  <div>
+                    <div className="k" style={{ margin: "0 0 10px" }}>Pro Woche</div>
+                    <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 76 }}>
+                      {learnings.byWeek.map((w) => (
+                        <div
+                          key={w.week}
+                          title={`Woche ab ${kurz(w.week)}: ${w.count} Learning${w.count === 1 ? "" : "s"}`}
+                          style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", height: "100%" }}
+                        >
+                          <div
+                            style={{
+                              height: `${Math.max((w.count / max) * 100, w.count > 0 ? 4 : 2)}%`,
+                              background: w.count > 0 ? "var(--accent)" : "var(--line)",
+                              borderRadius: "3px 3px 0 0",
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--fg-4)" }}>
+                      <span>{kurz(learnings.byWeek[0]!.week)}</span>
+                      <span>höchste Woche: {max}</span>
+                      <span>{kurz(learnings.byWeek[learnings.byWeek.length - 1]!.week)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {learnings.topTags.length > 0 && (() => {
+                const max = Math.max(...learnings.topTags.map((t) => t.count), 1);
+                return (
+                  <div>
+                    <div className="k" style={{ margin: "0 0 10px" }}>Häufigste Tags</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                      {learnings.topTags.slice(0, 6).map((t) => (
+                        <div key={t.tag} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", width: 116, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {t.tag}
+                          </span>
+                          <div style={{ position: "relative", flex: 1, height: 8, background: "var(--surface-2)", borderRadius: 4 }}>
+                            <div
+                              title={`${t.tag}: ${t.count} von ${learnings.total} (${Math.round(t.share * 100)} %)`}
+                              style={{
+                                width: `${(t.count / max) * 100}%`,
+                                height: "100%",
+                                background: "var(--accent)",
+                                borderRadius: 4,
+                              }}
+                            />
+                            {/* 15-%-Marke als Referenzlinie statt als zweite
+                                Farbe: eine Serie behaelt eine Farbe, und die
+                                Grenze bleibt ablesbar, auch wenn wie heute die
+                                Mehrheit der Tags darueber liegt. */}
+                            <div
+                              aria-hidden
+                              style={{
+                                position: "absolute",
+                                left: `${Math.min((0.15 * learnings.total) / max, 1) * 100}%`,
+                                top: -2,
+                                bottom: -2,
+                                width: 1,
+                                background: "var(--fg-4)",
+                              }}
+                            />
+                          </div>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-4)", width: 26, textAlign: "right", flexShrink: 0 }}>
+                            {t.count}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="s" style={{ margin: "8px 0 0", fontSize: 11 }}>
+                      Der Strich steht bei 15 % vom Bestand. Was darüber liegt, grenzt beim Suchen
+                      nichts mehr ein.
+                    </p>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <ul style={{ listStyle: "none", margin: "20px 0 0", padding: 0 }}>
               {learnings.recent.map((e) => (
                 <li key={`${e.date}-${e.title}`} style={{ display: "flex", gap: 12, alignItems: "baseline", padding: "8px 0", borderTop: "1px solid var(--line)" }}>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-4)", flexShrink: 0 }}>{e.date}</span>

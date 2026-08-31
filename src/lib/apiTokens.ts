@@ -24,6 +24,7 @@ export interface ApiTokenRow {
   prefix: string;
   scopes: string[];
   vault_secret_ids: string[];
+  vault_release_until: string | null;
   created_at: string;
   last_used_at: string | null;
   revoked_at: string | null;
@@ -89,7 +90,7 @@ export async function listTokens(): Promise<ApiTokenRow[]> {
   if (!KEY()) return [];
   try {
     const res = await fetch(
-      `${URL_BASE}/rest/v1/api_tokens?select=id,label,prefix,scopes,vault_secret_ids,created_at,last_used_at,revoked_at&order=created_at.desc`,
+      `${URL_BASE}/rest/v1/api_tokens?select=id,label,prefix,scopes,vault_secret_ids,vault_release_until,created_at,last_used_at,revoked_at&order=created_at.desc`,
       { headers: headers(), cache: "no-store" },
     );
     if (!res.ok) return [];
@@ -143,7 +144,13 @@ export async function deleteToken(id: string): Promise<boolean> {
 // own explicit call: a token gains the ability one secret at a time, because
 // someone ticked a box in Klar Control, and never as a side effect of anything
 // else. An empty list takes the ability away again.
-export async function setTokenSecrets(id: string, secretIds: string[]): Promise<boolean> {
+export async function setTokenSecrets(
+  id: string,
+  secretIds: string[],
+  // ISO-Zeitpunkt oder null fuer unbefristet. Laeuft von selbst ab, damit eine
+  // Freigabe "nur fuer heute" nicht davon abhaengt, dass jemand daran denkt.
+  releaseUntil: string | null = null,
+): Promise<boolean> {
   if (!KEY()) return false;
   try {
     const res = await fetch(
@@ -151,7 +158,10 @@ export async function setTokenSecrets(id: string, secretIds: string[]): Promise<
       {
         method: "PATCH",
         headers: headers({ Prefer: "return=minimal" }),
-        body: JSON.stringify({ vault_secret_ids: secretIds }),
+        body: JSON.stringify({
+          vault_secret_ids: secretIds,
+          vault_release_until: secretIds.length ? releaseUntil : null,
+        }),
         cache: "no-store",
       },
     );
@@ -159,6 +169,23 @@ export async function setTokenSecrets(id: string, secretIds: string[]): Promise<
   } catch {
     return false;
   }
+}
+
+// Dieselbe Freigabe auf JEDEN aktiven vault:use-Token legen. Der Vault ist
+// geraeteweise zugaenglich (ein Token je Geraet), eine Freigabe "fuer alle
+// Geraete" waere sonst ein Klick pro Zeile. Nur aktive Tokens, damit ein
+// widerrufener nicht stillschweigend wieder etwas darf.
+export async function setSecretsOnAllTokens(
+  secretIds: string[],
+  releaseUntil: string | null = null,
+): Promise<number> {
+  const tokens = await listTokens();
+  const targets = tokens.filter((t) => !t.revoked_at && t.scopes.includes("vault:use"));
+  let n = 0;
+  for (const t of targets) {
+    if (await setTokenSecrets(t.id, secretIds, releaseUntil)) n++;
+  }
+  return n;
 }
 
 // Best-effort, fire-and-forget "last used" stamp for a token. Never awaited so
@@ -183,12 +210,18 @@ export async function verifyToken(
   raw: string,
   required: Scope,
   opts: { touch?: boolean } = {},
-): Promise<{ id: string; scopes: string[]; vaultSecretIds: string[] } | null> {
+): Promise<{
+  id: string;
+  scopes: string[];
+  vaultSecretIds: string[];
+  releaseUntil: string | null;
+  releaseExpired: boolean;
+} | null> {
   if (!KEY() || !raw) return null;
   const hash = sha256hex(raw.trim());
   try {
     const res = await fetch(
-      `${URL_BASE}/rest/v1/api_tokens?token_hash=eq.${hash}&select=id,scopes,vault_secret_ids,revoked_at&limit=1`,
+      `${URL_BASE}/rest/v1/api_tokens?token_hash=eq.${hash}&select=id,scopes,vault_secret_ids,vault_release_until,revoked_at&limit=1`,
       { headers: headers(), cache: "no-store" },
     );
     if (!res.ok) return null;
@@ -196,6 +229,7 @@ export async function verifyToken(
       id: string;
       scopes: string[];
       vault_secret_ids: string[] | null;
+      vault_release_until: string | null;
       revoked_at: string | null;
     }[];
     const row = Array.isArray(rows) ? rows[0] : undefined;
@@ -203,7 +237,18 @@ export async function verifyToken(
     const scopes = row.scopes ?? [];
     if (!scopes.includes(required) && !scopes.includes("*")) return null;
     if (opts.touch !== false) touchTokenUsed(row.id);
-    return { id: row.id, scopes, vaultSecretIds: row.vault_secret_ids ?? [] };
+    // Abgelaufene Freigabe zaehlt wie keine: die Liste bleibt in der DB stehen
+    // (im Dashboard soll sichtbar sein, was einmal offen war), gibt aber nichts
+    // mehr heraus.
+    const until = row.vault_release_until;
+    const expired = until !== null && Date.parse(until) <= Date.now();
+    return {
+      id: row.id,
+      scopes,
+      vaultSecretIds: expired ? [] : (row.vault_secret_ids ?? []),
+      releaseUntil: until,
+      releaseExpired: expired,
+    };
   } catch {
     return null;
   }

@@ -8,7 +8,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ctEqual, readCookie, STYLE, FONTS_LINK, THEME_INIT_SCRIPT, esc } from "@/app/admin/_shared";
 import { verifyDeviceCookie } from "@/lib/deviceCookie";
-import { createToken, revokeToken, deleteToken, setTokenSecrets, type Scope } from "@/lib/apiTokens";
+import {
+  createToken,
+  revokeToken,
+  deleteToken,
+  setTokenSecrets,
+  setSecretsOnAllTokens,
+  type Scope,
+} from "@/lib/apiTokens";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -103,10 +110,29 @@ export async function POST(req: NextRequest): Promise<Response> {
       .getAll("secret_id")
       .map((v) => String(v).trim())
       .filter(Boolean);
-    const ok = await setTokenSecrets(id, secretIds);
+
+    // Frist in Stunden; "" oder 0 heisst unbefristet. Der Zeitpunkt wird hier
+    // gerechnet, nicht im Browser, damit eine falsch gestellte Uhr am Client
+    // keine laengere Freigabe erzeugt als gemeint.
+    const hours = Number(String(form.get("until_hours") ?? "").trim());
+    const until =
+      Number.isFinite(hours) && hours > 0
+        ? new Date(Date.now() + hours * 3_600_000).toISOString()
+        : null;
+
+    // "Auf allen Geräten": dieselbe Freigabe auf jeden aktiven vault:use-Token.
+    // Der Vault ist geraeteweise zugaenglich, sonst waere es ein Klick je Zeile.
+    const allDevices = form.get("all_devices") != null;
+
+    const ok = allDevices
+      ? (await setSecretsOnAllTokens(secretIds, until)) > 0
+      : await setTokenSecrets(id, secretIds, until);
+
+    const wo = allDevices ? " auf allen Geräten" : "";
+    const frist = until ? ` für ${hours} Stunde${hours === 1 ? "" : "n"}` : "";
     const okMsg = secretIds.length
-      ? `${secretIds.length} Key${secretIds.length === 1 ? "" : "s"} freigegeben.`
-      : "Klartext-Freigabe entzogen.";
+      ? `${secretIds.length} Key${secretIds.length === 1 ? "" : "s"}${wo}${frist} freigegeben.`
+      : `Klartext-Freigabe entzogen${wo}.`;
     if (wantsJson) {
       return NextResponse.json(
         ok ? { ok: true, msg: okMsg } : { ok: false, error: "Freigabe fehlgeschlagen." },

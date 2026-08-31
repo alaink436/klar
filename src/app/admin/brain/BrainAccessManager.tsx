@@ -48,6 +48,9 @@ export interface TokenRow {
   // auffaellt, ohne dass man in die DB schauen muss.
   secretIds: string[];
   secretLabels: string[];
+  /** Ablauf der Klartext-Freigabe, schon formatiert. Leer = unbefristet. */
+  releaseUntil: string;
+  releaseExpired: boolean;
   lastUsed: string;
   revoked: boolean;
 }
@@ -155,6 +158,21 @@ export default function BrainAccessManager({
   const [useOn, setUseOn] = useState(false);
   // Offener Freigabe-Dialog: welcher Token, und was gerade angehakt ist.
   const [release, setRelease] = useState<{ id: string; label: string; picked: string[] } | null>(null);
+  const [releaseHours, setReleaseHours] = useState("0");
+  const [allDevices, setAllDevices] = useState(false);
+
+  function openRelease(t: TokenRow) {
+    setRelease({ id: t.id, label: t.label, picked: t.secretIds });
+    setReleaseHours("0");
+    setAllDevices(false);
+  }
+  // Kontrollierte Auswahl: nur so koennen "Alle" und "Keine" auf dieselben
+  // Kaestchen wirken wie ein einzelner Klick.
+  function togglePicked(id: string, on: boolean) {
+    setRelease((r) =>
+      r ? { ...r, picked: on ? [...r.picked, id] : r.picked.filter((x) => x !== id) } : r,
+    );
+  }
   const router = useRouter();
 
   // The two copyable agent prompts: full vault access vs read-only brain/RAG.
@@ -432,8 +450,15 @@ export default function BrainAccessManager({
                         </Badge>
                       ))}
                       {t.secretLabels.length > 0 && (
-                        <div className="w-full text-[11px] text-fg-4 mt-0.5">
-                          Klartext für: {t.secretLabels.join(", ")}
+                        <div className="w-full text-[11px] mt-0.5">
+                          <span className={t.releaseExpired ? "text-fg-4 line-through" : "text-fg-4"}>
+                            Klartext für: {t.secretLabels.join(", ")}
+                          </span>
+                          {t.releaseExpired ? (
+                            <span className="text-fg-4"> · abgelaufen</span>
+                          ) : t.releaseUntil ? (
+                            <span className="text-fg-3"> · bis {t.releaseUntil}</span>
+                          ) : null}
                         </div>
                       )}
                     </div>
@@ -456,7 +481,7 @@ export default function BrainAccessManager({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setRelease({ id: t.id, label: t.label, picked: t.secretIds })}
+                          onClick={() => openRelease(t)}
                         >
                           <KeyRound /> Keys freigeben
                         </Button>
@@ -618,24 +643,90 @@ export default function BrainAccessManager({
             {secrets.length === 0 ? (
               <p className="text-[13px] text-fg-3">Noch keine Secrets im Vault.</p>
             ) : (
-              <div className="flex flex-wrap gap-2 max-h-[280px] overflow-y-auto">
-                {secrets.map((sec) => (
-                  <label key={sec.id} className={chipCls}>
-                    <input
-                      type="checkbox"
-                      name="secret_id"
-                      value={sec.id}
-                      defaultChecked={release?.picked.includes(sec.id)}
-                      className="accent-[var(--accent)]"
-                    />{" "}
-                    {sec.label}
-                  </label>
-                ))}
-              </div>
+              <>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="text-[12px] text-fg-3">
+                    {release?.picked.length ?? 0} von {secrets.length} angehakt
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setRelease((r) => (r ? { ...r, picked: secrets.map((x) => x.id) } : r))
+                      }
+                    >
+                      Alle auswählen
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setRelease((r) => (r ? { ...r, picked: [] } : r))}
+                    >
+                      Zugriff entziehen
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 max-h-[240px] overflow-y-auto">
+                  {secrets.map((sec) => (
+                    <label key={sec.id} className={chipCls}>
+                      <input
+                        type="checkbox"
+                        name="secret_id"
+                        value={sec.id}
+                        checked={release?.picked.includes(sec.id) ?? false}
+                        onChange={(e) => togglePicked(sec.id, e.target.checked)}
+                        className="accent-[var(--accent)]"
+                      />{" "}
+                      {sec.label}
+                    </label>
+                  ))}
+                </div>
+              </>
             )}
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="rel-hours">Wie lange</Label>
+              <select
+                id="rel-hours"
+                name="until_hours"
+                className={selectCls}
+                value={releaseHours}
+                onChange={(e) => setReleaseHours(e.target.value)}
+              >
+                <option value="0">Unbefristet, bis ich es wegnehme</option>
+                <option value="1">1 Stunde</option>
+                <option value="8">8 Stunden</option>
+                <option value="24">24 Stunden</option>
+                <option value="168">7 Tage</option>
+              </select>
+              <p className="text-[12px] leading-relaxed text-fg-3">
+                Mit Frist läuft die Freigabe von selbst ab, ohne dass du daran denken musst. Die
+                Auswahl bleibt danach sichtbar, gibt aber nichts mehr heraus.
+              </p>
+            </div>
+
+            <label className={chipCls}>
+              <input
+                type="checkbox"
+                name="all_devices"
+                checked={allDevices}
+                onChange={(e) => setAllDevices(e.target.checked)}
+                className="accent-[var(--accent)]"
+              />{" "}
+              Auf allen Geräten
+            </label>
+            <p className="text-[12px] leading-relaxed text-fg-3 -mt-2">
+              {allDevices
+                ? "Gilt für jeden aktiven Token, also auch Laptop und zweiter Rechner. Widerrufene bleiben aussen vor."
+                : `Gilt nur für ${release?.label ?? "diesen Token"}. Für die anderen Geräte ankreuzen.`}
+            </p>
+
             <p className="text-[12px] leading-relaxed text-fg-3">
-              Nichts angehakt heisst: keine Klartext-Freigabe. Das nimmt eine bestehende auch wieder
-              weg. Nur anhaken, was dieses Gerät wirklich per CLI braucht.
+              Nichts angehakt heisst: keine Klartext-Freigabe. Speichern nimmt eine bestehende damit
+              auch wieder weg.
             </p>
             <DialogFooter>
               <DialogClose asChild>

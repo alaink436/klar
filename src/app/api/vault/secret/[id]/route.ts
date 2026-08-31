@@ -21,9 +21,12 @@
 //   2. Sie gilt absolut, auch fuer den "*"-Scope. Ein Token kann nie mehr als die
 //      Keys, die ihm einzeln zugeteilt wurden. Das Anhaken ist der bewusste Akt,
 //      nicht das Erzeugen des Tokens.
-//   3. Widerrufene Secrets sind weg (revealForExec prueft revoked_at), anders als
+//   3. Sie kann befristet sein (`vault_release_until`). Nach Ablauf zaehlt sie
+//      wie leer, ohne dass jemand daran denken muss. Die Liste selbst bleibt
+//      stehen, damit im Dashboard sichtbar ist, was einmal offen war.
+//   4. Widerrufene Secrets sind weg (revealForExec prueft revoked_at), anders als
 //      beim Admin-Reveal, der hinter 2FA sitzt und auch Altes zeigen darf.
-//   4. Jeder Zugriff stempelt Token und Secret, damit im Dashboard sichtbar ist,
+//   5. Jeder Zugriff stempelt Token und Secret, damit im Dashboard sichtbar ist,
 //      dass ein Key im Klartext rausging.
 //
 // Nur Authorization: Bearer. Die x-api-key-Bequemlichkeit des Proxys gilt hier
@@ -72,8 +75,12 @@ export async function GET(
   // eigener Check hier und nicht in verifyToken(), wo ein "*"-Scope sie
   // aushebeln wuerde.
   if (!auth.vaultSecretIds.includes(id)) {
+    // Abgelaufen und nie freigegeben sind beide 403, aber nicht dasselbe
+    // Problem: das eine loest ein neues Haekchen, das andere eine neue Frist.
     return json(
-      { error: "secret not released for this token", id },
+      auth.releaseExpired
+        ? { error: "plaintext release expired for this token", expiredAt: auth.releaseUntil, id }
+        : { error: "secret not released for this token", id },
       403,
     );
   }
