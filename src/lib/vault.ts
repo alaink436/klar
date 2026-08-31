@@ -245,8 +245,9 @@ export async function revealSecret(id: string): Promise<string | null> {
   }
 }
 
-// Server-only: decrypt + return a secret's plaintext for a `vault:exec` token,
-// so a wrapper can hand it to a CLI that only takes a key from its environment.
+// Server-only: decrypt + return a secret's plaintext for a token that has this
+// secret on its release list, so a wrapper can hand it to a CLI that only takes
+// a key from its environment.
 //
 // Separate from revealSecret() on purpose. That one answers to an admin session
 // behind 2FA and therefore may show a revoked key (the admin is reading their

@@ -16,12 +16,7 @@ const KEY = () => process.env.KLAR_INBOX_SERVICE_KEY ?? "";
 // "todos:ical" ist absichtlich eng: der Kalender-Feed liegt als URL im
 // iPhone und wird von Apple regelmässig ohne Nachfrage abgerufen — dieser
 // Token darf deshalb nichts ausser den geplanten To-dos lesen.
-// "vault:exec" gibt den KLARTEXT eines Secrets heraus. Das ist der einzige Weg
-// fuer CLIs, die ihren Key als Env-Var erwarten (eas, vercel, gh) und den der
-// HTTP-Proxy darum nicht bedienen kann. Weil damit das "use but don't see" faellt,
-// traegt jeder exec-Token eine eigene Allow-List (`vault_secret_ids`): ohne
-// Eintrag loest er nichts auf, auch nicht mit dem "*"-Scope.
-export type Scope = "brain:read" | "vault:use" | "vault:exec" | "todos:ical";
+export type Scope = "brain:read" | "vault:use" | "todos:ical";
 
 export interface ApiTokenRow {
   id: string;
@@ -61,8 +56,9 @@ export function hasStore(): boolean {
 export async function createToken(
   label: string,
   scopes: Scope[],
-  // Nur fuer "vault:exec": welche vault_secrets dieser Token im Klartext holen
-  // darf. Ohne Eintrag kann er keines, das ist Absicht.
+  // Welche vault_secrets dieser Token im KLARTEXT holen darf. Den brauchen CLIs,
+  // die ihren Key aus einer Env-Var lesen und die der Proxy darum nicht bedienen
+  // kann. Leer heisst keines; nachtraeglich aenderbar per setTokenSecrets().
   vaultSecretIds: string[] = [],
 ): Promise<{ ok: true; raw: string; prefix: string } | { ok: false; error: string }> {
   if (!KEY()) return { ok: false, error: "store not configured" };
@@ -73,7 +69,7 @@ export async function createToken(
     token_hash: sha256hex(raw),
     prefix,
     scopes,
-    vault_secret_ids: scopes.includes("vault:exec") ? vaultSecretIds : [],
+    vault_secret_ids: scopes.includes("vault:use") ? vaultSecretIds : [],
   };
   try {
     const res = await fetch(`${URL_BASE}/rest/v1/api_tokens`, {
@@ -133,6 +129,29 @@ export async function deleteToken(id: string): Promise<boolean> {
       {
         method: "DELETE",
         headers: headers({ Prefer: "return=minimal" }),
+        cache: "no-store",
+      },
+    );
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Set which vault secrets a token may fetch in plaintext. That list is the whole
+// security boundary for the plaintext path, so changing it is deliberately its
+// own explicit call: a token gains the ability one secret at a time, because
+// someone ticked a box in Klar Control, and never as a side effect of anything
+// else. An empty list takes the ability away again.
+export async function setTokenSecrets(id: string, secretIds: string[]): Promise<boolean> {
+  if (!KEY()) return false;
+  try {
+    const res = await fetch(
+      `${URL_BASE}/rest/v1/api_tokens?id=eq.${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        headers: headers({ Prefer: "return=minimal" }),
+        body: JSON.stringify({ vault_secret_ids: secretIds }),
         cache: "no-store",
       },
     );

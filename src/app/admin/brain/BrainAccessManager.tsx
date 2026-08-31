@@ -43,9 +43,10 @@ export interface TokenRow {
   label: string;
   prefix: string;
   scopes: string[];
-  // Nur bei vault:exec gefuellt: die Labels der Secrets, die dieser Token im
-  // Klartext holen darf. Steht in der Tabelle, damit ein zu weit geratener
-  // Token auffaellt, ohne dass man in die DB schauen muss.
+  // Welche Secrets dieser Token im Klartext holen darf: ids fuer den Dialog,
+  // Labels fuer die Tabelle. Sichtbar, damit eine zu weit geratene Freigabe
+  // auffaellt, ohne dass man in die DB schauen muss.
+  secretIds: string[];
   secretLabels: string[];
   lastUsed: string;
   revoked: boolean;
@@ -149,11 +150,11 @@ export default function BrainAccessManager({
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionErr, setActionErr] = useState<string | null>(null);
-  // vault:use und vault:exec schliessen sich aus, und exec blendet die Auswahl
-  // der freigegebenen Secrets ein. Beides haengt am jeweiligen Chip selbst, statt
-  // erst beim Absenden aufzuschlagen.
+  // Die Klartext-Auswahl haengt am vault:use-Chip selbst, statt erst beim
+  // Absenden aufzuschlagen.
   const [useOn, setUseOn] = useState(false);
-  const [execOn, setExecOn] = useState(false);
+  // Offener Freigabe-Dialog: welcher Token, und was gerade angehakt ist.
+  const [release, setRelease] = useState<{ id: string; label: string; picked: string[] } | null>(null);
   const router = useRouter();
 
   // The two copyable agent prompts: full vault access vs read-only brain/RAG.
@@ -344,12 +345,11 @@ export default function BrainAccessManager({
                     <label className={chipCls}>
                       <input type="checkbox" name="scope_brain" defaultChecked className="accent-[var(--accent)]" /> brain:read
                     </label>
-                    <label className={`${chipCls}${execOn ? " opacity-40 cursor-not-allowed" : ""}`}>
+                    <label className={chipCls}>
                       <input
                         type="checkbox"
                         name="scope_vault"
                         checked={useOn}
-                        disabled={execOn}
                         onChange={(e) => setUseOn(e.target.checked)}
                         className="accent-[var(--accent)]"
                       />{" "}
@@ -358,27 +358,11 @@ export default function BrainAccessManager({
                     <label className={chipCls}>
                       <input type="checkbox" name="scope_todos" className="accent-[var(--accent)]" /> todos:ical
                     </label>
-                    <label className={`${chipCls}${useOn ? " opacity-40 cursor-not-allowed" : ""}`}>
-                      <input
-                        type="checkbox"
-                        name="scope_exec"
-                        checked={execOn}
-                        disabled={useOn}
-                        onChange={(e) => setExecOn(e.target.checked)}
-                        className="accent-[var(--accent)]"
-                      />{" "}
-                      vault:exec
-                    </label>
                   </div>
-                  <p className="text-[12px] leading-relaxed text-fg-3">
-                    <code>vault:use</code> benutzt Keys über den Proxy, ohne sie je zu zeigen.{" "}
-                    <code>vault:exec</code> gibt sie im <strong>Klartext</strong> heraus, damit ein CLI
-                    mit Key-aus-Env läuft. Darum getrennte Tokens und eine Liste, welche Keys gehen.
-                  </p>
                 </div>
-                {execOn && (
+                {useOn && (
                   <div className="flex flex-col gap-1.5">
-                    <Label>Freigegebene Secrets</Label>
+                    <Label>Im Klartext freigeben (optional)</Label>
                     {secrets.length === 0 ? (
                       <p className="text-[12px] text-fg-3">Noch keine Secrets im Vault.</p>
                     ) : (
@@ -397,7 +381,9 @@ export default function BrainAccessManager({
                       </div>
                     )}
                     <p className="text-[12px] leading-relaxed text-fg-3">
-                      Nur diese Keys löst der Token auf. Nichts angehakt heisst: der Token kann nichts.
+                      Normalerweise leer lassen: über den Proxy benutzt der Token jeden Key, ohne ihn
+                      je zu zeigen. Nur ein CLI, das seinen Key aus einer Env-Var liest (eas, vercel,
+                      gh), braucht ihn im Klartext. Lässt sich jederzeit nachträglich ändern.
                     </p>
                   </div>
                 )}
@@ -441,10 +427,7 @@ export default function BrainAccessManager({
                   <TableCell>
                     <div className="flex flex-wrap gap-1.5">
                       {t.scopes.map((s) => (
-                        <Badge
-                          key={s}
-                          tone={s === "vault:exec" ? "danger" : s === "vault:use" ? "warn" : "info"}
-                        >
+                        <Badge key={s} tone={s === "vault:use" ? "warn" : "info"}>
                           {s}
                         </Badge>
                       ))}
@@ -469,6 +452,15 @@ export default function BrainAccessManager({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
+                      {!t.revoked && t.scopes.includes("vault:use") && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setRelease({ id: t.id, label: t.label, picked: t.secretIds })}
+                        >
+                          <KeyRound /> Keys freigeben
+                        </Button>
+                      )}
                       {!t.revoked && (
                         <Button variant="outline" size="sm" onClick={() => openConfirm({ kind: "token-revoke", id: t.id, label: t.label })}>
                           <Ban /> Widerrufen
@@ -606,6 +598,57 @@ export default function BrainAccessManager({
       </Section>
 
       {/* Confirm dialog — token revoke/delete + member revoke share one shell */}
+      {/* Klartext-Freigabe an einem bestehenden Token. Der uebliche Weg: der
+          Token liegt laengst auf dem Geraet, hier kommt nur dazu, welche Keys er
+          im Klartext holen darf. Absenden als normales Formular, damit es auch
+          ohne JS traegt, wie beim Erzeugen. */}
+      <Dialog open={release !== null} onOpenChange={(o) => { if (!o) setRelease(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Keys im Klartext freigeben</DialogTitle>
+            <DialogDescription>
+              Für <strong>{release?.label}</strong>. Angehakte Keys darf dieser Token im Klartext
+              holen, damit ein CLI mit Key-aus-Env läuft. Alles andere benutzt er weiterhin nur über
+              den Proxy, ohne den Key je zu sehen.
+            </DialogDescription>
+          </DialogHeader>
+          <form method="POST" action="/admin/tokens" className="flex flex-col gap-4">
+            <input type="hidden" name="action" value="secrets" />
+            <input type="hidden" name="id" value={release?.id ?? ""} />
+            {secrets.length === 0 ? (
+              <p className="text-[13px] text-fg-3">Noch keine Secrets im Vault.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2 max-h-[280px] overflow-y-auto">
+                {secrets.map((sec) => (
+                  <label key={sec.id} className={chipCls}>
+                    <input
+                      type="checkbox"
+                      name="secret_id"
+                      value={sec.id}
+                      defaultChecked={release?.picked.includes(sec.id)}
+                      className="accent-[var(--accent)]"
+                    />{" "}
+                    {sec.label}
+                  </label>
+                ))}
+              </div>
+            )}
+            <p className="text-[12px] leading-relaxed text-fg-3">
+              Nichts angehakt heisst: keine Klartext-Freigabe. Das nimmt eine bestehende auch wieder
+              weg. Nur anhaken, was dieses Gerät wirklich per CLI braucht.
+            </p>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="ghost">
+                  Abbrechen
+                </Button>
+              </DialogClose>
+              <Button type="submit">Freigabe speichern</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={confirm !== null} onOpenChange={(o) => { if (!o && !busy) setConfirm(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>

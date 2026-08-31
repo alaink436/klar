@@ -10,18 +10,19 @@
 // `klar-run.sh` / `klar-run.ps1`, der ihn ausschliesslich in die Environment
 // eines Kindprozesses schreibt und danach wegwirft.
 //
-// Damit faellt fuer diesen einen Pfad das "use but don't see", und die Schranken
-// sind entsprechend enger als beim Proxy:
+// Damit faellt fuer diesen einen Pfad das "use but don't see". Die Schranke ist
+// deshalb nicht der Scope, sondern die Freigabeliste am Token
+// (`api_tokens.vault_secret_ids`):
 //
-//   1. Eigener Scope `vault:exec`. Ein vault:use-Token kommt hier nicht durch,
-//      und ein exec-Token gehoert nie auf dasselbe Token wie vault:use.
-//   2. Allow-List je Token (`api_tokens.vault_secret_ids`). Sie wird NACH dem
-//      Scope geprueft und gilt absolut: ein Token ohne Eintrag fuer diese id
-//      bekommt nichts, auch mit dem "*"-Scope. Ein exec-Token ist damit nie ein
-//      Generalschluessel ueber den Vault, sondern immer nur ueber die Keys, die
-//      Alain ihm einzeln zugeteilt hat.
-//   3. Widerrufene Secrets sind weg (revealForExec prueft revoked_at) — anders
-//      als beim Admin-Reveal, der hinter 2FA sitzt und auch Altes zeigen darf.
+//   1. Sie ist leer, solange niemand sie fuellt. Jeder bestehende vault:use-Token
+//      kann hier also nichts, bis Alain in Klar Control ein Kaestchen anhakt. Ein
+//      zweiter Token waere eine zusaetzliche Datei ohne zusaetzliche Sicherheit:
+//      auch er laege im Klartext auf demselben Rechner.
+//   2. Sie gilt absolut, auch fuer den "*"-Scope. Ein Token kann nie mehr als die
+//      Keys, die ihm einzeln zugeteilt wurden. Das Anhaken ist der bewusste Akt,
+//      nicht das Erzeugen des Tokens.
+//   3. Widerrufene Secrets sind weg (revealForExec prueft revoked_at), anders als
+//      beim Admin-Reveal, der hinter 2FA sitzt und auch Altes zeigen darf.
 //   4. Jeder Zugriff stempelt Token und Secret, damit im Dashboard sichtbar ist,
 //      dass ein Key im Klartext rausging.
 //
@@ -64,15 +65,15 @@ export async function GET(
 
   const { id } = await ctx.params;
 
-  const auth = await verifyToken(tok, "vault:exec", { touch: false });
+  const auth = await verifyToken(tok, "vault:use", { touch: false });
   if (!auth) return json({ error: "unauthorized" }, 401);
 
-  // Die Allow-List ist die eigentliche Schranke, nicht der Scope. Sie steht
-  // deshalb als eigener Check hier und nicht in verifyToken(), wo ein "*"-Scope
-  // sie aushebeln wuerde.
+  // Die Freigabeliste ist die eigentliche Schranke. Sie steht deshalb als
+  // eigener Check hier und nicht in verifyToken(), wo ein "*"-Scope sie
+  // aushebeln wuerde.
   if (!auth.vaultSecretIds.includes(id)) {
     return json(
-      { error: "secret not in this token's allow-list", id },
+      { error: "secret not released for this token", id },
       403,
     );
   }

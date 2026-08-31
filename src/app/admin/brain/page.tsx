@@ -92,7 +92,7 @@ export default async function BrainPage({
       })),
   });
   const briefingBrain = buildBrainBriefing({ origin });
-  // Auswahl fuer die vault:exec-Allow-List. Store-only-Secrets sind hier
+  // Auswahl fuer die Klartext-Freigabe. Store-only-Secrets sind hier
   // ausdruecklich dabei: dass ein Key keine base_url hat und darum nicht
   // proxybar ist, ist genau der Grund, warum ein CLI ihn im Klartext braucht.
   const secretOpts: SecretOpt[] = secretRows
@@ -105,6 +105,7 @@ export default async function BrainPage({
     label: t.label,
     prefix: t.prefix,
     scopes: t.scopes,
+    secretIds: t.vault_secret_ids ?? [],
     secretLabels: (t.vault_secret_ids ?? []).map((sid) => secretLabelById.get(sid) ?? sid),
     lastUsed: t.last_used_at ? new Date(t.last_used_at).toLocaleDateString("de-CH") : "—",
     revoked: Boolean(t.revoked_at),
