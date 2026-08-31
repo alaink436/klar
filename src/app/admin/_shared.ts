@@ -140,7 +140,7 @@ export const ICON: Record<string, string> = {
 // Shared CSS for /admin and /admin/analytics. Light by default, dark via
 // prefers-color-scheme or [data-theme]. Inlined as a <style> tag in both
 // routes so there's no extra render-blocking request.
-export const STYLE = `
+const STYLE_QUELLE = `
 :root{
  color-scheme:light;
  --bg:#FAFAF7;--surface:#FFFFFF;--surface-2:#F4F4F0;--surface-3:#EAEAE5;
@@ -539,6 +539,13 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
  h1{font-size:26px}
 }
 `;
+
+// Der Style-Block wird in JEDE Admin-Seite inline geschrieben, Kommentare
+// inklusive: gemessen am 2026-08-31 waren das 5598 von 33985 Zeichen, also
+// 16,5 % jedes Seitenaufrufs fuer Text, den nur wir lesen. Sie bleiben in der
+// Quelle, weil sie Entscheidungen begruenden, und fallen beim Ausliefern weg.
+// Laeuft einmal beim Laden des Moduls, nicht pro Anfrage.
+export const STYLE = STYLE_QUELLE.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\n\s*\n+/g, "\n");
 
 // Custom confirm modal — single DOM node, reused per call. Mounted once in
 // the body of every admin page. The JS helper takes over forms with
