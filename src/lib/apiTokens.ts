@@ -16,13 +16,19 @@ const KEY = () => process.env.KLAR_INBOX_SERVICE_KEY ?? "";
 // "todos:ical" ist absichtlich eng: der Kalender-Feed liegt als URL im
 // iPhone und wird von Apple regelmässig ohne Nachfrage abgerufen — dieser
 // Token darf deshalb nichts ausser den geplanten To-dos lesen.
-export type Scope = "brain:read" | "vault:use" | "todos:ical";
+// "vault:exec" gibt den KLARTEXT eines Secrets heraus. Das ist der einzige Weg
+// fuer CLIs, die ihren Key als Env-Var erwarten (eas, vercel, gh) und den der
+// HTTP-Proxy darum nicht bedienen kann. Weil damit das "use but don't see" faellt,
+// traegt jeder exec-Token eine eigene Allow-List (`vault_secret_ids`): ohne
+// Eintrag loest er nichts auf, auch nicht mit dem "*"-Scope.
+export type Scope = "brain:read" | "vault:use" | "vault:exec" | "todos:ical";
 
 export interface ApiTokenRow {
   id: string;
   label: string;
   prefix: string;
   scopes: string[];
+  vault_secret_ids: string[];
   created_at: string;
   last_used_at: string | null;
   revoked_at: string | null;
@@ -55,6 +61,9 @@ export function hasStore(): boolean {
 export async function createToken(
   label: string,
   scopes: Scope[],
+  // Nur fuer "vault:exec": welche vault_secrets dieser Token im Klartext holen
+  // darf. Ohne Eintrag kann er keines, das ist Absicht.
+  vaultSecretIds: string[] = [],
 ): Promise<{ ok: true; raw: string; prefix: string } | { ok: false; error: string }> {
   if (!KEY()) return { ok: false, error: "store not configured" };
   const raw = newRawToken();
@@ -64,6 +73,7 @@ export async function createToken(
     token_hash: sha256hex(raw),
     prefix,
     scopes,
+    vault_secret_ids: scopes.includes("vault:exec") ? vaultSecretIds : [],
   };
   try {
     const res = await fetch(`${URL_BASE}/rest/v1/api_tokens`, {
@@ -83,7 +93,7 @@ export async function listTokens(): Promise<ApiTokenRow[]> {
   if (!KEY()) return [];
   try {
     const res = await fetch(
-      `${URL_BASE}/rest/v1/api_tokens?select=id,label,prefix,scopes,created_at,last_used_at,revoked_at&order=created_at.desc`,
+      `${URL_BASE}/rest/v1/api_tokens?select=id,label,prefix,scopes,vault_secret_ids,created_at,last_used_at,revoked_at&order=created_at.desc`,
       { headers: headers(), cache: "no-store" },
     );
     if (!res.ok) return [];
@@ -154,22 +164,27 @@ export async function verifyToken(
   raw: string,
   required: Scope,
   opts: { touch?: boolean } = {},
-): Promise<{ id: string; scopes: string[] } | null> {
+): Promise<{ id: string; scopes: string[]; vaultSecretIds: string[] } | null> {
   if (!KEY() || !raw) return null;
   const hash = sha256hex(raw.trim());
   try {
     const res = await fetch(
-      `${URL_BASE}/rest/v1/api_tokens?token_hash=eq.${hash}&select=id,scopes,revoked_at&limit=1`,
+      `${URL_BASE}/rest/v1/api_tokens?token_hash=eq.${hash}&select=id,scopes,vault_secret_ids,revoked_at&limit=1`,
       { headers: headers(), cache: "no-store" },
     );
     if (!res.ok) return null;
-    const rows = (await res.json()) as { id: string; scopes: string[]; revoked_at: string | null }[];
+    const rows = (await res.json()) as {
+      id: string;
+      scopes: string[];
+      vault_secret_ids: string[] | null;
+      revoked_at: string | null;
+    }[];
     const row = Array.isArray(rows) ? rows[0] : undefined;
     if (!row || row.revoked_at) return null;
     const scopes = row.scopes ?? [];
     if (!scopes.includes(required) && !scopes.includes("*")) return null;
     if (opts.touch !== false) touchTokenUsed(row.id);
-    return { id: row.id, scopes };
+    return { id: row.id, scopes, vaultSecretIds: row.vault_secret_ids ?? [] };
   } catch {
     return null;
   }

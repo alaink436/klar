@@ -43,8 +43,17 @@ export interface TokenRow {
   label: string;
   prefix: string;
   scopes: string[];
+  // Nur bei vault:exec gefuellt: die Labels der Secrets, die dieser Token im
+  // Klartext holen darf. Steht in der Tabelle, damit ein zu weit geratener
+  // Token auffaellt, ohne dass man in die DB schauen muss.
+  secretLabels: string[];
   lastUsed: string;
   revoked: boolean;
+}
+export interface SecretOpt {
+  id: string;
+  label: string;
+  provider: string;
 }
 export interface MemberRow {
   email: string;
@@ -124,12 +133,14 @@ export default function BrainAccessManager({
   tokens,
   members,
   folders,
+  secrets,
   briefing,
   briefingBrain,
 }: {
   tokens: TokenRow[];
   members: MemberRow[];
   folders: FolderOpt[];
+  secrets: SecretOpt[];
   briefing: string;
   briefingBrain: string;
 }) {
@@ -138,6 +149,11 @@ export default function BrainAccessManager({
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionErr, setActionErr] = useState<string | null>(null);
+  // vault:use und vault:exec schliessen sich aus, und exec blendet die Auswahl
+  // der freigegebenen Secrets ein. Beides haengt am jeweiligen Chip selbst, statt
+  // erst beim Absenden aufzuschlagen.
+  const [useOn, setUseOn] = useState(false);
+  const [execOn, setExecOn] = useState(false);
   const router = useRouter();
 
   // The two copyable agent prompts: full vault access vs read-only brain/RAG.
@@ -328,14 +344,63 @@ export default function BrainAccessManager({
                     <label className={chipCls}>
                       <input type="checkbox" name="scope_brain" defaultChecked className="accent-[var(--accent)]" /> brain:read
                     </label>
-                    <label className={chipCls}>
-                      <input type="checkbox" name="scope_vault" className="accent-[var(--accent)]" /> vault:use
+                    <label className={`${chipCls}${execOn ? " opacity-40 cursor-not-allowed" : ""}`}>
+                      <input
+                        type="checkbox"
+                        name="scope_vault"
+                        checked={useOn}
+                        disabled={execOn}
+                        onChange={(e) => setUseOn(e.target.checked)}
+                        className="accent-[var(--accent)]"
+                      />{" "}
+                      vault:use
                     </label>
                     <label className={chipCls}>
                       <input type="checkbox" name="scope_todos" className="accent-[var(--accent)]" /> todos:ical
                     </label>
+                    <label className={`${chipCls}${useOn ? " opacity-40 cursor-not-allowed" : ""}`}>
+                      <input
+                        type="checkbox"
+                        name="scope_exec"
+                        checked={execOn}
+                        disabled={useOn}
+                        onChange={(e) => setExecOn(e.target.checked)}
+                        className="accent-[var(--accent)]"
+                      />{" "}
+                      vault:exec
+                    </label>
                   </div>
+                  <p className="text-[12px] leading-relaxed text-fg-3">
+                    <code>vault:use</code> benutzt Keys über den Proxy, ohne sie je zu zeigen.{" "}
+                    <code>vault:exec</code> gibt sie im <strong>Klartext</strong> heraus, damit ein CLI
+                    mit Key-aus-Env läuft. Darum getrennte Tokens und eine Liste, welche Keys gehen.
+                  </p>
                 </div>
+                {execOn && (
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Freigegebene Secrets</Label>
+                    {secrets.length === 0 ? (
+                      <p className="text-[12px] text-fg-3">Noch keine Secrets im Vault.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 max-h-[168px] overflow-y-auto">
+                        {secrets.map((sec) => (
+                          <label key={sec.id} className={chipCls}>
+                            <input
+                              type="checkbox"
+                              name="secret_id"
+                              value={sec.id}
+                              className="accent-[var(--accent)]"
+                            />{" "}
+                            {sec.label}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-[12px] leading-relaxed text-fg-3">
+                      Nur diese Keys löst der Token auf. Nichts angehakt heisst: der Token kann nichts.
+                    </p>
+                  </div>
+                )}
                 <DialogFooter>
                   <DialogClose asChild>
                     <Button type="button" variant="ghost">
@@ -376,10 +441,18 @@ export default function BrainAccessManager({
                   <TableCell>
                     <div className="flex flex-wrap gap-1.5">
                       {t.scopes.map((s) => (
-                        <Badge key={s} tone={s === "vault:use" ? "warn" : "info"}>
+                        <Badge
+                          key={s}
+                          tone={s === "vault:exec" ? "danger" : s === "vault:use" ? "warn" : "info"}
+                        >
                           {s}
                         </Badge>
                       ))}
+                      {t.secretLabels.length > 0 && (
+                        <div className="w-full text-[11px] text-fg-4 mt-0.5">
+                          Klartext für: {t.secretLabels.join(", ")}
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="text-right text-fg-3">{t.lastUsed}</TableCell>

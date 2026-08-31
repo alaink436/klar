@@ -41,7 +41,11 @@ function tokenShownOncePage(raw: string, label: string, scopes: string[]): Respo
       <button type="button" class="btn pop" onclick="navigator.clipboard.writeText(document.getElementById('tok').textContent).then(()=>{this.textContent='✓ Kopiert'}).catch(()=>{this.textContent='Copy fehlgeschlagen'})">Token kopieren</button>
       <a class="btn ghost" href="/admin/brain">Fertig, zurück</a>
     </div>
-    <div class="login-foot"><span class="login-foot-text">Nutzung: Authorization: Bearer &lt;token&gt;</span></div>
+    <div class="login-foot"><span class="login-foot-text">${
+      scopes.includes("vault:exec")
+        ? "vault:exec — dieser Token holt Keys im KLARTEXT. Nur in eine Datei legen, nie in einen Chat."
+        : "Nutzung: Authorization: Bearer &lt;token&gt;"
+    }</span></div>
   </div>
 </div>
 </body></html>`;
@@ -95,8 +99,28 @@ export async function POST(req: NextRequest): Promise<Response> {
     if (form.get("scope_brain") != null) scopes.push("brain:read");
     if (form.get("scope_vault") != null) scopes.push("vault:use");
     if (form.get("scope_todos") != null) scopes.push("todos:ical");
+    if (form.get("scope_exec") != null) scopes.push("vault:exec");
     if (scopes.length === 0) return backWith(req, { err: "Mindestens einen Scope wählen." });
-    const r = await createToken(label, scopes);
+
+    // vault:exec gibt Klartext heraus und braucht darum eine eigene Allow-List:
+    // welche Secrets dieser Token aufloesen darf. Ohne Auswahl waere der Token
+    // wertlos (die Route lehnt jede id ab), das ist hier ein Fehler und keine
+    // stille Null. Und exec gehoert nicht auf dasselbe Token wie vault:use: der
+    // use-Token liegt breit verteilt auf jedem Geraet, der exec-Token soll eng
+    // und einzeln widerrufbar bleiben.
+    const secretIds = form
+      .getAll("secret_id")
+      .map((v) => String(v).trim())
+      .filter(Boolean);
+    if (scopes.includes("vault:exec")) {
+      if (scopes.includes("vault:use")) {
+        return backWith(req, { err: "vault:exec und vault:use gehören auf getrennte Tokens." });
+      }
+      if (secretIds.length === 0) {
+        return backWith(req, { err: "vault:exec braucht mindestens ein freigegebenes Secret." });
+      }
+    }
+    const r = await createToken(label, scopes, secretIds);
     if (!r.ok) return backWith(req, { err: r.error });
     return tokenShownOncePage(r.raw, label || "Unbenannt", scopes);
   }

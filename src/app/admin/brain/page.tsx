@@ -29,6 +29,7 @@ import BrainAccessManager, {
   type TokenRow,
   type MemberRow,
   type FolderOpt,
+  type SecretOpt,
 } from "./BrainAccessManager";
 
 import { AdminTopbar } from "../AdminTopbar";
@@ -91,11 +92,20 @@ export default async function BrainPage({
       })),
   });
   const briefingBrain = buildBrainBriefing({ origin });
+  // Auswahl fuer die vault:exec-Allow-List. Store-only-Secrets sind hier
+  // ausdruecklich dabei: dass ein Key keine base_url hat und darum nicht
+  // proxybar ist, ist genau der Grund, warum ein CLI ihn im Klartext braucht.
+  const secretOpts: SecretOpt[] = secretRows
+    .filter((sec) => !sec.revoked_at)
+    .map((sec) => ({ id: sec.id, label: sec.label, provider: sec.provider }));
+  const secretLabelById = new Map(secretOpts.map((sec) => [sec.id, sec.label]));
+
   const tokens: TokenRow[] = tokenRows.map((t) => ({
     id: t.id,
     label: t.label,
     prefix: t.prefix,
     scopes: t.scopes,
+    secretLabels: (t.vault_secret_ids ?? []).map((sid) => secretLabelById.get(sid) ?? sid),
     lastUsed: t.last_used_at ? new Date(t.last_used_at).toLocaleDateString("de-CH") : "—",
     revoked: Boolean(t.revoked_at),
   }));
@@ -240,7 +250,7 @@ export default async function BrainPage({
           </TabsContent>
 
           <TabsContent value="zugang">
-            <BrainAccessManager tokens={tokens} members={members} folders={folders} briefing={briefing} briefingBrain={briefingBrain} />
+            <BrainAccessManager tokens={tokens} members={members} folders={folders} secrets={secretOpts} briefing={briefing} briefingBrain={briefingBrain} />
           </TabsContent>
         </Tabs>
       </div>

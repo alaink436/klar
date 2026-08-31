@@ -245,6 +245,44 @@ export async function revealSecret(id: string): Promise<string | null> {
   }
 }
 
+// Server-only: decrypt + return a secret's plaintext for a `vault:exec` token,
+// so a wrapper can hand it to a CLI that only takes a key from its environment.
+//
+// Separate from revealSecret() on purpose. That one answers to an admin session
+// behind 2FA and therefore may show a revoked key (the admin is reading their
+// own vault). This one answers to a bearer token held by an agent, so it applies
+// the same liveness rule as the proxy: a revoked secret is gone. The caller must
+// have already checked its allow-list; this function does not know about tokens.
+//
+// Unlike getForProxy() there is no ASC special case: an App Store Connect entry
+// stores key material, not a token, and what comes back here is that raw JSON
+// blob. Signing stays server-side on the proxy path, which is where ASC belongs.
+export async function revealForExec(id: string): Promise<string | null> {
+  if (!vaultReady()) return null;
+  try {
+    const res = await fetch(
+      `${URL_BASE}/rest/v1/vault_secrets?id=eq.${encodeURIComponent(id)}&select=ciphertext,iv,auth_tag,revoked_at&limit=1`,
+      { headers: sbHeaders(), cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as Array<{
+      ciphertext: string;
+      iv: string;
+      auth_tag: string;
+      revoked_at: string | null;
+    }>;
+    const r = Array.isArray(rows) ? rows[0] : undefined;
+    if (!r || r.revoked_at) return null;
+    try {
+      return decrypt(r.ciphertext, r.iv, r.auth_tag);
+    } catch {
+      return null; // wrong master key / tampered ciphertext
+    }
+  } catch {
+    return null;
+  }
+}
+
 // Best-effort, fire-and-forget "last used" stamp for a secret. Never awaited.
 // Split out so the proxy can stamp only AFTER the token check has also passed —
 // a request with a valid id but an invalid token must not mark the secret used.
