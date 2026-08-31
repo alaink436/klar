@@ -36,10 +36,24 @@ function json(obj: unknown, status = 200): Response {
   });
 }
 
+// Der Vault-Token kommt normalerweise als `Authorization: Bearer …`. Ein SDK,
+// dessen Base-URL man auf diesen Proxy zeigt, kann das aber nicht: das
+// Anthropic-SDK setzt seinen Key hart auf `x-api-key`, Azure-kompatible Clients
+// auf `api-key`, und beides ist nicht konfigurierbar. Wer die Base-URL hierher
+// biegt, darf den Token deshalb auch dort ablegen und bekommt so ein CLI ans
+// Laufen, ohne den echten Provider-Key zu kennen.
+//
+// Nach oben geht keiner der drei Header weiter: die Allow-List in handle() kennt
+// sie nicht, und der echte Key wird ohnehin frisch gesetzt.
 function bearer(req: Request): string {
   const h = req.headers.get("authorization") ?? "";
   const m = /^Bearer\s+(.+)$/i.exec(h.trim());
-  return m ? m[1].trim() : "";
+  if (m) return m[1].trim();
+  for (const alt of ["x-api-key", "api-key"]) {
+    const v = req.headers.get(alt);
+    if (v) return v.trim().replace(/^Bearer\s+/i, "").trim();
+  }
+  return "";
 }
 
 async function handle(
