@@ -34,7 +34,7 @@ export function CardDescription({ className, ...props }: React.ComponentProps<"p
   return (
     <p
       data-slot="card-description"
-      className={cn("[font-family:var(--font-editorial)] italic text-sm leading-relaxed text-fg-3 max-w-[62ch]", className)}
+      className={cn("text-[13px] leading-relaxed text-fg-3 max-w-[62ch]", className)}
       {...props}
     />
   );

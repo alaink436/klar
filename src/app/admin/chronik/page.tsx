@@ -64,7 +64,6 @@ export default async function ChronikPage() {
       <AdminTopbar titel={t.navChronik} />
       <div className="content">
         <h1>{t.navChronik}</h1>
-        <p className="sub">{t.chronikSub}</p>
 
         {projects.length === 0 && sessions.length === 0 ? (
           <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--warning) 35%,var(--line))", color: "var(--warning)" }}>

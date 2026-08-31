@@ -71,11 +71,6 @@ export default async function VaultPage({
       <AdminTopbar titel={t.vaultTitle} />
       <div className="content">
         <h1>{t.vaultTitle}</h1>
-        <p className="sub">
-          {t.vaultSubA}
-          <code>vault:use</code>
-          {t.vaultSubB}
-        </p>
 
         {!ready && (
           <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--warning) 35%,var(--line))", color: "var(--warning)" }}>

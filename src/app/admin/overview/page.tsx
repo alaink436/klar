@@ -207,11 +207,6 @@ export default async function OverviewPage({
         {sp.msg ? <div className="flash">{sp.msg}</div> : null}
 
         <h1>Übersicht</h1>
-        <p className="sub">
-          Projekte und Ziele liest diese Seite live aus dem AI-Brain, geändert wird dort und nicht hier. Zahlen stehen
-          unter Einnahmen und Analytics.
-        </p>
-
         <Card className="mb-4 gap-0 p-0">
           <CardHeader className="px-6 pb-3 pt-5">
             <CardTitle>Was liegt an</CardTitle>

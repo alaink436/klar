@@ -44,7 +44,6 @@ export default async function CollabsPage({
       <AdminTopbar titel={t.navCollabs} />
       <div className="content">
         <h1>{t.navCollabs}</h1>
-        <p className="sub">{t.collabsSub}</p>
         <CollabsView
           aliases={view.aliases}
           threads={view.threads}

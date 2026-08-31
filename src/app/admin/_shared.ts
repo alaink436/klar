@@ -249,7 +249,7 @@ a{color:inherit;text-decoration:none}
    Zustaende. Nichts davon hatte danach noch ein Element im Dokument. */
 
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
-.topbar{display:flex;align-items:center;gap:14px;padding:14px 36px;border-bottom:1px solid var(--line);font-family:var(--font-body);font-size:13px;color:var(--fg-3);position:sticky;top:0;background:color-mix(in oklab,var(--bg) 86%,transparent);backdrop-filter:blur(10px);z-index:5}
+.topbar{display:flex;align-items:center;gap:14px;padding:14px 36px;border-bottom:1px solid var(--line);font-family:var(--font-body);font-size:13px;color:var(--fg-3);position:sticky;top:0;background:var(--bg);z-index:5}
 .crumb{color:var(--fg-4);display:flex;align-items:center;gap:8px;flex:1}
 .crumb b{color:var(--fg);font-weight:600}
 .crumb svg{width:12px;height:12px;stroke-width:2;color:var(--fg-4)}
@@ -269,14 +269,14 @@ a{color:inherit;text-decoration:none}
    nach rechts auslaeuft — sie fuellt den Platz, den die Lede-Absaetze
    frueher hatten, und bindet den Titel an die Topbar darueber. */
 h1{font-family:var(--font-display);font-weight:800;font-size:clamp(30px,3.4vw,42px);letter-spacing:-.03em;line-height:1.05;margin:0 0 20px;color:var(--fg);display:flex;align-items:baseline;gap:16px}
-h1::after{content:"";flex:1;height:1px;min-width:24px;background:linear-gradient(90deg,var(--line-strong),transparent);transform:translateY(-6px)}
+h1::after{content:"";flex:1;height:1px;min-width:24px;background:var(--line);transform:translateY(-6px)}
 .sub{font-family:var(--font-body);font-size:16px;line-height:1.55;color:var(--fg-3);margin:0 0 22px;max-width:62ch}
 /* Lede unter dem Titel. Regel dafuer (2026-08-11): er darf nur stehen, wenn
    er etwas sagt, das die Seite NICHT zeigt — woher die Zahlen kommen, was sie
    bewusst nicht enthalten, welcher Schritt von Hand bleibt. Wer den Titel
    wiederholt oder aufzaehlt was ohnehin darunter steht, wird geloescht statt
    umformuliert. */
-.sub{font-family:var(--font-editorial);font-style:italic;font-size:16px;line-height:1.5;color:var(--fg-3);margin:-6px 0 26px;max-width:68ch}
+.sub{font-size:13px;line-height:1.6;color:var(--fg-3);margin:-6px 0 26px;max-width:68ch}
 h2{font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-3);margin:32px 0 12px;display:flex;align-items:center;gap:10px}
 h2::after{content:"";flex:1;height:1px;background:var(--line)}
 
@@ -326,7 +326,7 @@ tbody tr:hover td{background:var(--surface-2)}
 .card-table tbody td:last-child{border-right:1px solid var(--line);border-top-right-radius:var(--radius);border-bottom-right-radius:var(--radius)}
 .card-table tbody tr:hover td{background:var(--surface-2)}
 .card-table tbody tr:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm)}
-[data-theme="dark"] .card-table tbody td{background:rgba(17,17,17,.55);border-color:rgba(255,255,255,.08);backdrop-filter:blur(18px) saturate(120%);-webkit-backdrop-filter:blur(18px) saturate(120%)}
+[data-theme="dark"] .card-table tbody td{background:var(--surface);border-color:var(--line)}
 [data-theme="dark"] .card-table tbody tr:hover td{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)}
 
 .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border:1px solid var(--fg);background:var(--fg);color:var(--accent-fg);font-family:var(--font-body);font-size:13px;font-weight:600;border-radius:var(--radius-sm);cursor:pointer;transition:opacity .15s,transform .12s,background .15s}
@@ -414,14 +414,13 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 .login-card{width:100%;max-width:430px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-lg);padding:42px 38px 30px;box-shadow:0 1px 0 rgba(255,255,255,.7) inset,var(--shadow-lg);position:relative;overflow:hidden}
 .login-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent) 28%,transparent))}
 .login-head{display:flex;align-items:center;gap:14px;margin-bottom:28px}
-.login-badge{display:flex;align-items:center;justify-content:center;width:54px;height:54px;border-radius:15px;background:var(--surface-2);color:var(--fg-2);overflow:hidden;flex-shrink:0;border:1px solid var(--line);box-shadow:0 6px 18px -8px color-mix(in oklab,var(--fg) 25%,transparent)}
-[data-theme="dark"] .login-badge{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10);box-shadow:0 1px 0 rgba(255,255,255,.06) inset}
+.login-badge{display:flex;align-items:center;justify-content:center;width:54px;height:54px;overflow:hidden;flex-shrink:0}
 .login-badge img{width:30px;height:30px;object-fit:contain;display:block}
 .login-head-text{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
 .login-eyebrow{font-family:var(--font-mono);color:var(--fg-3);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.18em}
 .login-mark{font-family:var(--font-display);font-weight:800;font-size:30px;letter-spacing:-.025em;line-height:1;color:var(--fg)}
 .login-mark .dot{color:var(--fg-3)}
-.login-tag{font-family:var(--font-editorial);font-style:italic;font-size:17px;color:var(--fg-2);margin:0 0 26px;line-height:1.4}
+.login-tag{font-size:13px;color:var(--fg-3);margin:0 0 26px;line-height:1.5}
 .login-err{display:flex;align-items:center;gap:10px;background:color-mix(in oklab,var(--danger) 10%,transparent);border:1px solid color-mix(in oklab,var(--danger) 30%,var(--line));border-radius:8px;padding:10px 14px;color:var(--fg);font-size:13px;line-height:1.4;margin:0 0 16px}
 .login-err::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--danger);flex-shrink:0}
 .login-field{display:flex;flex-direction:column;gap:6px}
@@ -457,13 +456,13 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 .login-back{position:absolute;top:18px;left:18px;display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3);text-decoration:none;padding:7px 11px;border-radius:var(--radius-sm);border:1px solid transparent;transition:color .15s,background .15s,border-color .15s;z-index:2}
 .login-back:hover{color:var(--fg);background:var(--surface-2);border-color:var(--line)}
 .login-back svg{width:13px;height:13px}
-@media(max-width:520px){.login-card{padding:32px 24px 26px}.login-mark{font-size:26px}.login-badge{width:44px;height:44px;border-radius:12px}.login-badge img{width:24px;height:24px}}
+@media(max-width:520px){.login-card{padding:32px 24px 26px}.login-mark{font-size:26px}.login-badge{width:44px;height:44px}.login-badge img{width:24px;height:24px}}
 
 /* ===== Custom confirm/alert modal — replaces window.confirm in admin ===== */
-.klar-modal-back{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(8,8,8,.42);backdrop-filter:blur(10px) saturate(120%);-webkit-backdrop-filter:blur(10px) saturate(120%);opacity:0;transition:opacity .18s ease}
+.klar-modal-back{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(8,8,8,.62);opacity:0;transition:opacity .18s ease}
 .klar-modal-back.on{display:flex;opacity:1}
 .klar-modal-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:26px 28px 22px;transform:translateY(8px) scale(.985);transition:transform .22s cubic-bezier(.2,.7,.3,1),box-shadow .22s ease;text-align:left;font-family:var(--font-body);color:var(--fg)}
-[data-theme="dark"] .klar-modal-card{backdrop-filter:blur(28px) saturate(120%);-webkit-backdrop-filter:blur(28px) saturate(120%);background:rgba(17,17,17,.72);border:1px solid rgba(255,255,255,.12);box-shadow:0 1px 0 rgba(255,255,255,.10) inset,0 40px 80px -20px rgba(0,0,0,.7)}
+[data-theme="dark"] .klar-modal-card{background:var(--surface);border:1px solid var(--line-strong);box-shadow:none}
 .klar-modal-back.on .klar-modal-card{transform:translateY(0) scale(1)}
 .klar-modal-eyebrow{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-3);margin:0 0 8px;display:flex;align-items:center;gap:8px}
 .klar-modal-eyebrow::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--fg-3)}
@@ -499,16 +498,17 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
   --chart-1:#FAFAFA;--chart-2:#A3A3A3;--chart-3:#737373;--chart-4:#525252;--chart-fill:rgba(250,250,250,.18);
 }
 [data-theme="dark"] body{background:#0A0A0A}
-/* Side rail in dark: subtle frosted vertical stripe */
-[data-theme="dark"] .side{background:linear-gradient(180deg,rgba(18,18,18,.82) 0%,rgba(10,10,10,.66) 100%);backdrop-filter:blur(14px) saturate(120%);-webkit-backdrop-filter:blur(14px) saturate(120%);border-right:1px solid rgba(255,255,255,.08)}
-/* Topbar in dark: thin frosted slab */
-[data-theme="dark"] .topbar{background:linear-gradient(180deg,rgba(10,10,10,.6),rgba(10,10,10,.3));backdrop-filter:blur(12px) saturate(120%);-webkit-backdrop-filter:blur(12px) saturate(120%);border-bottom:1px solid rgba(255,255,255,.06)}
-/* Cards in dark: liquid glass surface */
-[data-theme="dark"] .card,[data-theme="dark"] .chart,[data-theme="dark"] .batch,[data-theme="dark"] .app-tab{backdrop-filter:blur(22px) saturate(120%);-webkit-backdrop-filter:blur(22px) saturate(120%);border:1px solid rgba(255,255,255,.10);box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 24px 60px -28px rgba(0,0,0,.6),0 8px 22px -16px rgba(0,0,0,.4)}
-[data-theme="dark"] .card:hover,[data-theme="dark"] .app-tab:hover{border-color:rgba(255,255,255,.22);box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 30px 80px -28px rgba(0,0,0,.7),0 14px 36px -20px rgba(0,0,0,.5)}
-/* Tables in dark: glass surface, soft borders */
-[data-theme="dark"] table{backdrop-filter:blur(22px) saturate(120%);-webkit-backdrop-filter:blur(22px) saturate(120%);border:1px solid rgba(255,255,255,.08)}
-[data-theme="dark"] th{background:rgba(20,18,28,.65)}
+/* Dunkel ist flach. Bis 2026-08-31 lag hier Milchglas: zehn backdrop-filter,
+   gestapelte Schatten, Farbverlaeufe auf Schiene, Leiste, jeder Karte und jeder
+   Tabelle. Das kostet pro Flaeche eine eigene Compositing-Ebene, die der Browser
+   bei jedem Scrollen neu rechnet, und es sieht aus wie jedes andere Dashboard.
+   Jetzt: eine Flaeche, eine Linie, kein Schatten. */
+[data-theme="dark"] .side{background:#0D0D0D;border-right:1px solid var(--line)}
+[data-theme="dark"] .topbar{background:#0A0A0A;border-bottom:1px solid var(--line)}
+[data-theme="dark"] .card,[data-theme="dark"] .chart,[data-theme="dark"] .batch,[data-theme="dark"] .app-tab{background:var(--surface);border:1px solid var(--line);box-shadow:none}
+[data-theme="dark"] .card:hover,[data-theme="dark"] .app-tab:hover{border-color:var(--line-strong);box-shadow:none}
+[data-theme="dark"] table{background:var(--surface);border:1px solid var(--line)}
+[data-theme="dark"] th{background:var(--surface-2)}
 [data-theme="dark"] tbody tr:hover td{background:rgba(255,255,255,.04)}
 /* Pills + buttons in dark: refined glass-on-glass, monochrome */
 [data-theme="dark"] .pill{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10);color:var(--fg-2)}
@@ -521,10 +521,9 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 [data-theme="dark"] .btn.pop:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 0 rgba(255,255,255,.95)}
 [data-theme="dark"] .btn.pop:active{transform:translate(3px,3px);box-shadow:0 0 0 0 rgba(255,255,255,.85)}
 /* Login card glass in dark, monochrome wash */
-[data-theme="dark"] .login{background:radial-gradient(900px 700px at 50% -20%,rgba(255,255,255,.05),transparent),radial-gradient(800px 600px at 50% 120%,rgba(255,255,255,.03),transparent),#0A0A0A}
-[data-theme="dark"] .login-card{backdrop-filter:blur(28px) saturate(120%);-webkit-backdrop-filter:blur(28px) saturate(120%);background:rgba(17,17,17,.55);border:1px solid rgba(255,255,255,.10);box-shadow:0 1px 0 rgba(255,255,255,.10) inset,0 40px 80px -20px rgba(0,0,0,.7)}
-/* Iframe-wrap in dark: glassy frame */
-[data-theme="dark"] .iframewrap{background:rgba(17,17,17,.62);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+[data-theme="dark"] .login{background:#0A0A0A}
+[data-theme="dark"] .login-card{background:var(--surface);border:1px solid var(--line);box-shadow:none}
+[data-theme="dark"] .iframewrap{background:var(--surface);border:1px solid var(--line)}
 
 @media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none}html{scroll-behavior:auto}.card{transition:none}}
 @media(max-width:820px){

@@ -723,11 +723,6 @@ export default async function AnalyticsPage({
       <AdminTopbar titel="Analytics" />
       <div className="content">
         <h1>Analytics</h1>
-        <p className="sub">
-          App-User kommen aus <code>auth.users</code>, Umsatz aus RevenueCat, Landing-Zahlen
-          aus den eigenen Pageviews. Drei Quellen, die sich nicht gegenseitig pruefen.
-          Web-Tracking ist privacy-friendly, keine Cookies, kein Pixel.
-        </p>
         <AnalyticsClient
           landings={landings}
           site={site}

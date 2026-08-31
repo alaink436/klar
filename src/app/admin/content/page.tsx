@@ -568,10 +568,7 @@ export default async function ContentPage({
       <title>Content · Klar Control</title>
       <AdminTopbar titel="Content" />
       <div className="content">
-        <PageHeader eyebrow="Marketing-Infrastruktur" title="Content">
-          Alle Accounts über die fünf Apps auf einen Blick — und darunter, was über Blotato
-          tatsächlich rausgeht.
-        </PageHeader>
+        <PageHeader eyebrow="Marketing-Infrastruktur" title="Content" />
 
         <div className="mb-4 flex items-center gap-1 border-b border-line">
           {(

@@ -146,9 +146,7 @@ export default async function BrainPage({
       <title>AI-Brain · Klar Control</title>
       <AdminTopbar titel="AI-Brain" />
       <div className="content" style={{ maxWidth: "none" }}>
-        <PageHeader eyebrow="Klar Control" title="AI-Brain">
-          Dein Wissensspeicher als Graph plus die Zugänge dazu, API-Tokens für Remote-Agents und Lese-Mitglieder für /brain.
-        </PageHeader>
+        <PageHeader eyebrow="Klar Control" title="AI-Brain" />
 
         {sp.err && (
           <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--danger) 35%,var(--line))", color: "var(--danger)" }}>

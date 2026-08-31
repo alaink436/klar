@@ -14,7 +14,6 @@
 "use client";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Sun } from "@/components/animate-ui/icons/sun";
 import { Moon } from "@/components/animate-ui/icons/moon";
@@ -64,8 +63,6 @@ export function AdminTopbar({
         </kbd>
       </button>
       {rechts}
-      <Tooltip>
-        <TooltipTrigger asChild>
           <AnimateIcon animateOnHover>
             <button
               type="button"
@@ -85,9 +82,6 @@ export function AdminTopbar({
               </span>
             </button>
           </AnimateIcon>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">Hell oder dunkel</TooltipContent>
-      </Tooltip>
     </div>
   );
 }

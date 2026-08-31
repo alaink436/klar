@@ -175,7 +175,7 @@ export default function AdminSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg" tooltip="Klar Control">
               <Link href="/admin/overview" aria-label={t.brandHome}>
-                <span className="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface-2)]">
+                <span className="flex aspect-square size-8 items-center justify-center overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/logo/klar-symbol.png" alt="" width={32} height={32} className="size-full object-contain" />
                 </span>

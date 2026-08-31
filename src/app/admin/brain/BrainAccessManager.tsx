@@ -112,7 +112,7 @@ function Section({
             {title}
             <Badge>{count}</Badge>
           </div>
-          <p className="[font-family:var(--font-editorial)] italic text-sm leading-relaxed text-fg-3 max-w-[64ch]">
+          <p className="text-[13px] leading-relaxed text-fg-3 max-w-[64ch]">
             {desc}
           </p>
         </div>
@@ -257,10 +257,8 @@ export default function BrainAccessManager({
             </span>
             Agent verbinden — zwei Prompts
           </div>
-          <p className="[font-family:var(--font-editorial)] italic text-sm leading-relaxed text-fg-3 max-w-[64ch]">
-            Kopier den passenden Prompt und füg ihn in Claude Code (oder einen anderen LLM-Agenten) ein.
-            Beide enthalten keinen Token — den legst du separat ab. Erzeug den Token mit dem passenden
-            Scope (<code>vault:use</code> bzw. <code>brain:read</code>).
+          <p className="text-[13px] leading-relaxed text-fg-3 max-w-[64ch]">
+            Enthalten keinen Token, den legst du separat ab.
           </p>
         </div>
         <div className="flex flex-col gap-3">
