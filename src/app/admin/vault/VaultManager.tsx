@@ -223,6 +223,11 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   { id: "apify", label: "Apify", category: "Automation", provider: "apify", baseUrl: "https://api.apify.com/v2", authHeader: "authorization", authScheme: "Bearer ", keyExample: "apify_api_…", labelExample: "Apify" },
   // Social / Marketing
   { id: "blotato", label: "Blotato", category: "Social / Marketing", provider: "blotato", baseUrl: "https://backend.blotato.com/v2", authHeader: "blotato-api-key", authScheme: "", keyExample: { de: "…== (Base64, = gehört dazu)", en: "…== (Base64, the = is part of it)" }, labelExample: "Blotato" },
+  // SlideYourApp keys are shown once and stored hashed on their side — losing
+  // one means replacing it, not looking it up. base_url carries the /api/v1
+  // segment because their MCP server sits outside it (app.slideyourapp.com/mcp)
+  // and is not reachable through this entry.
+  { id: "slideyourapp", label: "SlideYourApp", category: "Social / Marketing", provider: "slideyourapp", baseUrl: "https://app.slideyourapp.com/api/v1", authHeader: "authorization", authScheme: "Bearer ", keyExample: "nl_…", labelExample: "SlideYourApp" },
   // Scraping
   { id: "evomi", label: "Evomi (Scraper API)", category: "Scraping", provider: "evomi", baseUrl: "https://scrape.evomi.com/api/v1/scraper", authHeader: "api_key", authScheme: "", authIn: "query", keyExample: { de: "Evomi api_key (Query-Param)", en: "Evomi api_key (query param)" }, labelExample: "Evomi Scraper API" },
   // Personal API Key (my.evomi.com → Settings → API) — account-level: balance,
