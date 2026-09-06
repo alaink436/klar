@@ -280,12 +280,16 @@ function KeyFields({
   includeMeta,
   lang,
   asc: ascRow = false,
+  optional = false,
 }: {
   includeMeta: boolean;
   lang: AdminLang;
   /** Rotate mode only: the row being rotated holds ASC key material, so the
    *  form must ask for the same three parts again instead of one key. */
   asc?: boolean;
+  /** Edit mode: the key may stay empty, which means "keep the stored one"
+   *  (Alain, 2026-09-06: editing an entry had no way to change its key). */
+  optional?: boolean;
 }) {
   const t = tAdmin(lang);
   const [category, setCategory] = useState("");
@@ -448,7 +452,7 @@ function KeyFields({
           <Field
             name="asc_issuer_id"
             label={t.fieldAscIssuer}
-            required
+            required={!optional}
             autoComplete="off"
             placeholder="00000000-1111-2222-3333-444444444444"
             style={{ fontFamily: "var(--font-mono)" }}
@@ -457,7 +461,7 @@ function KeyFields({
           <Field
             name="asc_key_id"
             label={t.fieldAscKeyId}
-            required
+            required={!optional}
             autoComplete="off"
             placeholder="ABCD1EF2GH"
             style={{ fontFamily: "var(--font-mono)" }}
@@ -468,7 +472,7 @@ function KeyFields({
             <textarea
               id="asc_p8"
               name="asc_p8"
-              required
+              required={!optional}
               rows={5}
               spellCheck={false}
               autoComplete="off"
@@ -480,14 +484,14 @@ function KeyFields({
         </>
       ) : (
         <div className="col-span-2 flex flex-col gap-1.5">
-          <Label htmlFor="secret">{t.fieldSecret}</Label>
+          <Label htmlFor="secret">{optional ? t.fieldSecretOptional : t.fieldSecret}</Label>
           <Input
             id="secret"
             name="secret"
             type="password"
-            required
+            required={!optional}
             autoComplete="new-password"
-            placeholder={includeMeta ? keyHint : t.secretPlaceholderRotate}
+            placeholder={includeMeta ? keyHint : optional ? t.secretPlaceholderEdit : t.secretPlaceholderRotate}
             style={{ fontFamily: "var(--font-mono)" }}
           />
           {includeMeta && (
@@ -781,6 +785,14 @@ export default function VaultManager({ rows, lang }: { rows: VaultRow[]; lang: A
               <input type="hidden" name="action" value="edit" />
               <input type="hidden" name="id" value={editRow.id} />
               <MetaFields row={editRow} lang={lang} />
+              {/* The key too, optional: left empty it stays; filled it is
+                  re-encrypted in place, same id, same proxy URL. */}
+              <KeyFields
+                includeMeta={false}
+                lang={lang}
+                asc={(editRow.baseUrl ?? "").includes("appstoreconnect.apple.com")}
+                optional
+              />
               <DialogFooter>
                 <DialogClose asChild>
                   <Button type="button" variant="ghost">

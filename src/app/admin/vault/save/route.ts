@@ -3,7 +3,8 @@
 //                     encrypted server-side, never logged or echoed)
 //   action=rotate  -> replace a secret's key in place (same id / proxy URL)
 //   action=edit    -> update a secret's metadata (label / provider / category /
-//                     base_url / auth) in place; the stored key is untouched
+//                     base_url / auth) in place; with a key in the form the
+//                     key is replaced too (same as rotate), without it stays
 //   action=delete  -> remove a secret by id
 //
 // Same admin auth as /admin/settings/save (device cookie + admin session).
@@ -98,7 +99,21 @@ export async function POST(req: NextRequest): Promise<Response> {
     const auth_header = String(form.get("auth_header") ?? "authorization").trim();
     const auth_scheme = String(form.get("auth_scheme") ?? "Bearer ");
     const r = await updateSecretMeta(id, { label, provider, category, base_url, auth_header, auth_scheme });
-    return backWith(req, r.ok ? { msg: "updated" } : { err: r.error });
+    if (!r.ok) return backWith(req, { err: r.error });
+    // A key in the edit form replaces the stored one (Alain, 2026-09-06: the
+    // dialog had no way to change it). Empty = keep. For an ASC row all three
+    // parts are optional in the form; any of them present means a new key.
+    const hasKey =
+      String(form.get("key_kind") ?? "").trim() === "asc"
+        ? ["asc_issuer_id", "asc_key_id", "asc_p8"].some((k) => String(form.get(k) ?? "").trim())
+        : String(form.get("secret") ?? "").trim().length > 0;
+    if (hasKey) {
+      const read = readSecret(form);
+      if ("error" in read) return backWith(req, { err: read.error });
+      const rot = await rotateSecret(id, read.secret);
+      return backWith(req, rot.ok ? { msg: "rotated" } : { err: rot.error });
+    }
+    return backWith(req, { msg: "updated" });
   }
 
   if (action === "add") {

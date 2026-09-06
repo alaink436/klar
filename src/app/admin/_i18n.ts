@@ -233,7 +233,9 @@ const DE = {
 
   editTitle: "Eintrag bearbeiten",
   editBody: (label: string) =>
-    `Metadaten von „${label}“ ändern. Der gespeicherte Key bleibt unverändert (zum Ersetzen „Key rotieren“). Base-URL leeren = nur speichern, kein Proxy; die Proxy-URL/ID bleibt gleich.`,
+    `„${label}“ ändern. Key-Feld leer lassen = der gespeicherte Key bleibt; ausgefüllt = er wird ersetzt. Base-URL leeren = nur speichern, kein Proxy; die Proxy-URL/ID bleibt gleich.`,
+  fieldSecretOptional: "Neuer Key (leer lassen = bleibt)",
+  secretPlaceholderEdit: "leer lassen, um den Key zu behalten …",
   editSubmit: "Speichern",
 
   revealTitle: (label: string) => `Key anzeigen — ${label}`,
@@ -446,7 +448,9 @@ const EN: AdminMessages = {
 
   editTitle: "Edit entry",
   editBody: (label: string) =>
-    `Change the metadata of “${label}”. The stored key is untouched (use “Rotate key” to replace it). Clearing the base URL means store-only, no proxy; the proxy URL/ID stays the same.`,
+    `Change “${label}”. Leave the key field empty to keep the stored key; fill it to replace it. Clearing the base URL means store-only, no proxy; the proxy URL/ID stays the same.`,
+  fieldSecretOptional: "New key (leave empty to keep)",
+  secretPlaceholderEdit: "leave empty to keep the key …",
   editSubmit: "Save",
 
   revealTitle: (label: string) => `Show key — ${label}`,
