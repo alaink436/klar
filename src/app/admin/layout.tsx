@@ -14,6 +14,7 @@ import { cookies } from "next/headers";
 import { LANG_COOKIE, normalizeAdminLang } from "./_i18n";
 import { NAV_COOKIE, parseNavPrefs } from "./_nav";
 import { countOpenCollabs } from "@/lib/collabView";
+import { countCakedayUnread } from "@/lib/cakeday";
 import {
   STYLE,
   FONTS_LINK,
@@ -35,7 +36,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const navPrefs = parseNavPrefs(jar.get(NAV_COOKIE)?.value);
   // Sidebar badge. Cached for a minute inside countOpenCollabs, so it does not
   // add a PostgREST round-trip to every single admin navigation.
-  const collabOpen = await countOpenCollabs();
+  // Beide Zahlen nebeneinander, nicht nacheinander: die zweite kommt von
+  // mycakeday.ch und ist ebenfalls eine Minute gecacht (lib/cakeday.ts).
+  const [collabOpen, cakedayOpen] = await Promise.all([countOpenCollabs(), countCakedayUnread()]);
   // Ob die Schiene ein- oder ausgeklappt war. shadcn schreibt diese Cookie
   // beim Umschalten; ohne sie hier klappt die Schiene beim ersten Bild kurz
   // auf und dann wieder zu.
@@ -54,7 +57,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           zusaetzlich eine dauerhaft laufende WebGL-Schleife. Die Glas-Flaechen
           bleiben, sie liegen jetzt direkt auf dem Untergrund. */}
       <div dangerouslySetInnerHTML={{ __html: GLASS_SVG_DEFS }} />
-      <AdminShell apps={apps} lang={lang} collabOpen={collabOpen} navPrefs={navPrefs} sidebarOpen={sidebarOpen}>
+      <AdminShell apps={apps} lang={lang} collabOpen={collabOpen} cakedayOpen={cakedayOpen} navPrefs={navPrefs} sidebarOpen={sidebarOpen}>
         {children}
       </AdminShell>
       {/* Confirm dialog hoisted here so it survives client-side menu switches.

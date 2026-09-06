@@ -30,6 +30,9 @@ export const NAV_ITEMS: NavItemDef[] = [
   { id: "todos", labelKey: "navTodos", icon: "check", href: "/admin/todos", section: "studio" },
   { id: "inbox", labelKey: "navInbox", icon: "inbox", href: "/admin/inbox", section: "studio" },
   { id: "collabs", labelKey: "navCollabs", icon: "reply", href: "/admin/collabs", section: "studio" },
+  // MyCakeDay ist ein eigenes Geschaeft mit eigenem Postfach (mycakeday.ch),
+  // deshalb ein eigener Eintrag und kein Filter in der Inbox.
+  { id: "mycakeday", labelKey: "navMycakeday", icon: "cake", href: "/admin/mycakeday", section: "studio" },
   { id: "outreach", labelKey: "navOutreach", icon: "outreach", href: "/admin/outreach", section: "studio" },
   { id: "content", labelKey: "navContent", icon: "content", href: "/admin/content", section: "studio" },
   { id: "bookings", labelKey: "navBookings", icon: "calendar", href: "/admin/bookings", section: "studio" },
