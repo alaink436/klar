@@ -92,6 +92,7 @@ export default function AdminSidebar({
   );
 
   const studio = orderedSection("studio", prefs);
+  const mycakeday = orderedSection("mycakeday", prefs);
   const creator = orderedSection("creator", prefs);
   const creatorActive = creator.some((i) => i.id === active) || appNav.some((a) => active === a.slug);
 
@@ -128,7 +129,11 @@ export default function AdminSidebar({
           >
             <Link
               href={item.href}
-              title={t.navDragHint}
+              title={item.external ? t.navExternalHint : t.navDragHint}
+              // Absprung nach mycakeday.ch: neuer Tab, kein Vorabruf, kein
+              // Client-Routing. Der Route-Handler dahinter leitet auf eine
+              // fremde Domain um, und die kann next/link nicht auffangen.
+              {...(item.external ? { target: "_blank", rel: "noopener", prefetch: false } : {})}
               draggable
               onDragStart={(e) => {
                 setDragId(item.id);
@@ -159,6 +164,7 @@ export default function AdminSidebar({
             >
               <Icon size={16} />
               <span>{t[item.labelKey] as string}</span>
+              {item.external ? <ArrowUpRight className="ml-auto size-3 opacity-60" /> : null}
             </Link>
           </SidebarMenuButton>
         </AnimateIcon>
@@ -211,19 +217,38 @@ export default function AdminSidebar({
                     >
                       {collabOpen}
                     </SidebarMenuBadge>
-                  ) : item.id === "mycakeday" && cakedayOpen > 0 ? (
-                    <SidebarMenuBadge
-                      className="bg-[var(--danger)] text-white"
-                      aria-label={t.mycakedayOpenAria(cakedayOpen)}
-                    >
-                      {cakedayOpen}
-                    </SidebarMenuBadge>
                   ) : undefined,
                 ),
               )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* MyCakeDay, gleichrangig mit Studio (Alain, 2026-09-06: ein ganzes
+            Menue, kein Untermenue). Das Postfach ist eine Seite hier, die
+            anderen Eintraege springen ohne zweiten Login ins Cakeday-Dashboard. */}
+        {mycakeday.length > 0 ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>{t.sectionMycakeday}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {mycakeday.map((item) =>
+                  navRow(
+                    item,
+                    item.id === "mycakeday" && cakedayOpen > 0 ? (
+                      <SidebarMenuBadge
+                        className="bg-[var(--danger)] text-white"
+                        aria-label={t.mycakedayOpenAria(cakedayOpen)}
+                      >
+                        {cakedayOpen}
+                      </SidebarMenuBadge>
+                    ) : undefined,
+                  ),
+                )}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
 
         {/* Ruhender Zweig: zu, ausser man steht darin. `key` bindet den
             Aufklapp-Zustand an die Navigation, sonst bleibt er von vorher
