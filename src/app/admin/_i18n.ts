@@ -44,6 +44,7 @@ const DE = {
   navTodos: "To-do",
   navInbox: "Inbox",
   navCollabs: "Collabs",
+  navMycakeday: "MyCakeDay",
   navOutreach: "Outreach",
   navContent: "Content",
   navBookings: "Bookings",
@@ -123,6 +124,7 @@ const DE = {
   navShow: "Einblenden",
   navReset: "Auf Standard zurücksetzen",
   collabOpenAria: (n: number) => `${n} unbeantwortete Collab-Anfrage${n === 1 ? "" : "n"}`,
+  mycakedayOpenAria: (n: number) => `${n} ungelesene Mail${n === 1 ? "" : "s"} bei MyCakeDay`,
   collabsSub:
     "Geantwortet wird in der Inbox, nicht hier — jede Zeile führt direkt zum Thread. Wer an eine Bio-Adresse schreibt, landet ausserdem dort unter „Collabs“.",
 
@@ -253,6 +255,7 @@ const EN: AdminMessages = {
   navTodos: "To-do",
   navInbox: "Inbox",
   navCollabs: "Collabs",
+  navMycakeday: "MyCakeDay",
   navOutreach: "Outreach",
   navContent: "Content",
   navBookings: "Bookings",
@@ -328,6 +331,7 @@ const EN: AdminMessages = {
   navShow: "Show",
   navReset: "Reset to default",
   collabOpenAria: (n: number) => `${n} unanswered collab request${n === 1 ? "" : "s"}`,
+  mycakedayOpenAria: (n: number) => `${n} unread email${n === 1 ? "" : "s"} at MyCakeDay`,
   collabsSub:
     "You reply from the inbox, not here — every row leads straight to the thread. Anything sent to a bio address also lands there under “Collabs”.",
 

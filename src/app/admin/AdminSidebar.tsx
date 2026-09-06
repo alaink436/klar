@@ -63,6 +63,7 @@ export default function AdminSidebar({
   lang,
   prefs,
   collabOpen = 0,
+  cakedayOpen = 0,
 }: {
   active: string;
   apps: { slug: string; name: string }[];
@@ -70,6 +71,8 @@ export default function AdminSidebar({
   prefs: NavPrefs;
   /** Unbeantwortete Collab-Anfragen. Das ist die Zahl neben dem Eintrag. */
   collabOpen?: number;
+  /** Ungelesene Mails im Postfach von mycakeday.ch, neben „MyCakeDay". */
+  cakedayOpen?: number;
 }) {
   const t = tAdmin(lang);
   const router = useRouter();
@@ -207,6 +210,13 @@ export default function AdminSidebar({
                       aria-label={t.collabOpenAria(collabOpen)}
                     >
                       {collabOpen}
+                    </SidebarMenuBadge>
+                  ) : item.id === "mycakeday" && cakedayOpen > 0 ? (
+                    <SidebarMenuBadge
+                      className="bg-[var(--danger)] text-white"
+                      aria-label={t.mycakedayOpenAria(cakedayOpen)}
+                    >
+                      {cakedayOpen}
                     </SidebarMenuBadge>
                   ) : undefined,
                 ),
