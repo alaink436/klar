@@ -65,7 +65,7 @@ export default function NavSettings({ lang, prefs }: { lang: AdminLang; prefs: N
               <span className={`flex-1 text-[13.5px] ${hidden ? "text-fg-4 line-through" : "text-fg"}`}>
                 {t[item.labelKey] as string}
                 <span className="ml-2 text-[10.5px] [font-family:var(--font-mono)] uppercase tracking-[0.1em] text-fg-4 no-underline">
-                  {item.section === "studio" ? t.sectionStudio : t.sectionCreator}
+                  {item.section === "studio" ? t.sectionStudio : item.section === "mycakeday" ? t.sectionMycakeday : t.sectionCreator}
                 </span>
               </span>
               <Button

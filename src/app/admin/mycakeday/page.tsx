@@ -131,9 +131,10 @@ export default async function MyCakeDayPage({
 
   return (
     <>
-      <title>MyCakeDay · Klar Control</title>
+      <title>Postfach · MyCakeDay · Klar Control</title>
       <AdminTopbar
-        titel="MyCakeDay"
+        titel="Postfach"
+        bereich="MyCakeDay"
         rechts={
           <Button asChild variant="ghost" size="sm" className="ml-2">
             {/* Ein Route-Handler, der einen einmaligen Anmeldelink holt und
@@ -149,14 +150,15 @@ export default async function MyCakeDayPage({
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="mb-2 [font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.24em] text-fg-4">
-              Postfach · {absender}
+              MyCakeDay · {absender}
             </div>
             <h1 className="m-0 [font-family:var(--font-display)] text-[clamp(36px,5vw,58px)] font-normal leading-[0.92] tracking-[0.015em] text-fg">
-              MyCakeDay
+              Postfach
             </h1>
             <p className="mt-3 max-w-[64ch] text-[13px] leading-relaxed text-fg-3">
-              Echte Post an mycakeday.ch: lesen, antworten, abhaken. Firmen, Partner und Sortiment
-              stehen im Cakeday-Dashboard — „mycakeday.ch öffnen“ bringt dich ohne zweiten Login hin.
+              Echte Post an mycakeday.ch: lesen, antworten, abhaken. Übersicht, Firmen, Partner,
+              Sortiment und Mitteilungen stehen links im Menü und öffnen das Cakeday-Dashboard ohne
+              zweiten Login.
             </p>
           </div>
         </div>
@@ -214,8 +216,14 @@ export default async function MyCakeDayPage({
                     href={adresse({ ordner: o.id, suche })}
                     className={cn(
                       "rounded-[var(--radius-sm)] px-2.5 py-1 text-[12px]",
-                      o.id === ordner ? "bg-fg text-accent-fg" : "text-fg-3 hover:bg-surface-2 hover:text-fg",
+                      o.id === ordner ? "bg-fg" : "hover:bg-surface-2",
                     )}
+                    /* ⚠️ Farbe als Inline-Stil, nicht als Klasse. `_shared.ts` setzt
+                       `a{color:inherit}` ausserhalb der Tailwind-Ebenen, und eine
+                       ungeschichtete Regel schlaegt jede `text-*`-Klasse auf einem
+                       Link. Mit der Klasse stand die aktive Pille weiss auf weiss
+                       (Alain, 2026-09-06: „man sieht das darunter nicht mehr"). */
+                    style={{ color: o.id === ordner ? "var(--accent-fg)" : "var(--fg-3)" }}
                   >
                     {o.titel}
                   </a>

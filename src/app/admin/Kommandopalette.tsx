@@ -131,7 +131,9 @@ export function Kommandopalette({
                 // `value` ist, wonach cmdk sucht. Die Kennung mit hinein, damit
                 // "todos" auch dann trifft, wenn der Eintrag "To-do" heisst.
                 value={`${label} ${item.id}`}
-                onSelect={() => dann(() => router.push(item.href))}
+                // Absprung nach mycakeday.ch: ein Route-Handler mit Umleitung auf
+                // eine fremde Domain, dafuer taugt router.push nicht.
+                onSelect={() => dann(() => (item.external ? window.open(item.href, "_blank", "noopener") : router.push(item.href)))}
               >
                 <Icon size={16} />
                 <span>{label}</span>

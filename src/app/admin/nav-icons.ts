@@ -20,6 +20,9 @@ import { LayoutDashboard } from "@/components/animate-ui/icons/layout-dashboard"
 import { ClipboardList } from "@/components/animate-ui/icons/clipboard-list";
 import { Inbox } from "@/components/animate-ui/icons/inbox";
 import { Cake } from "@/components/animate-ui/icons/cake";
+import { Building2 } from "@/components/animate-ui/icons/building-2";
+import { Store } from "@/components/animate-ui/icons/store";
+import { MessageCircle } from "@/components/animate-ui/icons/message-circle";
 import { MessageSquareDot } from "@/components/animate-ui/icons/message-square-dot";
 import { Send } from "@/components/animate-ui/icons/send";
 import { Clapperboard } from "@/components/animate-ui/icons/clapperboard";
@@ -45,7 +48,10 @@ export const NAV_ICON: Record<string, NavIcon> = {
   check: ClipboardList, // Todos
   inbox: Inbox,
   reply: MessageSquareDot, // Collabs, der Punkt steht fuer unbeantwortet
-  cake: Cake, // MyCakeDay, das Postfach von mycakeday.ch
+  cake: Cake, // MyCakeDay: Sortiment (die Torten)
+  building: Building2, // MyCakeDay: Firmen
+  store: Store, // MyCakeDay: Partner, die Konditoreien
+  chat: MessageCircle, // MyCakeDay: Mitteilungen
   outreach: Send,
   content: Clapperboard,
   calendar: CalendarDays, // Bookings und Cal teilen sich das Symbol
