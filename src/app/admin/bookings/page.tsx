@@ -15,6 +15,7 @@ import {
   readCookieFromString,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
+import { inZone } from "@/lib/zeit";
 
 import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
@@ -67,10 +68,7 @@ async function loadBookings(): Promise<BookingsResult> {
 }
 
 function fmtWhen(s: unknown): string {
-  const d = new Date(String(s));
-  return isNaN(d.getTime())
-    ? String(s ?? "")
-    : d.toLocaleString("de-CH", { dateStyle: "medium", timeStyle: "short" });
+  return inZone(String(s ?? ""), { dateStyle: "medium", timeStyle: "short" }, "de-CH", String(s ?? ""));
 }
 
 function BookingPill({ r, now }: { r: CalBooking; now: number }) {

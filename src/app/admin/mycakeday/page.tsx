@@ -30,6 +30,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { inZone, tagInZone } from "@/lib/zeit";
 import { AdminTopbar } from "../AdminTopbar";
 import { MailRahmen } from "./MailRahmen";
 
@@ -47,18 +48,21 @@ const eingabe =
 const etikett =
   "[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.1em] text-fg-3";
 
+// Uhrzeit heute, sonst Tag und Monat — alles in Zuercher Ortszeit, siehe
+// lib/zeit.ts. „Heute" wird ueber den Tagesschluessel entschieden und nicht
+// ueber toDateString(), sonst haengt die Antwort wieder an der Serverzone.
 function wann(iso: string): string {
-  const d = new Date(iso);
-  const jetzt = new Date();
-  if (d.toDateString() === jetzt.toDateString())
-    return d.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
-  if (d.getFullYear() === jetzt.getFullYear())
-    return d.toLocaleDateString("de-CH", { day: "2-digit", month: "short" });
-  return d.toLocaleDateString("de-CH", { day: "2-digit", month: "2-digit", year: "2-digit" });
+  const tag = tagInZone(iso);
+  if (!tag) return "";
+  const heute = tagInZone(new Date());
+  if (tag === heute) return inZone(iso, { hour: "2-digit", minute: "2-digit" });
+  if (tag.slice(0, 4) === heute.slice(0, 4))
+    return inZone(iso, { day: "2-digit", month: "short" });
+  return inZone(iso, { day: "2-digit", month: "2-digit", year: "2-digit" });
 }
 
 const zeitpunkt = (iso: string) =>
-  new Date(iso).toLocaleString("de-CH", {
+  inZone(iso, {
     weekday: "short",
     day: "2-digit",
     month: "2-digit",

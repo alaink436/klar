@@ -19,6 +19,7 @@ import {
   eur,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
+import { inZone } from "@/lib/zeit";
 import { getApps, sbGet, type AdminApp } from "../../../lib/adminApps";
 
 import { AdminTopbar } from "../AdminTopbar";
@@ -65,12 +66,8 @@ async function payoutsMain(apps: AdminApp[]): Promise<string> {
   const lastPaid = past.filter((b) => b.status === "paid")
     .sort((a, b) => String(b.paid_at ?? "").localeCompare(String(a.paid_at ?? "")))[0];
 
-  const fmtDate = (s: unknown) => {
-    const d = new Date(String(s));
-    return isNaN(d.getTime())
-      ? esc(s ?? "")
-      : d.toLocaleDateString("de-CH", { dateStyle: "medium" });
-  };
+  const fmtDate = (s: unknown) =>
+    inZone(String(s ?? ""), { dateStyle: "medium" }, "de-CH", esc(s ?? ""));
 
   const statusPill = (status: string): string => {
     if (status === "paid") return `<span class="tbadge ok">bezahlt</span>`;
