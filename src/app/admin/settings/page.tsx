@@ -16,6 +16,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { ICON, readCookieFromString } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
+import { datumInZone } from "@/lib/zeit";
 import { getAdminSettings, listInvites } from "../../../lib/adminSettings";
 import SettingsManager, { type InviteRow } from "./SettingsManager";
 import NavSettings from "./NavSettings";
@@ -60,7 +61,7 @@ export default async function SettingsPage({
     name: inv.invited_name || "",
     email: inv.invited_email || "",
     url: `${origin}/admin/login?invite=${encodeURIComponent(inv.token)}`,
-    expiresFmt: new Date(inv.expires_at).toLocaleDateString("de-CH"),
+    expiresFmt: datumInZone(inv.expires_at),
     status: inv.used_at ? "used" : new Date(inv.expires_at).getTime() < now ? "expired" : "open",
   }));
 

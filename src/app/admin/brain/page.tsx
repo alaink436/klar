@@ -16,6 +16,7 @@ import {
   readCookieFromString,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
+import { datumInZone, inZone } from "@/lib/zeit";
 import { scopeGraph, hasToken, availableFolders, SHOWCASE_FOLDERS } from "@/lib/brainVault";
 import { readLearnings, readVaultChecks } from "@/lib/brainStatus";
 import { listTokens } from "@/lib/apiTokens";
@@ -107,7 +108,7 @@ export default async function BrainPage({
     scopes: t.scopes,
     secretIds: t.vault_secret_ids ?? [],
     releaseUntil: t.vault_release_until
-      ? new Date(t.vault_release_until).toLocaleString("de-CH", {
+      ? inZone(t.vault_release_until, {
           day: "2-digit",
           month: "2-digit",
           hour: "2-digit",
@@ -118,7 +119,7 @@ export default async function BrainPage({
       t.vault_release_until && Date.parse(t.vault_release_until) <= Date.now(),
     ),
     secretLabels: (t.vault_secret_ids ?? []).map((sid) => secretLabelById.get(sid) ?? sid),
-    lastUsed: t.last_used_at ? new Date(t.last_used_at).toLocaleDateString("de-CH") : "—",
+    lastUsed: datumInZone(t.last_used_at),
     revoked: Boolean(t.revoked_at),
   }));
   const members: MemberRow[] = memberRows.map((m) => ({
@@ -126,7 +127,7 @@ export default async function BrainPage({
     clearance: m.clearance,
     folders: m.folders ?? [],
     scope: m.clearance === "full" ? "voller Zugriff" : (m.folders ?? []).join(", "),
-    lastSeen: m.last_seen_at ? new Date(m.last_seen_at).toLocaleDateString("de-CH") : "—",
+    lastSeen: datumInZone(m.last_seen_at),
     revoked: Boolean(m.revoked_at),
   }));
   const folders: FolderOpt[] = availableFolders().map((g) => ({

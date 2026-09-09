@@ -13,6 +13,7 @@ import {
 } from "../_shared";
 import { DATE_LOCALE, LANG_COOKIE, flashText, normalizeAdminLang, tAdmin } from "../_i18n";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
+import { datumInZone } from "@/lib/zeit";
 import { listSecrets, vaultReady } from "../../../lib/vault";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +60,7 @@ export default async function VaultPage({
     authScheme: s.auth_scheme,
     // store-only secrets (no base_url) have no proxy endpoint
     proxy: s.base_url ? `${origin}/api/vault/proxy/${s.id}/` : "",
-    lastUsed: s.last_used_at ? new Date(s.last_used_at).toLocaleDateString(DATE_LOCALE[lang]) : "—",
+    lastUsed: datumInZone(s.last_used_at, DATE_LOCALE[lang]),
   }));
   const active = rows.filter((r) => r.lastUsed !== "—").length;
 

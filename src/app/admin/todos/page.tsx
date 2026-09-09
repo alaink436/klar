@@ -30,18 +30,14 @@ import { type SlotRef } from "./ReferenceSlot";
 import { type ViewPost } from "./PostSamples";
 import WeekNav from "./WeekNav";
 import { viewHref, type TodoView } from "./views";
+import { tagInZone } from "@/lib/zeit";
 
 import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const ZONE = "Europe/Zurich";
-
 /** Heutiges Datum in Zürcher Ortszeit als "YYYY-MM-DD". */
-function todayInZurich(): string {
-  // en-CA formatiert als YYYY-MM-DD — genau das Format, das wir brauchen.
-  return new Intl.DateTimeFormat("en-CA", { timeZone: ZONE }).format(new Date());
-}
+const todayInZurich = () => tagInZone(new Date());
 
 function addDays(iso: string, n: number): string {
   const d = new Date(`${iso}T12:00:00Z`);
