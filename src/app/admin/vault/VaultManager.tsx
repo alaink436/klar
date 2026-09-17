@@ -71,6 +71,7 @@ const CATEGORY_SUGGESTIONS = [
   "Scraping",
   "Mobile / Stores",
   "TMDB",
+  "Analytics",
   "Infrastruktur",
   "Sonstiges",
 ];
@@ -130,6 +131,7 @@ const CATEGORY_EXAMPLES: Record<string, CategoryExample> = {
     key: "-----BEGIN PRIVATE KEY----- (.p8)",
   },
   TMDB: { label: "TMDB Read Access Token (v4)", provider: "tmdb", baseUrl: "https://api.themoviedb.org", baseUrlFill: "https://api.themoviedb.org", key: { de: "eyJ… (v4 Bearer) / 32-Hex (v3)", en: "eyJ… (v4 bearer) / 32-hex (v3)" } },
+  Analytics: { label: "PostHog Personal API Key", provider: "posthog", baseUrl: "https://eu.posthog.com", baseUrlFill: "https://eu.posthog.com", key: "phx_…" },
   Infrastruktur: { label: "Vercel Token", provider: "vercel", baseUrl: "https://api.vercel.com", baseUrlFill: "https://api.vercel.com", key: { de: "Bearer-Token …", en: "Bearer token …" } },
   Sonstiges: DEFAULT_EXAMPLE,
 };
@@ -257,6 +259,13 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   // (e.g. `v1/search?query=roadtrip`), videos under `videos/…`.
   // Limits: 200 req/h and 20'000/month; image/video file downloads don't count.
   { id: "pexels", label: "Pexels (API Key)", category: "Sonstiges", provider: "pexels", baseUrl: "https://api.pexels.com", authHeader: "authorization", authScheme: "", keyExample: { de: "56-stelliger alphanumerischer Key", en: "56-character alphanumeric key" }, labelExample: "Pexels API Key" },
+  // Analytics
+  // PostHog: the PERSONAL API key (phx_…) is the one that drives the private
+  // REST API (projects, insights, dashboards, flags) and the MCP server. It is
+  // a Bearer token. The per-project token (phc_…) is public and lives in the
+  // app code, not here. base_url is the EU cloud without a version segment so
+  // `api/projects/…` and `api/organizations/…` both go through one entry.
+  { id: "posthog", label: "PostHog (Personal API Key)", category: "Analytics", provider: "posthog", baseUrl: "https://eu.posthog.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "phx_…", labelExample: "PostHog Personal API Key" },
   // Infrastruktur
   { id: "vercel", label: "Vercel", category: "Infrastruktur", provider: "vercel", baseUrl: "https://api.vercel.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "Bearer-Token …", en: "Bearer token …" }, labelExample: "Vercel Token" },
   { id: "github", label: "GitHub", category: "Infrastruktur", provider: "github", baseUrl: "https://api.github.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "ghp_… / github_pat_…", labelExample: "GitHub PAT" },
