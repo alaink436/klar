@@ -206,6 +206,13 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   { id: "perplexity", label: "Perplexity", category: "KI / LLM", provider: "perplexity", baseUrl: "https://api.perplexity.ai", authHeader: "authorization", authScheme: "Bearer ", keyExample: "pplx-…", labelExample: "Perplexity" },
   { id: "xai", label: "xAI (Grok)", category: "KI / LLM", provider: "xai", baseUrl: "https://api.x.ai", authHeader: "authorization", authScheme: "Bearer ", keyExample: "xai-…", labelExample: "xAI" },
   { id: "deepseek", label: "DeepSeek", category: "KI / LLM", provider: "deepseek", baseUrl: "https://api.deepseek.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sk-…", labelExample: "DeepSeek" },
+  // fal hosts image, video and audio models (Mirelo SFX among them) and
+  // authenticates with "Key " on the standard authorization header — NOT
+  // Bearer; with Bearer every call comes back 401 and nothing says why.
+  // base_url is the QUEUE host: everything longer than a few seconds is
+  // submitted there and polled, e.g. `mirelo-ai/sfx-v1.5/video-to-audio` and
+  // then `…/requests/<id>/status`. Billed per use, per second of output.
+  { id: "fal", label: "fal.ai (Key)", category: "KI / LLM", provider: "fal", baseUrl: "https://queue.fal.run", authHeader: "authorization", authScheme: "Key ", keyExample: { de: "Key aus fal.ai/dashboard/keys, ganz einfügen", en: "key from fal.ai/dashboard/keys, paste it whole" }, labelExample: "fal.ai API Key" },
   // Datenbank
   { id: "supabase", label: "Supabase (Service Role)", category: "Datenbank", provider: "supabase", baseUrl: "", authHeader: "authorization", authScheme: "Bearer ", keyExample: "eyJ… (JWT) / sb_secret_…", labelExample: "Supabase Service Role" },
   // RevenueCat
