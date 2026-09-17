@@ -42,6 +42,10 @@ export const NAV_ITEMS: NavItemDef[] = [
   { id: "bookings", labelKey: "navBookings", icon: "calendar", href: "/admin/bookings", section: "studio" },
   { id: "cal", labelKey: "navCal", icon: "calendar", href: "/admin/cal", section: "studio" },
   { id: "analytics", labelKey: "navAnalytics", icon: "analytics", href: "/admin/analytics", section: "studio" },
+  // App-Nutzung aus PostHog (seit 2026-09-17): Starts, Screens, Versionen je
+  // App. Eigener Punkt neben Analytics, weil Analytics die Landings und den
+  // Umsatz zeigt und diese Seite das Verhalten IN den Apps.
+  { id: "app-analytics", labelKey: "navAppAnalytics", icon: "activity", href: "/admin/app-analytics", section: "studio" },
   { id: "brain", labelKey: "navBrain", icon: "brain", href: "/admin/brain", section: "studio" },
   { id: "chronik", labelKey: "navChronik", icon: "doc", href: "/admin/chronik", section: "studio" },
   { id: "vault", labelKey: "navVault", icon: "key", href: "/admin/vault", section: "studio" },
