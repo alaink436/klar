@@ -96,7 +96,15 @@ function events(event: string, math: "dau" | "total") {
 }
 
 /** One PostHog query. Throws on HTTP or JSON errors; the caller decides. */
-async function runQuery(routing: Routing, source: Record<string, unknown>): Promise<any[]> {
+interface QueryRow {
+  aggregated_value?: number;
+  count?: number;
+  data?: number[];
+  days?: string[];
+  breakdown_value?: string | string[] | null;
+}
+
+async function runQuery(routing: Routing, source: Record<string, unknown>): Promise<QueryRow[]> {
   const url = `${routing.baseUrl.replace(/\/$/, "")}/api/projects/${POSTHOG_PROJECT_ID}/query`;
   const res = await fetch(url, {
     method: "POST",
@@ -113,7 +121,7 @@ async function runQuery(routing: Routing, source: Record<string, unknown>): Prom
   }
   const json = (await res.json()) as { results?: unknown; error?: string };
   if (json.error) throw new Error(json.error);
-  return Array.isArray(json.results) ? json.results : [];
+  return Array.isArray(json.results) ? (json.results as QueryRow[]) : [];
 }
 
 /** A single aggregated number over the period (PostHog "BoldNumber"). */
@@ -139,7 +147,7 @@ async function ranked(routing: Routing, slug: string, event: string, math: "dau"
     breakdownFilter: { breakdown, breakdown_type: "event" },
   });
   return rows
-    .map((r: any) => {
+    .map((r) => {
       const raw = Array.isArray(r.breakdown_value) ? r.breakdown_value[0] : r.breakdown_value;
       const name = raw == null || raw === "$$_posthog_breakdown_null_$$" ? "(ohne)" : raw === "$$_posthog_breakdown_other_$$" ? "(andere)" : String(raw);
       return { name, count: Number(r.aggregated_value ?? r.count ?? 0) };
