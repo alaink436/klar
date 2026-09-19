@@ -276,12 +276,13 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   // Infrastruktur
   { id: "vercel", label: "Vercel", category: "Infrastruktur", provider: "vercel", baseUrl: "https://api.vercel.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "Bearer-Token …", en: "Bearer token …" }, labelExample: "Vercel Token" },
   { id: "github", label: "GitHub", category: "Infrastruktur", provider: "github", baseUrl: "https://api.github.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "ghp_… / github_pat_…", labelExample: "GitHub PAT" },
-  // Nanite's GitHub App signs every webhook with a shared secret. Nobody calls
-  // an API with it, the app recomputes the HMAC and compares. So base_url stays
-  // empty: store only, revealed through "Key anzeigen", never proxied. The same
-  // value also has to sit in Vercel as NANITE_GITHUB_WEBHOOK_SECRET, because
-  // the signature is checked on every request and cannot wait for a lookup.
-  { id: "nanite-github-webhook", label: "Nanite – GitHub Webhook Secret", category: "Infrastruktur", provider: "github", baseUrl: "", authHeader: "authorization", authScheme: "", keyExample: { de: "Zufallsstring aus dem GitHub-App-Formular", en: "random string from the GitHub App form" }, labelExample: "Nanite GitHub Webhook Secret" },
+  // Nanite's GitHub App is six values: app id, slug, client id, client secret,
+  // webhook secret and the private key. Six entries here would mean six chances
+  // to paste one into the wrong field, so they travel as one JSON blob that
+  // scripts/github-app-bundle.ps1 in the nanite repo builds and puts on the
+  // clipboard. base_url stays empty: store only, revealed through "Key
+  // anzeigen", never proxied. The same blob sits in Vercel as NANITE_GITHUB_APP.
+  { id: "nanite-github-app", label: "Nanite – GitHub App (alle Werte)", category: "Infrastruktur", provider: "github", baseUrl: "", authHeader: "authorization", authScheme: "", keyExample: { de: '{"appId":"…","slug":"nanite","clientId":"…",…} aus github-app-bundle.ps1', en: '{"appId":"…","slug":"nanite","clientId":"…",…} from github-app-bundle.ps1' }, labelExample: "Nanite GitHub App" },
 ];
 
 const SELECT_CLASS =
