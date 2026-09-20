@@ -249,6 +249,15 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   // `v1/apps` and the reporting endpoints are reachable through one entry.
   { id: "appstore", label: "App Store Connect (.p8)", category: "Mobile / Stores", provider: "apple", baseUrl: "https://api.appstoreconnect.apple.com", authHeader: "authorization", authScheme: "Bearer ", keyKind: "asc", keyExample: "-----BEGIN PRIVATE KEY----- (.p8)", labelExample: "App Store Connect API" },
   { id: "expo", label: "Expo / EAS", category: "Mobile / Stores", provider: "expo", baseUrl: "https://api.expo.dev", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "Expo Access-Token", en: "Expo access token" }, labelExample: "Expo EAS" },
+  // Google Play: the Android counterpart to the .p8 above, but store-only for
+  // now. The secret is the whole service-account JSON (client_email plus an RS256
+  // private_key), and androidpublisher accepts no static header: the key has to
+  // be swapped for an OAuth2 access token first, the way ascJwt.ts signs for
+  // Apple. Until that exists, base_url stays empty so the entry cannot be
+  // proxied by accident; the JSON is revealed through "Key anzeigen" and handed
+  // to `eas credentials --platform android`. One key covers every app of the
+  // developer account, so it is as powerful as the ASC key: it can ship releases.
+  { id: "google-play", label: "Google Play (Service-Account JSON)", category: "Mobile / Stores", provider: "google", baseUrl: "", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: 'die ganze JSON-Datei aus der Cloud Console: {"type":"service_account","client_email":"…","private_key":"-----BEGIN PRIVATE KEY-----…"}', en: 'the whole JSON file from the Cloud Console: {"type":"service_account","client_email":"…","private_key":"-----BEGIN PRIVATE KEY-----…"}' }, labelExample: "Google Play Service Account" },
   // TMDB (eigene Kategorie) — v4-Token läuft als Bearer über den Proxy, der
   // v3-Key via Query-Param-Injection (?api_key=…, wie Evomi).
   { id: "tmdb-v4", label: "TMDB Read Access Token (v4, Proxy)", category: "TMDB", provider: "tmdb", baseUrl: "https://api.themoviedb.org", authHeader: "authorization", authScheme: "Bearer ", keyExample: "eyJhbGci… (v4 JWT)", labelExample: "TMDB Read Access Token (v4)" },
