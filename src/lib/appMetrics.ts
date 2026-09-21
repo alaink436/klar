@@ -108,7 +108,7 @@ export async function snapshotAllApps(today: string): Promise<SnapshotResult> {
   const apps = getApps();
   const rows = await Promise.all(
     apps.map(async (app) => {
-      const rc = getRcConfig(app.slug);
+      const rc = await getRcConfig(app.slug);
       const [stats, rcov] = await Promise.all([
         fetchAppUserStats(app),
         rc ? fetchRcOverview(rc) : Promise.resolve(null),

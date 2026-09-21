@@ -394,13 +394,13 @@ const EMPTY_LANDINGS: LandingsPayload = {
 //
 // Walks the full KLAR_APPS roster. User counts come from each connected app's
 // Supabase (klar_app_stats RPC, needs KLAR_ADMIN_APPS entry). Revenue comes
-// from RevenueCat's Overview metrics (needs a KLAR_REVENUECAT_KEYS entry).
+// from RevenueCat's Overview metrics (vault entry "Revenuecat <App>", see lib/revenuecat).
 // Either side degrades to "—" independently, so an app can show users without
 // revenue, or neither, without breaking the others.
 async function buildApps(): Promise<AppsPayload> {
   const backendApps = getApps();
   const bySlug = new Map(backendApps.map((a) => [a.slug, a]));
-  const rcBySlug = new Map(getRcConfigs().map((c) => [c.slug, c]));
+  const rcBySlug = new Map((await getRcConfigs()).map((c) => [c.slug, c]));
 
   // Daily signups for the last 4 weeks: the card shows the movement, not just
   // the totals, so it needs the shape of the curve plus the week before last
@@ -701,14 +701,16 @@ export default async function AnalyticsPage({
   const site: SitePayload =
     tab === "site" ? buildSite(rows, siteP, since, prevSince) : EMPTY_SITE;
   // Apps tab fans out user-stats + RevenueCat calls per app; only build it when
-  // that tab is active.
-  const appsData: AppsPayload = tab === "apps" ? await buildApps() : EMPTY_APPS;
-  // Apps-tab time-series chart (users|revenue), driven by ?am / ?apps / ?p_app.
-  const appsMetric = parseMetric(sp.am);
-  const appsChartPeriod = parsePeriod(sp.p_app);
-  const appsSelected = parseSelectedApps(sp.apps);
-  const appsChart: AppsChartPayload =
-    tab === "apps" ? await buildAppsChart(appsMetric, appsChartPeriod, appsSelected) : EMPTY_CHART;
+  // that tab is active. Cards and chart side by side: they share no data, and
+  // one after the other the page waited for the sum of both.
+  // Chart driven by ?am / ?apps / ?p_app.
+  const [appsData, appsChart]: [AppsPayload, AppsChartPayload] =
+    tab === "apps"
+      ? await Promise.all([
+          buildApps(),
+          buildAppsChart(parseMetric(sp.am), parsePeriod(sp.p_app), parseSelectedApps(sp.apps)),
+        ])
+      : [EMPTY_APPS, EMPTY_CHART];
 
   // React 19 hoists <title>, <link>, <style>, <script> into <head> automatically
   // when they appear inside a page tree. We rely on that to inject the admin
