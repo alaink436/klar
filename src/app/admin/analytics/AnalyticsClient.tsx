@@ -601,7 +601,7 @@ function AppCard({ row }: { row: AppRow }) {
         ) : (
           <p className="muted" style={{ fontSize: 12, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
             <span className="pill" style={{ fontSize: 9 }}>Umsatz</span>
-            RevenueCat-Key fehlt — in <code style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>KLAR_REVENUECAT_KEYS</code> ergänzen.
+            RevenueCat-Key fehlt: im Vault als <code style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>Revenuecat &lt;App&gt;</code> ablegen.
           </p>
         )}
       </div>

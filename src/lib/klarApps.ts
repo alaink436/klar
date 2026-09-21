@@ -42,25 +42,31 @@ export interface KlarAppMeta {
 }
 
 export const KLAR_APPS: KlarAppMeta[] = [
-  // -v3 = the real App Store icons, supplied 2026-08-16 and resized from the
+  // Releases measured against the iTunes lookup on 2026-09-21 (store version,
+  // not the repo's). -v3 = the real App Store icons, supplied 2026-08-16 and resized from the
   // 1024px originals. New filenames rather than new bytes, for the reason
   // spelled out on Anime Vault below: /public is served immutable, so replacing
   // an icon's content changes nothing for anyone who already loaded it.
+  // Trubel was dissolved on 2026-09-18: its Supabase project is deleted, so
+  // there is no backend left to count users or revenue from. `listed: false`
+  // takes it out of every admin list, the same way as ThrottleUp below.
+  // Historical rows keep resolving to the name.
   {
     slug: "trubel",
     name: "Trubel",
     icon: "/icons/trubel-v3.webp",
     status: "LIVE",
-    release: "v1.0.6 · build 16",
+    release: "v1.0.9",
     appStoreUrl: "https://apps.apple.com/app/id6766649400",
     publicSite: true,
+    listed: false,
   },
   {
     slug: "myloo",
     name: "MyLoo",
     icon: "/icons/myloo-v3.webp",
     status: "LIVE",
-    release: "v1.0.5 · build 12",
+    release: "v1.0.10",
     appStoreUrl: "https://apps.apple.com/app/id6767200261",
     publicSite: true,
   },
@@ -74,17 +80,17 @@ export const KLAR_APPS: KlarAppMeta[] = [
     // loaded the old one. Swapping an icon means a new filename. Hence -v3.
     icon: "/icons/animevault-v3.webp",
     status: "LIVE",
-    release: "v1.1 · build 8",
+    release: "v1.2.1",
     appStoreUrl: "https://apps.apple.com/app/id6759915617",
     publicSite: true,
     backendSlug: "promillio",
   },
   {
     slug: "yarn-stash",
-    name: "Yarn-Stash",
+    name: "Yarn Stash",
     icon: "/icons/yarnstash-v3.webp",
     status: "LIVE",
-    release: "v1.0.2",
+    release: "v1.0.6",
     appStoreUrl: "https://apps.apple.com/app/id6761712550",
     publicSite: true,
   },
@@ -93,6 +99,7 @@ export const KLAR_APPS: KlarAppMeta[] = [
     name: "Kelva",
     icon: "/icons/kelva-v3.webp",
     status: "LIVE",
+    release: "v1.4.2",
     appStoreUrl: "https://apps.apple.com/app/id6761271923",
     publicSite: true,
   },
@@ -135,7 +142,7 @@ export const KLAR_APPS: KlarAppMeta[] = [
     // The slug stays historical, the icon does not: this is Basalt's own.
     icon: "/icons/basalt-v3.webp",
     status: "LIVE",
-    release: "v2.0.0",
+    release: "v2.3.0",
     appStoreUrl: "https://apps.apple.com/app/id6762440839",
     publicSite: true,
   },

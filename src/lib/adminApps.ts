@@ -2,7 +2,7 @@
 //
 // Config via env KLAR_ADMIN_APPS = JSON array, one entry per connected app:
 //   [{
-//     "slug":"wavelength","name":"Basalt",   // display name lives in the env var, not in code
+//     "slug":"wavelength","name":"Basalt",   // shown only for slugs KLAR_APPS does not know
 //     "supabaseUrl":"https://yxhzwzgnbmpjztkvdudr.supabase.co",
 //     "serviceKey":"<service-role key>",
 //     "functionsBase":"https://yxhzwzgnbmpjztkvdudr.supabase.co/functions/v1",
@@ -10,6 +10,8 @@
 //   }]
 // Adding an app later = add one entry (once that app's Supabase has the
 // affiliate schema). Never import this into a client component.
+
+import { LISTED_APPS, appBackendKey, findKlarApp } from "./klarApps";
 
 export interface AdminApp {
   slug: string;
@@ -23,10 +25,10 @@ export interface AdminApp {
 // promillio's Supabase project (cmhxvhmxansithjjajld) was recycled to
 // Expo-Anime-Vault on 2026-06-30, so the numbers this backend reports belong
 // to AnimeVault now. The entry stays connected under its historical slug
-// (metrics history, routes, env keys unchanged) — the ANALYTICS display layer
-// relabels the card via APP_ANALYTICS_DISPLAY in admin/analytics/page.tsx.
+// (metrics history, routes, env keys unchanged); getApps() hands it out under
+// the brand name.
 
-export function getApps(): AdminApp[] {
+function readEnvApps(): AdminApp[] {
   try {
     const arr = JSON.parse(process.env.KLAR_ADMIN_APPS ?? "[]");
     if (!Array.isArray(arr)) return [];
@@ -36,6 +38,28 @@ export function getApps(): AdminApp[] {
   } catch {
     return [];
   }
+}
+
+// The env var is sensitive (unreadable once set) and was hand-written, so its
+// `name` field drifted: the promillio slot said "Promillo" while it has served
+// Anime Vault since 2026-06-30. The brand name comes from KLAR_APPS instead.
+// A slug that only unlisted apps claim (Trubel, ThrottleUp: backends deleted
+// or handed over) is dropped, so no page waits on or shows a dead backend.
+// A slug KLAR_APPS does not know at all stays, with its env name.
+function brandFor(slug: string): { name: string } | null | undefined {
+  const listed = LISTED_APPS.find((a) => appBackendKey(a) === slug || a.slug === slug);
+  if (listed) return { name: listed.name };
+  return findKlarApp(slug) ? null : undefined;
+}
+
+export function getApps(): AdminApp[] {
+  const out: AdminApp[] = [];
+  for (const a of readEnvApps()) {
+    const brand = brandFor(a.slug);
+    if (brand === null) continue;
+    out.push(brand ? { ...a, name: brand.name } : a);
+  }
+  return out;
 }
 
 export function getApp(slug: string): AdminApp | null {

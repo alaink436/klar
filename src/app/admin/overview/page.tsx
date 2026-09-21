@@ -46,39 +46,9 @@ type Uebersicht = {
   verdrahtet: Set<string>;
 };
 
-async function uebersichtLaden(apps: AdminApp[]): Promise<Uebersicht> {
-  const verdrahtet = new Set(apps.map((a) => a.slug));
-
-  // Kein frueher Ausstieg, wenn nichts verdrahtet ist: Arbeitsliste und
-  // Projekte kommen gar nicht aus den Affiliate-Backends (Collab-Post,
-  // Inbox-Anfragen, AI-Brain). Hier abzubrechen hat frueher beide geleert und
-  // eine Seite hinterlassen, die nach Affiliate schmeckte und leer war. Mit
-  // apps = [] kommen die app-abgeleiteten Zaehler eben auf null.
-  const rows = await Promise.all(
-    apps.map(async (app) => {
-      // Nur was die Arbeitsliste braucht: offenes Geld, offene Antworten.
-      // Die Historie der Umsatzereignisse steht auf /admin/revenue.
-      const [inf, claim, outreach] = await Promise.all([
-        sbGet(app, "influencers?select=status", { revalidate: 30 }),
-        sbGet(app, "influencer_claimable?select=claimable_eur_cents,unnormalized_events", { revalidate: 30 }),
-        listOutreachTargets({ platform: "all", status: "all", app: app.slug, limit: 500 }),
-      ]);
-      const open = claim.reduce((s: number, c: any) => s + Number(c.claimable_eur_cents ?? 0), 0);
-      // Zaehler je App im Funnel, damit die Startseite auf einen Blick zeigt,
-      // wie viele Creator je App mittendrin stecken.
-      let angefragt = 0;
-      let reply = 0;
-      for (const t of outreach) {
-        if (t.status === "replied") reply++;
-        else if (t.mail_status === "mail1_sent" || t.mail_status === "mail2_sent" || t.status === "dm_sent")
-          angefragt++;
-      }
-      return { open, angefragt, reply };
-    }),
-  );
-
-  // Inbox-Anfragen: nur die Anzahl der neuen. Best-effort, ohne Schluessel
-  // oder bei einem Fehler bleibt der Zaehler null und die Zeile faellt weg.
+// Inbox-Anfragen: nur die Anzahl der neuen. Best-effort, ohne Schluessel
+// oder bei einem Fehler bleibt der Zaehler null und die Zeile faellt weg.
+async function neueAnfragen(): Promise<number> {
   let inquiriesNew = 0;
   if (KLAR_INBOX_KEY) {
     try {
@@ -97,23 +67,63 @@ async function uebersichtLaden(apps: AdminApp[]): Promise<Uebersicht> {
       /* Zaehler bleibt null */
     }
   }
+  return inquiriesNew;
+}
 
-  // Signale, die die Arbeitsliste braucht: wer wartet auf eine Antwort, welche
-  // App ist still geworden, und woran arbeite ich laut AI-Brain gerade.
-  const [collabOpen, todoOpen, appStats, projekte] = await Promise.all([
+async function uebersichtLaden(apps: AdminApp[]): Promise<Uebersicht> {
+  const verdrahtet = new Set(apps.map((a) => a.slug));
+
+  // Kein frueher Ausstieg, wenn nichts verdrahtet ist: Arbeitsliste und
+  // Projekte kommen gar nicht aus den Affiliate-Backends (Collab-Post,
+  // Inbox-Anfragen, AI-Brain). Hier abzubrechen hat frueher beide geleert und
+  // eine Seite hinterlassen, die nach Affiliate schmeckte und leer war. Mit
+  // apps = [] kommen die app-abgeleiteten Zaehler eben auf null.
+  //
+  // Alles, was nicht voneinander abhaengt, laeuft gleichzeitig los. Vorher
+  // wartete die Seite drei Etappen nacheinander ab.
+  const signale = Promise.all([
     countOpenCollabs(),
     countOpenTodos(),
     Promise.all(apps.map(async (a) => ({ app: a, stats: await fetchAppUserStats(a) }))),
     readActiveProjects(6),
   ]);
+  const anfragen = neueAnfragen();
+
+  // Outreach EINMAL fuer alle Apps holen und hier je App zaehlen. Vorher ging
+  // pro App eine eigene Abfrage mit allen Spalten raus, sieben fuer dieselbe
+  // Tabelle mit 400 Zeilen. Gezaehlt wird wie vorher: ein Creator, der fuer
+  // zwei Apps angefragt ist, zaehlt bei beiden.
+  const [outreach, rows] = await Promise.all([
+    listOutreachTargets({ platform: "all", status: "all", limit: 500 }),
+    Promise.all(
+      apps.map(async (app) => {
+        // Nur was die Arbeitsliste braucht: offenes Geld.
+        // Die Historie der Umsatzereignisse steht auf /admin/revenue.
+        const claim = await sbGet(app, "influencer_claimable?select=claimable_eur_cents", { revalidate: 30 });
+        return { open: claim.reduce((s: number, c: { claimable_eur_cents?: number }) => s + Number(c.claimable_eur_cents ?? 0), 0) };
+      }),
+    ),
+  ]);
+  let totalAngefragt = 0;
+  let totalReply = 0;
+  for (const t of outreach) {
+    const n = (t.for_apps ?? []).filter((s) => verdrahtet.has(s)).length;
+    if (t.status === "replied") totalReply += n;
+    else if (t.mail_status === "mail1_sent" || t.mail_status === "mail2_sent" || t.status === "dm_sent")
+      totalAngefragt += n;
+  }
+
+  const inquiriesNew = await anfragen;
+
+  // Signale, die die Arbeitsliste braucht: wer wartet auf eine Antwort, welche
+  // App ist still geworden, und woran arbeite ich laut AI-Brain gerade.
+  const [collabOpen, todoOpen, appStats, projekte] = await signale;
   // "Still" = Backend antwortet, hat Nutzer, aber seit 30 Tagen keinen neuen.
   const silentApps = appStats
     .filter((a) => a.stats !== null && a.stats.usersTotal > 0 && a.stats.usersNew30d === 0)
     .map((a) => a.app.name);
 
   const totalOpen = rows.reduce((s, r) => s + r.open, 0);
-  const totalAngefragt = rows.reduce((s, r) => s + r.angefragt, 0);
-  const totalReply = rows.reduce((s, r) => s + r.reply, 0);
 
   // Die Reihenfolge ist die Aussage: zuerst wer auf MICH wartet, dann Geld,
   // dann was still geworden ist, zuletzt was auf ANDERE wartet.

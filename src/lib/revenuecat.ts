@@ -19,13 +19,16 @@
 // Never import this into a client component; the secret keys must stay on the
 // server.
 
+import { LISTED_APPS, appBackendKey } from "./klarApps";
+import { listSecrets, revealSecret } from "./vault";
+
 export interface RcConfig {
   slug: string;
   projectId: string;
   secretKey: string;
 }
 
-export function getRcConfigs(): RcConfig[] {
+function readEnvConfigs(): RcConfig[] {
   try {
     const arr = JSON.parse(process.env.KLAR_REVENUECAT_KEYS ?? "[]");
     if (!Array.isArray(arr)) return [];
@@ -37,8 +40,70 @@ export function getRcConfigs(): RcConfig[] {
   }
 }
 
-export function getRcConfig(slug: string): RcConfig | null {
-  return getRcConfigs().find((c) => c.slug === slug) ?? null;
+// The vault wins over the env var. Until 2026-09-21 the env's `promillio` slot
+// held the key of the RevenueCat project "Promillo", while that backend slot
+// has stood for Anime Vault since 2026-06-30: a Promillo purchase showed up as
+// an Anime Vault subscription. The env var is sensitive, so nobody could see
+// that. Vault entries (provider "revenuecat") name their app in the label
+// ("Revenuecat Anime Vault", "Revenuecat-YarnStash"), which is matched against
+// the brand name or slug of every listed app. The project id comes from the
+// key itself (a project-scoped key sees exactly one project).
+const norm = (s: string) => s.toLowerCase().replace(/revenuecat/g, "").replace(/[^a-z0-9]/g, "");
+
+async function projectIdFor(secretKey: string): Promise<string | null> {
+  try {
+    const res = await fetch("https://api.revenuecat.com/v2/projects", {
+      headers: { Authorization: `Bearer ${secretKey}`, Accept: "application/json" },
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return null;
+    const j = await res.json();
+    const id = Array.isArray(j?.items) ? j.items[0]?.id : null;
+    return typeof id === "string" ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+async function readVaultConfigs(): Promise<RcConfig[]> {
+  const secrets = (await listSecrets()).filter(
+    (s) => !s.revoked_at && s.provider.toLowerCase() === "revenuecat",
+  );
+  const found = await Promise.all(
+    LISTED_APPS.map(async (app): Promise<RcConfig | null> => {
+      const names = new Set([norm(app.name), norm(app.slug)]);
+      const entry = secrets.find((s) => names.has(norm(s.label)));
+      if (!entry) return null;
+      const secretKey = await revealSecret(entry.id);
+      if (!secretKey) return null;
+      const projectId = await projectIdFor(secretKey);
+      return projectId ? { slug: appBackendKey(app), projectId, secretKey } : null;
+    }),
+  );
+  return found.filter((c): c is RcConfig => c !== null);
+}
+
+// Ten minutes: the vault round-trip is one list plus one decrypt per app, and
+// keys do not change between two dashboard clicks.
+let _cache: { configs: RcConfig[]; at: number } | null = null;
+
+export async function getRcConfigs(): Promise<RcConfig[]> {
+  if (_cache && Date.now() - _cache.at < 600_000) return _cache.configs;
+  let vault: RcConfig[] = [];
+  try {
+    vault = await readVaultConfigs();
+  } catch {
+    /* vault unreachable: the env entries still stand */
+  }
+  const bySlug = new Map(readEnvConfigs().map((c) => [c.slug, c]));
+  for (const c of vault) bySlug.set(c.slug, c);
+  const configs = [...bySlug.values()];
+  _cache = { configs, at: Date.now() };
+  return configs;
+}
+
+export async function getRcConfig(slug: string): Promise<RcConfig | null> {
+  return (await getRcConfigs()).find((c) => c.slug === slug) ?? null;
 }
 
 // Normalized overview snapshot. Money fields are in RevenueCat's display
