@@ -29,6 +29,7 @@ import {
   detectCollabApp,
   type CollabRoute,
 } from "@/lib/collabStore";
+import { feedbackRoute, insertFeedback } from "@/lib/feedbackStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   const items = Array.isArray(payload.items) ? payload.items : [];
   let matched = 0;
   let collab = 0;
+  let feedback = 0;
   let skipped = 0;
 
   for (const item of items) {
@@ -126,6 +128,26 @@ export async function POST(req: NextRequest): Promise<Response> {
       (item.RawHtmlBody ? htmlToText(item.RawHtmlBody) : "") ||
       "";
     const sentAt = isoOrNull(item.SentAtDate);
+
+    // App-Feedback zuerst: die Support-Postfaecher der Apps leiten an
+    // feedback+<app>@ weiter, und der Absender ist dann ein Nutzer, den das
+    // Outreach-Matching womoeglich auch kennt.
+    const fb = from ? feedbackRoute(recipientAddresses(item), `${subject ?? ""}\n${body}`) : null;
+    if (fb) {
+      await insertFeedback({
+        app: fb.app,
+        inbox: fb.inbox,
+        contact_email: from,
+        contact_name: (item.From?.Name ?? "").trim() || null,
+        subject,
+        body,
+        external_id: (item.MessageId ?? "").trim() || null,
+        spam_score: typeof item.SpamScore === "number" ? item.SpamScore : null,
+        sent_at: sentAt,
+      });
+      feedback++;
+      continue;
+    }
 
     // Match-Reihenfolge: (1) explizites reply+<id>-Subaddress (übersteht einen
     // anderen Absender), (2) Collab-Alias im Empfänger — wer die öffentliche
@@ -186,7 +208,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   // Always 200 on a well-formed payload so Brevo does not retry-storm; the
   // matched/skipped counts make debugging visible without a retry.
-  return NextResponse.json({ ok: true, processed: items.length, matched, collab, skipped });
+  return NextResponse.json({ ok: true, processed: items.length, matched, collab, feedback, skipped });
 }
 
 // Lightweight connectivity check (Brevo / manual curl) — never leaks data.

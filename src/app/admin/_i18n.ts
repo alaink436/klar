@@ -38,6 +38,7 @@ const DE = {
   // ── Sidebar / shell ──────────────────────────────────────────────────────
   brandHome: "Klar Control Home",
   sectionStudio: "Studio",
+  sectionStudios: "Klar Studios",
   sectionCreator: "Creator",
   sectionCreatorNote: "pausiert",
   navOverview: "Übersicht",
@@ -59,6 +60,7 @@ const DE = {
   navCal: "Cal Admin",
   navAnalytics: "Analytics",
   navAppAnalytics: "App-Nutzung",
+  navFeedback: "Feedback",
   navBrain: "AI-Brain",
   navChronik: "Chronik",
   navVault: "Vault",
@@ -260,6 +262,7 @@ const EN: AdminMessages = {
   // ── Sidebar / shell ──────────────────────────────────────────────────────
   brandHome: "Klar Control home",
   sectionStudio: "Studio",
+  sectionStudios: "Klar Studios",
   sectionCreator: "Creator",
   sectionCreatorNote: "paused",
   navOverview: "Overview",
@@ -281,6 +284,7 @@ const EN: AdminMessages = {
   navCal: "Cal admin",
   navAnalytics: "Analytics",
   navAppAnalytics: "App usage",
+  navFeedback: "Feedback",
   navBrain: "AI-Brain",
   navChronik: "History",
   navVault: "Vault",

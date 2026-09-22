@@ -16,7 +16,10 @@ import type { AdminMessages } from "./_i18n";
 // (Alains Ansage: ein ganzes Menue, kein Untermenue). MyCakeDay ist ein eigenes
 // Geschaeft mit eigener Domain; das Postfach lebt hier, alles andere ist ein
 // Absprung ohne zweiten Login ins Cakeday-Dashboard.
-export type NavSection = "studio" | "mycakeday" | "creator";
+// "studios" (Klar Studios) seit 2026-09-22: alles, was die Apps betrifft, in
+// einem eigenen grossen Menue (Alains Ansage). Der pausierte Creator-Zweig
+// haengt zugeklappt darunter.
+export type NavSection = "studio" | "studios" | "mycakeday" | "creator";
 
 export interface NavItemDef {
   /** Stable id — this is what the cookie stores, so never rename one. */
@@ -36,19 +39,22 @@ export const NAV_ITEMS: NavItemDef[] = [
   { id: "overview", labelKey: "navOverview", icon: "overview", href: "/admin/overview", section: "studio" },
   { id: "todos", labelKey: "navTodos", icon: "check", href: "/admin/todos", section: "studio" },
   { id: "inbox", labelKey: "navInbox", icon: "inbox", href: "/admin/inbox", section: "studio" },
-  { id: "collabs", labelKey: "navCollabs", icon: "reply", href: "/admin/collabs", section: "studio" },
-  { id: "outreach", labelKey: "navOutreach", icon: "outreach", href: "/admin/outreach", section: "studio" },
-  { id: "content", labelKey: "navContent", icon: "content", href: "/admin/content", section: "studio" },
   { id: "bookings", labelKey: "navBookings", icon: "calendar", href: "/admin/bookings", section: "studio" },
   { id: "cal", labelKey: "navCal", icon: "calendar", href: "/admin/cal", section: "studio" },
-  { id: "analytics", labelKey: "navAnalytics", icon: "analytics", href: "/admin/analytics", section: "studio" },
-  // App-Nutzung aus PostHog (seit 2026-09-17): Starts, Screens, Versionen je
-  // App. Eigener Punkt neben Analytics, weil Analytics die Landings und den
-  // Umsatz zeigt und diese Seite das Verhalten IN den Apps.
-  { id: "app-analytics", labelKey: "navAppAnalytics", icon: "activity", href: "/admin/app-analytics", section: "studio" },
   { id: "brain", labelKey: "navBrain", icon: "brain", href: "/admin/brain", section: "studio" },
   { id: "chronik", labelKey: "navChronik", icon: "doc", href: "/admin/chronik", section: "studio" },
   { id: "vault", labelKey: "navVault", icon: "key", href: "/admin/vault", section: "studio" },
+  // Klar Studios. Feedback sind die Mails an die Support-Adressen der Apps
+  // (lib/feedbackStore), der Rest ist aus Studio hierher gezogen.
+  { id: "feedback", labelKey: "navFeedback", icon: "chat", href: "/admin/feedback", section: "studios" },
+  { id: "content", labelKey: "navContent", icon: "content", href: "/admin/content", section: "studios" },
+  { id: "collabs", labelKey: "navCollabs", icon: "reply", href: "/admin/collabs", section: "studios" },
+  { id: "outreach", labelKey: "navOutreach", icon: "outreach", href: "/admin/outreach", section: "studios" },
+  { id: "analytics", labelKey: "navAnalytics", icon: "analytics", href: "/admin/analytics", section: "studios" },
+  // App-Nutzung aus PostHog (seit 2026-09-17): Starts, Screens, Versionen je
+  // App. Eigener Punkt neben Analytics, weil Analytics die Landings und den
+  // Umsatz zeigt und diese Seite das Verhalten IN den Apps.
+  { id: "app-analytics", labelKey: "navAppAnalytics", icon: "activity", href: "/admin/app-analytics", section: "studios" },
   // MyCakeDay. Das Postfach ist eine Seite in Klar Control; die anderen fuenf
   // fuehren ueber /admin/mycakeday/oeffnen ins Cakeday-Dashboard, mit Magic
   // Link statt zweitem Login. Die `weiter`-Pfade sind die Cakeday-Adressen.
@@ -112,6 +118,7 @@ export function orderedSection(section: NavSection, prefs: NavPrefs, includeHidd
 export function orderedAll(prefs: NavPrefs): NavItemDef[] {
   return [
     ...orderedSection("studio", prefs, true),
+    ...orderedSection("studios", prefs, true),
     ...orderedSection("mycakeday", prefs, true),
     ...orderedSection("creator", prefs, true),
   ];

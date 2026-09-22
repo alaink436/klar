@@ -16,9 +16,11 @@
 //     Abmelden) bleibt fest: er ist der Weg hinaus und gehoert nicht sortiert.
 //
 // Was die Form erzaehlt (unveraendert gegenueber vorher):
-//   - Collabs sitzt im Studio direkt unter Inbox, mit der Zahl der offenen
-//     Anfragen. Post aus den Bios ist der Kanal, der wirklich Leute bringt.
-//   - Creator (Affiliate, Auszahlungen, die App-Seiten) liegt eingeklappt.
+//   - Klar Studios traegt seit 2026-09-22 alles, was die Apps betrifft:
+//     Feedback, Content, Collabs (mit der Zahl der offenen Anfragen),
+//     Outreach, Analytics, App-Nutzung.
+//   - Creator (Affiliate, Auszahlungen, die App-Seiten) liegt eingeklappt
+//     unter Klar Studios.
 //     Der Zweig ruht, also soll er keine sechs festen Zeilen kosten, aber er
 //     ist einen Klick entfernt und nicht geloescht.
 //
@@ -92,6 +94,7 @@ export default function AdminSidebar({
   );
 
   const studio = orderedSection("studio", prefs);
+  const studios = orderedSection("studios", prefs);
   const mycakeday = orderedSection("mycakeday", prefs);
   const creator = orderedSection("creator", prefs);
   const creatorActive = creator.some((i) => i.id === active) || appNav.some((a) => active === a.slug);
@@ -207,22 +210,76 @@ export default function AdminSidebar({
           <SidebarGroupLabel>{t.sectionStudio}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {studio.map((item) =>
-                navRow(
-                  item,
-                  item.id === "collabs" && collabOpen > 0 ? (
-                    <SidebarMenuBadge
-                      className="bg-[var(--danger)] text-white"
-                      aria-label={t.collabOpenAria(collabOpen)}
-                    >
-                      {collabOpen}
-                    </SidebarMenuBadge>
-                  ) : undefined,
-                ),
-              )}
+              {studio.map((item) => navRow(item))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Klar Studios (Alain, 2026-09-22): alles, was die Apps betrifft, in
+            einem eigenen Menue. Der ruhende Creator-Zweig haengt zugeklappt
+            darunter, zu, ausser man steht darin; `key` bindet den
+            Aufklapp-Zustand an die Navigation, sonst bleibt er von vorher
+            haengen. */}
+        {studios.length > 0 || creator.length > 0 || appNav.length > 0 ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>{t.sectionStudios}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {studios.map((item) =>
+                  navRow(
+                    item,
+                    item.id === "collabs" && collabOpen > 0 ? (
+                      <SidebarMenuBadge
+                        className="bg-[var(--danger)] text-white"
+                        aria-label={t.collabOpenAria(collabOpen)}
+                      >
+                        {collabOpen}
+                      </SidebarMenuBadge>
+                    ) : undefined,
+                  ),
+                )}
+              </SidebarMenu>
+            </SidebarGroupContent>
+            {creator.length > 0 || appNav.length > 0 ? (
+              <Collapsible key={String(creatorActive)} defaultOpen={creatorActive} className="group/creator mt-1">
+                <SidebarGroupLabel asChild>
+                  <CollapsibleTrigger className="w-full">
+                    <ChevronRight className="mr-1 size-3 transition-transform duration-150 group-data-[state=open]/creator:rotate-90" />
+                    {t.sectionCreator}
+                    <span className="ml-2 text-[9px] font-medium normal-case tracking-[0.08em] opacity-75">
+                      {t.sectionCreatorNote}
+                    </span>
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {creator.map((item) => navRow(item))}
+                      {appNav.map(({ meta, slug }) => (
+                        <SidebarMenuItem key={slug}>
+                          <SidebarMenuButton asChild isActive={active === slug} tooltip={meta.name}>
+                            <Link href={`/admin/${slug}`}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                className="size-4 shrink-0 rounded-[4px] object-cover"
+                                src={meta.icon}
+                                alt=""
+                                width={16}
+                                height={16}
+                                loading="lazy"
+                              />
+                              <span>{meta.name}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </Collapsible>
+            ) : null}
+          </SidebarGroup>
+        ) : null}
 
         {/* MyCakeDay, gleichrangig mit Studio (Alain, 2026-09-06: ein ganzes
             Menue, kein Untermenue). Das Postfach ist eine Seite hier, die
@@ -248,50 +305,6 @@ export default function AdminSidebar({
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        ) : null}
-
-        {/* Ruhender Zweig: zu, ausser man steht darin. `key` bindet den
-            Aufklapp-Zustand an die Navigation, sonst bleibt er von vorher
-            haengen. */}
-        {creator.length > 0 || appNav.length > 0 ? (
-          <Collapsible key={String(creatorActive)} defaultOpen={creatorActive} className="group/creator">
-            <SidebarGroup>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger className="w-full">
-                  <ChevronRight className="mr-1 size-3 transition-transform duration-150 group-data-[state=open]/creator:rotate-90" />
-                  {t.sectionCreator}
-                  <span className="ml-2 text-[9px] font-medium normal-case tracking-[0.08em] opacity-75">
-                    {t.sectionCreatorNote}
-                  </span>
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {creator.map((item) => navRow(item))}
-                    {appNav.map(({ meta, slug }) => (
-                      <SidebarMenuItem key={slug}>
-                        <SidebarMenuButton asChild isActive={active === slug} tooltip={meta.name}>
-                          <Link href={`/admin/${slug}`}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              className="size-4 shrink-0 rounded-[4px] object-cover"
-                              src={meta.icon}
-                              alt=""
-                              width={16}
-                              height={16}
-                              loading="lazy"
-                            />
-                            <span>{meta.name}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
         ) : null}
       </SidebarContent>
 
