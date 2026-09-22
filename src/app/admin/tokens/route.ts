@@ -146,6 +146,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     const label = String(form.get("label") ?? "").trim();
     const scopes: Scope[] = [];
     if (form.get("scope_brain") != null) scopes.push("brain:read");
+    if (form.get("scope_learnings") != null) scopes.push("learnings:read");
     if (form.get("scope_vault") != null) scopes.push("vault:use");
     if (form.get("scope_todos") != null) scopes.push("todos:ical");
     if (scopes.length === 0) return backWith(req, { err: "Mindestens einen Scope wählen." });

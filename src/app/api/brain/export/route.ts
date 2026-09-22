@@ -66,11 +66,18 @@ export async function GET(req: Request): Promise<Response> {
   const rl = rateLimit("brain_export", clientIp(req), 30, 60 * 60 * 1000);
   if (!rl.ok) return json({ error: "rate limited", retryAfterSeconds: rl.retryAfterSeconds }, 429);
 
-  // V2 auth: a DB token with scope brain:read, OR the legacy env token.
+  // V2 auth: a DB token with scope brain:read (whole brain) or learnings:read
+  // (Learnings/ only, enforced here and not by a query param, so the token
+  // holder cannot widen it), OR the legacy env token.
   const tok = bearer(req);
+  let onlyLearnings = false;
   let authed = false;
   if (tok && envTok && ctEqual(tok, envTok)) authed = true;
-  else if (tok) authed = Boolean(await verifyToken(tok, "brain:read"));
+  else if (tok && (await verifyToken(tok, "brain:read"))) authed = true;
+  else if (tok && (await verifyToken(tok, "learnings:read"))) {
+    authed = true;
+    onlyLearnings = true;
+  }
   if (!authed) return json({ error: "unauthorized" }, 401);
 
   // One call: the whole repo as a gzipped tarball.
@@ -99,6 +106,7 @@ export async function GET(req: Request): Promise<Response> {
     const rel = f.name.replace(/^[^/]+\//, "");
     if (!rel || !rel.toLowerCase().endsWith(".md")) continue; // notes only (skips dirs)
     if (HIDDEN.includes(topFolder(rel))) continue; // never expose secrets
+    if (onlyLearnings && topFolder(rel) !== "Learnings") continue;
     notes.push({ path: rel, content: f.data ? dec.decode(f.data) : "" });
   }
   notes.sort((a, b) => a.path.localeCompare(b.path));

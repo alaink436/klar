@@ -151,32 +151,35 @@ Datei, gibt ihn nie aus):
 // (Learnings, Projects, STATUS …) as Markdown or JSON. `origin` is the public
 // dashboard origin (e.g. https://getklar.org).
 export function buildBrainBriefing({ origin }: { origin: string }): string {
-  return `# Klar AI-Brain — Read-Only Briefing (Learnings / RAG)
+  return `# Klar AI-Brain: Learnings (read-only, RAG)
 
-Du hast **lesenden** Zugriff auf Alains **AI-Brain** — den zentralen Wissensspeicher
-(Learnings, Projekt-Status, Patterns). Du lädst den kompletten Brain-Kontext über
-**einen** Endpoint. **Kein Vault, keine API-Keys, kein Schreibzugriff.**
+Du hast **lesenden** Zugriff auf Alains **Learnings**: dokumentierte Fehler mit
+Symptom, Ursache und Fix, gesammelt aus seinen Projekten. Du lädst sie über
+**einen** Endpoint. **Kein Vault, keine API-Keys, keine Projektdaten, kein Schreibzugriff.**
 
 ## Endpoint & Auth
 - **Alles als Markdown (ein Dokument):** \`GET ${origin}/api/brain/export?format=md\`
 - **Strukturiert (JSON \`{ repo, ref, count, notes:[{path,content}] }\`):** \`GET ${origin}/api/brain/export\`
-- **Header:** \`Authorization: Bearer <KLAR_BRAIN_TOKEN>\` (Scope \`brain:read\`)
+- **Header:** \`Authorization: Bearer <KLAR_BRAIN_TOKEN>\` (Scope \`learnings:read\`)
 - Der Token steht **nicht** in diesem Prompt. Lies ihn zur Laufzeit aus der
-  Umgebungsvariable \`KLAR_BRAIN_TOKEN\` oder einer Secrets-Datei. **Gib ihn nie im Chat/Log/Commit aus.**
-- Token noch nicht hinterlegt? Alain mintet einen unter \`${origin}/admin\` →
-  **AI-Brain → Zugang → „Token erzeugen"** (Scope \`brain:read\`) und gibt ihn dir,
+  Umgebungsvariable \`KLAR_BRAIN_TOKEN\` oder einer Secrets-Datei. **Gib ihn nie im Chat, Log oder Commit aus.**
+- Token noch nicht hinterlegt? Alain erzeugt einen unter \`${origin}/admin\`,
+  **AI-Brain, Zugang, „Token erzeugen"** (Scope \`learnings:read\`) und gibt ihn dir,
   ohne ihn in einen Chat zu pasten.
 
 ## Was du bekommst
-- Alle \`.md\`-Notes des Brains: \`Learnings/\` (inkl. \`Learnings/INDEX.md\`),
-  \`Projects/*/PROGRESS.md\`, \`STATUS.md\`, Templates, Patterns …
-- **Nie enthalten:** \`Secrets/\` und \`Credentials/\` — serverseitig herausgefiltert.
+- Nur den Ordner \`Learnings/\`: rund 1.2 MB, sieben Dateien, knapp 500 Einträge.
+- \`Learnings/INDEX.md\`: eine Zeile je Eintrag mit Titel, Symptom und Anker. Das ist der Einstieg.
+- \`Learnings/tech-stack.md\`, \`tooling.md\`, \`workflow.md\`, \`payments.md\`,
+  \`cost-discipline.md\`: die vollen Einträge, je \`**Symptom:**\`, \`**Ursache:**\`, \`**Fix:**\`, \`**Datei:**\`.
+- Alles andere im Brain (Projekte, Infrastruktur, Secrets) ist serverseitig ausgeschlossen;
+  der Token kann es nicht erweitern.
 
 ## Aufruf (curl)
 \`\`\`bash
-# Ganzes Brain als ein Markdown-Doc laden:
+# Alle Learnings als ein Markdown-Doc laden:
 curl -s "${origin}/api/brain/export?format=md" \\
-  -H "Authorization: Bearer $KLAR_BRAIN_TOKEN"
+  -H "Authorization: Bearer $KLAR_BRAIN_TOKEN" > learnings.md
 
 # Oder strukturiert als JSON:
 curl -s ${origin}/api/brain/export \\
@@ -184,16 +187,16 @@ curl -s ${origin}/api/brain/export \\
 \`\`\`
 
 ## Nutzung
-- Lade den Export als Kontext, dann beantworte Fragen / wende die Learnings an.
-- Für ein Thema gezielt: im Export nach Tag/Titel grep-en — Startpunkt ist
-  \`Learnings/INDEX.md\` (Tabellen „Nach Datum" + „Nach Tag").
+- Einmal laden, lokal ablegen, dann darin suchen. Nicht bei jeder Frage neu ziehen.
+- Nach dem **Symptom** greppen, so wie das Problem ankommt (Fehlermeldung, Verhalten, Befehl):
+  \`grep -i "kommt nicht an" learnings.md\`. Nach Datum oder Tag zu suchen grenzt wenig ein.
+- Der Treffer in INDEX.md nennt den Anker; der volle Eintrag steht in der Kategorie-Datei.
 
 ## Regeln
-- **Read-only.** Kein Schreibzugriff, kein Vault, keine Secrets — nur Lesen der Notes.
-- **Rate-Limit:** 30 Exporte / Stunde / IP (jeder Pull zieht das ganze Repo).
-- **Fehlercodes:** \`401\` Token fehlt/ungültig/kein \`brain:read\` · \`429\` Rate-Limit ·
+- **Read-only.** Kein Schreibzugriff, kein Vault, keine Secrets, keine Projektdaten.
+- **Rate-Limit:** 30 Exporte pro Stunde und IP.
+- **Fehlercodes:** \`401\` Token fehlt, ungültig oder widerrufen · \`429\` Rate-Limit ·
   \`502\` GitHub-Fetch fehlgeschlagen · \`503\` nicht konfiguriert.
-- Token nie in Chat, Git, Logs oder \`echo\`. Bei Leak: Dashboard → Token
-  **widerrufen + neu erzeugen**.
+- Token nie in Chat, Git, Logs oder \`echo\`. Bei Leak: Alain widerruft ihn im Dashboard und erzeugt einen neuen.
 `;
 }

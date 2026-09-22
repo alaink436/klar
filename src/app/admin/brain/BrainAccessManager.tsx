@@ -189,10 +189,10 @@ export default function BrainAccessManager({
     {
       key: "brain",
       title: "Nur Learnings — RAG (read-only)",
-      badge: "brain:read",
+      badge: "learnings:read",
       badgeTone: "info" as const,
       desc:
-        "Für Leute, die nur das Wissen wollen. Lädt alle Brain-Notes (Learnings, Projekt-Status …) read-only über den Export-Endpoint — kein Vault, keine Secrets. Token separat als KLAR_BRAIN_TOKEN ablegen.",
+        "Für andere. Lädt nur Learnings/ read-only über den Export-Endpoint, serverseitig begrenzt: keine Projekte, kein Vault, keine Secrets. Token mit Scope learnings:read erzeugen, die Person legt ihn als KLAR_BRAIN_TOKEN ab.",
       text: briefingBrain,
     },
   ];
@@ -362,7 +362,10 @@ export default function BrainAccessManager({
                   <Label>Scopes</Label>
                   <div className="flex flex-wrap gap-2">
                     <label className={chipCls}>
-                      <input type="checkbox" name="scope_brain" defaultChecked className="accent-[var(--accent)]" /> brain:read
+                      <input type="checkbox" name="scope_learnings" defaultChecked className="accent-[var(--accent)]" /> learnings:read
+                    </label>
+                    <label className={chipCls}>
+                      <input type="checkbox" name="scope_brain" className="accent-[var(--accent)]" /> brain:read
                     </label>
                     <label className={chipCls}>
                       <input
@@ -378,6 +381,10 @@ export default function BrainAccessManager({
                       <input type="checkbox" name="scope_todos" className="accent-[var(--accent)]" /> todos:ical
                     </label>
                   </div>
+                  <p className="text-[12px] leading-relaxed text-fg-3">
+                    learnings:read liefert nur Learnings/. brain:read liefert das ganze Brain
+                    (Projekte, Infrastruktur, Geschäft), also nur für dich.
+                  </p>
                 </div>
                 {useOn && (
                   <div className="flex flex-col gap-1.5">

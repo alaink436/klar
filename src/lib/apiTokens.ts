@@ -16,7 +16,10 @@ const KEY = () => process.env.KLAR_INBOX_SERVICE_KEY ?? "";
 // "todos:ical" ist absichtlich eng: der Kalender-Feed liegt als URL im
 // iPhone und wird von Apple regelmässig ohne Nachfrage abgerufen — dieser
 // Token darf deshalb nichts ausser den geplanten To-dos lesen.
-export type Scope = "brain:read" | "vault:use" | "todos:ical";
+// "learnings:read" ist der Zugang fuer Fremde: der Export liefert damit nur
+// Learnings/, serverseitig erzwungen. Projekte, Infrastruktur und Geschaeft
+// bleiben brain:read vorbehalten.
+export type Scope = "brain:read" | "learnings:read" | "vault:use" | "todos:ical";
 
 export interface ApiTokenRow {
   id: string;
