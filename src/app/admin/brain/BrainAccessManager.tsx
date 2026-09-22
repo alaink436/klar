@@ -349,7 +349,10 @@ export default function BrainAccessManager({
                   Wird sofort einmalig angezeigt und nur als SHA-256-Hash gespeichert. Danach nicht mehr abrufbar.
                 </DialogDescription>
               </DialogHeader>
-              <form method="POST" action="/admin/tokens" className="flex flex-col gap-4">
+              {/* data-klar-sprung: create answers with the shown-once HTML page,
+                  not a redirect. FormulareOhneSprung would fetch it, drop the raw
+                  token and router.push to GET /admin/tokens (405). */}
+              <form method="POST" action="/admin/tokens" data-klar-sprung="ja" className="flex flex-col gap-4">
                 <input type="hidden" name="action" value="create" />
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="tok-label">Label</Label>
