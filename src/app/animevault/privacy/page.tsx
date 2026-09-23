@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "22 September 2026";
+const AS_OF = "23 September 2026";
 const CONTACT = "help.klar@gmail.com";
 
 export default function AnimeVaultPrivacyPage() {
@@ -84,6 +84,13 @@ export default function AnimeVaultPrivacyPage() {
             in the system settings stops it.
           </p>
           <p>
+            <b>Photos you choose.</b> An image you attach to a forum post is
+            stored and shown with that post. A photo you take or pick to import a
+            written list is sent once to our AI provider to read the titles off
+            it, and is not stored afterwards, neither by us nor by the provider
+            for training.
+          </p>
+          <p>
             <b>Anonymised usage statistics.</b> Counts such as how often a screen
             is opened, without personal attribution and not linked to your
             account.
@@ -116,7 +123,8 @@ export default function AnimeVaultPrivacyPage() {
           <p>
             No advertising and no ad networks. No cross-app or cross-site
             tracking, and no advertising identifier. No location data, no access
-            to your contacts, photos or microphone. We do not sell or rent
+            to your contacts or microphone, and no access to your photos beyond
+            the ones you pick yourself. We do not sell or rent
             personal data to anyone.
           </p>
         </Section>
@@ -139,7 +147,8 @@ export default function AnimeVaultPrivacyPage() {
             located in the European Union. <b>RevenueCat</b> for managing
             subscription entitlements. <b>Apple</b> and <b>Google</b> for
             payments and for delivering notifications. <b>AniList</b> and the{" "}
-            <b>Jikan</b> API for anime metadata. These providers process data on
+            <b>Jikan</b> API for anime metadata. <b>Anthropic</b> to read anime
+            titles from a photo when you import a list. These providers process data on
             our behalf under data processing agreements.
           </p>
         </Section>
