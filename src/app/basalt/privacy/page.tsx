@@ -1,4 +1,11 @@
-// Privacy Policy for Basalt - Follow Through (com.wavelenght.app).
+// Privacy Policy for Basalt - Follow Through (iOS com.wavelenght.app,
+// Android com.basalt.app).
+//
+// 2026-09-23: corrected for Android. The page said "no location data", "no push
+// token" and "anonymous install signal, not linked to your account", and knew
+// blocking only as Screen Time. The Android build stores the position of a place
+// you bind a routine to, stores a push token for pacts, sends screen views to
+// PostHog identified by account ID, and blocks via usage access plus overlay.
 //
 // Linked from App Store Connect (App Privacy + App Information) and from the
 // in-app Settings. Kept in sync with what the app actually does, which for this
@@ -26,7 +33,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "5 August 2026";
+const AS_OF = "23 September 2026";
 const CONTACT = "support@getklar.org";
 
 export default function BasaltPrivacyPage() {
@@ -65,8 +72,8 @@ export default function BasaltPrivacyPage() {
         <Section n="02" title="What we collect">
           <p>
             <b>Account data.</b> We store your email address to sign you in and
-            to keep your routines across devices. With Sign in with Apple you may
-            use Apple&apos;s private relay email; that works fine. A display name
+            to keep your routines across devices. On iPhone, with Sign in with Apple
+            you may use Apple&apos;s private relay email; that works fine. A display name
             and a small emoji are optional and set by you.
           </p>
           <p>
@@ -85,17 +92,31 @@ export default function BasaltPrivacyPage() {
             which takes their access away immediately.
           </p>
           <p>
-            <b>Purchase status.</b> Purchases are processed by Apple. We receive
+            <b>Purchase status.</b> Purchases are processed by Apple or Google. We receive
             only the resulting entitlement status (active or not) through our
             subscription provider RevenueCat. We never receive your card or
             payment details.
           </p>
           <p>
-            <b>Anonymous install signal.</b> On first launch the app sends a
-            single anonymous event so we can count installs. It contains a random
-            identifier generated on your device, the platform, the app version
-            and your app language. No name, email, contacts, advertising
-            identifier or location, and it is not linked to your account.
+            <b>Places, if you bind a routine to one.</b> When you set a place for
+            a routine, we store its position and radius with that routine, so the
+            check-in can tell whether you are there. When you tick the routine
+            off, your phone measures where it is and compares that with the place
+            itself; that measurement is not sent to us. Without a place, the app
+            never asks for your location.
+          </p>
+          <p>
+            <b>Notifications between partners.</b> If you make a pact, your phone
+            gets a push token that we store with your account, so we can tell
+            your partner when it is their turn and tell you when it is yours.
+          </p>
+          <p>
+            <b>Usage statistics.</b> The app reports which screens are opened, when
+            it is started and closed, and the steps of the first-run setup, to our
+            analytics provider PostHog in the European Union. After you sign in,
+            these events are linked to your account ID, never to your name or
+            email. They contain no routine names, no places and no information
+            about which apps you shut.
           </p>
           <p>
             <b>A one-time clipboard read.</b> If you arrived through a link from
@@ -110,21 +131,26 @@ export default function BasaltPrivacyPage() {
 
         <Section n="03" title="What stays on your phone">
           <p>
-            <b>Which apps you shut.</b> This is the important one. Blocking runs
-            on Apple&apos;s Screen Time framework, and the selection you make is
-            an opaque token that Apple keeps on the device. Basalt never learns
+            <b>Which apps you shut.</b> This is the important one. On iPhone,
+            blocking runs on Apple&apos;s Screen Time framework, and the selection
+            you make is an opaque token that Apple keeps on the device. On
+            Android, the app needs usage access to see which app is in front and
+            permission to draw over other apps to cover it; the list of apps you
+            picked is stored on the phone only. On both, Basalt never learns
             which apps or websites you chose. What we store is only that
             something is shut, and whether the web filter is on — never what is
             behind it.
           </p>
           <p>
             <b>Reminders.</b> The daily nudge is a local notification scheduled on
-            your phone. There is no push token and no server involved; we do not
-            know whether it fired or whether you opened it.
+            your phone, with no server involved; we do not know whether it fired
+            or whether you opened it.
           </p>
           <p>
-            <b>The camera.</b> Used for exactly one thing: reading an invite code
-            off another screen. Nothing is recorded, nothing is uploaded, and no
+            <b>The camera.</b> Used to read an invite code off another screen,
+            and, if you choose, to take a photo that stands in for a place when
+            the phone cannot tell where it is. That photo is shown to you once
+            and then dropped. Nothing is recorded, nothing is uploaded, and no
             image ever leaves the device.
           </p>
           <p>
@@ -141,8 +167,9 @@ export default function BasaltPrivacyPage() {
         <Section n="04" title="What we do not do">
           <p>
             No advertising and no ad networks. No cross-app or cross-site
-            tracking, and no advertising identifier (IDFA). No location data, no
-            access to your contacts, photos or microphone. No feed, no public
+            tracking, and no advertising identifier. No location tracking: the only
+            position we keep is a place you set yourself. No access to your
+            contacts, your photo library or your microphone. No feed, no public
             profiles, and nothing about you is visible to anyone you have not
             explicitly shared a routine with. We do not sell or rent personal
             data to anyone.
@@ -153,9 +180,9 @@ export default function BasaltPrivacyPage() {
           <p>
             To provide the app and your account, to keep your routines and your
             history, to unlock and restore the paid features, and to understand
-            how many people install the app. Legal bases under the GDPR are the
+            how the app is used. Legal bases under the GDPR are the
             performance of our contract with you (Art. 6 para. 1 lit. b) and our
-            legitimate interest in basic, privacy friendly install statistics
+            legitimate interest in basic, privacy friendly usage statistics
             (Art. 6 para. 1 lit. f). The Swiss Data Protection Act (DSG) applies
             in parallel.
           </p>
@@ -166,8 +193,10 @@ export default function BasaltPrivacyPage() {
             We use a small set of processors, each only to run the service:
           </p>
           <p>
-            <b>Apple</b> for Sign in with Apple, for Screen Time, and for all
-            payments. <b>Supabase</b> for account authentication and database
+            <b>Apple</b> for Sign in with Apple, for Screen Time, and for payments
+            on iPhone. <b>Google</b> for payments on Android and for delivering
+            notifications there. <b>PostHog</b> for usage statistics, located in
+            the European Union. <b>Supabase</b> for account authentication and database
             hosting, located in the European Union. <b>RevenueCat</b> for
             managing subscription entitlements. These providers process data on
             our behalf under data processing agreements.
@@ -180,8 +209,9 @@ export default function BasaltPrivacyPage() {
             European Union (Ireland region). We keep them for as long as your
             account exists. You can delete your account at any time in the app
             under Settings; that removes your account, your routines, every day
-            you have ticked off, and any share you had set up. The anonymous
-            install signal is aggregated and cannot be traced back to you.
+            you have ticked off, the places you set, and any share you had set up.
+            Usage statistics that were already sent stay with PostHog, linked
+            only to the account ID of an account that no longer exists.
           </p>
         </Section>
 
