@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "13 August 2026";
+const AS_OF = "23 September 2026";
 const CONTACT = "support@getklar.org";
 
 export default function YarnstashPrivacyPage() {
@@ -77,8 +77,9 @@ export default function YarnstashPrivacyPage() {
           <p>
             <b>Your stash and projects.</b> The yarn entries you create — name,
             brand, color, fiber, weight, yardage, price, notes — the patterns
-            and projects you add, and the photos you attach. Photos are stored
-            with your account so they follow you across devices. Free accounts
+            and projects you add, and the photos and PDF patterns you attach.
+            Attachments are stored with your account so they follow you across
+            devices. Free accounts
             can keep up to 30 entries; this limit is enforced on our server.
           </p>
           <p>
@@ -88,7 +89,12 @@ export default function YarnstashPrivacyPage() {
             only and never reach our servers.
           </p>
           <p>
-            <b>Purchase status.</b> Purchases are processed by Apple. We receive
+            <b>Messages to support.</b> If you write to us from the feedback
+            screen in Settings, your messages and our replies are stored with
+            your account, so the conversation is still there next time.
+          </p>
+          <p>
+            <b>Purchase status.</b> Purchases are processed by Apple or Google. We receive
             only the resulting entitlement status (active or not) through our
             subscription provider RevenueCat. We never receive your card or
             payment details.
