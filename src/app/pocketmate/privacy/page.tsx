@@ -89,8 +89,8 @@ export default function PocketmatePrivacyPage() {
             <b>What you put on a widget.</b> The status you set, whether you are
             asleep or awake if you tell the app, dates you add such as a
             countdown, a birthday or the day you got together, the doodles you
-            draw and the photos you send. These are stored so the others in your
-            circle can see them, and they appear in your shared moments
+            draw and the photos you send. These are stored so the people you share
+            them with can see them, and they appear in your shared moments
             timeline.
           </p>
           <p>

@@ -86,9 +86,9 @@ export default function PocketmateTermsPage() {
 
         <Section n="04" title="What others see">
           <p>
-            You decide what you share. Each widget is shared on its own, and
-            nothing is on to begin with. Sleep and location are shared only if
-            you enable them individually. Your location is rounded to about a
+            You decide what you put on a widget, and the people it is meant for
+            see it. Sleep and location are shared only if you enable them
+            individually. Your location is rounded to about a
             kilometre before it leaves your device, so the other person sees a
             distance, never an address.
           </p>
@@ -177,8 +177,8 @@ export default function PocketmateTermsPage() {
         <Section n="10" title="Termination">
           <p>
             You can delete your account in the app at any time: open the Me tab,
-            scroll to the bottom and tap Delete account. All data is then removed
-            within 30 days. We may suspend accounts that violate these terms.
+            scroll to the bottom and tap Delete account. Your data is then removed
+            within 30 days, as the Privacy Policy describes. We may suspend accounts that violate these terms.
           </p>
         </Section>
 
