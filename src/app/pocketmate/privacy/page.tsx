@@ -1,26 +1,31 @@
-// Privacy Policy for Pocketmate on Android (com.myloo.app).
+// Privacy Policy for Pocketmate (com.myloo.app), iPhone and Android.
 //
-// Linked from the Google Play listing. Deliberately the Android policy only:
-// the Android build ships without the bowel tracker (lib/healthGate in the app
-// repo, 2026-09-23), because Google Play treats that as a health app and this
-// account cannot publish those. The iPhone version keeps the tracker and its
-// own policy on myloo.org. Linking that one from Play would describe a
-// digestive diary the Android app does not have.
+// Linked from App Store Connect, the Google Play listing and the support page.
+// One policy for both platforms, because both share one account and one
+// backend. The two builds differ in one place: the Android build ships
+// without the bowel tracker (lib/healthGate in the app repo, 2026-09-23),
+// because Google Play treats that as a health app and this account cannot
+// publish those. Everything that exists only on iPhone (the tracker, Apple
+// Health sleep, Sign in with Apple, the live lock screen drawing) carries an
+// "iPhone only" tag, so the Android reader is never told about a digestive
+// diary the Android app does not have.
 //
-// Every paragraph below was checked against the app code on 2026-09-23.
+// Checked against the app code on 2026-09-24: no AI photo analysis is called
+// any more (the in-app text still lists Anthropic; there is no call site and
+// no edge function), so it is deliberately absent here.
 // Structure mirrors src/app/basalt/privacy/page.tsx.
 
 import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Pocketmate Privacy Policy (Android) · Klar",
+  title: "Pocketmate Privacy Policy · Klar",
   description:
-    "How Pocketmate for Android handles your data. No ads, no selling of data, and your exact location never leaves your phone.",
+    "How Pocketmate for iPhone and Android handles your data. No ads, no selling of data, and your exact location never leaves your phone.",
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "23 September 2026";
+const AS_OF = "24 September 2026";
 const CONTACT = "feedback+pocketmate@reply.getklar.org";
 
 export default function PocketmatePrivacyPage() {
@@ -28,7 +33,7 @@ export default function PocketmatePrivacyPage() {
     <main className="min-h-screen relative z-10 px-4 sm:px-8 py-16 sm:py-24" style={{ color: "var(--fg)" }}>
       <article className="max-w-3xl mx-auto" style={{ fontFamily: "var(--font-body), system-ui, sans-serif" }}>
         <div className="label mb-3" style={{ color: "var(--fg-3)" }}>
-          Pocketmate for Android · Privacy · as of {AS_OF}
+          Pocketmate · Privacy · as of {AS_OF}
         </div>
 
         <h1
@@ -45,8 +50,11 @@ export default function PocketmatePrivacyPage() {
           sell your data.
         </p>
         <p className="t-body-lg" style={{ color: "var(--fg-3)", marginBottom: 48, fontSize: 14, lineHeight: 1.55 }}>
-          This policy covers the Android app. It explains what we collect, why,
-          and the choices you have.
+          This policy covers Pocketmate on iPhone and on Android. Both use the
+          same account and the same servers. The iPhone app has a few features
+          the Android app does not, among them a private tracker and sleep from
+          Apple Health. Those parts are marked <Only>iPhone only</Only> and do
+          not apply to the Android app.
         </p>
 
         <Section n="01" title="Who is responsible">
@@ -66,16 +74,53 @@ export default function PocketmatePrivacyPage() {
             nickname and an avatar are optional and set by you.
           </p>
           <p>
+            <Only>iPhone only</Only>
+            <b>Sign in with Apple.</b> If you use it, we receive the email
+            address Apple gives us, which can be a private relay address instead
+            of your real one, and your name if you choose to share it. Nothing
+            else.
+          </p>
+          <p>
             <b>Your circle.</b> Who you are paired with, the people in your
             circle, and when you connected. Only the people you added see what
             you share.
           </p>
           <p>
             <b>What you put on a widget.</b> The status you set, whether you are
-            asleep or awake if you tell the app, a countdown, the doodles you draw
-            and the photo of the two of you. These are stored so the others in
-            your circle can see them, and they appear in your shared moments
+            asleep or awake if you tell the app, dates you add such as a
+            countdown, a birthday or the day you got together, the doodles you
+            draw and the photos you send. These are stored so the others in your
+            circle can see them, and they appear in your shared moments
             timeline.
+          </p>
+          <p>
+            <b>Photos you send to one person.</b> A photo for the photo widget,
+            or one you send to the person you are paired with, is uploaded to a
+            private storage area. Only you and that person can open it, and the
+            app shows it through links that expire after an hour. Photos are
+            never public.
+          </p>
+          <p>
+            <Only>iPhone only</Only>
+            <b>The tracker.</b> The iPhone app includes a private tracker for
+            bowel movements. Each entry stores when you logged it. If you add
+            details to an entry, such as the type on the Bristol stool scale, a
+            colour, symptoms or a note, those are stored with it. This is health
+            data, and we process it only with the explicit consent you give when
+            you create your account. The people in your circle see at most how
+            many entries you logged this week, and your streak and calendar only
+            if you switch that on. Bristol type, symptoms, notes and photos are
+            never shared with anyone. A photo attached to an entry stays on your
+            phone and is not uploaded.
+          </p>
+          <p>
+            <Only>iPhone only</Only>
+            <b>Sleep from Apple Health.</b> Only with your explicit consent does
+            Pocketmate read your sleep from Apple Health. It reads sleep and
+            nothing else, and never writes anything to Health. Whether you are
+            asleep and how long you slept is shared only with the person you are
+            paired with, and only while that sharing is on. You can withdraw it
+            at any time in the app or in the iOS Settings.
           </p>
           <p>
             <b>Distance, if you turn it on.</b> To show how far apart you are,
@@ -96,15 +141,29 @@ export default function PocketmatePrivacyPage() {
             your message is stored so we can answer it.
           </p>
           <p>
-            <b>Purchase status.</b> Payments are processed by Google Play. We
-            receive only the resulting entitlement status, active or not, through
-            our subscription provider RevenueCat. We never receive your card or
+            <b>Purchase status.</b> Payments are processed by Apple through the
+            App Store on iPhone, and by Google Play on Android. We receive only
+            the resulting entitlement status, active or not, through our
+            subscription provider RevenueCat. We never receive your card or
             payment details.
           </p>
           <p>
-            <b>Notifications.</b> If you allow them, your phone gets a push token
-            that we store with your account, so we can tell you when someone
-            posts something to your circle.
+            <b>Notifications.</b> Our server sends you push notifications, for
+            example when someone in your circle does something for you or a date
+            you share comes up. If you allow notifications, your phone gets a
+            push token that we store with your account. We also store the
+            language you use the app in and your time zone, so that a
+            notification arrives in your language and at a sensible local hour.
+            Notifications are delivered through the Expo push service, which
+            passes them on to Apple or Google for the last step.
+          </p>
+          <p>
+            <Only>iPhone only</Only>
+            <b>Drawings on the lock screen.</b> When someone draws for you, the
+            drawing can appear live on your lock screen. For that, your iPhone
+            gives us a token for this lock screen display, which we store with
+            your account. These updates go from our server straight to
+            Apple&apos;s push service.
           </p>
           <p>
             <b>Usage statistics.</b> Which screens are opened, sent to our
@@ -113,14 +172,17 @@ export default function PocketmatePrivacyPage() {
           </p>
           <p>
             <b>Crash reports.</b> If the app crashes, a technical report (stack
-            trace, device model, app version) goes to our own crash server. It is
-            used to fix bugs and nothing else.
+            trace, device model, system version, app version) goes to our own
+            crash server in Germany. It is used to fix bugs and nothing else.
           </p>
           <p>
             <b>Recommendation links.</b> If you installed the app through a link
             from someone who recommends it, we compare your IP address and
             browser type once, at your first sign-in, with recent clicks on such
-            links, to credit the person who recommended it.
+            links, to credit the person who recommended it. The IP address is
+            only ever stored as a salted checksum, and the click records are
+            deleted after 7 days. Your account keeps only the name of the person
+            who recommended the app.
           </p>
         </Section>
 
@@ -136,43 +198,61 @@ export default function PocketmatePrivacyPage() {
           </p>
           <p>
             <b>Appearance.</b> Your theme and how you arranged your widgets are
-            kept on the device.
+            kept on the device. The widget images themselves are drawn on your
+            phone.
           </p>
         </Section>
 
         <Section n="04" title="What we do not do">
           <p>
             No advertising and no ad networks. No cross-app or cross-site
-            tracking, and no advertising identifier. No precise location, no
-            background location, and no health data. Nothing about you is public:
-            only the people in your circle see what you share. We do not sell or
-            rent personal data to anyone.
+            tracking, and no advertising identifier. No precise location and no
+            background location. Nothing about you is public: only the people in
+            your circle see what you share. We do not sell or rent personal data
+            to anyone.
+          </p>
+          <p>
+            The Android app processes no health data at all. On iPhone, health
+            data (tracker entries and, if you allow it, sleep) is used only to
+            run those features for you, and never for advertising or for anything
+            else.
           </p>
         </Section>
 
         <Section n="05" title="Why we process this data">
           <p>
             To provide the app and your account, to show your circle what you
-            share, to unlock and restore the paid features, to fix crashes and to
-            understand how the app is used. Legal bases under the GDPR are the
-            performance of our contract with you (Art. 6 para. 1 lit. b), our
-            legitimate interest in stable software and basic usage statistics
-            (Art. 6 para. 1 lit. f), and your consent for location, contacts and
-            notifications (Art. 6 para. 1 lit. a), which you can withdraw in the
-            system settings at any time. The Swiss Data Protection Act (DSG)
-            applies in parallel.
+            share, to send you notifications, to unlock and restore the paid
+            features, to fix crashes and to understand how the app is used. Legal
+            bases under the GDPR are the performance of our contract with you
+            (Art. 6 para. 1 lit. b), our legitimate interest in stable software
+            and basic usage statistics (Art. 6 para. 1 lit. f), and your consent
+            for location, contacts and notifications (Art. 6 para. 1 lit. a),
+            which you can withdraw in the system settings at any time. The Swiss
+            Data Protection Act (DSG) applies in parallel.
+          </p>
+          <p>
+            <Only>iPhone only</Only>
+            Tracker entries and sleep are health data. We process them only on
+            the basis of your explicit consent (Art. 9 para. 2 lit. a GDPR). You
+            can withdraw the consent for sleep at any time in the app or in the
+            iOS Settings, and the consent for the tracker by deleting your
+            account.
           </p>
         </Section>
 
         <Section n="06" title="Service providers">
           <p>
             <b>Supabase</b> for sign-in, database and file storage, in the
-            European Union (Frankfurt). <b>Google</b> for Google sign-in and
-            payments. <b>Expo</b> for delivering push notifications.{" "}
-            <b>RevenueCat</b> for subscription entitlements. <b>PostHog</b> for
-            usage statistics, in the European Union. Crash reports go to a server
-            we run ourselves. These providers process data on our behalf under
-            data processing agreements.
+            European Union (Frankfurt). <b>Apple</b> for Sign in with Apple,
+            payments and push delivery on iPhone. <b>Google</b> for Google
+            sign-in, and for payments and push delivery on Android.{" "}
+            <b>Expo</b> for delivering push notifications. <b>RevenueCat</b> for
+            subscription entitlements. <b>PostHog</b> for usage statistics, in
+            the European Union. <b>Vercel</b> for hosting the web page behind
+            recommendation links, which logs the click described above. Crash
+            reports go to a server we run ourselves in Germany. These providers
+            process data on our behalf under data processing agreements.
           </p>
         </Section>
 
@@ -182,10 +262,12 @@ export default function PocketmatePrivacyPage() {
             in Frankfurt, Germany, for as long as your account exists. You can
             delete your account at any time in the app: open the Me tab, scroll to
             the bottom and tap Delete account. That removes your account, your
-            profile and avatar, your widgets and doodles, and your place in every
-            circle. A photo you shared into a pair is kept for the other person
-            until you ask us to remove it; write to the address above and we
-            delete it within 30 days. How to ask for deletion without the app is described at{" "}
+            profile and avatar, your widgets and doodles, your tracker entries on
+            iPhone, your notification tokens, and your place in every circle. A
+            photo you shared into a pair is kept for the other person until you
+            ask us to remove it; write to the address above and we delete it
+            within 30 days. How to ask for deletion without the app is described
+            at{" "}
             <a href="https://getklar.org/delete-account#pocketmate" className="underline">
               getklar.org/delete-account
             </a>
@@ -196,9 +278,9 @@ export default function PocketmatePrivacyPage() {
         <Section n="08" title="Your rights">
           <p>
             You have the right to access, correct, delete and export your
-            personal data, and to object to or restrict its processing. The
-            fastest way to delete everything is the in-app account deletion. For
-            any other request, write to{" "}
+            personal data, to withdraw a consent you gave, and to object to or
+            restrict its processing. The fastest way to delete everything is the
+            in-app account deletion. For any other request, write to{" "}
             <a href={`mailto:${CONTACT}`} className="underline">{CONTACT}</a>. You
             also have the right to lodge a complaint with a data protection
             authority.
@@ -225,10 +307,35 @@ export default function PocketmatePrivacyPage() {
 
         <p style={{ fontSize: 13, color: "var(--fg-3)", fontFamily: "var(--font-mono), monospace", letterSpacing: "0.05em" }}>
           As of {AS_OF} · Controller Alain Kessler (CH sole proprietorship) · {CONTACT} ·{" "}
+          <Link href="/pocketmate/terms" className="underline">Terms of Use</Link> ·{" "}
+          <Link href="/pocketmate/support" className="underline">Support</Link> ·{" "}
           <Link href="/" className="underline">getklar.org</Link>
         </p>
       </article>
     </main>
+  );
+}
+
+/** Marks a paragraph that describes an iPhone-only feature. */
+function Only({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        fontFamily: "var(--font-mono), monospace",
+        fontSize: 10.5,
+        letterSpacing: "0.12em",
+        textTransform: "uppercase",
+        color: "var(--fg-3)",
+        border: "1px solid var(--line)",
+        padding: "1px 6px",
+        marginRight: 8,
+        whiteSpace: "nowrap",
+        verticalAlign: "1px",
+      }}
+    >
+      {children}
+    </span>
   );
 }
 
