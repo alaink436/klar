@@ -7,6 +7,11 @@
 // you bind a routine to, stores a push token for pacts, sends screen views to
 // PostHog identified by account ID, and blocks via usage access plus overlay.
 //
+// 2026-09-27: the purchase flow now reports its steps to PostHog (iap_* events:
+// paywall shown, plans loaded, purchase or restore started, product and price,
+// result, error code, sandbox). Listed under usage statistics; "Purchase status"
+// says the entitlement is all the payment side sends, the steps come from the app.
+//
 // Linked from App Store Connect (App Privacy + App Information) and from the
 // in-app Settings. Kept in sync with what the app actually does, which for this
 // app is more than the usual: Supabase auth, the routines you write and the
@@ -33,7 +38,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "23 September 2026";
+const AS_OF = "27 September 2026";
 const CONTACT = "support@getklar.org";
 
 export default function BasaltPrivacyPage() {
@@ -92,10 +97,12 @@ export default function BasaltPrivacyPage() {
             which takes their access away immediately.
           </p>
           <p>
-            <b>Purchase status.</b> Purchases are processed by Apple or Google. We receive
-            only the resulting entitlement status (active or not) through our
-            subscription provider RevenueCat. We never receive your card or
-            payment details.
+            <b>Purchase status.</b> Purchases are processed by Apple or Google.
+            From the payment side we receive only the resulting entitlement
+            status (active or not), through our subscription provider RevenueCat.
+            The steps of a purchase, listed under usage statistics below, are
+            recorded by the app itself. We never receive your card or payment
+            details.
           </p>
           <p>
             <b>Places, if you bind a routine to one.</b> When you set a place for
@@ -112,11 +119,18 @@ export default function BasaltPrivacyPage() {
           </p>
           <p>
             <b>Usage statistics.</b> The app reports which screens are opened, when
-            it is started and closed, and the steps of the first-run setup, to our
-            analytics provider PostHog in the European Union. After you sign in,
-            these events are linked to your account ID, never to your name or
-            email. They contain no routine names, no places and no information
-            about which apps you shut.
+            it is started and closed, the steps of the first-run setup and the
+            steps of a purchase, to our analytics provider PostHog in the European
+            Union. For a purchase these are: that the paywall was shown and
+            whether the plans loaded, that you started a purchase or a restore,
+            which product at which displayed price (and introductory price), and
+            how it ended (completed, cancelled, pending or failed). If something
+            goes wrong, the event carries the technical error code and message
+            from Apple or RevenueCat. We also record whether it was a test
+            purchase and whether you were signed in at the time. After you sign
+            in, these events are linked to your account ID, never to your name or
+            email. They contain no routine names, no places, no information about
+            which apps you shut, and no card or payment details.
           </p>
           <p>
             <b>A one-time clipboard read.</b> If you arrived through a link from
@@ -180,8 +194,9 @@ export default function BasaltPrivacyPage() {
           <p>
             To provide the app and your account, to keep your routines and your
             history, to unlock and restore the paid features, and to understand
-            how the app is used. Legal bases under the GDPR are the
-            performance of our contract with you (Art. 6 para. 1 lit. b) and our
+            how the app is used, including where a purchase fails. Legal bases
+            under the GDPR are the performance of our contract with you
+            (Art. 6 para. 1 lit. b) and our
             legitimate interest in basic, privacy friendly usage statistics
             (Art. 6 para. 1 lit. f). The Swiss Data Protection Act (DSG) applies
             in parallel.
