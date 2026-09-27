@@ -8,9 +8,10 @@
 // PostHog identified by account ID, and blocks via usage access plus overlay.
 //
 // 2026-09-27: the purchase flow now reports its steps to PostHog (iap_* events:
-// paywall shown, plans loaded, purchase or restore started, product and price,
-// result, error code, sandbox). Listed under usage statistics; "Purchase status"
-// says the entitlement is all the payment side sends, the steps come from the app.
+// store connection and plans at every start, paywall shown, purchase or restore
+// started, product and price, result, error code, sandbox). Listed under usage
+// statistics. "Purchase status" no longer says "only": the app forwards more
+// from the payment side than the entitlement (codes, prices, sandbox flag).
 //
 // Linked from App Store Connect (App Privacy + App Information) and from the
 // in-app Settings. Kept in sync with what the app actually does, which for this
@@ -97,12 +98,11 @@ export default function BasaltPrivacyPage() {
             which takes their access away immediately.
           </p>
           <p>
-            <b>Purchase status.</b> Purchases are processed by Apple or Google.
-            From the payment side we receive only the resulting entitlement
-            status (active or not), through our subscription provider RevenueCat.
-            The steps of a purchase, listed under usage statistics below, are
-            recorded by the app itself. We never receive your card or payment
-            details.
+            <b>Purchase status.</b> Purchases are processed by Apple or Google,
+            and we never receive your card or payment details. Our subscription
+            provider RevenueCat, which knows your account ID, tells the app
+            whether your subscription is active. What the app records about a
+            purchase is listed under usage statistics below.
           </p>
           <p>
             <b>Places, if you bind a routine to one.</b> When you set a place for
@@ -124,10 +124,14 @@ export default function BasaltPrivacyPage() {
             Union. For a purchase these are: that the paywall was shown and
             whether the plans loaded, that you started a purchase or a restore,
             which product at which displayed price (and introductory price), and
-            how it ended (completed, cancelled, pending or failed). If something
-            goes wrong, the event carries the technical error code and message
-            from Apple or RevenueCat. We also record whether it was a test
-            purchase and whether you were signed in at the time. After you sign
+            how it ended (completed, cancelled, pending, failed, or nothing to
+            restore). At every start the app also reports whether the connection
+            to the store worked and which plans loaded, and, if linking your
+            account to RevenueCat or reading your subscription status fails, that
+            it failed. If something goes wrong, the event carries the technical
+            error code and message from Apple or RevenueCat. We also record
+            whether a purchase was a test purchase and whether you were signed in
+            at the time. After you sign
             in, these events are linked to your account ID, never to your name or
             email. They contain no routine names, no places, no information about
             which apps you shut, and no card or payment details.
