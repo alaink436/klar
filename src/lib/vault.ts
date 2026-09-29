@@ -47,6 +47,21 @@ function decrypt(ciphertext: string, iv: string, authTag: string): string {
   return Buffer.concat([decipher.update(Buffer.from(ciphertext, "base64")), decipher.final()]).toString("utf8");
 }
 
+// Same cipher for other admin-only tables that keep a password next to the
+// vault (klar_tiktok_accounts). Kept here so there is exactly one place that
+// knows the master key.
+export function sealWithMaster(plain: string): { ciphertext: string; iv: string; auth_tag: string } {
+  return encrypt(plain);
+}
+
+export function openWithMaster(ciphertext: string, iv: string, authTag: string): string | null {
+  try {
+    return decrypt(ciphertext, iv, authTag);
+  } catch {
+    return null; // wrong master key / tampered ciphertext
+  }
+}
+
 export interface VaultSecretMeta {
   id: string;
   label: string;

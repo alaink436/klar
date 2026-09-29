@@ -7,6 +7,7 @@
 // the key never passes through the client beyond the form submit.
 
 import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   readCookieFromString,
@@ -71,7 +72,15 @@ export default async function VaultPage({
       <title>Vault · Klar Control</title>
       <AdminTopbar titel={t.vaultTitle} />
       <div className="content">
-        <h1>{t.vaultTitle}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1>{t.vaultTitle}</h1>
+          <Link
+            href="/admin/vault/tiktok"
+            className="text-[13px] font-semibold text-fg-2 hover:text-fg border border-line-strong rounded-[var(--radius-sm)] px-3 py-1.5 no-underline"
+          >
+            {lang === "en" ? "TikTok channels →" : "TikTok-Kanäle →"}
+          </Link>
+        </div>
 
         {!ready && (
           <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--warning) 35%,var(--line))", color: "var(--warning)" }}>
