@@ -60,7 +60,8 @@ export default function FocusCrewTermsPage() {
           <p>
             Rooms are shared spaces. When you join one, other people see your chibi, your public name, your subject and your
             study time today. When only a few people are in a room, fill-in figures sit at some tables so it never feels
-            empty. They are not real users, and you cannot open their profile or interact with them.
+            empty. They are marked &ldquo;Regular&rdquo; with a small house badge, are not real users, and are never counted in
+            room totals, leaderboards or statistics.
           </p>
         </Section>
 
