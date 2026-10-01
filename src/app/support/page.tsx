@@ -4,17 +4,21 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Support · Klar",
   description:
-    "Get help with a Klar app: Promillo, Trubel, Pocketmate, Wavelength or Yarn-Stash. One person behind it, real replies.",
+    "Get help with a Klar app: Pocketmate, Anime Vault, My Yarn Stash, Kelva, Basalt, Focus Crew, Trubel or Promillo. One person behind it, real replies.",
 };
 
 const SUPPORT_EMAIL = "support@getklar.org";
 
+// Every app that can still be downloaded, as of the App Store on 2026-10-01.
 const APPS = [
-  { name: "Promillo", note: "party games" },
-  { name: "Trubel", note: "geo photo albums" },
   { name: "Pocketmate", note: "widgets for couples" },
-  { name: "Basalt", note: "goal enforcement" },
-  { name: "Yarn-Stash", note: "yarn inventory" },
+  { name: "Anime Vault", note: "anime tracker & list" },
+  { name: "My Yarn Stash", note: "row counter" },
+  { name: "Kelva", note: "strength & cycle" },
+  { name: "Basalt", note: "weekly habits" },
+  { name: "Focus Crew", note: "study together, live" },
+  { name: "Trubel", note: "shared event photos" },
+  { name: "Promillo", note: "party games" },
 ];
 
 export default function Support() {
@@ -79,17 +83,6 @@ export default function Support() {
               >
                 {SUPPORT_EMAIL} →
               </a>
-
-              <p className="label mt-4">
-                or use the{" "}
-                <Link
-                  href="/#consulting"
-                  className="border-b border-[var(--fg)] pb-0.5 hover:text-[var(--fg)]"
-                >
-                  contact form
-                </Link>{" "}
-                on the home page
-              </p>
             </div>
           </div>
         </section>

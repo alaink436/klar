@@ -114,9 +114,9 @@ export const KLAR_APPS: KlarAppMeta[] = [
   // Kacheln der Uebersicht, Schiene), laesst aber historische Zeilen aus
   // Outreach, Affiliate und Pageviews weiter einen Namen finden.
   //
-  // `publicSite` bleibt bewusst stehen: die App ist im App Store nach wie vor
-  // da (id6761712527), nur ihr Backend ist es nicht mehr. Die Marketing-Seite
-  // ist eine andere Frage als das Dashboard.
+  // `publicSite: false` seit 2026-10-01: die iTunes-Abfrage fuer id6761712527
+  // liefert in CH, US und DE kein Ergebnis mehr, die App ist nicht mehr im
+  // Store. Vorher stand hier, sie sei es noch.
   {
     slug: "moto",
     name: "ThrottleUp",
@@ -124,7 +124,7 @@ export const KLAR_APPS: KlarAppMeta[] = [
     status: "LIVE",
     release: "v1.0.3 · build 14",
     appStoreUrl: "https://apps.apple.com/app/id6761712527",
-    publicSite: true,
+    publicSite: false,
     listed: false,
   },
   // slug stays "wavelength": it is the key into the affiliate schema, the
