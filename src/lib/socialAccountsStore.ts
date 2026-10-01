@@ -159,6 +159,32 @@ export async function setAccountPassword(id: string, password: string): Promise<
   }
 }
 
+/**
+ * Removes every account of one app and their vault secrets: for apps that no
+ * longer exist (Alain, 2026-10-01). Returns how many accounts went.
+ */
+export async function deleteApp(app: string): Promise<number | null> {
+  if (!SB_KEY() || !app) return null;
+  try {
+    const res = await fetch(
+      `${URL_BASE}/rest/v1/social_accounts?app=eq.${encodeURIComponent(app)}&select=id,password_secret_id`,
+      { headers: headers(), cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as Array<{ id: string; password_secret_id: string | null }>;
+    const del = await fetch(`${URL_BASE}/rest/v1/social_accounts?app=eq.${encodeURIComponent(app)}`, {
+      method: "DELETE",
+      headers: headers({ Prefer: "return=minimal" }),
+      cache: "no-store",
+    });
+    if (!del.ok) return null;
+    for (const r of rows) if (r.password_secret_id) await deleteSecret(r.password_secret_id);
+    return rows.length;
+  } catch {
+    return null;
+  }
+}
+
 /** Removes the account and the vault secret holding its password. */
 export async function deleteAccount(id: string): Promise<boolean> {
   if (!SB_KEY()) return false;

@@ -77,6 +77,10 @@ const COPY = {
     deleteTitle: "Konto löschen?",
     deleteBody: "Das Konto und sein gespeichertes Passwort werden endgültig gelöscht.",
     deleteSubmit: "Endgültig löschen",
+    removeApp: "App entfernen",
+    removeAppTitle: (name: string) => `${name} entfernen?`,
+    removeAppBody: (n: number) => `Alle ${n} Konten dieser App und ihre gespeicherten Passwörter werden endgültig gelöscht.`,
+    appHint: "Bestehende App wählen oder neue eintippen",
     status_warmup: "Aufwärmen",
     status_active: "Aktiv",
     status_paused: "Ruht",
@@ -123,6 +127,10 @@ const COPY = {
     deleteTitle: "Delete account?",
     deleteBody: "The account and its stored password are deleted for good.",
     deleteSubmit: "Delete permanently",
+    removeApp: "Remove app",
+    removeAppTitle: (name: string) => `Remove ${name}?`,
+    removeAppBody: (n: number) => `All ${n} accounts of this app and their stored passwords are deleted for good.`,
+    appHint: "Pick an existing app or type a new one",
     status_warmup: "Warming up",
     status_active: "Active",
     status_paused: "Paused",
@@ -156,6 +164,7 @@ export default function AccountsManager({
   const [editRow, setEditRow] = useState<AccountRow | null>(null);
   const [adding, setAdding] = useState(false);
   const [deleteRow, setDeleteRow] = useState<AccountRow | null>(null);
+  const [removeApp, setRemoveApp] = useState<{ key: string; name: string; count: number } | null>(null);
   const [reveal, setReveal] = useState<{ row: AccountRow; key: string | null; error: string | null } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -217,8 +226,17 @@ export default function AccountsManager({
 
       {groups.map((g) => (
         <div key={g.key} className="mb-6">
-          <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3 mb-2">
-            {g.name}
+          <div className="flex items-center justify-between mb-2">
+            <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">
+              {g.name}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setRemoveApp({ key: g.key, name: g.name, count: rows.filter((r) => r.app === g.key).length })}
+            >
+              <Trash2 /> {t.removeApp}
+            </Button>
           </div>
           <Table>
             <TableHeader>
@@ -308,13 +326,14 @@ export default function AccountsManager({
             {editRow && <input type="hidden" name="id" value={editRow.id} />}
             <div className="flex flex-col gap-1.5">
               <Label>{t.fApp}</Label>
-              <select name="app" defaultValue={editRow?.app ?? apps[0]?.key} className={selectCls}>
+              <Input name="app" list="account-apps" defaultValue={editRow?.app ?? ""} placeholder={t.appHint} required />
+              <datalist id="account-apps">
                 {apps.map((a) => (
                   <option key={a.key} value={a.key}>
                     {a.name}
                   </option>
                 ))}
-              </select>
+              </datalist>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>{t.fPlatform}</Label>
@@ -401,6 +420,29 @@ export default function AccountsManager({
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={removeApp !== null} onOpenChange={(o) => !o && setRemoveApp(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{removeApp ? t.removeAppTitle(removeApp.name) : ""}</DialogTitle>
+            <DialogDescription>{removeApp ? t.removeAppBody(removeApp.count) : ""}</DialogDescription>
+          </DialogHeader>
+          <form method="post" action="/admin/accounts/save">
+            <input type="hidden" name="action" value="delete-app" />
+            <input type="hidden" name="app" value={removeApp?.key ?? ""} />
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  {t.cancel}
+                </Button>
+              </DialogClose>
+              <Button type="submit" variant="danger">
+                {t.deleteSubmit}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 

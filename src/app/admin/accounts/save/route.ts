@@ -3,6 +3,7 @@
 //   action=edit      -> update an account's fields
 //   action=password  -> set or replace the password (vault secret, encrypted)
 //   action=delete    -> remove the account and its vault secret
+//   action=delete-app -> remove every account of one app (apps that are gone)
 //
 // Same admin auth as /admin/vault/save (admin session + device cookie). The
 // password is read from the form and handed straight to lib/vault; it is never
@@ -14,6 +15,7 @@ import { verifyDeviceCookie } from "@/lib/deviceCookie";
 import {
   addAccount,
   deleteAccount,
+  deleteApp,
   setAccountPassword,
   updateAccount,
   type AccountFields,
@@ -65,6 +67,10 @@ export async function POST(req: NextRequest): Promise<Response> {
     if (!newId) return backWith(req, { err: "save-failed" });
     if (password && !(await setAccountPassword(newId, password))) return backWith(req, { err: "password-failed" });
     return backWith(req, { msg: "account-saved" });
+  }
+  if (action === "delete-app") {
+    const n = await deleteApp(String(form.get("app") ?? "").trim());
+    return backWith(req, n === null ? { err: "delete-failed" } : { msg: "account-deleted" });
   }
   if (!id) return backWith(req, { err: "no-entry" });
   if (action === "edit") {

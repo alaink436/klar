@@ -44,8 +44,13 @@ export default async function AccountsPage({
   const [stored, live] = await Promise.all([listAccounts(), getBlotatoAccounts()]);
   const liveIds = new Map(live.map((l) => [`${l.platform.toLowerCase()}:${norm(l.username || l.fullname)}`, l.id]));
 
-  const apps = [...APPS.map((a) => ({ key: a.key as string, name: a.name }))];
-  for (const s of stored) if (!apps.some((a) => a.key === s.app)) apps.push({ key: s.app, name: s.app });
+  // Only apps that still have accounts: a deleted app must not come back as a
+  // choice. Names come from lib/socialAccounts where known, else the key itself.
+  const apps: { key: string; name: string }[] = [];
+  for (const s of stored) {
+    if (apps.some((a) => a.key === s.app)) continue;
+    apps.push({ key: s.app, name: APPS.find((a) => a.key === s.app)?.name ?? s.app });
+  }
 
   const rows: AccountRow[] = stored.map((s) => ({
     id: s.id,
