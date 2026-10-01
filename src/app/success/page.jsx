@@ -81,7 +81,7 @@ export default async function Success({ searchParams }) {
             <h1>Payment not confirmed.</h1>
             <p className="dim">
               If you just paid, wait a few seconds and refresh. Otherwise head{" "}
-              <a href="/">back to the page</a> and try again, or reply to any
+              <a href="/os">back to the page</a> and try again, or reply to any
               email from us and a human answers.
             </p>
           </>

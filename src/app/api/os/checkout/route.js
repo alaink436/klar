@@ -35,7 +35,7 @@ export async function POST(req) {
   if (!key || !price) {
     // Not configured yet: send the visitor back with an honest note rather
     // than a Stripe error page.
-    return NextResponse.redirect(`${site}/?checkout=soon&plan=${plan}`, { status: 303 });
+    return NextResponse.redirect(`${site}/os?checkout=soon&plan=${plan}`, { status: 303 });
   }
 
   const stripe = new Stripe(key);
@@ -43,7 +43,7 @@ export async function POST(req) {
     mode,
     line_items: [{ price, quantity: 1 }],
     success_url: `${site}/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${site}/`,
+    cancel_url: `${site}/os`,
     allow_promotion_codes: false,
     // Subscriptions get their invoices from the subscription itself; asking
     // for invoice_creation on top is rejected by Stripe.

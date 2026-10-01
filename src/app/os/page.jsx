@@ -1,18 +1,18 @@
-import FreeKitForm from "./os/FreeKitForm";
-import BrainGraph from "./os/BrainGraph";
-import VaultDemo from "./os/VaultDemo";
-import ProxyFlow from "./os/ProxyFlow";
-import Triptych from "./os/Triptych";
-import ShippedDeck from "./os/ShippedDeck";
-import FreeBracket from "./os/FreeBracket";
-import MrrBar from "./os/MrrBar";
-import OsShell from "./os/OsShell";
+import Link from "next/link";
+import FreeKitForm from "./FreeKitForm";
+import BrainGraph from "./BrainGraph";
+import VaultDemo from "./VaultDemo";
+import ProxyFlow from "./ProxyFlow";
+import Triptych from "./Triptych";
+import ShippedDeck from "./ShippedDeck";
+import FreeBracket from "./FreeBracket";
+import MrrBar from "./MrrBar";
+import OsShell from "./OsShell";
 
-// getklar.org's front page is Klar OS. The studio's old marketing homepage
-// was retired when this moved in (2026-08-15, Alain's call); the affiliate
-// landings under /affiliate/<app>, the partner dashboard, /log and every
-// App-Store-required legal and support page are untouched and still live at
-// their own URLs.
+// Klar OS lives at /os. It was getklar.org's front page from 2026-08-15 until
+// 2026-10-01, when the root went back to showing the apps (Alain's call). It
+// stays reachable here, unlinked from the home page, so the checkout and the
+// free download keep working.
 
 // The price is indexed to the evidence, not to scarcity. What is for sale here
 // is what seven live apps taught one person, so the thing that makes it worth
@@ -53,12 +53,12 @@ export const metadata = {
   title: "Klar OS: the operating system of a solo founder who ships",
   description:
     `The exact vault structure, agent conventions and LLM Council setup behind Klar Studios' shipped App Store apps. Free system, ${money(NOW.data)} playbook, honest scars included.`,
-  alternates: { canonical: "/" },
+  alternates: { canonical: "/os" },
   openGraph: {
     title: "Klar OS: one person, seven shipped apps",
     description:
       `The free working system of a solo founder who ships with AI agents daily. The scars behind it: the ${money(NOW.data)} Playbook.`,
-    url: "/",
+    url: "/os",
     siteName: "Klar OS",
     images: [{ url: "/os/og.png", width: 1200, height: 630 }],
     type: "website",
@@ -217,7 +217,7 @@ export default async function Home() {
     <OsShell>
       <div className="wrap">
         <div className="topbar">
-          <a className="mark" href="/">KLAR STUDIOS</a>
+          <Link className="mark" href="/">KLAR STUDIOS</Link>
           <a className="to-buy" href="#pricing">Get it &rarr;</a>
         </div>
         <MrrBar ladder={LADDER} />
