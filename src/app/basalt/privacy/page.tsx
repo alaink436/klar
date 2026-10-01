@@ -13,6 +13,12 @@
 // statistics. "Purchase status" no longer says "only": the app forwards more
 // from the payment side than the entitlement (codes, prices, sandbox flag).
 //
+// 2026-10-01: usage counts without content (routine_created/_deleted,
+// checkin_logged, push_token, push_ask, onboarding_resumed, the paywall's
+// entry point). The push token paragraph said "if you make a pact", but the
+// app stores one for anyone who allows notifications (reminders since
+// 2026-09-24); corrected. Goes live together with the app OTA that sends them.
+//
 // Linked from App Store Connect (App Privacy + App Information) and from the
 // in-app Settings. Kept in sync with what the app actually does, which for this
 // app is more than the usual: Supabase auth, the routines you write and the
@@ -39,7 +45,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "27 September 2026";
+const AS_OF = "1 October 2026";
 const CONTACT = "support@getklar.org";
 
 export default function BasaltPrivacyPage() {
@@ -113,9 +119,10 @@ export default function BasaltPrivacyPage() {
             never asks for your location.
           </p>
           <p>
-            <b>Notifications between partners.</b> If you make a pact, your phone
-            gets a push token that we store with your account, so we can tell
-            your partner when it is their turn and tell you when it is yours.
+            <b>Notifications.</b> If you allow notifications, your phone gets a
+            push token that we store with your account, so reminders and, in a
+            pact, messages between you and your partner can reach it. It is
+            deleted when you sign out or delete your account.
           </p>
           <p>
             <b>Usage statistics.</b> The app reports which screens are opened, when
@@ -131,7 +138,13 @@ export default function BasaltPrivacyPage() {
             it failed. If something goes wrong, the event carries the technical
             error code and message from Apple or RevenueCat. We also record
             whether a purchase was a test purchase and whether you were signed in
-            at the time. After you sign
+            at the time, and from where the paywall was opened (for example
+            from adding a routine). The app also counts what you do with it,
+            without any content: that a routine was created or deleted, with
+            its kind and how often it repeats; that a day was ticked off, and
+            whether it was today or an earlier day; whether notifications are
+            allowed and what you answered when the app asked; and whether a
+            first-run setup was resumed after the app was closed. After you sign
             in, these events are linked to your account ID, never to your name or
             email. They contain no routine names, no places, no information about
             which apps you shut, and no card or payment details.
