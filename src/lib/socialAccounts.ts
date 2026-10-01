@@ -80,7 +80,9 @@ export const APPS: AppMeta[] = [
   },
   {
     key: "myloo",
-    name: "MyLoo",
+    // Seit 2026 als Pocketmate im Store. Der Schluessel bleibt "myloo", damit
+    // die Konten in social_accounts und die Landkarte weiter zusammenfinden.
+    name: "Pocketmate",
     content: "Werbung, die wie ein privater Account aussieht. Slideshows primär, Aufhänger Widgets.",
     color: "#5E93C9",
   },
