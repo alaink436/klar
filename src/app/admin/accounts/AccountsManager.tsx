@@ -37,6 +37,8 @@ export interface AccountRow {
   notes: string;
   /** Blotato account id when Blotato currently has this account connected. */
   blotatoId: string;
+  /** The id stored on the row, if any (shown in the edit form). */
+  pinnedBlotatoId: string;
 }
 
 const COPY = {
@@ -69,6 +71,7 @@ const COPY = {
     fRole: "Rolle",
     fStatus: "Status",
     fLogin: "Login (E-Mail / Benutzer)",
+    fBlotato: "Blotato-ID (nur nötig nach Umbenennung)",
     fPassword: "Passwort",
     fNotes: "Notiz",
     revealTitle: "Passwort",
@@ -119,6 +122,7 @@ const COPY = {
     fRole: "Role",
     fStatus: "Status",
     fLogin: "Login (email / user)",
+    fBlotato: "Blotato id (only needed after a rename)",
     fPassword: "Password",
     fNotes: "Note",
     revealTitle: "Password",
@@ -376,6 +380,10 @@ export default function AccountsManager({
             <div className="col-span-2 flex flex-col gap-1.5">
               <Label>{t.fLogin}</Label>
               <Input name="login_email" defaultValue={editRow?.loginEmail ?? ""} />
+            </div>
+            <div className="col-span-2 flex flex-col gap-1.5">
+              <Label>{t.fBlotato}</Label>
+              <Input name="blotato_id" inputMode="numeric" defaultValue={editRow?.pinnedBlotatoId ?? ""} />
             </div>
             <div className="col-span-2 flex flex-col gap-1.5">
               <Label>{t.fPassword}</Label>

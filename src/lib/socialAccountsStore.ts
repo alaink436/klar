@@ -28,6 +28,8 @@ export interface StoredAccount {
   status: AccountStatus;
   login_email: string | null;
   password_secret_id: string | null;
+  /** Pinned Blotato id, for accounts renamed since Blotato last saw them. */
+  blotato_id: string | null;
   notes: string | null;
   updated_at: string;
 }
@@ -40,6 +42,7 @@ export interface AccountFields {
   role: string;
   status: string;
   login_email: string;
+  blotato_id: string;
   notes: string;
 }
 
@@ -66,6 +69,7 @@ function clean(f: AccountFields) {
     role: pick(ACCOUNT_ROLES, f.role, "brand"),
     status: pick(ACCOUNT_STATUSES, f.status, "warmup"),
     login_email: opt(f.login_email, 160),
+    blotato_id: opt(f.blotato_id.replace(/\D/g, ""), 20),
     notes: opt(f.notes, 1000),
   };
 }

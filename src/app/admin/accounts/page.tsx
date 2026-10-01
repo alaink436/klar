@@ -43,6 +43,7 @@ export default async function AccountsPage({
 
   const [stored, live] = await Promise.all([listAccounts(), getBlotatoAccounts()]);
   const liveIds = new Map(live.map((l) => [`${l.platform.toLowerCase()}:${norm(l.username || l.fullname)}`, l.id]));
+  const liveIdSet = new Set(live.map((l) => l.id));
 
   // Only apps that still have accounts: a deleted app must not come back as a
   // choice. Names come from lib/socialAccounts where known, else the key itself.
@@ -64,7 +65,15 @@ export default async function AccountsPage({
     loginEmail: s.login_email ?? "",
     passwordSecretId: s.password_secret_id ?? "",
     notes: s.notes ?? "",
-    blotatoId: s.handle ? (liveIds.get(`${s.platform}:${norm(s.handle)}`) ?? "") : "",
+    // A pinned id wins while Blotato still lists it (a renamed account keeps its
+    // id but Blotato shows the old username); otherwise match by handle.
+    blotatoId:
+      s.blotato_id && liveIdSet.has(s.blotato_id)
+        ? s.blotato_id
+        : s.handle
+          ? (liveIds.get(`${s.platform}:${norm(s.handle)}`) ?? "")
+          : "",
+    pinnedBlotatoId: s.blotato_id ?? "",
   }));
 
   return (

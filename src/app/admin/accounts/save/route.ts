@@ -40,6 +40,7 @@ function fields(form: FormData): AccountFields {
     role: s("role"),
     status: s("status"),
     login_email: s("login_email"),
+    blotato_id: s("blotato_id"),
     notes: s("notes"),
   };
 }
