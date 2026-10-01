@@ -48,6 +48,9 @@ export const NAV_ITEMS: NavItemDef[] = [
   // (lib/feedbackStore), der Rest ist aus Studio hierher gezogen.
   { id: "feedback", labelKey: "navFeedback", icon: "chat", href: "/admin/feedback", section: "studios" },
   { id: "content", labelKey: "navContent", icon: "content", href: "/admin/content", section: "studios" },
+  // Konten (seit 2026-10-01): jedes Social-Konto mit Login und Passwort an einer
+  // Stelle. Passwoerter liegen verschluesselt im Vault, siehe lib/socialAccountsStore.
+  { id: "accounts", labelKey: "navAccounts", icon: "lock", href: "/admin/accounts", section: "studios" },
   { id: "collabs", labelKey: "navCollabs", icon: "reply", href: "/admin/collabs", section: "studios" },
   { id: "outreach", labelKey: "navOutreach", icon: "outreach", href: "/admin/outreach", section: "studios" },
   { id: "analytics", labelKey: "navAnalytics", icon: "analytics", href: "/admin/analytics", section: "studios" },

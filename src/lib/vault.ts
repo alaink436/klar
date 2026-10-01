@@ -129,6 +129,41 @@ export async function addSecret(
   }
 }
 
+// Store-only secret that something else points at (a social account's password,
+// see lib/socialAccountsStore). Same encryption as addSecret, but it hands back
+// the new row's id so the caller can link to it.
+export async function storeSecretReturningId(input: {
+  label: string;
+  provider: string;
+  category: string;
+  secret: string;
+}): Promise<string | null> {
+  if (!vaultReady() || !input.secret) return null;
+  const row = {
+    label: input.label.slice(0, 80) || "Unbenannt",
+    provider: input.provider.slice(0, 40) || "custom",
+    category: input.category.slice(0, 60) || null,
+    base_url: null,
+    auth_header: "authorization",
+    auth_scheme: "Bearer ",
+    auth_in: "header",
+    ...encrypt(input.secret),
+  };
+  try {
+    const res = await fetch(`${URL_BASE}/rest/v1/vault_secrets?select=id`, {
+      method: "POST",
+      headers: sbHeaders({ Prefer: "return=representation" }),
+      body: JSON.stringify(row),
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const rows = (await res.json()) as Array<{ id: string }>;
+    return rows[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function listSecrets(): Promise<VaultSecretMeta[]> {
   if (!SB_KEY()) return [];
   try {
