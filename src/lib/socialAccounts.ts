@@ -47,6 +47,11 @@ export interface SocialAccount {
   /** Which mail alias the account logs in with (see Infrastructure/mail-aliases.md). */
   login?: string;
   flags?: AccountFlag[];
+  /**
+   * Fixed board key for a renamed account. Status, post log and the references
+   * Alain attached all hang on the key, so a rename would otherwise orphan them.
+   */
+  key?: string;
 }
 
 export interface AppMeta {
@@ -117,16 +122,7 @@ export const ACCOUNTS: SocialAccount[] = [
   { handle: "clairmentklarclear", app: "animevault", platform: "instagram", role: "brand", blotatoId: "62247" },
 
   // ---- Trubel ----
-  {
-    handle: "theappforevents",
-    app: "trubel",
-    platform: "tiktok",
-    role: "brand",
-    blotatoId: "46401",
-    followers: 62,
-    likes: 3608,
-    measuredAt: M,
-  },
+  // Der TikTok-Kanal @theappforevents postet seit 2026-10-02 Basalt, siehe dort.
   {
     handle: "",
     app: "trubel",
@@ -228,16 +224,33 @@ export const ACCOUNTS: SocialAccount[] = [
     ],
   },
   {
-    handle: "girlysgirl78",
+    // Bis 2026-10-02 @girlysgirl78. Der Schluessel bleibt der alte, damit Status,
+    // Post-Log und die drei Referenzen am Kanal haengen bleiben.
+    handle: "basaltapp",
+    key: "basalt:tiktok:girlysgirl78",
     app: "basalt",
     platform: "tiktok",
     role: "private",
-    displayName: "girlysgirl",
+    displayName: "motivationwithbasalt",
+    blotatoId: "62313",
     followers: 0,
     likes: 0,
     measuredAt: M,
     login: "basalt2@mail.getklar.org",
-    flags: [{ level: "warn", text: "Keine Bio, auto-generierter Handle." }],
+  },
+  {
+    // Bis 2026-10-02 @theappforevents und Trubel. Neuer Schluessel: die alte
+    // Board-Zeile trug nur Trubel-Einstellungen. Blotato listet 46401 noch unter
+    // dem alten Namen, deshalb haelt reconcile() die Id.
+    handle: "motivationwithbasalt",
+    app: "basalt",
+    platform: "tiktok",
+    role: "brand",
+    displayName: "basalt-follow through",
+    blotatoId: "46401",
+    followers: 62,
+    likes: 3608,
+    measuredAt: M,
   },
   { handle: "onwavelength4", app: "basalt", platform: "instagram", role: "brand", blotatoId: "52709" },
 
@@ -275,7 +288,7 @@ export const PLATFORM_LABEL: Record<Platform, string> = {
 
 /** Stable node id — handle alone collides (@mylooapp exists on two platforms). */
 export const accountKey = (a: SocialAccount): string =>
-  `${a.app}:${a.platform}:${a.handle || "unbenannt"}`;
+  a.key ?? `${a.app}:${a.platform}:${a.handle || "unbenannt"}`;
 
 export interface AccountTotals {
   followers: number;
@@ -310,11 +323,14 @@ export function reconcile(
 ): SocialAccount[] {
   if (live.length === 0) return accounts;
   const byHandle = new Map(live.map((l) => [`${l.platform.toLowerCase()}:${l.username.toLowerCase()}`, l.id]));
+  const liveIds = new Set(live.map((l) => l.id));
   return accounts.map((a) => {
     if (!a.handle) return a;
     const liveId = byHandle.get(`${a.platform}:${a.handle.toLowerCase()}`);
     if (liveId === a.blotatoId) return a;
     if (liveId) return { ...a, blotatoId: liveId };
+    // A renamed account keeps its id while Blotato still lists the old username.
+    if (a.blotatoId && liveIds.has(a.blotatoId)) return a;
     const rest = { ...a };
     delete rest.blotatoId;
     return rest;
