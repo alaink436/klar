@@ -11,7 +11,7 @@
 // Mirror of AI-Brain `Projects/Klar-Content-Pipeline/SOCIAL-ACCOUNTS.md`;
 // keep the two in sync when accounts are added or renamed.
 
-export type AppKey = "animevault" | "trubel" | "kelva" | "myloo" | "basalt";
+export type AppKey = "animevault" | "trubel" | "kelva" | "myloo" | "basalt" | "focuscrew";
 export type Platform = "tiktok" | "instagram" | "x";
 
 /**
@@ -91,6 +91,12 @@ export const APPS: AppMeta[] = [
     name: "Basalt",
     content: "Ein Account, der in der Nische gut lief, dient als Vorlage — Format auf beiden privaten nachbauen.",
     color: "#6FD8A6",
+  },
+  {
+    key: "focuscrew",
+    name: "Focus Crew",
+    content: "Seit 2026-10-02 eigener TikTok-Kanal (@realone9947, vorher Basalt).",
+    color: "#8FB4F0",
   },
 ];
 
@@ -222,18 +228,6 @@ export const ACCOUNTS: SocialAccount[] = [
     ],
   },
   {
-    handle: "realone9947",
-    app: "basalt",
-    platform: "tiktok",
-    role: "private",
-    displayName: "realone",
-    followers: 0,
-    likes: 0,
-    measuredAt: M,
-    login: "basalt1@mail.getklar.org",
-    flags: [{ level: "warn", text: "Keine Bio, auto-generierter Handle." }],
-  },
-  {
     handle: "girlysgirl78",
     app: "basalt",
     platform: "tiktok",
@@ -246,6 +240,24 @@ export const ACCOUNTS: SocialAccount[] = [
     flags: [{ level: "warn", text: "Keine Bio, auto-generierter Handle." }],
   },
   { handle: "onwavelength4", app: "basalt", platform: "instagram", role: "brand", blotatoId: "52709" },
+
+  // ---- Focus Crew ----
+  // Bis 2026-10-02 der erste private Basalt-Account. Neuer Schluessel, also
+  // startet die Board-Zeile leer; die alte unter basalt:tiktok:realone9947 bleibt
+  // in der Datenbank liegen.
+  {
+    handle: "realone9947",
+    app: "focuscrew",
+    platform: "tiktok",
+    role: "private",
+    displayName: "realone",
+    blotatoId: "62350",
+    followers: 0,
+    likes: 0,
+    measuredAt: M,
+    login: "basalt1@mail.getklar.org",
+    flags: [{ level: "warn", text: "Keine Bio, auto-generierter Handle." }],
+  },
 ];
 
 export const ROLE_LABEL: Record<AccountRole, string> = {
