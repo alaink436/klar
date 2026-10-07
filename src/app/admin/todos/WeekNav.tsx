@@ -1,8 +1,6 @@
 "use client";
 
-// Die Wochenzeile über beiden Ansichten. Sie stand vorher im Planer, aber der
-// Posting-Bogen zeigt dieselbe Woche — hätte jede Ansicht ihre eigene
-// Navigation, müsste man beim Umschalten zweimal blättern.
+// Die Wochenzeile über dem Planer.
 //
 // Vor und zurück sind Links, keine Knöpfe: der Tag kommt vom Server, und ein
 // Wochenwechsel soll im Verlauf stehen und sich teilen lassen. Nur der Sprung
@@ -12,7 +10,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { tAdmin, type AdminLang } from "../_i18n";
-import { viewHref, type TodoView } from "./views";
 
 function addDaysIso(iso: string, n: number): string {
   const d = new Date(`${iso}T12:00:00Z`);
@@ -37,19 +34,16 @@ export default function WeekNav({
   weekLabel,
   weekOffset,
   today,
-  view,
 }: {
   lang: AdminLang;
   weekLabel: string;
   weekOffset: number;
   /** "YYYY-MM-DD" in Europe/Zurich, vom Server. */
   today: string;
-  /** Welche Ansicht offen ist — die Links halten sie fest. */
-  view: TodoView;
 }) {
   const t = tAdmin(lang);
   const router = useRouter();
-  const href = (w: number) => viewHref(view, w);
+  const href = (w: number) => (w !== 0 ? `/admin/todos?w=${w}` : "/admin/todos");
 
   function jumpTo(iso: string) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;

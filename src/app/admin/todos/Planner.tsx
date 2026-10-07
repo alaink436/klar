@@ -29,7 +29,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
   useTransition,
   useOptimistic,
 } from "react";
@@ -37,7 +36,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { clearDone, createTodo, editTodo, planTodo, removeTodo, toggleTodo } from "./todo-actions";
-import { markPosted } from "./posting-actions";
 import { tAdmin, type AdminLang } from "../_i18n";
 
 export interface PlannerTodo {
@@ -53,39 +51,6 @@ export interface PlannerTodo {
   overdue: boolean;
 }
 
-/**
- * Ein faelliger Post als Punkt im Wochenplan. Er wird NICHT als To-do
- * gespeichert, sondern aus Rhythmus und Frequenz des Accounts abgeleitet — sonst
- * gaebe es dieselbe Wahrheit zweimal, und wer den Rhythmus aendert, muesste
- * hinterher Karteileichen aufraeumen. Abhaken schreibt in denselben Verlauf wie
- * das Posting-Board; die beiden Ansichten zeigen also immer dasselbe.
- */
-export interface PlannerPosting {
-  accountKey: string;
-  /** "YYYY-MM-DD". */
-  day: string;
-  slot: number;
-  perDay: number;
-  handle: string;
-  /**
-   * Die Plattform, ausgeschrieben.
-   *
-   * Ohne sie ist die Karte nicht eindeutig: Handles wiederholen sich ueber
-   * Plattformen hinweg. `kelva:instagram:kelvaapp` und `kelva:tiktok:kelvaapp`
-   * heissen beide `@kelvaapp`, `clairmentklarclear` liegt ebenfalls zweimal.
-   * Zwei Karten sahen damit gleich aus, und beim Abhaken war nicht zu sehen,
-   * welche gemeint war.
-   */
-  platformLabel: string;
-  /** Die laufenden Richtungen, Hauptformat zuerst. Leer, wenn keine gesetzt. */
-  richtungen: string[];
-  /** Altwert aus dem Freitextfeld. Nur noch Rueckfall, wenn keine Richtung steht. */
-  format: string;
-  appLabel: string;
-  appColor: string;
-  done: boolean;
-}
-
 export interface PlannerDay {
   iso: string;
   weekday: string;
@@ -96,47 +61,6 @@ export interface PlannerDay {
 
 const BACKLOG = "__backlog__";
 
-/**
- * Merker im Browser: sollen die abgeleiteten Posting-Punkte mitlaufen?
- *
- * `localStorage` ist ein externer Speicher, kein React-Zustand — also wird er
- * auch so behandelt und nicht in einem Effekt in den Zustand kopiert. Der
- * Server-Schnappschuss ist "sichtbar", damit der erste Render auf beiden Seiten
- * gleich aussieht; unmittelbar nach dem Hydrieren zieht der echte Wert nach.
- */
-const HIDE_POSTS_KEY = "klar_planner_hide_postings";
-
-let hidePostsCache: boolean | null = null;
-const hidePostsListeners = new Set<() => void>();
-
-function readHidePosts(): boolean {
-  if (hidePostsCache === null) {
-    try {
-      hidePostsCache = window.localStorage.getItem(HIDE_POSTS_KEY) === "1";
-    } catch {
-      hidePostsCache = false; // privater Modus o. Ae.
-    }
-  }
-  return hidePostsCache;
-}
-
-function writeHidePosts(next: boolean): void {
-  hidePostsCache = next;
-  try {
-    window.localStorage.setItem(HIDE_POSTS_KEY, next ? "1" : "0");
-  } catch {
-    // dann gilt die Wahl eben nur fuer diese Sitzung
-  }
-  for (const l of hidePostsListeners) l();
-}
-
-function subscribeHidePosts(cb: () => void): () => void {
-  hidePostsListeners.add(cb);
-  return () => {
-    hidePostsListeners.delete(cb);
-  };
-}
-
 /** Kleine benannte Aktion auf einer Karte — Text, kein schwebendes Symbol. */
 const ACTION =
   "[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-fg-4 hover:text-fg focus-visible:text-fg transition-colors";
@@ -145,15 +69,12 @@ const ACTION_SELECT = `${ACTION} h-[18px] max-w-[104px] bg-transparent border-0 
 export default function Planner({
   rows,
   days,
-  postings,
   lang,
   today,
   tomorrow,
 }: {
   rows: PlannerTodo[];
   days: PlannerDay[];
-  /** Abgeleitete Posting-Punkte der gezeigten Woche, ein Eintrag je Post. */
-  postings: PlannerPosting[];
   lang: AdminLang;
   /** "YYYY-MM-DD" in Europe/Zurich, vom Server. */
   today: string;
@@ -166,16 +87,6 @@ export default function Planner({
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
-  // Die Posting-Punkte lassen sich ausblenden: an einer Woche mit vier Accounts
-  // im Tagesrhythmus stehen schnell zwanzig davon in den Spalten, und dann
-  // findet man die eigenen To-dos nicht mehr. Die Wahl bleibt im Browser —
-  // sie gilt fuer dieses Geraet, nicht fuer den Vault.
-  const hidePosts = useSyncExternalStore(subscribeHidePosts, readHidePosts, () => false);
-  // Eingeklappt ist der Normalfall — seit 2026-08-18 auch fuer heute (Alain:
-  // aufgeklappt verwirrt). Der Kopf sagt weiter, wie viele Posts anstehen und
-  // wie viele davon stehen; ein Klick oeffnet den Tag. Sonst deckt eine Woche
-  // mit drei Accounts im Tagesrhythmus die eigenen To-dos komplett zu.
-  const [openPostDays, setOpenPostDays] = useState<Set<string>>(() => new Set<string>());
   const [dragId, setDragId] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -198,14 +109,6 @@ export default function Planner({
     ),
   );
 
-  // Die Haken der Posting-Punkte liegen im selben Verlauf wie im Board; hier
-  // wird nur optimistisch vorgegriffen, damit der Klick sofort sitzt.
-  const [posts, patchPost] = useOptimistic(
-    postings,
-    (state: PlannerPosting[], p: { id: string; done: boolean }) =>
-      state.map((x) => (`${x.accountKey}|${x.day}|${x.slot}` === p.id ? { ...x, done: p.done } : x)),
-  );
-
   // Heute in die Mitte rollen. Sieben Spalten passen auf keinen Bildschirm, und
   // links anzufangen heisst, dass der wichtigste Tag ab Donnerstag ausserhalb
   // liegt. Gerechnet wird ueber die Rechtecke statt ueber offsetLeft: das gilt
@@ -219,23 +122,6 @@ export default function Planner({
     const c = col.getBoundingClientRect();
     box.scrollLeft += c.left - b.left - (b.width - c.width) / 2;
   }, [today]);
-
-  function togglePostDay(iso: string) {
-    setOpenPostDays((prev) => {
-      const next = new Set(prev);
-      if (next.has(iso)) next.delete(iso);
-      else next.add(iso);
-      return next;
-    });
-  }
-
-  function togglePosting(p: PlannerPosting) {
-    const id = `${p.accountKey}|${p.day}|${p.slot}`;
-    startTransition(async () => {
-      patchPost({ id, done: !p.done });
-      await markPosted(p.accountKey, p.day, p.slot, !p.done);
-    });
-  }
 
   // Filter über ALLE Spalten, nicht pro Spalte: bei „wo lag nochmal der
   // Steuertermin?" weiss man den Tag ja gerade nicht.
@@ -252,9 +138,6 @@ export default function Planner({
     open
       .filter((r) => r.due === iso)
       .sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
-  /** Die Posting-Punkte eines Tages, in Slot-Reihenfolge. */
-  const postingsFor = (iso: string) =>
-    posts.filter((x) => x.day === iso).sort((a, b) => a.slot - b.slot);
 
   /** Offen, geplant, aber vor dem angezeigten Fenster — sonst unsichtbar. */
   const firstDay = days[0]?.iso ?? "";
@@ -442,83 +325,7 @@ export default function Planner({
     );
   }
 
-  /**
-   * Sieht bewusst anders aus als ein To-do: farbige Kante in der App-Farbe und
-   * ein Wort davor. Es ist auch anders — verschieben laesst es sich nicht, denn
-   * sein Tag steht im Rhythmus des Accounts, nicht in dieser Karte.
-   */
-  function postingCard(p: PlannerPosting) {
-    return (
-      <button
-        key={`${p.accountKey}|${p.day}|${p.slot}`}
-        type="button"
-        onClick={() => togglePosting(p)}
-        title="Aus dem Posting-Rhythmus dieses Accounts. Tag oder Anzahl aendert man im Posting-Reiter."
-        className="flex items-start gap-2 rounded-[var(--radius-sm)] border bg-surface px-3 py-2 text-left transition-colors hover:border-fg-3"
-        style={{ borderColor: "var(--line)", borderLeft: `3px solid ${p.appColor}` }}
-      >
-        <span
-          className={`mt-[1px] flex items-center justify-center size-[16px] rounded-[4px] border shrink-0 ${
-            p.done ? "bg-fg border-fg text-[var(--accent-fg)]" : "border-line-strong"
-          }`}
-        >
-          {p.done ? (
-            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6 9 17l-5-5" />
-            </svg>
-          ) : null}
-        </span>
-        <span className="min-w-0">
-          <span className={`block text-[13px] leading-snug break-words ${p.done ? "text-fg-4 line-through" : "text-fg"}`}>
-            {p.handle ? `@${p.handle}` : "Handle fehlt"}
-            {p.perDay > 1 ? <span className="text-fg-4"> · {p.slot}/{p.perDay}</span> : null}
-          </span>
-          {/* App UND Plattform. Der farbige Rand links sagt schon die App, aber
-              Farbe allein trennt zwei Kanaele derselben App nicht, und genau
-              die sind der haeufige Fall. */}
-          <span className="block [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-4">
-            {p.appLabel}
-            {p.platformLabel ? ` · ${p.platformLabel}` : ""}
-          </span>
-          {/* Die Richtung, nicht mehr der Altwert aus dem Format-Feld: der trug
-              Saetze wie „Hier henrylove-Format abusen". Steht keine Richtung,
-              faellt es auf den Altwert zurueck, damit nichts still verschwindet. */}
-          {p.richtungen.length || p.format ? (
-            <span className="block [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.08em] text-fg-4 break-words">
-              {p.richtungen.length ? p.richtungen.join(" + ") : p.format}
-            </span>
-          ) : null}
-        </span>
-      </button>
-    );
-  }
-
-  /**
-   * Der Kopf ueber den Posting-Punkten eines Tages. Eingeklappt sagt er, wie
-   * viele es sind und wie viele davon stehen; ausgeklappt stehen die Karten
-   * darunter. Beschriftet, nicht nur ein Pfeil: der Text sagt, was passiert.
-   */
-  function postingHead(iso: string, list: PlannerPosting[]) {
-    const isOpen = openPostDays.has(iso);
-    const done = list.filter((x) => x.done).length;
-    const all = done === list.length;
-    return (
-      <button
-        type="button"
-        onClick={() => togglePostDay(iso)}
-        aria-expanded={isOpen}
-        className="flex items-center gap-1.5 px-1 py-1 text-left [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-fg-4 hover:text-fg transition-colors"
-      >
-        <span className="inline-block w-[7px] shrink-0">{isOpen ? "\u25be" : "\u25b8"}</span>
-        <span>Posting {list.length}</span>
-        <span style={{ color: all ? "var(--fg-3)" : "var(--warning)" }}>
-          {all ? "erledigt" : `${done}/${list.length}`}
-        </span>
-      </button>
-    );
-  }
-
-  function column(key: string, head: React.ReactNode, list: PlannerTodo[], withTime: boolean, tint?: string, extra?: React.ReactNode) {
+  function column(key: string, head: React.ReactNode, list: PlannerTodo[], withTime: boolean, tint?: string) {
     const isOver = overCol === key && dragId !== null;
     return (
       <div
@@ -546,9 +353,8 @@ export default function Planner({
         }}
       >
         {head}
-        {extra}
         {list.map((r) => card(r, withTime))}
-        {list.length === 0 && !extra ? (
+        {list.length === 0 ? (
           <div className="text-[11px] text-fg-4 px-1 py-2">{isOver ? t.todoDropHere : ""}</div>
         ) : null}
       </div>
@@ -615,12 +421,6 @@ export default function Planner({
               </button>
             </span>
           ) : null}
-
-          {posts.length > 0 ? (
-            <button type="button" onClick={() => writeHidePosts(!hidePosts)} className={`${ACTION} ml-auto`}>
-              {hidePosts ? `Posts zeigen (${posts.length})` : `Posts ausblenden (${posts.length})`}
-            </button>
-          ) : null}
         </div>
 
         <div className="p-3 overflow-x-auto" ref={scrollerRef}>
@@ -641,8 +441,6 @@ export default function Planner({
 
             {days.map((d) => {
               const list = forDay(d.iso);
-              const dayPosts = hidePosts ? [] : postingsFor(d.iso);
-              const openPosts = dayPosts.filter((x) => !x.done).length;
               return column(
                 d.iso,
                 <div className="flex items-baseline gap-2 px-1 pb-1">
@@ -653,11 +451,10 @@ export default function Planner({
                     {d.weekday}
                   </span>
                   <span className="[font-family:var(--font-mono)] text-[9.5px] text-fg-4">{d.dayLabel}</span>
-                  {/* Die Zahl macht eine volle Woche auf einen Blick lesbar —
-                      sie zählt Posts mit, denn zu tun sind sie auch. */}
-                  {list.length + openPosts > 0 ? (
+                  {/* Die Zahl macht eine volle Woche auf einen Blick lesbar. */}
+                  {list.length > 0 ? (
                     <span className="[font-family:var(--font-mono)] text-[9.5px] text-fg-4">
-                      {list.length + openPosts}
+                      {list.length}
                     </span>
                   ) : null}
                   {d.isToday ? (
@@ -669,12 +466,6 @@ export default function Planner({
                 list,
                 true,
                 d.isWeekend ? "color-mix(in oklab,var(--fg) 3%,var(--surface-2))" : undefined,
-                dayPosts.length > 0 ? (
-                  <div className="flex flex-col gap-2">
-                    {postingHead(d.iso, dayPosts)}
-                    {openPostDays.has(d.iso) ? dayPosts.map(postingCard) : null}
-                  </div>
-                ) : undefined,
               );
             })}
           </div>
