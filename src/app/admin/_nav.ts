@@ -30,7 +30,7 @@ export interface NavItemDef {
 
 export const NAV_ITEMS: NavItemDef[] = [
   { id: "overview", labelKey: "navOverview", icon: "overview", href: "/admin/overview", section: "studio" },
-  { id: "todos", labelKey: "navTodos", icon: "check", href: "/admin/todos", section: "studio" },
+  { id: "todos", labelKey: "navTickets", icon: "check", href: "/admin/todos", section: "studio" },
   { id: "inbox", labelKey: "navInbox", icon: "inbox", href: "/admin/inbox", section: "studio" },
   { id: "bookings", labelKey: "navBookings", icon: "calendar", href: "/admin/bookings", section: "studio" },
   { id: "brain", labelKey: "navBrain", icon: "brain", href: "/admin/brain", section: "studio" },

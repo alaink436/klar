@@ -42,7 +42,7 @@ export type NavIcon = ComponentType<{
 
 export const NAV_ICON: Record<string, NavIcon> = {
   overview: LayoutDashboard,
-  check: ClipboardList, // Todos
+  check: ClipboardList, // Tickets
   inbox: Inbox,
   reply: MessageSquareDot, // Collabs, der Punkt steht fuer unbeantwortet
   chat: MessageCircle, // Feedback
