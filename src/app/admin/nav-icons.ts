@@ -21,7 +21,6 @@ import { ClipboardList } from "@/components/animate-ui/icons/clipboard-list";
 import { Inbox } from "@/components/animate-ui/icons/inbox";
 import { MessageCircle } from "@/components/animate-ui/icons/message-circle";
 import { MessageSquareDot } from "@/components/animate-ui/icons/message-square-dot";
-import { Send } from "@/components/animate-ui/icons/send";
 import { Clapperboard } from "@/components/animate-ui/icons/clapperboard";
 import { CalendarDays } from "@/components/animate-ui/icons/calendar-days";
 import { ChartColumn } from "@/components/animate-ui/icons/chart-column";
@@ -47,7 +46,6 @@ export const NAV_ICON: Record<string, NavIcon> = {
   inbox: Inbox,
   reply: MessageSquareDot, // Collabs, der Punkt steht fuer unbeantwortet
   chat: MessageCircle, // Feedback
-  outreach: Send,
   content: Clapperboard,
   calendar: CalendarDays, // Bookings
   analytics: ChartColumn,

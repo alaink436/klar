@@ -3,11 +3,11 @@
 // Klar Control · Antworten — interactive mail-client (client component).
 //
 // Three regions, shadcn-mail style: resizable thread list | conversation |
-// docked composer. Shows per influencer: when they replied (relative + exact
-// on hover), which app(s) they were contacted for, an inline DE-translate per
-// inbound message, and the reply number ("3. Antwort"). Reply + translate go
-// async (no reload) against the existing /admin/outreach endpoints; accept /
-// decline stay as plain form posts (terminal actions, redirect back).
+// docked composer. Shows per conversation: when they wrote (relative + exact
+// on hover), which app(s) it is about, an inline DE-translate per inbound
+// message, and the reply number ("3. Antwort"). Reply + translate go async
+// (no reload); approve / decline stay as plain form posts (terminal actions,
+// redirect back).
 //
 // Styling reuses the admin token system (var(--…)); the only RetroUI accents
 // are the hard offset-shadow on the Senden button and the reply-count chip,
@@ -16,11 +16,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import MailerClient from "../mailer/MailerClient";
 import TemplateManager from "./TemplateManager";
 import type { ReplyLang, ReplyTemplate } from "@/lib/replyTemplates";
-import type { AppMailTemplate } from "@/lib/outreachStore";
-import { sizeOf, SIZE_BUCKETS, type SizeBucket } from "@/lib/sizeBuckets";
 import type { InboxFilter } from "./inboxFilters";
 
 export type Direction = "in" | "out";
@@ -44,20 +41,13 @@ export interface Conversation {
   language: string;
   apps: string[];
   status: string;
-  followerEstimate: number | null;
-  mailsSent: number;
-  mailStatus: string | null;
   messages: ThreadMessage[];
   replyCount: number;
   lastInboundAt: string | null;
   lastActivityAt: string | null;
-  // true = contacted, no reply yet ("Offene Anfrage"). No real thread; the
-  // detail pane shows a "waiting" state and the composer reads "Nachfassen".
-  awaiting?: boolean;
-  // Source of the conversation. "outreach" = scraped target thread (default,
-  // also covers awaiting), "inquiry" = website contact-form request,
+  // Source of the conversation. "inquiry" = website contact-form request,
   // "collab" = mail to a public per-app address (TikTok-Bio).
-  kind?: "outreach" | "inquiry" | "affiliate-chat" | "collab";
+  kind?: "inquiry" | "affiliate-chat" | "collab";
   // Admin star (klar_inbox_stars). Toggled optimistically in the client.
   starred?: boolean;
   // Present when kind === "inquiry": the website request + approve/decline state.
@@ -97,8 +87,6 @@ export interface InquiryMeta {
   declinedAt: string | null;
   declineReason: string | null;
   setupLink: string | null; // precomputed server-side when approved
-  // outreach target this inquiry matched (for the reply composer), if any
-  matchedTargetId: string | null;
 }
 
 export type AppMeta = Record<string, { name: string; icon: string }>;
@@ -164,14 +152,6 @@ function pickLang(raw: string): ReplyLang {
   const v = (raw || "").toLowerCase().slice(0, 2);
   return v === "en" || v === "es" || v === "it" || v === "fr" ? (v as ReplyLang) : "de";
 }
-// Languages a creator can be (re)assigned to from the inbox header.
-const LANG_OPTS: { v: ReplyLang; label: string }[] = [
-  { v: "de", label: "DE" },
-  { v: "en", label: "EN" },
-  { v: "fr", label: "FR" },
-  { v: "es", label: "ES" },
-  { v: "it", label: "IT" },
-];
 const subst = (s: string, name: string, handle: string): string =>
   s.replace(/\{\{name\}\}/g, name).replace(/\{\{handle\}\}/g, handle);
 
@@ -209,31 +189,12 @@ function abs(iso: string | null): string {
 }
 const platformLabel = (p: string): string =>
   p === "tiktok" ? "TikTok" : p === "instagram" ? "Instagram" : p;
-function followerLabel(n: number | null): string {
-  if (!n) return "";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
-  return String(n);
-}
-
-// Per-app creator-drive folders, used to fill {DRIVE_LINK} when inserting an
-// app's Mail-1/Mail-2 pitch into the composer. Mirror of brands.ts assetsDriveUrl.
-const DRIVE_BY_APP: Record<string, string> = {
-  "yarn-stash": "https://drive.google.com/drive/folders/1fTAhUKHpiPj_xkdBFhN89Fv5ekxVf5oC?usp=sharing",
-  moto: "https://drive.google.com/drive/folders/1bfDThWKo42aV19VxxaTwtp7ekkoT4OwC?usp=sharing",
-  wavelength: "https://drive.google.com/drive/folders/1TZREwEopAZkJE_XkbCpTAKfScUpevWg1?usp=sharing",
-  kelva: "https://drive.google.com/drive/folders/1zM38-mAqxciYRcxdVa3Mnerp4QEGI7ff?usp=sharing",
-  trubel: "https://drive.google.com/drive/folders/1ZV-ExYXZIK7vCedYKCMLvHkMZxtcsgPp?usp=sharing",
-  myloo: "https://drive.google.com/drive/folders/1g7wdnwhl3vXFlXEA4PxhX__IbNFHV2bX?usp=sharing",
-};
 
 export default function MailClient({
   conversations,
   appMeta,
   appSlugs,
   templates,
-  appMail,
-  mailer,
   initialFilter,
   initialSelId,
 }: {
@@ -241,21 +202,17 @@ export default function MailClient({
   appMeta: AppMeta;
   appSlugs: string[];
   templates: TemplatesMap;
-  appMail: AppMailTemplate[];
-  mailer: { dueMail1: number; senderEnabled: boolean; cronSet: boolean; inboundSet: boolean };
   /** Deep-Link-Support (?f= / ?sel= auf /admin/inbox): Startfilter + vorselektierte
-   *  Konversation, z.B. aus dem Outreach-Collabs-Tab. Nur Startwerte — danach
-   *  übernimmt der Client-State wie bisher. */
+   *  Konversation. Nur Startwerte, danach übernimmt der Client-State wie bisher. */
   initialFilter?: InboxFilter;
   initialSelId?: string;
 }) {
   const [convs, setConvs] = useState<Conversation[]>(conversations);
   // Re-seed the list whenever the server hands us fresh data. The conversations
-  // prop only gets a new identity when InboxPage re-renders on the server — i.e.
-  // after the mailer drawer fires router.refresh() on a live wave send. Without
-  // this re-seed the useState above would freeze the list at its mount value, so
-  // a sent wave wouldn't surface its new "awaiting" threads until a manual
-  // reload. Using the "store previous prop" render pattern (not an effect) keeps
+  // prop only gets a new identity when InboxPage re-renders on the server, i.e.
+  // after router.refresh(). Without this re-seed the useState above would freeze
+  // the list at its mount value until a manual reload. Using the "store
+  // previous prop" render pattern (not an effect) keeps
   // it lint-clean and avoids an extra paint. Internal updates (optimistic
   // replies) don't change the prop identity, so they're never clobbered.
   const [seededFrom, setSeededFrom] = useState(conversations);
@@ -273,15 +230,6 @@ export default function MailClient({
     setTplMap(templates);
   }
   const [tplOpen, setTplOpen] = useState(false);
-  // Per-app outreach mails (Mail-1/Mail-2) in state so the in-inbox editor can
-  // mutate them live (composer dropdown inserts the fresh text). Same re-seed
-  // pattern as the reply templates above.
-  const [appMailRows, setAppMailRows] = useState(appMail);
-  const [appMailSeededFrom, setAppMailSeededFrom] = useState(appMail);
-  if (appMailSeededFrom !== appMail) {
-    setAppMailSeededFrom(appMail);
-    setAppMailRows(appMail);
-  }
 
   const [selectedId, setSelectedId] = useState<string | null>(
     initialSelId && conversations.some((c) => c.id === initialSelId)
@@ -290,9 +238,7 @@ export default function MailClient({
   );
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<InboxFilter>(initialFilter ?? "all");
-  const [sizeFilter, setSizeFilter] = useState<SizeBucket | "all">("all");
   const [narrow, setNarrow] = useState(false);
-  const [mailerOpen, setMailerOpen] = useState(false);
 
   // Soft-refresh: re-runs the server component, pulls fresh conversations and
   // re-seeds the list (via the seededFrom guard above) WITHOUT a full reload —
@@ -318,8 +264,6 @@ export default function MailClient({
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const [sendMsg, setSendMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [acceptOpen, setAcceptOpen] = useState(false);
-  const [acceptApp, setAcceptApp] = useState("");
-  const [sendMail, setSendMail] = useState(true);
   const [declineArmed, setDeclineArmed] = useState(false);
 
   const sel = useMemo(
@@ -388,7 +332,7 @@ export default function MailClient({
     // Default to an empty draft — no template auto-applied. Picking one from the
     // dropdown is opt-in; the subject still gets a neutral reply default so the
     // message stays sendable without typing one. Collab-Threads antworten auf
-    // den Betreff der eingegangenen Mail ("Re: …") statt mit dem Outreach-Default.
+    // den Betreff der eingegangenen Mail ("Re: …") statt mit dem Default.
     const lastIn = [...sel.messages].reverse().find((m) => m.direction === "in");
     const collabSubject = lastIn?.subject
       ? /^re:/i.test(lastIn.subject.trim())
@@ -400,8 +344,6 @@ export default function MailClient({
     setSendMsg(null);
     setAcceptOpen(false);
     setDeclineArmed(false);
-    setAcceptApp(sel.apps[0] || appSlugs[0] || "");
-    setSendMail(Boolean(sel.contactEmail));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
@@ -433,22 +375,19 @@ export default function MailClient({
       if (filter === "starred" && !c.starred) return false;
       if (filter === "inquiry" && c.kind !== "inquiry") return false;
       if (filter === "collab" && c.kind !== "collab") return false;
-      if (filter === "replied" && (c.kind === "inquiry" || c.awaiting || c.status !== "replied")) return false;
-      if (filter === "converted" && c.status !== "converted") return false;
-      if (filter === "open" && !c.awaiting) return false;
-      if (sizeFilter !== "all" && sizeOf(c.followerEstimate) !== sizeFilter) return false;
+      if (filter === "replied" && (c.kind === "inquiry" || c.status !== "replied")) return false;
       if (!q) return true;
       const hay = `${c.displayName ?? ""} ${c.handle} ${c.messages.map((m) => m.body).join(" ")}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [convs, query, filter, sizeFilter]);
+  }, [convs, query, filter]);
 
   const translateMsg = useCallback(
     async (m: ThreadMessage, srcLang: string) => {
       setTrans((t) => ({ ...t, [m.id]: "loading" }));
       try {
         const text = `${m.subject ? m.subject + "\n\n" : ""}${m.body}`;
-        const res = await fetch("/admin/outreach/translate", {
+        const res = await fetch("/admin/inbox/translate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text, target: "DE", source: srcLang }),
@@ -574,120 +513,13 @@ export default function MailClient({
       }
       return;
     }
-    // Outreach threads reply via their target id; inquiries only when matched to
-    // a target. Pure website inquiries have no in-app reply channel.
-    const replyTargetId = sel.kind === "inquiry" ? sel.inquiry?.matchedTargetId ?? null : sel.id;
-    if (!replyTargetId) {
-      setSendMsg({ ok: false, text: `Kein In-App-Reply-Kanal — per Mail an ${sel.contactEmail ?? "die Anfrage"} antworten.` });
-      return;
-    }
-    if (!sel.contactEmail) {
-      setSendMsg({ ok: false, text: "Keine contact_email hinterlegt — Entwurf manuell kopieren." });
-      return;
-    }
-    if (!composer.subject.trim() || !composer.body.trim()) {
-      setSendMsg({ ok: false, text: "Betreff und Nachricht dürfen nicht leer sein." });
-      return;
-    }
-    // Optimistic: drop the sent bubble in and clear the field immediately so the
-    // reply feels instant; on error we revert (remove the bubble, restore text).
-    const sentSubject = composer.subject;
-    const sentBody = composer.body;
-    const now = new Date().toISOString();
-    const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const optimistic: ThreadMessage = { id: localId, direction: "out", subject: sentSubject, body: sentBody, at: now, provider: "brevo" };
-    setConvs((prev) =>
-      prev.map((c) => (c.id === sel.id ? { ...c, messages: [...c.messages, optimistic], lastActivityAt: now } : c)),
-    );
-    setComposer((c) => ({ ...c, body: "" }));
-    setSending(true);
-    setSendMsg(null);
-    try {
-      const fd = new URLSearchParams();
-      fd.set("id", replyTargetId);
-      fd.set("to", sel.contactEmail);
-      fd.set("subject", sentSubject);
-      fd.set("body", sentBody);
-      const res = await fetch("/admin/outreach/reply?json=1", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: fd.toString(),
-      });
-      const j = (await res.json().catch(() => ({ ok: false, msg: "Antwort unlesbar" }))) as {
-        ok?: boolean;
-        msg?: string;
-      };
-      if (res.ok && j.ok) {
-        setSendMsg({ ok: true, text: "Antwort gesendet. Status bleibt „Antwort“, annehmen ist separat." });
-      } else {
-        // revert
-        setConvs((prev) =>
-          prev.map((c) => (c.id === sel.id ? { ...c, messages: c.messages.filter((m) => m.id !== localId) } : c)),
-        );
-        setComposer((c) => ({ ...c, body: sentBody }));
-        setSendMsg({ ok: false, text: j.msg || "Senden fehlgeschlagen." });
-      }
-    } catch {
-      setConvs((prev) =>
-        prev.map((c) => (c.id === sel.id ? { ...c, messages: c.messages.filter((m) => m.id !== localId) } : c)),
-      );
-      setComposer((c) => ({ ...c, body: sentBody }));
-      setSendMsg({ ok: false, text: "Netzwerkfehler beim Senden." });
-    } finally {
-      setSending(false);
-    }
+    // Website-Anfragen haben keinen In-App-Antwortkanal.
+    setSendMsg({ ok: false, text: `Kein In-App-Reply-Kanal: per Mail an ${sel.contactEmail ?? "die Anfrage"} antworten.` });
   }, [sel, composer]);
-
-  // Re-assign this creator's language. Optimistic (the template dropdown keys
-  // off sel.language so the switch is felt at once); reverts if the server
-  // rejects, then soft-refreshes to pull any server-derived data.
-  const changeLanguage = useCallback(
-    async (newLang: string) => {
-      if (!sel || sel.kind !== "outreach") return;
-      const prev = sel.language;
-      if (newLang === prev) return;
-      setConvs((cs) => cs.map((c) => (c.id === sel.id ? { ...c, language: newLang } : c)));
-      try {
-        const fd = new URLSearchParams();
-        fd.set("id", sel.id);
-        fd.set("language", newLang);
-        const res = await fetch("/admin/outreach/language?json=1", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: fd.toString(),
-        });
-        const j = (await res.json().catch(() => ({ ok: false }))) as { ok?: boolean; msg?: string };
-        if (!res.ok || !j.ok) {
-          setConvs((cs) => cs.map((c) => (c.id === sel.id ? { ...c, language: prev } : c)));
-          setSendMsg({ ok: false, text: j.msg || "Sprache speichern fehlgeschlagen." });
-        } else {
-          refresh();
-        }
-      } catch {
-        setConvs((cs) => cs.map((c) => (c.id === sel.id ? { ...c, language: prev } : c)));
-        setSendMsg({ ok: false, text: "Netzwerkfehler beim Sprachwechsel." });
-      }
-    },
-    [sel, refresh],
-  );
 
   function applyTemplate(id: string) {
     if (!sel) return;
     const who = sel.displayName || sel.handle;
-    // Per-app outreach pitch (Mail-1 / Mail-2 with painpoint) for this app.
-    if (id === "appmail::mail1" || id === "appmail::mail2") {
-      if (!appMailRow) return;
-      const subj = id.endsWith("mail2") ? appMailRow.mail2_subject : appMailRow.mail1_subject;
-      const bodyRaw = id.endsWith("mail2") ? appMailRow.mail2_body : appMailRow.mail1_body;
-      const drive = DRIVE_BY_APP[convApp] ?? "";
-      const prep = (txt: string | null) =>
-        (txt ?? "")
-          .replace(/\{\{NAME\}\}/gi, who)
-          .replace(/\{\{HANDLE\}\}/gi, sel.handle)
-          .replace(/\{DRIVE_LINK\}/g, drive);
-      setComposer({ subject: prep(subj) || `Re: Klar x ${who}`, body: prep(bodyRaw) });
-      return;
-    }
     const list = tplMap[pickLang(sel.language)] ?? tplMap.de ?? [];
     const t = list.find((x) => x.id === id);
     if (!t) return;
@@ -696,19 +528,7 @@ export default function MailClient({
 
   const showList = !narrow || !sel;
   const showDetail = !narrow || !!sel;
-  const convApp = sel?.apps?.[0] ?? "";
-  const appMailRow = useMemo(
-    () => (sel && convApp ? appMailRows.find((m) => m.app_slug === convApp && m.language === pickLang(sel.language)) ?? null : null),
-    [appMailRows, sel, convApp],
-  );
-  const baseTpls = sel ? tplMap[lang] ?? tplMap.de ?? [] : [];
-  // If this conversation's app has a full Mail-2 pitch (with painpoint), show it
-  // instead of the generic "interesse" conditions reply.
-  const tpls = appMailRow?.mail2_body ? baseTpls.filter((t) => t.id !== "interesse") : baseTpls;
-  const convAppName = sel ? appMeta[convApp]?.name ?? convApp : "";
-  const appOpts: { id: string; label: string }[] = [];
-  if (appMailRow?.mail2_body) appOpts.push({ id: "appmail::mail2", label: `Pitch mit Painpoint · ${convAppName}` });
-  if (appMailRow?.mail1_body) appOpts.push({ id: "appmail::mail1", label: `Erstkontakt Mail 1 · ${convAppName}` });
+  const tpls = sel ? tplMap[lang] ?? tplMap.de ?? [] : [];
 
   return (
     <>
@@ -720,13 +540,12 @@ export default function MailClient({
         <Panel id="list" order={1} defaultSize={32} minSize={22} maxSize={52} className="kr-list">
           <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ display: "flex", gap: 8 }}>
-              <button
-                type="button"
-                onClick={() => setMailerOpen(true)}
-                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "9px 14px", border: "1px solid var(--line-strong)", borderRadius: "var(--radius-sm)", background: "var(--surface)", color: "var(--fg)", fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-              >
-                Welle mailen{mailer.dueMail1 ? ` · ${mailer.dueMail1} fällig` : ""}
-              </button>
+              <input
+                className="kr-input"
+                placeholder="Suche Name, Handle, Text…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
               <button
                 type="button"
                 onClick={refresh}
@@ -738,14 +557,8 @@ export default function MailClient({
                 <span style={{ display: "inline-block", transition: "transform .5s ease", transform: refreshing ? "rotate(360deg)" : "none" }}>↻</span>
               </button>
             </div>
-            <input
-              className="kr-input"
-              placeholder="Suche Name, Handle, Text…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
             <div className="seg" style={{ alignSelf: "flex-start" }}>
-              {(["all", "starred", "inquiry", "collab", "replied", "open", "converted"] as const).map((f) => (
+              {(["all", "starred", "inquiry", "collab", "replied"] as const).map((f) => (
                 <a
                   key={f}
                   className={filter === f ? "on" : ""}
@@ -753,23 +566,7 @@ export default function MailClient({
                   title={f === "starred" ? "Nur mit Stern markierte" : f === "collab" ? "Mails an die öffentlichen App-Adressen (TikTok-Bio)" : undefined}
                   onClick={() => setFilter(f)}
                 >
-                  {f === "all" ? "Alle" : f === "starred" ? "★" : f === "inquiry" ? "Anfragen" : f === "collab" ? "Collabs" : f === "replied" ? "Antworten" : f === "open" ? "Offen" : "Angenommen"}
-                </a>
-              ))}
-            </div>
-            <div className="seg" style={{ alignSelf: "flex-start" }}>
-              <a className={sizeFilter === "all" ? "on" : ""} style={{ cursor: "pointer" }} onClick={() => setSizeFilter("all")}>
-                Alle Größen
-              </a>
-              {SIZE_BUCKETS.map((b) => (
-                <a
-                  key={b.value}
-                  className={sizeFilter === b.value ? "on" : ""}
-                  style={{ cursor: "pointer" }}
-                  title={`${b.label} · ${b.range} Follower`}
-                  onClick={() => setSizeFilter(b.value)}
-                >
-                  {b.label}
+                  {f === "all" ? "Alle" : f === "starred" ? "★" : f === "inquiry" ? "Anfragen" : f === "collab" ? "Collabs" : "Antworten"}
                 </a>
               ))}
             </div>
@@ -777,15 +574,12 @@ export default function MailClient({
           <div className="kr-listscroll">
             {visible.length === 0 ? (
               <div className="muted" style={{ padding: "26px 18px", fontSize: 13 }}>
-                Keine Konversationen{query ? " für die Suche" : ""}. Sobald jemand auf eine Welle
-                antwortet, taucht er hier auf.
+                Keine Konversationen{query ? " für die Suche" : ""}.
               </div>
             ) : (
               visible.map((c) => {
                 const lastIn = [...c.messages].reverse().find((m) => m.direction === "in");
-                const preview = c.awaiting
-                  ? `Kontaktiert${c.mailsSent ? ` · ${c.mailsSent} Mail(s)` : ""} · wartet auf Antwort`
-                  : (lastIn?.body || c.messages[c.messages.length - 1]?.body || "").replace(/\s+/g, " ").trim();
+                const preview = (lastIn?.body || c.messages[c.messages.length - 1]?.body || "").replace(/\s+/g, " ").trim();
                 const firstApp = c.apps[0];
                 return (
                   <button
@@ -818,9 +612,6 @@ export default function MailClient({
                         {c.displayName || `@${c.handle}`}
                         {c.messages[c.messages.length - 1]?.direction === "in" && (
                           <span title={c.kind === "inquiry" ? "Unbeantwortete Anfrage" : "Unbeantwortet"} style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--danger)", marginLeft: 7, verticalAlign: "middle", boxShadow: "0 0 0 3px color-mix(in oklab, var(--danger) 22%, transparent)" }} />
-                        )}
-                        {c.awaiting && (
-                          <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", border: "1px solid var(--fg-4)", marginLeft: 7, verticalAlign: "middle" }} />
                         )}
                       </span>
                       <span className="muted" suppressHydrationWarning style={{ fontSize: 10.5, fontFamily: "var(--font-mono)", whiteSpace: "nowrap" }}>
@@ -910,12 +701,6 @@ export default function MailClient({
                         <span className="muted" style={{ fontSize: 12.5 }}>@{sel.handle}</span>
                       )}
                       <span className="pill" style={{ fontSize: 9, padding: "1px 7px" }}>{platformLabel(sel.platform)}</span>
-                      {followerLabel(sel.followerEstimate) && (
-                        <span className="muted" style={{ fontSize: 11.5, fontFamily: "var(--font-mono)" }}>{followerLabel(sel.followerEstimate)}</span>
-                      )}
-                      {sel.status === "converted" && (
-                        <span className="pill live" style={{ fontSize: 9, padding: "1px 7px" }}>Angenommen</span>
-                      )}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
                       {sel.apps.map((slug) => (
@@ -929,32 +714,14 @@ export default function MailClient({
                           {sel.replyCount}. Antwort
                         </span>
                       )}
-                      <span className="muted" suppressHydrationWarning style={{ fontSize: 11.5, fontFamily: "var(--font-mono)" }} title={abs(sel.awaiting ? sel.lastActivityAt : sel.lastInboundAt)}>
-                        {sel.kind === "inquiry" || sel.kind === "collab" ? `Anfrage ${rel(sel.lastInboundAt)}` : sel.awaiting ? `kontaktiert ${rel(sel.lastActivityAt)}` : `antwortete ${rel(sel.lastInboundAt)}`}
+                      <span className="muted" suppressHydrationWarning style={{ fontSize: 11.5, fontFamily: "var(--font-mono)" }} title={abs(sel.lastInboundAt)}>
+                        {sel.kind === "inquiry" || sel.kind === "collab" ? `Anfrage ${rel(sel.lastInboundAt)}` : `antwortete ${rel(sel.lastInboundAt)}`}
                       </span>
-                      {sel.kind === "outreach" && (
-                        <label
-                          style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--fg-3)" }}
-                          title="Sprache dieses Creators — steuert Vorlagen und die Sprache künftiger Mails"
-                        >
-                          Sprache
-                          <select
-                            className="kr-input"
-                            style={{ width: "auto", padding: "3px 6px", fontSize: 11.5 }}
-                            value={pickLang(sel.language)}
-                            onChange={(e) => changeLanguage(e.target.value)}
-                          >
-                            {LANG_OPTS.map((o) => (
-                              <option key={o.v} value={o.v}>{o.label}</option>
-                            ))}
-                          </select>
-                        </label>
-                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Actions — affiliate-chat (none), inquiry (approve/decline), outreach (accept/decline) */}
+                {/* Actions: affiliate-chat (none), inquiry (approve/decline) */}
                 {sel.kind === "affiliate-chat" ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
                     <span className="kr-chip">Creator-Chat</span>
@@ -1053,76 +820,21 @@ export default function MailClient({
                       </>
                     );
                   })()
-                ) : (
-                  <>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <button className="kr-mini" onClick={() => { setAcceptOpen((v) => !v); setDeclineArmed(false); }} style={{ borderColor: "var(--line-strong)" }}>
-                        {sel.status === "converted" ? "Erneut annehmen" : "Als Creator annehmen"}
-                      </button>
-                      {!declineArmed ? (
-                        <button className="kr-mini" onClick={() => { setDeclineArmed(true); setAcceptOpen(false); }}>Ablehnen</button>
-                      ) : (
-                        <form method="POST" action="/admin/outreach/decline" style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                          <input type="hidden" name="id" value={sel.id} />
-                          <input type="hidden" name="suppress" value="1" />
-                          <span className="muted" style={{ fontSize: 11.5 }}>Sicher?</span>
-                          <button type="submit" className="kr-mini" style={{ color: "var(--danger)", borderColor: "var(--danger)" }}>Ja, ablehnen</button>
-                          <button type="button" className="kr-mini" onClick={() => setDeclineArmed(false)}>Abbrechen</button>
-                        </form>
-                      )}
-                      <span className="muted" style={{ fontSize: 11, fontStyle: "italic", marginLeft: "auto" }}>
-                        Antwort heisst nicht angenommen.
-                      </span>
-                    </div>
-                    {acceptOpen && (
-                      <form method="POST" action="/admin/outreach/accept" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", padding: "12px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
-                        <input type="hidden" name="id" value={sel.id} />
-                        <input type="hidden" name="handle" value={sel.handle} />
-                        <input type="hidden" name="email" value={sel.contactEmail ?? ""} />
-                        <input type="hidden" name="display_name" value={sel.displayName ?? ""} />
-                        <input type="hidden" name="language" value={pickLang(sel.language)} />
-                        <input type="hidden" name="share_pct" value="50" />
-                        <input type="hidden" name="share_months" value="24" />
-                        <label style={{ fontSize: 11.5, color: "var(--fg-3)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                          App
-                          <select name="app" className="kr-input" style={{ width: "auto", padding: "5px 8px", fontSize: 12 }} value={acceptApp} onChange={(e) => setAcceptApp(e.target.value)}>
-                            {(sel.apps.length > 0 ? sel.apps : appSlugs).map((a) => (
-                              <option key={a} value={a}>{appMeta[a]?.name ?? a}</option>
-                            ))}
-                          </select>
-                        </label>
-                        {sel.contactEmail && (
-                          <label style={{ fontSize: 11.5, color: "var(--fg-2)", display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
-                            <input type="checkbox" name="send_mail" checked={sendMail} onChange={(e) => setSendMail(e.target.checked)} />
-                            Onboarding-Mail senden
-                          </label>
-                        )}
-                        <button type="submit" className="kr-mini" style={{ borderColor: "var(--fg)", color: "var(--fg)", fontWeight: 600 }}>Annehmen bestätigen</button>
-                        <span className="muted" style={{ fontSize: 11 }}>50% · 24 Mte{sel.contactEmail ? "" : " · keine Email hinterlegt"}</span>
-                      </form>
-                    )}
-                  </>
-                )}
+                ) : null}
               </div>
 
               {/* Thread */}
               <div className="kr-thread">
                 {sel.messages.length === 0 ? (
                   <div className="muted" style={{ margin: "auto", textAlign: "center", maxWidth: 380, fontSize: 13, lineHeight: 1.6 }}>
-                    Noch keine Antwort. Kontaktiert {rel(sel.lastActivityAt)}
-                    {sel.mailsSent ? ` · ${sel.mailsSent} Mail(s) gesendet` : ""}. Sobald {name} antwortet,
-                    erscheint der volle Thread hier mit Übersetzen-Funktion. Unten kannst du nachfassen.
+                    Noch keine Nachrichten.
                   </div>
                 ) : (
                   sel.messages.map((m, i) => {
                   const tr = trans[m.id];
                   const isIn = m.direction === "in";
                   const inboundNo = isIn ? sel.messages.slice(0, i + 1).filter((x) => x.direction === "in").length : 0;
-                  const label = isIn
-                    ? `${inboundNo}. Antwort`
-                    : m.provider === "brevo-mail1"
-                      ? "Mail 1 · Erstkontakt"
-                      : "Du";
+                  const label = isIn ? `${inboundNo}. Antwort` : "Du";
                   return (
                     <div key={m.id} className={`kr-bubble ${isIn ? "in" : "out"}`}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
@@ -1132,9 +844,6 @@ export default function MailClient({
                         <span className="muted" suppressHydrationWarning style={{ fontSize: 10.5, fontFamily: "var(--font-mono)" }} title={abs(m.at)}>
                           {rel(m.at)}
                         </span>
-                        {m.provider === "legacy" && (
-                          <span className="muted" style={{ fontSize: 9.5, fontStyle: "italic" }}>importiert</span>
-                        )}
                       </div>
                       {m.subject && (
                         <div style={{ fontWeight: 600, fontSize: 12.5, marginBottom: 5, color: "var(--fg)" }}>{m.subject}</div>
@@ -1175,7 +884,7 @@ export default function MailClient({
                     onClick={() => { setComposerOpen(true); requestAnimationFrame(() => composerRef.current?.focus()); }}
                     style={{ width: "100%", textAlign: "left", padding: "11px 14px", border: "1px solid var(--line-strong)", borderRadius: "var(--radius-sm)", background: "var(--bg)", color: "var(--fg-3)", fontFamily: "var(--font-body)", fontSize: 13.5, cursor: "text" }}
                   >
-                    {sel.kind === "affiliate-chat" ? "Nachricht schreiben…" : sel.awaiting ? "Nachfassen…" : "Antworten…"}
+                    {sel.kind === "affiliate-chat" ? "Nachricht schreiben…" : "Antworten…"}
                   </button>
                 ) : (
                   <>
@@ -1204,9 +913,6 @@ export default function MailClient({
                       >
                         <option value="" disabled>einsetzen…</option>
                         <option value="__none">— keine (Feld leeren) —</option>
-                        {appOpts.map((o) => (
-                          <option key={o.id} value={o.id}>{o.label}</option>
-                        ))}
                         {tpls.map((t) => (
                           <option key={t.id} value={t.id}>{t.label}</option>
                         ))}
@@ -1254,7 +960,7 @@ export default function MailClient({
                       Boolean(sel.collab?.channel && sel.collab.channel !== "email")
                     }
                   >
-                    {sending ? "Sende…" : sel.awaiting ? "Nachfassen" : "Senden"}
+                    {sending ? "Sende…" : "Senden"}
                   </button>
                   <button
                     className="kr-mini"
@@ -1283,25 +989,6 @@ export default function MailClient({
         </Panel>
       )}
       </PanelGroup>
-      {mailerOpen && (
-        <div
-          onClick={() => setMailerOpen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 60, display: "flex", justifyContent: "flex-end" }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{ position: "relative", width: "min(600px,100%)", height: "100%", background: "var(--bg)", borderLeft: "1px solid var(--line-strong)", overflowY: "auto", padding: "20px 26px" }}
-          >
-            <button type="button" className="kr-mini" onClick={() => setMailerOpen(false)} style={{ position: "absolute", top: 16, right: 22 }}>Schließen</button>
-            <MailerClient
-              dueMail1={mailer.dueMail1}
-              senderEnabled={mailer.senderEnabled}
-              cronSet={mailer.cronSet}
-              inboundSet={mailer.inboundSet}
-            />
-          </div>
-        </div>
-      )}
       {tplOpen && (
         <div
           onClick={() => setTplOpen(false)}
@@ -1316,16 +1003,6 @@ export default function MailClient({
               baseMap={tplMap}
               onClose={() => setTplOpen(false)}
               onMapChange={(m) => setTplMap(m)}
-              appMail={appMailRows}
-              appSlugs={appSlugs}
-              appNames={Object.fromEntries(appSlugs.map((s) => [s, appMeta[s]?.name ?? s]))}
-              initialApp={convApp || undefined}
-              onAppMailSaved={(row) =>
-                setAppMailRows((prev) => {
-                  const i = prev.findIndex((r) => r.app_slug === row.app_slug && r.language === row.language);
-                  return i >= 0 ? prev.map((r, idx) => (idx === i ? row : r)) : [...prev, row];
-                })
-              }
             />
           </div>
         </div>

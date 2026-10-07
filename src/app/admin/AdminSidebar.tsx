@@ -18,7 +18,7 @@
 // Was die Form erzaehlt (unveraendert gegenueber vorher):
 //   - Klar Studios traegt seit 2026-09-22 alles, was die Apps betrifft:
 //     Feedback, Content, Collabs (mit der Zahl der offenen Anfragen),
-//     Outreach, Analytics, App-Nutzung.
+//     Analytics, App-Nutzung.
 //   - Creator (Affiliate, Auszahlungen, die App-Seiten) liegt eingeklappt
 //     unter Klar Studios.
 //     Der Zweig ruht, also soll er keine sechs festen Zeilen kosten, aber er

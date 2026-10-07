@@ -1,6 +1,6 @@
-// SERVER ONLY. Übersetzungs-Helper für die Outreach-Reply-Inbox.
-// Affiliate-Antworten kommen in DE/EN/ES/IT/FR rein, Alain liest sie auf
-// Deutsch. Ein Klick auf "Übersetzen" im Admin ruft /admin/outreach/translate,
+// SERVER ONLY. Übersetzungs-Helper für die Inbox.
+// Nachrichten kommen in DE/EN/ES/IT/FR rein, Alain liest sie auf
+// Deutsch. Ein Klick auf "Übersetzen" im Admin ruft /admin/inbox/translate,
 // das hier landet.
 //
 // KEYLESS by default: Provider-Kette, alle ohne Account/Key nutzbar.

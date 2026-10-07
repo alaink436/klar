@@ -1,28 +1,19 @@
 // POST /api/inbound/brevo?secret=… — Brevo Inbound-Parsing-Webhook.
 //
-// Ersetzt den n8n Gmail-Reply-Tracker: statt eine Inbox zu pollen (OAuth, das
-// silent ausläuft), liefert Brevo eingehende Mails als JSON hierher. Wir matchen
-// die Mail auf ein Outreach-Target, hängen sie als Thread-Nachricht (direction
-// 'in') an und stempeln das Target (status→replied, last_message, replied_at).
+// Brevo liefert eingehende Mails als JSON hierher. Erkannt wird in dieser
+// Reihenfolge: zuerst App-Feedback (feedback+<app>@), dann das Collab-Postfach
+// (öffentliche App-Adresse). Alles andere wird gezählt und verworfen. Der
+// Outreach-Zweig (Antworten auf Outreach-Mails) ist seit 2026-10-07 weg.
 //
 // Setup (einmalig, durch den User):
 //   1. Subdomain reply.getklar.org mit MX → inbound1.sendinblue.com (10) +
 //      inbound2.sendinblue.com (20).
 //   2. In Brevo Inbound-Parsing diese Webhook-URL eintragen, inkl. ?secret=…
 //      (KLAR_INBOUND_SECRET als env-var setzen, gleicher Wert).
-//   3. Damit Replies hier landen, muss replyTo der Outreach-Mails auf
-//      reply+<targetId>@reply.getklar.org zeigen (KLAR_INBOUND_DOMAIN env-var).
-//      Die Admin-Reply-Route macht das bereits; Mail-1/Mail-2 folgen beim
-//      n8n-Exit.
 //
 // Brevo POSTet keine Auth-Header, daher Secret im Query-String (fail-closed).
 
 import { NextResponse, type NextRequest } from "next/server";
-import {
-  insertMessage,
-  recordInboundReply,
-  findTargetByEmail,
-} from "@/lib/outreachStore";
 import {
   collabRouteForRecipient,
   insertCollabMessage,
@@ -33,8 +24,6 @@ import { feedbackRoute, insertFeedback } from "@/lib/feedbackStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 
 interface BrevoMailbox {
   Address?: string;
@@ -86,19 +75,6 @@ function recipientAddresses(item: BrevoItem): string[] {
   return addrs;
 }
 
-// Pull a target id out of a reply+<uuid>@… subaddress in any recipient field.
-function targetIdFromRecipients(item: BrevoItem): string | null {
-  const addrs = recipientAddresses(item);
-  for (const a of addrs) {
-    const plus = a.split("@")[0] ?? "";
-    if (plus.includes("+")) {
-      const m = plus.match(UUID_RE);
-      if (m) return m[0].toLowerCase();
-    }
-  }
-  return null;
-}
-
 export async function POST(req: NextRequest): Promise<Response> {
   const SECRET = process.env.KLAR_INBOUND_SECRET ?? "";
   const given = req.nextUrl.searchParams.get("secret") ?? "";
@@ -114,7 +90,6 @@ export async function POST(req: NextRequest): Promise<Response> {
   }
 
   const items = Array.isArray(payload.items) ? payload.items : [];
-  let matched = 0;
   let collab = 0;
   let feedback = 0;
   let skipped = 0;
@@ -130,8 +105,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     const sentAt = isoOrNull(item.SentAtDate);
 
     // App-Feedback zuerst: die Support-Postfaecher der Apps leiten an
-    // feedback+<app>@ weiter, und der Absender ist dann ein Nutzer, den das
-    // Outreach-Matching womoeglich auch kennt.
+    // feedback+<app>@ weiter.
     const fb = from ? feedbackRoute(recipientAddresses(item), `${subject ?? ""}\n${body}`) : null;
     if (fb) {
       await insertFeedback({
@@ -149,12 +123,9 @@ export async function POST(req: NextRequest): Promise<Response> {
       continue;
     }
 
-    // Match-Reihenfolge: (1) explizites reply+<id>-Subaddress (übersteht einen
-    // anderen Absender), (2) Collab-Alias im Empfänger — wer die öffentliche
-    // App-Adresse anschreibt, meint das Collab-Postfach, auch wenn er zufällig
-    // schon Outreach-Target ist —, (3) bekannte contact_email des Absenders.
-    let targetId = targetIdFromRecipients(item);
-    if (!targetId && from) {
+    // Dann der Collab-Alias im Empfänger: wer die öffentliche App-Adresse
+    // anschreibt, meint das Collab-Postfach.
+    if (from) {
       let route: CollabRoute | null = null;
       for (const addr of recipientAddresses(item)) {
         route = collabRouteForRecipient(addr);
@@ -182,33 +153,12 @@ export async function POST(req: NextRequest): Promise<Response> {
         continue;
       }
     }
-    if (!targetId && from) {
-      const t = await findTargetByEmail(from);
-      if (t) targetId = t.id;
-    }
-    if (!targetId) {
-      skipped++;
-      continue;
-    }
-
-    await insertMessage({
-      target_id: targetId,
-      direction: "in",
-      subject,
-      body,
-      from_email: from || null,
-      provider: "brevo-inbound",
-      external_id: (item.MessageId ?? "").trim() || null,
-      spam_score: typeof item.SpamScore === "number" ? item.SpamScore : null,
-      sent_at: sentAt,
-    });
-    await recordInboundReply(targetId, { body, subject, at: sentAt });
-    matched++;
+    skipped++;
   }
 
   // Always 200 on a well-formed payload so Brevo does not retry-storm; the
-  // matched/skipped counts make debugging visible without a retry.
-  return NextResponse.json({ ok: true, processed: items.length, matched, collab, feedback, skipped });
+  // collab/feedback/skipped counts make debugging visible without a retry.
+  return NextResponse.json({ ok: true, processed: items.length, collab, feedback, skipped });
 }
 
 // Lightweight connectivity check (Brevo / manual curl) — never leaks data.

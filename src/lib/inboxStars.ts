@@ -1,7 +1,7 @@
 // SERVER ONLY. Starred inbox conversations, table `klar_inbox_stars` in
 // anime-vault (exiuwektrqxvycclqfdd), migration 0012. conv_id matches the
-// MailClient conversation id (outreach uuid / "inq-<uuid>" / affiliate uuid).
-// PostgREST + service-role pattern like scrapeSettings.ts.
+// MailClient conversation id ("inq-<uuid>" / affiliate uuid / "collab:…").
+// PostgREST + service-role pattern.
 import "server-only";
 
 const KLAR_INBOX_URL =

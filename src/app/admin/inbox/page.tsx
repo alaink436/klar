@@ -1,9 +1,9 @@
-// Klar Control · Inbox — the one mailbox. Folds website contact-form requests
-// (klar_inquiries) AND outreach reply threads (klar_outreach_targets/messages)
-// into a single Conversation[] and mounts the <MailClient/> (list · thread ·
-// composer). The Mailer (send Mail-1) lives as a drawer action in the client.
-// Affiliate-approve / decline / outreach-reply logic stays in their existing
-// POST routes — the client only renders the forms.
+// Klar Control · Inbox, the one mailbox. Folds website contact-form requests
+// (klar_inquiries), affiliate chats and collab threads into a single
+// Conversation[] and mounts the <MailClient/> (list · thread · composer).
+// Affiliate-approve / decline logic stays in their existing POST routes, the
+// client only renders the forms. Outreach threads and the Mailer are gone
+// since 2026-10-07.
 //
 // Env: KLAR_ADMIN_KEY, KLAR_DEVICE_SECRET, KLAR_TOTP_SECRET, KLAR_INBOX_SERVICE_KEY
 //      (+ optional KLAR_INBOX_SUPABASE_URL).
@@ -15,14 +15,6 @@ import {
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { setupLandingUrl } from "../../../lib/adminApps";
-import {
-  listOutreachTargets,
-  listMessagesForTargets,
-  listTargetsForMail1,
-  listAppTemplates,
-  type OutreachMessage,
-  type OutreachTarget,
-} from "../../../lib/outreachStore";
 import { KLAR_APPS } from "../../../lib/klarApps";
 import { getReplyTemplates } from "../../../lib/replyTemplateStore";
 import { loadAffiliateChatInbox } from "../../../lib/affiliateChatStore";
@@ -101,7 +93,7 @@ export default async function InboxPage({
 }) {
   const sp = await searchParams;
   const flashMsg = (sp.msg ?? "").slice(0, 300);
-  // Deep-Link (z.B. aus Outreach → Collabs): ?f= Startfilter, ?sel= Konversation.
+  // Deep-Link: ?f= Startfilter, ?sel= Konversation.
   const initialFilter: InboxFilter | undefined = (INBOX_FILTERS as readonly string[]).includes(sp.f ?? "")
     ? (sp.f as InboxFilter)
     : undefined;
@@ -125,130 +117,6 @@ export default async function InboxPage({
   }
   const appSlugs = KLAR_APPS.map((a) => a.slug);
 
-  // ── Outreach side: targets + threads + awaiting (same logic as the old
-  //    replies route) ───────────────────────────────────────────────────────
-  const targets = await listOutreachTargets({ status: "all", limit: 300 });
-  const candidates = targets.filter(
-    (t) => (t.last_message && t.last_message.trim()) || t.status === "replied" || t.status === "converted",
-  );
-  const candidateIds = new Set(candidates.map((t) => t.id));
-  const TERMINAL = new Set(["replied", "converted", "declined", "dead"]);
-  const awaitingTargets = targets
-    .filter(
-      (t) =>
-        !candidateIds.has(t.id) &&
-        !TERMINAL.has(t.status) &&
-        (t.status === "dm_sent" || t.mail_status === "mail1_sent" || t.mail_status === "mail2_sent"),
-    )
-    .sort((a, b) => {
-      const ax = new Date(a.last_mail_at || a.mail1_sent_at || a.contacted_at || a.updated_at).getTime();
-      const bx = new Date(b.last_mail_at || b.mail1_sent_at || b.contacted_at || b.updated_at).getTime();
-      return bx - ax;
-    })
-    .slice(0, 100);
-
-  const rows = await listMessagesForTargets(
-    [...candidates, ...awaitingTargets].map((t) => t.id),
-  );
-  const byTarget = new Map<string, OutreachMessage[]>();
-  for (const m of rows) {
-    const arr = byTarget.get(m.target_id);
-    if (arr) arr.push(m);
-    else byTarget.set(m.target_id, [m]);
-  }
-  const appsOf = (t: OutreachTarget): string[] =>
-    Array.from(
-      new Set(
-        [...(t.for_apps ?? []), ...(t.approved_app ? [t.approved_app] : [])].filter(
-          (x): x is string => Boolean(x),
-        ),
-      ),
-    );
-
-  const repliedConvs: Conversation[] = candidates.map((t): Conversation => {
-    const sorted = (byTarget.get(t.id) ?? [])
-      .slice()
-      .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
-    let messages: ThreadMessage[] = sorted.map((r) => ({
-      id: r.id,
-      direction: r.direction,
-      subject: r.subject,
-      body: r.body,
-      at: r.sent_at || r.created_at,
-      provider: r.provider,
-    }));
-    if (messages.length === 0 && t.last_message && t.last_message.trim()) {
-      messages = [
-        {
-          id: `${t.id}-legacy`,
-          direction: "in",
-          subject: t.reply_subject,
-          body: t.last_message,
-          at: t.last_message_at || t.replied_at || t.updated_at,
-          provider: "legacy",
-        },
-      ];
-    }
-    const inbound = messages.filter((m) => m.direction === "in");
-    const lastActivityAt =
-      messages.length > 0 ? messages[messages.length - 1].at : t.last_message_at || t.replied_at || t.updated_at;
-    const lastInboundAt = inbound.length > 0 ? inbound[inbound.length - 1].at : t.last_message_at || t.replied_at;
-    return {
-      id: t.id,
-      handle: t.handle,
-      displayName: t.display_name,
-      platform: t.platform,
-      profileUrl: t.profile_url,
-      contactEmail: t.contact_email,
-      language: t.language || "de",
-      apps: appsOf(t),
-      status: t.status,
-      followerEstimate: t.follower_estimate,
-      mailsSent: t.mails_sent ?? 0,
-      mailStatus: t.mail_status,
-      messages,
-      replyCount: inbound.length,
-      lastInboundAt: lastInboundAt ?? null,
-      lastActivityAt: lastActivityAt ?? null,
-      kind: "outreach",
-    };
-  });
-
-  const awaitingConvs: Conversation[] = awaitingTargets.map((t): Conversation => {
-    // The sent Mail-1 (and any follow-up) is now stored — show it in the thread.
-    const msgs: ThreadMessage[] = (byTarget.get(t.id) ?? [])
-      .slice()
-      .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""))
-      .map((r) => ({
-        id: r.id,
-        direction: r.direction,
-        subject: r.subject,
-        body: r.body,
-        at: r.sent_at || r.created_at,
-        provider: r.provider,
-      }));
-    return {
-      id: t.id,
-      handle: t.handle,
-      displayName: t.display_name,
-      platform: t.platform,
-      profileUrl: t.profile_url,
-      contactEmail: t.contact_email,
-      language: t.language || "de",
-      apps: appsOf(t),
-      status: t.status,
-      followerEstimate: t.follower_estimate,
-      mailsSent: t.mails_sent ?? 0,
-      mailStatus: t.mail_status,
-      messages: msgs,
-      replyCount: 0,
-      lastInboundAt: null,
-      lastActivityAt: (t.last_mail_at || t.mail1_sent_at || t.contacted_at || t.updated_at) ?? null,
-      awaiting: true,
-      kind: "outreach",
-    };
-  });
-
   // ── Inquiry side: website contact-form requests ──────────────────────────
   let inquiryConvs: Conversation[] = [];
   if (KLAR_INBOX_KEY) {
@@ -261,43 +129,14 @@ export default async function InboxPage({
         },
       );
       const rowsAll: Inquiry[] = res.ok ? ((await res.json()) as Inquiry[]) : [];
-      // match outreach target by email/handle so an inquiry's reply composer can
-      // hit /admin/outreach/reply and show the influencer's stored reply.
-      const targetByEmail = new Map<string, OutreachTarget>();
-      const targetByHandle = new Map<string, OutreachTarget>();
-      for (const t of targets) {
-        const e = (t.contact_email ?? "").toLowerCase().trim();
-        if (e && !targetByEmail.has(e)) targetByEmail.set(e, t);
-        const hh = (t.handle ?? "").toLowerCase().replace(/^@/, "").trim();
-        if (hh && !targetByHandle.has(hh)) targetByHandle.set(hh, t);
-      }
-      const matchTarget = (r: Inquiry): OutreachTarget | null => {
-        const e = (r.email ?? "").toLowerCase().trim();
-        if (e && targetByEmail.has(e)) return targetByEmail.get(e)!;
-        const hh = (r.handle ?? "").toLowerCase().replace(/^@/, "").trim();
-        if (hh && targetByHandle.has(hh)) return targetByHandle.get(hh)!;
-        return null;
-      };
-
       inquiryConvs = rowsAll
         .filter((r) => !isTestInquiry(r))
         .filter((r): r is Inquiry & { id: string } => Boolean(r.id))
         .map((r): Conversation => {
-          const t = matchTarget(r);
           const at = r.created_at ?? null;
           const messages: ThreadMessage[] = [
             { id: `${r.id}-req`, direction: "in", subject: null, body: inquiryBody(r), at, provider: "form" },
           ];
-          if (t?.last_message && t.last_message.trim()) {
-            messages.push({
-              id: `${r.id}-reply`,
-              direction: "in",
-              subject: t.reply_subject,
-              body: t.last_message,
-              at: t.last_message_at || t.replied_at || at,
-              provider: "legacy",
-            });
-          }
           const meta: InquiryMeta = {
             inquiryId: r.id,
             inquiryType: r.type ?? "consulting",
@@ -318,21 +157,17 @@ export default async function InboxPage({
             declineReason: r.decline_reason ?? null,
             setupLink:
               r.approved_app && r.approved_code ? setupLandingUrl(r.approved_app, r.approved_code) : null,
-            matchedTargetId: t?.id ?? null,
           };
           return {
             id: `inq-${r.id}`,
             handle: (r.handle ?? "").replace(/^@/, "") || (r.email ?? "").split("@")[0] || "anfrage",
             displayName: r.name || r.handle || null,
-            platform: t?.platform ?? "",
-            profileUrl: t?.profile_url ?? null,
+            platform: "",
+            profileUrl: null,
             contactEmail: r.email ?? null,
-            language: t?.language || "de",
+            language: "de",
             apps: r.approved_app ? [r.approved_app] : r.target_app ? [r.target_app] : [],
             status: r.status ?? "new",
-            followerEstimate: t?.follower_estimate ?? null,
-            mailsSent: t?.mails_sent ?? 0,
-            mailStatus: t?.mail_status ?? null,
             messages,
             replyCount: messages.filter((m) => m.direction === "in").length,
             lastInboundAt: at,
@@ -345,33 +180,6 @@ export default async function InboxPage({
       inquiryConvs = [];
     }
   }
-
-  // Dedupe: a person who BOTH submitted a website inquiry AND was scraped as an
-  // outreach target would otherwise show up twice (the inquiry conv + the
-  // outreach thread). Keep the inquiry conv (it carries the approve flow), graft
-  // the outreach target's real message thread onto it, and drop the standalone
-  // outreach conv.
-  const outreachConvs = [...repliedConvs, ...awaitingConvs];
-  const outreachById = new Map(outreachConvs.map((c) => [c.id, c]));
-  const mergedOutreachIds = new Set<string>();
-  for (const iq of inquiryConvs) {
-    const tid = iq.inquiry?.matchedTargetId;
-    if (!tid) continue;
-    const oc = outreachById.get(tid);
-    if (!oc) continue;
-    mergedOutreachIds.add(tid);
-    const realMsgs = oc.messages.filter((m) => m.provider !== "legacy");
-    if (realMsgs.length > 0) {
-      const requestBubbles = iq.messages.filter((m) => m.provider === "form");
-      iq.messages = [...requestBubbles, ...realMsgs].sort((a, b) => (a.at || "").localeCompare(b.at || ""));
-      iq.replyCount = realMsgs.filter((m) => m.direction === "in").length;
-      iq.lastInboundAt = oc.lastInboundAt ?? iq.lastInboundAt;
-      iq.lastActivityAt = oc.lastActivityAt ?? iq.lastActivityAt;
-      // Carry the outreach reply state so the red dot + status read correctly.
-      if (oc.status === "replied" || oc.status === "converted") iq.status = oc.status;
-    }
-  }
-  const dedupedOutreach = outreachConvs.filter((c) => !mergedOutreachIds.has(c.id));
 
   // ── Affiliate chat: in-app messages from affiliates, one conversation each ──
   const chatThreads = await loadAffiliateChatInbox();
@@ -395,9 +203,6 @@ export default async function InboxPage({
       language: "de",
       apps: t.apps,
       status: t.unread_in > 0 ? "replied" : "active",
-      followerEstimate: null,
-      mailsSent: 0,
-      mailStatus: null,
       messages,
       replyCount: messages.filter((m) => m.direction === "in").length,
       lastInboundAt: lastInbound?.at ?? null,
@@ -431,9 +236,6 @@ export default async function InboxPage({
       language: "en",
       apps: [t.app],
       status: "new",
-      followerEstimate: null,
-      mailsSent: 0,
-      mailStatus: null,
       messages,
       replyCount: inbound.length,
       lastInboundAt: inbound.length > 0 ? inbound[inbound.length - 1].at : null,
@@ -451,21 +253,13 @@ export default async function InboxPage({
   });
 
   const starredIds = await listStarredIds();
-  const conversations: Conversation[] = [...inquiryConvs, ...dedupedOutreach, ...chatConvs, ...collabConvs]
+  const conversations: Conversation[] = [...inquiryConvs, ...chatConvs, ...collabConvs]
     .sort((a, b) => (b.lastActivityAt || "").localeCompare(a.lastActivityAt || ""))
     .map((c) => (starredIds.has(c.id) ? { ...c, starred: true } : c));
 
-  // ── Mailer drawer data ───────────────────────────────────────────────────
-  const dueMail1 = (await listTargetsForMail1(500)).length;
   // Reply templates for the composer: DB-editable (klar_reply_templates) with a
   // fallback to the hardcoded set so the dropdown is never empty.
   const replyTemplates = await getReplyTemplates();
-  // Per-app outreach Mail-1/Mail-2 (with painpoint) so the composer can offer
-  // the full pitch for the conversation's app.
-  const appMail = await listAppTemplates();
-  const senderEnabled = process.env.KLAR_OUTREACH_SENDER === "on";
-  const cronSet = Boolean(process.env.CRON_SECRET);
-  const inboundSet = Boolean(process.env.KLAR_INBOUND_DOMAIN);
 
   return (
     <>
@@ -477,8 +271,6 @@ export default async function InboxPage({
         appMeta={appMeta}
         appSlugs={appSlugs}
         templates={replyTemplates}
-        appMail={appMail}
-        mailer={{ dueMail1, senderEnabled, cronSet, inboundSet }}
         initialFilter={initialFilter}
         initialSelId={initialSelId}
       />

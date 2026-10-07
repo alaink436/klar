@@ -55,8 +55,8 @@ export const COLLAB_ALIASES: Record<string, CollabAliasMeta> = {
   collab: { app: "studio", name: "Klar" },
 };
 
-/** Domains, deren Aliasse als Collab-Adressen gelten: die Outreach-Inbound-
- *  Domain plus optionale weitere (KLAR_COLLAB_DOMAINS, kommasepariert). */
+/** Domains, deren Aliasse als Collab-Adressen gelten: die Inbound-Domain
+ *  (KLAR_INBOUND_DOMAIN) plus optionale weitere (KLAR_COLLAB_DOMAINS, kommasepariert). */
 export function collabDomains(): string[] {
   const out: string[] = [];
   const inbound = (process.env.KLAR_INBOUND_DOMAIN ?? "").trim().toLowerCase();
@@ -77,14 +77,13 @@ export interface CollabRoute {
 }
 
 /** Ordnet eine Empfänger-Adresse einem Collab-Postfach zu. Fail-closed: ohne
- *  konfigurierte Domain oder ohne Alias-Treffer → null (Outreach-Matching
- *  bleibt dann zuständig). */
+ *  konfigurierte Domain oder ohne Alias-Treffer → null. */
 export function collabRouteForRecipient(address: string): CollabRoute | null {
   const [localRaw, domainRaw] = address.trim().toLowerCase().split("@");
   if (!localRaw || !domainRaw) return null;
   const domains = collabDomains();
   if (!domains.includes(domainRaw)) return null;
-  // reply+<uuid> u.ä. gehören dem Outreach-Matching; ein Plus-Suffix auf einem
+  // reply+<uuid> u.ä. sind kein Alias; ein Plus-Suffix auf einem
   // Alias (animevault+tiktok@) zählt trotzdem zum Alias.
   const [local = "", suffix = ""] = localRaw.split("+");
   const meta = COLLAB_ALIASES[local];

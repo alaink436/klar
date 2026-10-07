@@ -1,5 +1,5 @@
 // Klar Control entry route. Every admin view is now its own React route under
-// /admin/* — overview, revenue, payouts, templates, inbox, outreach, the
+// /admin/*: overview, revenue, payouts, inbox, the
 // dynamic [app] affiliate detail, plus cal / bookings / analytics / brain /
 // settings. This handler only guards auth and forwards legacy ?view=… URLs
 // (and bare /admin) to the matching route, preserving query params (minus
@@ -39,9 +39,7 @@ export async function GET(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const view = url.searchParams.get("view") || "overview";
 
-  if (view === "outreach") return redirectTo(url, "/admin/outreach");
   if (view === "inbox") return redirectTo(url, "/admin/inbox");
-  if (view === "templates") return redirectTo(url, "/admin/templates");
   // A real app slug → the dynamic /admin/[app] route; everything else
   // (incl. overview + unknown views) → the overview landing route.
   const app = getApps().find((a) => a.slug === view);

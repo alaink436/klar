@@ -2,9 +2,8 @@
 //
 // Given the decrypted Evomi routing (from vault.getForProxy("ef44b8c6-…")), this
 // enriches ONE handle at a time and returns a platform-neutral NormalizedProfile
-// (or null on any non-recoverable failure). It does NOT shape klar_outreach_targets
-// rows (that is outreachNormalize.ts) but DOES carry the aggregator-link fields the
-// email crawl needs.
+// (or null on any non-recoverable failure). Since the outreach wave is gone
+// (2026-10-07) only lib/contentWarmup uses it, for public profile counts.
 //
 // IG  : POST /realtime, mode:"request", x-ig-app-id header in `additional_headers`
 //       (which MUST be a JSON object in the POST body — as a GET query Evomi 422s).
