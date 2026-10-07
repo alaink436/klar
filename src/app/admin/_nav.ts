@@ -7,19 +7,15 @@
 // before rendering — so a reordered menu comes back reordered on the server,
 // no post-hydration jump.
 //
-// The bottom of the sidebar (language, Cal, settings, logout) is deliberately
+// The bottom of the sidebar (language, settings, logout) is deliberately
 // NOT part of this: it is the way out of the workspace and stays put.
 
 import type { AdminMessages } from "./_i18n";
 
-// "mycakeday" ist seit 2026-09-06 ein eigener Bereich, gleichrangig mit Studio
-// (Alains Ansage: ein ganzes Menue, kein Untermenue). MyCakeDay ist ein eigenes
-// Geschaeft mit eigener Domain; das Postfach lebt hier, alles andere ist ein
-// Absprung ohne zweiten Login ins Cakeday-Dashboard.
 // "studios" (Klar Studios) seit 2026-09-22: alles, was die Apps betrifft, in
 // einem eigenen grossen Menue (Alains Ansage). Der pausierte Creator-Zweig
 // haengt zugeklappt darunter.
-export type NavSection = "studio" | "studios" | "mycakeday" | "creator";
+export type NavSection = "studio" | "studios" | "creator";
 
 export interface NavItemDef {
   /** Stable id — this is what the cookie stores, so never rename one. */
@@ -30,9 +26,6 @@ export interface NavItemDef {
   icon: string;
   href: string;
   section: NavSection;
-  /** Oeffnet eine fremde Seite in einem neuen Tab (ueber einen Route-Handler,
-      der den Anmeldelink holt). Kein next/link, keine Client-Navigation. */
-  external?: boolean;
 }
 
 export const NAV_ITEMS: NavItemDef[] = [
@@ -40,7 +33,6 @@ export const NAV_ITEMS: NavItemDef[] = [
   { id: "todos", labelKey: "navTodos", icon: "check", href: "/admin/todos", section: "studio" },
   { id: "inbox", labelKey: "navInbox", icon: "inbox", href: "/admin/inbox", section: "studio" },
   { id: "bookings", labelKey: "navBookings", icon: "calendar", href: "/admin/bookings", section: "studio" },
-  { id: "cal", labelKey: "navCal", icon: "calendar", href: "/admin/cal", section: "studio" },
   { id: "brain", labelKey: "navBrain", icon: "brain", href: "/admin/brain", section: "studio" },
   { id: "chronik", labelKey: "navChronik", icon: "doc", href: "/admin/chronik", section: "studio" },
   { id: "vault", labelKey: "navVault", icon: "key", href: "/admin/vault", section: "studio" },
@@ -58,15 +50,6 @@ export const NAV_ITEMS: NavItemDef[] = [
   // App. Eigener Punkt neben Analytics, weil Analytics die Landings und den
   // Umsatz zeigt und diese Seite das Verhalten IN den Apps.
   { id: "app-analytics", labelKey: "navAppAnalytics", icon: "activity", href: "/admin/app-analytics", section: "studios" },
-  // MyCakeDay. Das Postfach ist eine Seite in Klar Control; die anderen fuenf
-  // fuehren ueber /admin/mycakeday/oeffnen ins Cakeday-Dashboard, mit Magic
-  // Link statt zweitem Login. Die `weiter`-Pfade sind die Cakeday-Adressen.
-  { id: "mycakeday", labelKey: "navMycakedayPostfach", icon: "inbox", href: "/admin/mycakeday", section: "mycakeday" },
-  { id: "mycakeday-uebersicht", labelKey: "navMycakedayUebersicht", icon: "overview", href: "/admin/mycakeday/oeffnen?weiter=/admin/uebersicht", section: "mycakeday", external: true },
-  { id: "mycakeday-firmen", labelKey: "navMycakedayFirmen", icon: "building", href: "/admin/mycakeday/oeffnen?weiter=/admin/firmen", section: "mycakeday", external: true },
-  { id: "mycakeday-partner", labelKey: "navMycakedayPartner", icon: "store", href: "/admin/mycakeday/oeffnen?weiter=/admin/partner", section: "mycakeday", external: true },
-  { id: "mycakeday-sortiment", labelKey: "navMycakedaySortiment", icon: "cake", href: "/admin/mycakeday/oeffnen?weiter=/admin/sortiment", section: "mycakeday", external: true },
-  { id: "mycakeday-mitteilungen", labelKey: "navMycakedayMitteilungen", icon: "chat", href: "/admin/mycakeday/oeffnen?weiter=/admin/mitteilungen", section: "mycakeday", external: true },
   { id: "revenue", labelKey: "navRevenue", icon: "revenue", href: "/admin/revenue", section: "creator" },
   { id: "payouts", labelKey: "navPayouts", icon: "payouts", href: "/admin/payouts", section: "creator" },
 ];
@@ -122,7 +105,6 @@ export function orderedAll(prefs: NavPrefs): NavItemDef[] {
   return [
     ...orderedSection("studio", prefs, true),
     ...orderedSection("studios", prefs, true),
-    ...orderedSection("mycakeday", prefs, true),
     ...orderedSection("creator", prefs, true),
   ];
 }

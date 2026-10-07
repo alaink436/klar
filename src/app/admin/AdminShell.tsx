@@ -36,7 +36,6 @@ export default function AdminShell({
   apps,
   lang,
   collabOpen,
-  cakedayOpen,
   navPrefs = DEFAULT_NAV_PREFS,
   sidebarOpen = true,
   children,
@@ -44,7 +43,6 @@ export default function AdminShell({
   apps: { slug: string; name: string }[];
   lang: AdminLang;
   collabOpen?: number;
-  cakedayOpen?: number;
   navPrefs?: NavPrefs;
   /** Aus der `sidebar_state`-Cookie, im Layout gelesen. Ohne diesen Wert
       klappt die Schiene beim ersten Bild kurz auf und dann wieder zu. */
@@ -63,7 +61,7 @@ export default function AdminShell({
       // Menue sind darauf eingerichtet.
       style={{ "--sidebar-width": "240px" } as React.CSSProperties}
     >
-      <AdminSidebar active={activeFromPath(path)} apps={apps} lang={lang} collabOpen={collabOpen} cakedayOpen={cakedayOpen} prefs={navPrefs} />
+      <AdminSidebar active={activeFromPath(path)} apps={apps} lang={lang} collabOpen={collabOpen} prefs={navPrefs} />
       <SidebarRail />
       <SidebarInset className="main">{children}</SidebarInset>
       {/* Beide leben hier, weil hier der Rahmen steht: die Palette braucht den
