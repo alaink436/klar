@@ -29,7 +29,7 @@ import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps, sbGet, fetchAppUserStats, type AdminApp } from "../../../lib/adminApps";
 import { countOpenCollabs } from "@/lib/collabView";
 import { countOpenTodos } from "@/lib/todoStore";
-import { readActiveProjects, type BrainProject } from "@/lib/brainStatus";
+import { readActiveProjects, type BrainProject } from "@/lib/brainReader";
 import { listOutreachTargets } from "../../../lib/outreachStore";
 
 export const dynamic = "force-dynamic";

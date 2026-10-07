@@ -8,3 +8,6 @@
 *.ico binary
 *.woff binary
 *.woff2 binary
+
+# Brain-Reader sample files: keep line endings byte-exact (one ticket has CRLF on purpose)
+src/lib/__fixtures__/** -text
