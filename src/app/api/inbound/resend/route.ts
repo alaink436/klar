@@ -97,8 +97,10 @@ export async function POST(req: Request): Promise<Response> {
   }
   const parsed = await PostalMime.parse(await raw.arrayBuffer(), { attachmentEncoding: "base64" });
 
+  // Resend's `from` is the bare address; the display name only survives in the raw headers.
   const sender = parseMailbox(mail.from);
-  const label = (sender.name || sender.address.replace("@", " at ")).replace(/["<>\r\n]/g, "").slice(0, 80);
+  const name = parsed.from?.name || sender.name;
+  const label = (name || sender.address.replace("@", " at ")).replace(/["<>\r\n]/g, "").slice(0, 80);
   const content = parsed.html
     ? { html: parsed.html, text: parsed.text || undefined }
     : { text: parsed.text || "(ohne Inhalt)" };
