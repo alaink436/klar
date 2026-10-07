@@ -56,18 +56,6 @@ export function fmtRelative(ts: string | null): string {
   return `vor ${Math.floor(months / 12)}y`;
 }
 
-// Klar Studio is CH-based, payouts run through Wise from a CHF balance.
-// DB columns are still named `*_eur_cents` for historical reasons;
-// semantically they hold the reporting currency configured here.
-export const REPORTING_CURRENCY = process.env.KLAR_REPORTING_CURRENCY ?? "CHF";
-export const money = (c: number | null | undefined) =>
-  (Number(c ?? 0) / 100).toLocaleString("de-CH", {
-    style: "currency",
-    currency: REPORTING_CURRENCY,
-  });
-// Back-compat alias so existing eur() callsites stay valid.
-export const eur = money;
-
 // Hardened auth:
 //   1) klar_device cookie must verify against KLAR_DEVICE_SECRET (HMAC).
 //      Without it, the browser is unknown and gets redirected to login.
@@ -301,32 +289,6 @@ tbody tr:hover td{background:var(--surface-2)}
 .pill{display:inline-block;padding:3px 10px;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line-strong);border-radius:999px;color:var(--fg-2);background:var(--surface)}
 .pill.live{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 
-/* Tremor Badge — tinted pill with a leading status dot and a semantic colour.
-   Colour lives only on the dot + text + a faint wash, never a loud fill, so a
-   table of these stays calm. Tones: ok/info/warn/danger/neutral. */
-.tbadge{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid transparent;line-height:1.5;white-space:nowrap}
-.tbadge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
-.tbadge.ok{color:var(--success);background:color-mix(in oklab,var(--success) 12%,transparent);border-color:color-mix(in oklab,var(--success) 26%,transparent)}
-.tbadge.info{color:var(--info);background:color-mix(in oklab,var(--info) 12%,transparent);border-color:color-mix(in oklab,var(--info) 26%,transparent)}
-.tbadge.warn{color:var(--warning);background:color-mix(in oklab,var(--warning) 14%,transparent);border-color:color-mix(in oklab,var(--warning) 28%,transparent)}
-.tbadge.danger{color:var(--danger);background:color-mix(in oklab,var(--danger) 12%,transparent);border-color:color-mix(in oklab,var(--danger) 26%,transparent)}
-.tbadge.neutral{color:var(--fg-3);background:var(--surface-2);border-color:var(--line)}
-.tbadge.neutral::before{opacity:.7}
-
-/* coss / Origin UI card-style table — rows read as separate cards: no outer
-   chrome, row-spacing gaps, each row a bordered surface with rounded ends.
-   Apply by adding .card-table to a <table>. */
-.card-table{border:0;border-radius:0;background:transparent;border-collapse:separate;border-spacing:0 8px;overflow:visible}
-.card-table thead th{background:transparent;border:0;padding:0 16px 2px;color:var(--fg-4)}
-.card-table tbody tr{background:var(--surface);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
-.card-table tbody td{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--surface);padding:14px 16px}
-.card-table tbody td:first-child{border-left:1px solid var(--line);border-top-left-radius:var(--radius);border-bottom-left-radius:var(--radius)}
-.card-table tbody td:last-child{border-right:1px solid var(--line);border-top-right-radius:var(--radius);border-bottom-right-radius:var(--radius)}
-.card-table tbody tr:hover td{background:var(--surface-2)}
-.card-table tbody tr:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm)}
-[data-theme="dark"] .card-table tbody td{background:var(--surface);border-color:var(--line)}
-[data-theme="dark"] .card-table tbody tr:hover td{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)}
-
 .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border:1px solid var(--fg);background:var(--fg);color:var(--accent-fg);font-family:var(--font-body);font-size:13px;font-weight:600;border-radius:var(--radius-sm);cursor:pointer;transition:opacity .15s,transform .12s,background .15s}
 .btn:hover{opacity:.86}
 .btn:active{transform:translateY(1px)}
@@ -339,19 +301,6 @@ tbody tr:hover td{background:var(--surface-2)}
 .btn.pop{border:1.5px solid var(--fg);box-shadow:3px 3px 0 0 var(--fg);transition:transform .09s cubic-bezier(.2,.6,.3,1),box-shadow .09s cubic-bezier(.2,.6,.3,1),opacity .15s}
 .btn.pop:hover{opacity:1;transform:translate(-1px,-1px);box-shadow:4px 4px 0 0 var(--fg)}
 .btn.pop:active{transform:translate(3px,3px);box-shadow:0 0 0 0 var(--fg)}
-
-/* Tremor BadgeDelta — trend chip: tinted semantic background, arrow + value.
-   Single sanctioned use of green/red, only for deltas. Numbers tabular. */
-.delta{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;padding:2px 8px;border-radius:999px;line-height:1.45;white-space:nowrap}
-.delta svg{width:13px;height:13px;stroke-width:2.2}
-.delta.up{color:var(--success);background:color-mix(in oklab,var(--success) 13%,transparent)}
-.delta.down{color:var(--danger);background:color-mix(in oklab,var(--danger) 13%,transparent)}
-.delta.flat{color:var(--fg-3);background:color-mix(in oklab,var(--fg) 8%,transparent)}
-.delta .delta-ref{color:var(--fg-3);font-weight:400;margin-left:2px}
-
-.batch{border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-top:12px;background:var(--surface)}
-.batch table{border:0;border-radius:0;background:transparent}
-.batch th{background:transparent}
 
 .muted{color:var(--fg-3)}
 .warn{display:inline-block;color:var(--danger);background:color-mix(in oklab,var(--danger) 10%,var(--surface));border:1px solid color-mix(in oklab,var(--danger) 30%,var(--line));padding:2px 8px;border-radius:999px;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
@@ -453,30 +402,6 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 .login-back svg{width:13px;height:13px}
 @media(max-width:520px){.login-card{padding:32px 24px 26px}.login-mark{font-size:26px}.login-badge{width:44px;height:44px}.login-badge img{width:24px;height:24px}}
 
-/* ===== Custom confirm/alert modal — replaces window.confirm in admin ===== */
-.klar-modal-back{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(8,8,8,.62);opacity:0;transition:opacity .18s ease}
-.klar-modal-back.on{display:flex;opacity:1}
-.klar-modal-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:26px 28px 22px;transform:translateY(8px) scale(.985);transition:transform .22s cubic-bezier(.2,.7,.3,1),box-shadow .22s ease;text-align:left;font-family:var(--font-body);color:var(--fg)}
-[data-theme="dark"] .klar-modal-card{background:var(--surface);border:1px solid var(--line-strong);box-shadow:none}
-.klar-modal-back.on .klar-modal-card{transform:translateY(0) scale(1)}
-.klar-modal-eyebrow{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-3);margin:0 0 8px;display:flex;align-items:center;gap:8px}
-.klar-modal-eyebrow::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--fg-3)}
-.klar-modal-card.danger .klar-modal-eyebrow{color:var(--danger)}
-.klar-modal-card.danger .klar-modal-eyebrow::before{background:var(--danger)}
-.klar-modal-card.warn .klar-modal-eyebrow{color:var(--warning)}
-.klar-modal-card.warn .klar-modal-eyebrow::before{background:var(--warning)}
-.klar-modal-title{font-family:var(--font-display);font-weight:700;font-size:21px;letter-spacing:-.015em;line-height:1.18;margin:0 0 10px;color:var(--fg)}
-.klar-modal-body{font-family:var(--font-body);font-size:14px;line-height:1.55;color:var(--fg-2);margin:0 0 22px;white-space:pre-line}
-.klar-modal-body code{font-family:var(--font-mono);font-size:12.5px;background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 7px;color:var(--fg)}
-.klar-modal-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
-.klar-modal-actions .btn{padding:9px 18px;font-size:13px;border-radius:var(--radius-sm);min-width:104px;justify-content:center}
-.klar-modal-actions .btn.ghost{background:var(--surface);color:var(--fg-2);border:1px solid var(--line-strong)}
-.klar-modal-actions .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
-[data-theme="dark"] .klar-modal-actions .btn.danger{box-shadow:0 4px 14px -4px rgba(220,38,38,.45),0 1px 0 rgba(255,255,255,.18) inset}
-.klar-modal-actions .btn.danger:hover{opacity:.92}
-@media(prefers-reduced-motion:reduce){.klar-modal-back,.klar-modal-card{transition:none}}
-@media(max-width:520px){.klar-modal-card{padding:22px 20px 18px}.klar-modal-title{font-size:19px}.klar-modal-actions{flex-direction:column-reverse}.klar-modal-actions .btn{width:100%}}
-
 /* ===== Liquid Glass Layer (dark-mode only, smoke-bg behind glass cards) ===== */
 /* Smoke canvas: full-viewport, fixed behind everything, fades to 0 in light mode */
 
@@ -500,7 +425,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
    Jetzt: eine Flaeche, eine Linie, kein Schatten. */
 [data-theme="dark"] .side{background:#0D0D0D;border-right:1px solid var(--line)}
 [data-theme="dark"] .topbar{background:#0A0A0A;border-bottom:1px solid var(--line)}
-[data-theme="dark"] .card,[data-theme="dark"] .chart,[data-theme="dark"] .batch,[data-theme="dark"] .app-tab{background:var(--surface);border:1px solid var(--line);box-shadow:none}
+[data-theme="dark"] .card,[data-theme="dark"] .chart,[data-theme="dark"] .app-tab{background:var(--surface);border:1px solid var(--line);box-shadow:none}
 [data-theme="dark"] .card:hover,[data-theme="dark"] .app-tab:hover{border-color:var(--line-strong);box-shadow:none}
 [data-theme="dark"] table{background:var(--surface);border:1px solid var(--line)}
 [data-theme="dark"] th{background:var(--surface-2)}
@@ -540,124 +465,6 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 // Quelle, weil sie Entscheidungen begruenden, und fallen beim Ausliefern weg.
 // Laeuft einmal beim Laden des Moduls, nicht pro Anfrage.
 export const STYLE = STYLE_QUELLE.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\n\s*\n+/g, "\n");
-
-// Custom confirm modal — single DOM node, reused per call. Mounted once in
-// the body of every admin page. The JS helper takes over forms with
-// data-klar-confirm-* attributes and intercepts their submit until the
-// user clicks the primary action. Replaces all window.confirm() calls.
-export const MODAL_HTML = `<div class="klar-modal-back" id="klar-modal" role="dialog" aria-modal="true" aria-labelledby="klar-modal-title" aria-describedby="klar-modal-body" hidden>
-  <div class="klar-modal-card" data-klar-card>
-    <p class="klar-modal-eyebrow" data-klar-eyebrow>Bestätigung</p>
-    <h2 class="klar-modal-title" id="klar-modal-title" data-klar-title>Wirklich fortfahren?</h2>
-    <div class="klar-modal-body" id="klar-modal-body" data-klar-body></div>
-    <div class="klar-modal-actions">
-      <button type="button" class="btn ghost" data-klar-cancel>Abbrechen</button>
-      <button type="button" class="btn" data-klar-ok autofocus>Bestätigen</button>
-    </div>
-  </div>
-</div>`;
-
-export const MODAL_SCRIPT = String.raw`(function(){
-  var back = document.getElementById('klar-modal');
-  if (!back) return;
-  var card = back.querySelector('[data-klar-card]');
-  var elTitle = back.querySelector('[data-klar-title]');
-  var elBody = back.querySelector('[data-klar-body]');
-  var elEye = back.querySelector('[data-klar-eyebrow]');
-  var btnOk = back.querySelector('[data-klar-ok]');
-  var btnCancel = back.querySelector('[data-klar-cancel]');
-  var lastFocused = null;
-  var current = null; // { resolve }
-
-  function close(result){
-    if (!current) return;
-    var r = current.resolve;
-    current = null;
-    back.classList.remove('on');
-    back.setAttribute('hidden','');
-    document.body.style.overflow = '';
-    if (lastFocused && lastFocused.focus) { try { lastFocused.focus(); } catch(e){} }
-    r(result);
-  }
-
-  function open(opts){
-    return new Promise(function(resolve){
-      if (current) { current.resolve(false); current = null; }
-      current = { resolve: resolve };
-      var o = opts || {};
-      var variant = o.variant || 'default'; // default | danger | warn
-      var eye = o.eyebrow || (variant === 'danger' ? 'Achtung' : variant === 'warn' ? 'Hinweis' : 'Bestätigung');
-      elEye.textContent = eye;
-      elTitle.textContent = o.title || 'Wirklich fortfahren?';
-      // body can include simple <code> escaped html; we accept either text or
-      // pre-escaped html via 'html: true' opt.
-      if (o.html) { elBody.innerHTML = o.body || ''; } else { elBody.textContent = o.body || ''; }
-      btnOk.textContent = o.confirmText || (variant === 'danger' ? 'Löschen' : 'Bestätigen');
-      btnCancel.textContent = o.cancelText || 'Abbrechen';
-      card.classList.remove('danger','warn');
-      if (variant === 'danger') card.classList.add('danger');
-      if (variant === 'warn') card.classList.add('warn');
-      btnOk.classList.remove('danger');
-      if (variant === 'danger') btnOk.classList.add('danger');
-      lastFocused = document.activeElement;
-      back.removeAttribute('hidden');
-      // force reflow so transition runs
-      void back.offsetWidth;
-      back.classList.add('on');
-      document.body.style.overflow = 'hidden';
-      setTimeout(function(){ try { btnOk.focus(); } catch(e){} }, 30);
-    });
-  }
-
-  btnOk.addEventListener('click', function(){ close(true); });
-  btnCancel.addEventListener('click', function(){ close(false); });
-  back.addEventListener('click', function(e){ if (e.target === back) close(false); });
-  document.addEventListener('keydown', function(e){
-    if (!current) return;
-    if (e.key === 'Escape') { e.preventDefault(); close(false); }
-    if (e.key === 'Enter' && document.activeElement !== btnCancel) { e.preventDefault(); close(true); }
-  });
-
-  // Public API
-  window.klarConfirm = open;
-
-  // Form helper: stick data-klar-confirm-* attrs on a <form> instead of
-  // onsubmit="return confirm(...)" and the helper handles it.
-  // Supported attrs:
-  //   data-klar-confirm        — body text (required to opt in)
-  //   data-klar-confirm-title  — title
-  //   data-klar-confirm-variant — 'danger' | 'warn' | 'default'
-  //   data-klar-confirm-ok     — primary button label
-  //   data-klar-confirm-cancel — cancel button label
-  function bind(form){
-    if (form.__klarBound) return;
-    form.__klarBound = true;
-    form.addEventListener('submit', function(ev){
-      if (form.dataset.klarConfirmed === '1') {
-        form.dataset.klarConfirmed = '';
-        return; // allow native submit
-      }
-      ev.preventDefault();
-      open({
-        title: form.getAttribute('data-klar-confirm-title') || undefined,
-        body: form.getAttribute('data-klar-confirm') || '',
-        variant: form.getAttribute('data-klar-confirm-variant') || 'default',
-        confirmText: form.getAttribute('data-klar-confirm-ok') || undefined,
-        cancelText: form.getAttribute('data-klar-confirm-cancel') || undefined,
-      }).then(function(ok){
-        if (ok) { form.dataset.klarConfirmed = '1'; form.requestSubmit ? form.requestSubmit() : form.submit(); }
-      });
-    });
-  }
-  function scan(){
-    var forms = document.querySelectorAll('form[data-klar-confirm]');
-    for (var i = 0; i < forms.length; i++) bind(forms[i]);
-  }
-  scan();
-  // Late-rendered forms: rescan on DOM mutations within main.
-  var mo = new MutationObserver(function(){ scan(); });
-  mo.observe(document.body, { childList: true, subtree: true });
-})();`;
 
 export const FONTS_LINK =
   `https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Fraunces:ital@0;1&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap`;

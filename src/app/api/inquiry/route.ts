@@ -1,4 +1,4 @@
-// Receives affiliate/consulting submissions from the public site and writes
+// Receives contact-form submissions from the public site and writes
 // them durably into Supabase (project "anime-vault", repurposed as the klar
 // inbox store). Replaces the old fire-and-forget formsubmit.co email path,
 // which had no persistence and a silent activation gate.
@@ -21,7 +21,6 @@ import {
   rateLimit,
 } from "@/lib/apiGuards";
 import { getAdminSettings, logNotifEvent } from "@/lib/adminSettings";
-import { approveAffiliateCore } from "@/lib/affiliateApprove";
 import { flushNotifsIfBatchReady } from "@/lib/notifFlusher";
 
 export const runtime = "nodejs";
@@ -119,9 +118,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   try {
-    // We need the inserted row back so we can (a) reference its id when
-    // auto-accept is on and (b) attach it to the notification log. Switch
-    // from minimal to representation now that we read the row downstream.
+    // We need the inserted row back to attach its id to the notification log.
     const res = await fetch(`${SUPABASE_URL}/rest/v1/klar_inquiries`, {
       method: "POST",
       headers: {
@@ -162,36 +159,6 @@ export async function POST(req: Request): Promise<Response> {
         inquiry_id: inquiryId,
         payload: { type, email },
       }).then(() => flushNotifsIfBatchReady());
-    }
-
-    // Auto-accept: only for affiliate-type inquiries that have a
-    // target_app + handle. If any required field is missing the inquiry
-    // stays in the inbox for manual approve — we never approve without
-    // enough data to mint a setup token.
-    if (
-      settings.auto_accept_affiliates &&
-      type === "affiliate" &&
-      inquiryId &&
-      typeof row.target_app === "string" &&
-      typeof row.handle === "string" &&
-      row.handle
-    ) {
-      const handle = String(row.handle).replace(/^@/, "").toLowerCase();
-      // Don't await — the approve flow makes 2-3 round-trips (RPC, PATCH,
-      // Brevo) and we don't want to block the form submission on it. The
-      // user just needs to know their inquiry landed.
-      void approveAffiliateCore({
-        inquiryId,
-        appSlug: row.target_app,
-        handle,
-        email,
-        displayName: handle,
-        language: "de",
-        sharePct: 50,
-        shareMonths: 24,
-      }).catch((e) => {
-        console.error("[inquiry] auto-accept failed", e);
-      });
     }
 
     return json({ success: true });

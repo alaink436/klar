@@ -1,7 +1,5 @@
 // SERVER ONLY. Dünner Brevo-Transactional-Wrapper für freie Outreach-Mails
-// (Antworten auf Replies). Die polierten Onboarding-Mails laufen weiter über
-// lib/affiliateApprove (sendOnboardingMail); das hier ist für vom Admin frei
-// getippte Antworten gedacht.
+// (Antworten auf Replies), für vom Admin frei getippte Antworten gedacht.
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY ?? "";
 

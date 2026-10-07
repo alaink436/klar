@@ -1,7 +1,7 @@
 "use client";
 
-// Magic-link sign-in for invited AI-Brain members. Mirrors the dashboard
-// MagicForm: signInWithOtp with shouldCreateUser:false, so only emails that
+// Magic-link sign-in for invited AI-Brain members: signInWithOtp with
+// shouldCreateUser:false, so only emails that
 // an admin has already provisioned (via the brain-invite flow, which creates
 // the auth.users row) can request a link. The email link lands on
 // /brain/auth/callback.
@@ -14,8 +14,8 @@ import {
   buttonStyle,
   errorStyle,
   successStyle,
-} from "@/app/dashboard/_shared/auth-shell";
-import { getBrowserSupabase } from "@/app/dashboard/_shared/supabase-browser";
+} from "../_shared/auth-shell";
+import { getBrowserSupabase } from "../_shared/supabase-browser";
 
 export function BrainLoginForm({ noAccess }: { noAccess?: boolean }) {
   const [email, setEmail] = useState("");

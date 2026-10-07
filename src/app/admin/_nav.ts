@@ -13,9 +13,9 @@
 import type { AdminMessages } from "./_i18n";
 
 // "studios" (Klar Studios) seit 2026-09-22: alles, was die Apps betrifft, in
-// einem eigenen grossen Menue (Alains Ansage). Der pausierte Creator-Zweig
-// haengt zugeklappt darunter.
-export type NavSection = "studio" | "studios" | "creator";
+// einem eigenen grossen Menue (Alains Ansage). Der Creator-Zweig (Affiliate)
+// ist seit 2026-10-07 geloescht.
+export type NavSection = "studio" | "studios";
 
 export interface NavItemDef {
   /** Stable id — this is what the cookie stores, so never rename one. */
@@ -49,8 +49,6 @@ export const NAV_ITEMS: NavItemDef[] = [
   // App. Eigener Punkt neben Analytics, weil Analytics die Landings und den
   // Umsatz zeigt und diese Seite das Verhalten IN den Apps.
   { id: "app-analytics", labelKey: "navAppAnalytics", icon: "activity", href: "/admin/app-analytics", section: "studios" },
-  { id: "revenue", labelKey: "navRevenue", icon: "revenue", href: "/admin/revenue", section: "creator" },
-  { id: "payouts", labelKey: "navPayouts", icon: "payouts", href: "/admin/payouts", section: "creator" },
 ];
 
 /** What the `klar_nav` cookie carries. Both fields are optional on the wire. */
@@ -104,6 +102,5 @@ export function orderedAll(prefs: NavPrefs): NavItemDef[] {
   return [
     ...orderedSection("studio", prefs, true),
     ...orderedSection("studios", prefs, true),
-    ...orderedSection("creator", prefs, true),
   ];
 }

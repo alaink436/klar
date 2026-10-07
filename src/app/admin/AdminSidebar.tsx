@@ -11,18 +11,15 @@
 //     Die Zuordnung steht jetzt einmal in `nav-icons.ts`.
 //   - Alles, was die Schiene KANN, bleibt: Ziehen ordnet um, Ausblenden in den
 //     Einstellungen, beides ueber dieselbe `klar_nav`-Cookie, die das Layout
-//     vor dem Rendern liest. Der Creator-Zweig bleibt zugeklappt, solange man
-//     nicht darin steht. Der Block unten (Sprache, Einstellungen, Abmelden)
+//     vor dem Rendern liest. Der Block unten (Sprache, Einstellungen, Abmelden)
 //     bleibt fest: er ist der Weg hinaus und gehoert nicht sortiert.
 //
 // Was die Form erzaehlt (unveraendert gegenueber vorher):
 //   - Klar Studios traegt seit 2026-09-22 alles, was die Apps betrifft:
 //     Feedback, Content, Collabs (mit der Zahl der offenen Anfragen),
 //     Analytics, App-Nutzung.
-//   - Creator (Affiliate, Auszahlungen, die App-Seiten) liegt eingeklappt
-//     unter Klar Studios.
-//     Der Zweig ruht, also soll er keine sechs festen Zeilen kosten, aber er
-//     ist einen Klick entfernt und nicht geloescht.
+//   - Der Creator-Zweig (Affiliate, Auszahlungen, die App-Seiten) ist seit
+//     2026-10-07 geloescht.
 //
 // Abmelden bleibt ein einfaches <a>: es ist ein Route-Handler, der Cookies
 // raeumt und umleitet.
@@ -32,7 +29,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -46,28 +42,20 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { navIcon } from "./nav-icons";
 import LangSwitch from "./LangSwitch";
 import { setNavPrefs } from "./nav-action";
 import { orderedAll, orderedSection, type NavItemDef, type NavPrefs } from "./_nav";
 import { tAdmin, type AdminLang } from "./_i18n";
-import { LISTED_APPS, resolveBackendKey } from "@/lib/klarApps";
 
 export default function AdminSidebar({
   active,
-  apps,
   lang,
   prefs,
   collabOpen = 0,
 }: {
   active: string;
-  apps: { slug: string; name: string }[];
   lang: AdminLang;
   prefs: NavPrefs;
   /** Unbeantwortete Collab-Anfragen. Das ist die Zahl neben dem Eintrag. */
@@ -79,21 +67,8 @@ export default function AdminSidebar({
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
-  // Die App-Seiten kommen aus KLAR_ADMIN_APPS, aber NAME und SYMBOL aus dem
-  // App-Verzeichnis: der Env-Eintrag traegt nur den Backend-Schluessel, und bei
-  // einem recycelten Backend (Anime Vault laeuft auf dem Projekt von promillio)
-  // ist dieser Schluessel nicht die Marke. Ueber das Verzeichnis zu laufen
-  // heisst ausserdem, dass jede App hoechstens einmal erscheint, egal was in
-  // der Env steht.
-  const wired = new Set(apps.map((a) => a.slug));
-  const appNav = LISTED_APPS.map((meta) => ({ meta, slug: resolveBackendKey(meta, wired) })).filter((a) =>
-    wired.has(a.slug),
-  );
-
   const studio = orderedSection("studio", prefs);
   const studios = orderedSection("studios", prefs);
-  const creator = orderedSection("creator", prefs);
-  const creatorActive = creator.some((i) => i.id === active) || appNav.some((a) => active === a.slug);
 
   /** `dragged` dorthin schieben, wo `target` steht, alle anderen bleiben. */
   function reorder(dragged: string, target: string) {
@@ -206,11 +181,8 @@ export default function AdminSidebar({
         </SidebarGroup>
 
         {/* Klar Studios (Alain, 2026-09-22): alles, was die Apps betrifft, in
-            einem eigenen Menue. Der ruhende Creator-Zweig haengt zugeklappt
-            darunter, zu, ausser man steht darin; `key` bindet den
-            Aufklapp-Zustand an die Navigation, sonst bleibt er von vorher
-            haengen. */}
-        {studios.length > 0 || creator.length > 0 || appNav.length > 0 ? (
+            einem eigenen Menue. */}
+        {studios.length > 0 ? (
           <SidebarGroup>
             <SidebarGroupLabel>{t.sectionStudios}</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -230,44 +202,6 @@ export default function AdminSidebar({
                 )}
               </SidebarMenu>
             </SidebarGroupContent>
-            {creator.length > 0 || appNav.length > 0 ? (
-              <Collapsible key={String(creatorActive)} defaultOpen={creatorActive} className="group/creator mt-1">
-                <SidebarGroupLabel asChild>
-                  <CollapsibleTrigger className="w-full">
-                    <ChevronRight className="mr-1 size-3 transition-transform duration-150 group-data-[state=open]/creator:rotate-90" />
-                    {t.sectionCreator}
-                    <span className="ml-2 text-[9px] font-medium normal-case tracking-[0.08em] opacity-75">
-                      {t.sectionCreatorNote}
-                    </span>
-                  </CollapsibleTrigger>
-                </SidebarGroupLabel>
-                <CollapsibleContent>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      {creator.map((item) => navRow(item))}
-                      {appNav.map(({ meta, slug }) => (
-                        <SidebarMenuItem key={slug}>
-                          <SidebarMenuButton asChild isActive={active === slug} tooltip={meta.name}>
-                            <Link href={`/admin/${slug}`}>
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                className="size-4 shrink-0 rounded-[4px] object-cover"
-                                src={meta.icon}
-                                alt=""
-                                width={16}
-                                height={16}
-                                loading="lazy"
-                              />
-                              <span>{meta.name}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </CollapsibleContent>
-              </Collapsible>
-            ) : null}
           </SidebarGroup>
         ) : null}
       </SidebarContent>

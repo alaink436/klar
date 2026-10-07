@@ -8,6 +8,5 @@ export const INBOX_FILTERS = [
   "starred",
   "inquiry",
   "collab",
-  "replied",
 ] as const;
 export type InboxFilter = (typeof INBOX_FILTERS)[number];

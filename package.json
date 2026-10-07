@@ -9,7 +9,6 @@
     "lint": "eslint",
     "test": "vitest run",
     "rundgang": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/rundgang.mjs",
-    "affiliates:setup": "node scripts/setup-affiliates.mjs",
     "brain:graph": "python scripts/gen-brain-graph.py"
   },
   "dependencies": {
@@ -23,7 +22,6 @@
     "@sneas/telephone": "^1.1.2",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.1",
-    "@tanstack/react-table": "^8.21.3",
     "@xyflow/react": "^12.11.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

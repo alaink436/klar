@@ -29,7 +29,6 @@ import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { navIcon } from "./nav-icons";
 import { NAV_ITEMS, orderedAll, type NavPrefs } from "./_nav";
 import { tAdmin, type AdminLang } from "./_i18n";
-import { LISTED_APPS, resolveBackendKey } from "@/lib/klarApps";
 import { Sun } from "@/components/animate-ui/icons/sun";
 import { LogOut } from "@/components/animate-ui/icons/log-out";
 import { PanelLeft } from "lucide-react";
@@ -52,11 +51,9 @@ export function paletteOeffnen() {
 export function Kommandopalette({
   lang,
   prefs,
-  apps,
 }: {
   lang: AdminLang;
   prefs: NavPrefs;
-  apps: { slug: string; name: string }[];
 }) {
   const t = tAdmin(lang);
   const router = useRouter();
@@ -102,22 +99,17 @@ export function Kommandopalette({
     return [...geordnet, ...fehlend];
   }, [prefs]);
 
-  const verdrahtet = new Set(apps.map((a) => a.slug));
-  const appEintraege = LISTED_APPS.map((meta) => ({ meta, slug: resolveBackendKey(meta, verdrahtet) })).filter((a) =>
-    verdrahtet.has(a.slug),
-  );
-
   return (
     <CommandDialog
       open={offen}
       onOpenChange={setOffen}
       title="Springen"
-      description="Seite, App oder Aktion suchen"
+      description="Seite oder Aktion suchen"
       // Kein Kreuz in der Ecke: es sass mitten im Suchfeld, und eine Palette
       // schliesst man mit Esc. Ein Knopf, den niemand trifft, ist nur Unruhe.
       showCloseButton={false}
     >
-      <CommandInput placeholder="Wohin? Seite, App oder Aktion tippen." />
+      <CommandInput placeholder="Wohin? Seite oder Aktion tippen." />
       <CommandList>
         <CommandEmpty>Nichts gefunden.</CommandEmpty>
 
@@ -143,25 +135,6 @@ export function Kommandopalette({
             <span>{t.navSettings}</span>
           </CommandItem>
         </CommandGroup>
-
-        {appEintraege.length > 0 ? (
-          <>
-            <CommandSeparator />
-            <CommandGroup heading="Apps">
-              {appEintraege.map(({ meta, slug }) => (
-                <CommandItem
-                  key={slug}
-                  value={`${meta.name} ${slug}`}
-                  onSelect={() => dann(() => router.push(`/admin/${slug}`))}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={meta.icon} alt="" width={16} height={16} className="size-4 rounded-[4px] object-cover" />
-                  <span>{meta.name}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </>
-        ) : null}
 
         <CommandSeparator />
         <CommandGroup heading="Aktionen">

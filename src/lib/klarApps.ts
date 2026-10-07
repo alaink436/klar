@@ -1,5 +1,5 @@
 // Slim metadata for the Klar apps. Single source of truth for:
-//   - /admin Overview (App-Tab-Strip + Apps section in sidebar)
+//   - /admin Overview (app tiles)
 //   - /admin/analytics (App-Klick-Attribution auf /i/<slug>/<CODE>)
 //   - Klar Marketing page — page.tsx now READS status, release and store URL
 //     from here instead of keeping its own copy. Only the marketing prose
@@ -10,7 +10,7 @@
 // Trubel/MyLoo/ThrottleUp as unreleased and Promillo as live) — that is what
 // this consolidation prevents.
 //
-// Apps that ALSO have a Supabase Affiliate-Schema appear in
+// Apps whose Supabase Klar Control reads user numbers from appear in
 // process.env.KLAR_ADMIN_APPS via `AdminApp` (see lib/adminApps). The slugs
 // here are the keys for cross-referencing.
 

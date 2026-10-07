@@ -17,9 +17,7 @@ const KLAR_INBOX_KEY = process.env.KLAR_INBOX_SERVICE_KEY ?? "";
 
 export interface AdminSettings {
   shader_enabled: boolean;
-  auto_accept_affiliates: boolean;
   notification_trigger_inquiry: boolean;
-  notification_trigger_complete: boolean;
   notification_batch_size: number;
   notification_recipient_email: string;
   updated_at: string;
@@ -30,9 +28,7 @@ export interface AdminSettings {
 // failure so the marketing page never crashes if the inbox project is down.
 const DEFAULTS: AdminSettings = {
   shader_enabled: true,
-  auto_accept_affiliates: false,
   notification_trigger_inquiry: true,
-  notification_trigger_complete: true,
   notification_batch_size: 1,
   notification_recipient_email: "alain@getklar.org",
   updated_at: new Date(0).toISOString(),
@@ -213,7 +209,7 @@ export async function markInviteUsed(
 // ─── Notification log ─────────────────────────────────────────────────────
 
 export interface NotifEvent {
-  event_type: "inquiry_new" | "setup_completed";
+  event_type: "inquiry_new";
   app_slug?: string | null;
   handle?: string | null;
   inquiry_id?: string | null;
@@ -221,9 +217,9 @@ export interface NotifEvent {
 }
 
 // Append a pending notification event. The /api/inquiry route fires
-// inquiry_new and /api/affiliate/complete fires setup_completed. The
-// notification flusher (separate worker) reads pending events and emails
-// a digest when count >= notification_batch_size.
+// inquiry_new. The notification flusher reads pending events and emails a
+// digest when count >= notification_batch_size. Older rows may still carry
+// the affiliate-era `setup_completed`; the flusher ignores them.
 export async function logNotifEvent(ev: NotifEvent): Promise<void> {
   if (!KLAR_INBOX_KEY) return;
   await fetch(`${KLAR_INBOX_URL}/rest/v1/admin_notif_log`, {
