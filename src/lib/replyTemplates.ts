@@ -1,15 +1,11 @@
-// Konversations-Vorlagen für Antworten auf Outreach-Replies. Pro Sprache
-// (de/en/es/it/fr) ein Set; {{name}} und {{handle}} werden client-seitig im
-// Composer ersetzt (siehe outreachView reply-card JS).
+// Eingebaute Antwort-Vorlagen für den Composer der Inbox, pro Sprache
+// (de/en/es/it/fr) ein Set; {{name}} und {{handle}} ersetzt der Composer
+// (MailClient). lib/replyTemplateStore nimmt sie für jede Sprache, die in der
+// Tabelle keine eigenen Vorlagen hat. Die Vorlage ist ein Startpunkt, Alain
+// editiert vor dem Senden frei im Textfeld.
 //
-// WICHTIG: Diese Vorlagen sind reine Konversation (Interesse, Infos,
-// Rückfrage, Absage). Der Onboarding-Link gehört NICHT hier rein — der geht
-// ausschliesslich über die explizite "Als Creator annehmen"-Aktion raus.
-// Nur weil jemand auf die erste Welle antwortet, ist er noch kein Creator.
-//
-// Konditionen spiegeln die Wave-Mail-1 (50% Umsatzbeteiligung, 24 Monate,
-// Gratis-Lifetime-Premium, Auszahlung monatlich). Die Vorlage ist ein
-// Startpunkt — Alain editiert vor dem Senden frei im Textfeld.
+// Die Texte beschreiben noch das Creator-Angebot der Outreach-Zeit
+// (Creator-Link, 50 % Umsatzbeteiligung, Auszahlung per Wise).
 
 export type ReplyLang = "de" | "en" | "es" | "it" | "fr";
 

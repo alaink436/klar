@@ -85,7 +85,9 @@ export function endSessionCookies(): string[] {
   ];
 }
 
-function readCookie(header: string | null | undefined, name: string): string {
+/** One cookie from a Cookie header; "" when missing or not decodable. Pages
+ *  read the language and menu cookies with it too. */
+export function readCookie(header: string | null | undefined, name: string): string {
   for (const part of (header ?? "").split(";")) {
     const [k, ...v] = part.trim().split("=");
     if (k !== name) continue;
@@ -98,7 +100,9 @@ function readCookie(header: string | null | undefined, name: string): string {
   return "";
 }
 
-function ctEqual(a: string, b: string): boolean {
+/** Constant-time string comparison (UTF-8 bytes). lib/totp and the brain
+ *  export route use it as well. */
+export function ctEqual(a: string, b: string): boolean {
   const x = new TextEncoder().encode(a);
   const y = new TextEncoder().encode(b);
   if (x.length !== y.length) return false;

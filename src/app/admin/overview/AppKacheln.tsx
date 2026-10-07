@@ -1,6 +1,5 @@
 // Das Portfolio auf einen Blick: jede gelistete App mit Status, Symbol und
-// Name. Bis 2026-10-07 fuehrten die Kacheln auf die Affiliate-Seite der App;
-// die gibt es nicht mehr.
+// Name.
 
 import { Badge } from "@/components/ui/badge";
 import { LISTED_APPS, type KlarAppMeta } from "@/lib/klarApps";

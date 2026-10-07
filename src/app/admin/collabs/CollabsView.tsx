@@ -6,8 +6,6 @@
 // plus die Adress-Liste zum Kopieren für die Bios. Antworten laufen weiterhin
 // über die Inbox — jede Zeile deep-linkt dorthin (?f=collab&sel=<thread>).
 //
-// Lag bis 2026-08-11 als Tab in /admin/outreach; eingehende Anfragen sind der
-// wichtigere Kanal geworden und waren dort zwei Klicks tief vergraben.
 // Seit 2026-08-18 nicht mehr nur eingehend: das Formular oben trägt Gespräche
 // nach, die über DMs oder ein fremdes Postfach liefen (POST /admin/collab/manual).
 //

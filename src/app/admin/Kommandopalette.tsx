@@ -68,9 +68,8 @@ export function Kommandopalette({
         setOffen((o) => !o);
       }
     }
-    // Zweiter Weg hinein: ein Ereignis. Der Knopf in der Kopfleiste feuert es,
-    // und die zwanzig Seiten, die ihr Markup noch als Zeichenkette bauen,
-    // koennen es mit einer Zeile ebenfalls ausloesen, ohne React zu kennen.
+    // Zweiter Weg hinein: ein Ereignis. Der Knopf in der Kopfleiste feuert es
+    // ueber paletteOeffnen().
     function beiEreignis() {
       setOffen(true);
     }

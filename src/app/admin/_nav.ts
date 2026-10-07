@@ -13,8 +13,7 @@
 import type { AdminMessages } from "./_i18n";
 
 // "studios" (Klar Studios) seit 2026-09-22: alles, was die Apps betrifft, in
-// einem eigenen grossen Menue (Alains Ansage). Der Creator-Zweig (Affiliate)
-// ist seit 2026-10-07 geloescht.
+// einem eigenen grossen Menue (Alains Ansage).
 export type NavSection = "studio" | "studios";
 
 export interface NavItemDef {
@@ -22,7 +21,7 @@ export interface NavItemDef {
   id: string;
   /** Key into the message dictionary; the label follows the UI language. */
   labelKey: keyof AdminMessages;
-  /** Key into ICON (see ./icons). */
+  /** Key into NAV_ICON (see ./nav-icons). */
   icon: string;
   href: string;
   section: NavSection;

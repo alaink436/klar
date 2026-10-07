@@ -14,8 +14,8 @@
 
 import { headers } from "next/headers";
 import { ChevronRight } from "lucide-react";
-import { readCookieFromString } from "../_shared";
 import { requireAdminPage } from "../../../lib/adminGuard";
+import { readCookie } from "../../../lib/adminSession";
 import { LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 import { readTickets, type TicketEntry } from "@/lib/brainReader";
 import { Card } from "@/components/ui/card";
@@ -128,7 +128,7 @@ export default async function TicketsPage() {
   const h = await headers();
   const cookieHeader = h.get("cookie") ?? "";
 
-  const t = tAdmin(normalizeAdminLang(readCookieFromString(cookieHeader, LANG_COOKIE)));
+  const t = tAdmin(normalizeAdminLang(readCookie(cookieHeader, LANG_COOKIE)));
   const res = await readTickets();
   const groups = res.ok ? groupTickets(res.tickets) : [];
 

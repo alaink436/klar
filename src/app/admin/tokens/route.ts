@@ -1,9 +1,10 @@
-// POST handler for API-token management (Brain-API V2 + future Vault).
-//   action=create  -> mint a token, render it ONCE on a confirmation page
-//                     (never in a URL param, never retrievable again)
-//   action=revoke  -> revoke by id, redirect back to /admin/settings
-//
-// Same admin auth as /admin/settings/save (device cookie + admin session).
+// POST handler for API tokens (scopes brain:read, learnings:read, vault:use).
+//   action=create         -> mint a token, render it ONCE on a confirmation page
+//                            (never in a URL param, never retrievable again)
+//   action=revoke|delete  -> revoke or delete by id
+//   action=secrets        -> which vault keys a token may read in plaintext
+// The other actions redirect back to /admin/brain (JSON with ?json=1). Admin
+// check via lib/adminGuard, like every admin route.
 
 import { NextResponse, type NextRequest } from "next/server";
 import { STYLE, FONTS_LINK, THEME_INIT_SCRIPT, esc } from "@/app/admin/_shared";

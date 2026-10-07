@@ -6,8 +6,8 @@
 //
 // Tab + period switching uses next/link so the route change is a Soft
 // Navigation (only the AnalyticsClient subtree re-renders on the server)
-// rather than a full reload — avoids re-bootstrapping Recharts and the
-// WebGL smoke background on every click.
+// rather than a full reload, so Recharts is not re-bootstrapped on every
+// click.
 
 import Link from "next/link";
 import { AreaChart } from "../tremor/components/AreaChart/AreaChart";

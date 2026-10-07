@@ -3,8 +3,7 @@
 // POST   -> { ok, row } | { ok:false, error }   upsert one (json body)
 // DELETE -> { ok } | { ok:false, error }         delete one by id (json body)
 //
-// The standalone /admin/reply-templates page still uses the form-post
-// save/delete routes; this one backs the inbox drawer so edits update the
+// Backs the template manager in the inbox drawer, so edits update the
 // composer live without a full navigation.
 
 import { type NextRequest } from "next/server";

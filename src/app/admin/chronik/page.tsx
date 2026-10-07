@@ -11,8 +11,8 @@
 // bleibt sie leer statt kaputt.
 
 import { headers } from "next/headers";
-import { ICON, readCookieFromString } from "../_shared";
 import { requireAdminPage } from "../../../lib/adminGuard";
+import { readCookie } from "../../../lib/adminSession";
 import { readActiveProjects, readSessions } from "@/lib/brainReader";
 import { LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 
@@ -25,7 +25,7 @@ export default async function ChronikPage() {
   const h = await headers();
   const cookieHeader = h.get("cookie") ?? "";
 
-  const lang = normalizeAdminLang(readCookieFromString(cookieHeader, LANG_COOKIE));
+  const lang = normalizeAdminLang(readCookie(cookieHeader, LANG_COOKIE));
   const t = tAdmin(lang);
   const [projects, sessions] = await Promise.all([readActiveProjects(20), readSessions(60)]);
 

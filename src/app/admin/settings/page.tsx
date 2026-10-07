@@ -13,8 +13,8 @@
 // this page renders only its content.
 
 import { headers } from "next/headers";
-import { ICON, readCookieFromString } from "../_shared";
 import { requireAdminPage } from "../../../lib/adminGuard";
+import { readCookie } from "../../../lib/adminSession";
 import { datumInZone } from "@/lib/zeit";
 import { getAdminSettings, listInvites } from "../../../lib/adminSettings";
 import SettingsManager, { type InviteRow } from "./SettingsManager";
@@ -43,8 +43,8 @@ export default async function SettingsPage({
   const cookieHeader = h.get("cookie") ?? "";
 
   const sp = await searchParams;
-  const lang = normalizeAdminLang(readCookieFromString(cookieHeader, LANG_COOKIE));
-  const navPrefs = parseNavPrefs(readCookieFromString(cookieHeader, NAV_COOKIE));
+  const lang = normalizeAdminLang(readCookie(cookieHeader, LANG_COOKIE));
+  const navPrefs = parseNavPrefs(readCookie(cookieHeader, NAV_COOKIE));
   const [settings, invites] = await Promise.all([getAdminSettings(), listInvites()]);
   const origin = originFromHeaders(h);
   const now = Date.now();

@@ -2,24 +2,18 @@
 
 // Suchen und Sortieren fuer die Tabellen im Admin.
 //
-// Der Bestand: neun Tabellen (Auszahlungen, Buchungen, Vorlagen, die
-// App-Seiten) rendern ihre Zeilen als HTML-Zeichenketten und haben keinen
-// einzigen Griff. Wer eine Zeile sucht, scrollt. Wer nach Betrag sortieren
-// will, kann es nicht.
-//
 // Gebaut wie `FormulareOhneSprung`: eine Stelle, die alle Tabellen bedient,
-// statt neun Seiten anzufassen, die ihr Markup als Zeichenkette bauen. Der
-// Baustein arbeitet auf dem fertigen DOM, also bekommt jede kuenftige Tabelle
-// dieselben Griffe geschenkt.
+// auch die, deren Markup als Zeichenkette entsteht. Der Baustein arbeitet auf
+// dem fertigen DOM, also bekommt jede kuenftige Tabelle dieselben Griffe
+// geschenkt.
 //
 // Bewusst nur ab sechs Zeilen. Ein Suchfeld ueber drei Zeilen ist kein Griff,
 // sondern Laerm.
 //
 // Bewusst rein im Browser: sortiert und gefiltert wird, was ohnehin schon
-// dasteht. Wo der Server die Menge begrenzt (Outreach holt 200 und hat seine
-// eigene Suche mitsamt vier Filtern), waere ein zweiter Filter daneben eine
-// Luege, weil er nur das Geladene durchsucht. Solche Tabellen sind hier ueber
-// `data-klar-griffe="nein"` abwaehlbar.
+// dasteht. Wo der Server die Menge begrenzt und selbst sucht, waere ein
+// zweiter Filter daneben eine Luege, weil er nur das Geladene durchsucht.
+// Solche Tabellen sind hier ueber `data-klar-griffe="nein"` abwaehlbar.
 
 import * as React from "react";
 import { usePathname } from "next/navigation";

@@ -7,9 +7,9 @@
 // note: an account is connected when Blotato lists the same platform + handle.
 
 import { headers } from "next/headers";
-import { readCookieFromString } from "../_shared";
 import { LANG_COOKIE, flashText, normalizeAdminLang, tAdmin } from "../_i18n";
 import { requireAdminPage } from "../../../lib/adminGuard";
+import { readCookie } from "../../../lib/adminSession";
 import { listAccounts } from "../../../lib/socialAccountsStore";
 import { getBlotatoAccounts } from "../../../lib/blotato";
 import { APPS } from "../../../lib/socialAccounts";
@@ -32,7 +32,7 @@ export default async function AccountsPage({
   const cookieHeader = h.get("cookie") ?? "";
 
   const sp = await searchParams;
-  const lang = normalizeAdminLang(readCookieFromString(cookieHeader, LANG_COOKIE));
+  const lang = normalizeAdminLang(readCookie(cookieHeader, LANG_COOKIE));
   const t = tAdmin(lang);
 
   const [stored, live] = await Promise.all([listAccounts(), getBlotatoAccounts()]);

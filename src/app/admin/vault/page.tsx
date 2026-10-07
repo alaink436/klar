@@ -8,11 +8,9 @@
 
 import { headers } from "next/headers";
 import Link from "next/link";
-import {
-  readCookieFromString,
-} from "../_shared";
 import { DATE_LOCALE, LANG_COOKIE, flashText, normalizeAdminLang, tAdmin } from "../_i18n";
 import { requireAdminPage } from "../../../lib/adminGuard";
+import { readCookie } from "../../../lib/adminSession";
 import { datumInZone } from "@/lib/zeit";
 import { listSecrets, vaultReady } from "../../../lib/vault";
 import { Card } from "@/components/ui/card";
@@ -40,7 +38,7 @@ export default async function VaultPage({
   const cookieHeader = h.get("cookie") ?? "";
 
   const sp = await searchParams;
-  const lang = normalizeAdminLang(readCookieFromString(cookieHeader, LANG_COOKIE));
+  const lang = normalizeAdminLang(readCookie(cookieHeader, LANG_COOKIE));
   const t = tAdmin(lang);
   const origin = originFromHeaders(h);
   const secrets = await listSecrets();

@@ -1,6 +1,6 @@
 // Instant navigation feedback. Next shows this the moment a menu item is clicked,
 // while the (force-dynamic) target page renders on the server. The persistent
-// AdminShell (sidebar + .layout/.main frame) stays mounted, so this only fills
+// AdminShell (sidebar + .main frame) stays mounted, so this only fills
 // the content area: a topbar + shimmering placeholders. STYLE/theme come from the
 // persistent admin/layout.tsx.
 

@@ -66,64 +66,6 @@ export function getApps(): AdminApp[] {
   return out;
 }
 
-// PostgREST GET with the service-role key (bypasses RLS). Returns [] on any
-// failure so a not-yet-onboarded app degrades gracefully instead of throwing.
-//
-// Optional `revalidate` opt-in (seconds) hands off caching to Next's data
-// cache. Default stays no-store so callers that need fresh state keep seeing
-// reality. Read-only dashboards can pass revalidate: 30 to dedupe across
-// tab-switches.
-export async function sbGet(
-  app: AdminApp,
-  path: string,
-  opts?: { revalidate?: number },
-): Promise<any[]> {
-  const cacheOpts =
-    opts && typeof opts.revalidate === "number"
-      ? { next: { revalidate: opts.revalidate } }
-      : { cache: "no-store" as const };
-  try {
-    const res = await fetch(`${app.supabaseUrl}/rest/v1/${path}`, {
-      headers: {
-        apikey: app.serviceKey,
-        Authorization: `Bearer ${app.serviceKey}`,
-        Accept: "application/json",
-      },
-      ...cacheOpts,
-    });
-    if (!res.ok) return [];
-    const j = await res.json();
-    return Array.isArray(j) ? j : [];
-  } catch {
-    return [];
-  }
-}
-
-// PostgREST RPC call with the service-role key. Throws on any non-2xx so the
-// caller can show a real error instead of pretending things worked.
-export async function sbRpc<T = unknown>(
-  app: AdminApp,
-  fn: string,
-  args: Record<string, unknown>,
-): Promise<T> {
-  const res = await fetch(`${app.supabaseUrl}/rest/v1/rpc/${fn}`, {
-    method: "POST",
-    headers: {
-      apikey: app.serviceKey,
-      Authorization: `Bearer ${app.serviceKey}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify(args),
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`sbRpc ${fn} ${res.status}: ${text.slice(0, 200)}`);
-  }
-  return (await res.json()) as T;
-}
-
 // Aggregate user stats for one connected app, read from auth.users via the
 // `klar_app_stats()` RPC (SECURITY DEFINER, service_role-only) that lives in
 // each app's Supabase. auth.users isn't reachable over plain PostgREST, hence

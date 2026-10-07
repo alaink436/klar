@@ -1,24 +1,7 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Fraunces, Manrope, JetBrains_Mono, Geist, Bebas_Neue } from "next/font/google";
+import { Space_Grotesk, Fraunces, Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import AnalyticsTracker from "./AnalyticsTracker";
-
-/* VS-parity fonts for /admin (Inkschedule look). Public landing keeps
-   Space Grotesk/Fraunces/Manrope. Both font-trees are concurrently loaded
-   so /admin can use --font-geist + --font-bebas without touching the
-   public-page identity. */
-const geist = Geist({
-  variable: "--font-geist",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-});
-const bebas = Bebas_Neue({
-  variable: "--font-bebas",
-  subsets: ["latin"],
-  weight: "400",
-  display: "swap",
-});
 
 /* Display: Space Grotesk — clean, normally-proportioned geometric grotesque.
    Deliberately not an elongated/condensed face (Syne read as too stretched). */
@@ -72,7 +55,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${display.variable} ${editorial.variable} ${manrope.variable} ${jetbrains.variable} ${geist.variable} ${bebas.variable} grain antialiased`}
+        className={`${display.variable} ${editorial.variable} ${manrope.variable} ${jetbrains.variable} grain antialiased`}
       >
         {children}
         <AnalyticsTracker />

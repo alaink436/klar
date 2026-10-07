@@ -20,7 +20,6 @@ import { Activity } from "@/components/animate-ui/icons/activity";
 
 const SYMBOL = {
   inbox: Inbox,
-  check: ClipboardList,
   doc: MessageCircle,
   pulse: Activity,
 } as const;

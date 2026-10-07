@@ -128,10 +128,6 @@ export function deviceCookieHeader(value: string): string {
   return `klar_device=${encodeURIComponent(value)}; HttpOnly; Secure; SameSite=Strict; Path=/admin; Max-Age=${10 * 365 * 24 * 60 * 60}`;
 }
 
-export function deviceCookieClear(): string {
-  return `klar_device=; HttpOnly; Secure; SameSite=Strict; Path=/admin; Max-Age=0`;
-}
-
 export function newDeviceId(): string {
   const bytes = new Uint8Array(12);
   crypto.getRandomValues(bytes);

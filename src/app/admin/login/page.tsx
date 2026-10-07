@@ -10,18 +10,13 @@
 //   - known device -> code only
 
 import { headers } from "next/headers";
-import {
-  ICON,
-  esc,
-} from "../_shared";
+import { esc } from "../_shared";
 import { adminConfig, readAdminSession } from "../../../lib/adminSession";
 import { fetchInvite } from "../../../lib/adminSettings";
 import OtpField from "./OtpField";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-void ICON;
 
 function Chrome({ children }: { children: React.ReactNode }) {
   return (
