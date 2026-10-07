@@ -44,7 +44,7 @@ export function Arbeitsliste({ aufgaben }: { aufgaben: Aufgabe[] }) {
     return (
       <div className="flex items-center gap-2.5 border-t border-[var(--line)] px-6 py-5 text-[13px] text-[var(--fg-3)]">
         <ClipboardList size={15} className="shrink-0" />
-        Nichts offen. Keine Anfrage, keine Antwort und keine Auszahlung wartet auf dich.
+        Nichts offen. Keine Anfrage und keine Antwort wartet auf dich.
       </div>
     );
   }
