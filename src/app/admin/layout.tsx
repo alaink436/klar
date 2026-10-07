@@ -28,7 +28,10 @@ import { getApps } from "@/lib/adminApps";
 import AdminShell from "./AdminShell";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const apps = getApps();
+  // Only slug and name cross into the client shell. Every prop of a client
+  // component is serialized into the page, and this layout also renders the
+  // public /admin/login: the full entries carry service-role and admin keys.
+  const apps = getApps().map(({ slug, name }) => ({ slug, name }));
   // UI language for the whole workspace, read once here and handed down.
   const jar = await cookies();
   const lang = normalizeAdminLang(jar.get(LANG_COOKIE)?.value);
