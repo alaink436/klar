@@ -8,8 +8,7 @@
 // lives only in the server env, so the agent still cannot read keys.
 
 import { NextResponse, type NextRequest } from "next/server";
-import { ctEqual, readCookie } from "@/app/admin/_shared";
-import { verifyDeviceCookie } from "@/lib/deviceCookie";
+import { requireAdminRoute } from "@/lib/adminGuard";
 import { revealSecret } from "@/lib/vault";
 import { clientIp, rateLimit } from "@/lib/apiGuards";
 
@@ -17,14 +16,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest): Promise<Response> {
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
-  if (!KEY || !DEV) return NextResponse.json({ error: "admin not configured" }, { status: 503 });
-  if (!ctEqual(readCookie(req, "klar_admin"), KEY)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-  const device = await verifyDeviceCookie(readCookie(req, "klar_device"), DEV);
-  if (!device) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const auth = await requireAdminRoute(req);
+  if (!auth.ok) return auth.response;
 
   // Light brake against accidental loops / scripted dumping.
   const rl = rateLimit("vault_reveal", clientIp(req), 60, 60 * 60 * 1000);

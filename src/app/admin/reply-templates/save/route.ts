@@ -2,7 +2,7 @@
 // Form-POST: language, template_key, label, subject, body, sort_order.
 
 import { NextResponse, type NextRequest } from "next/server";
-import { readCookie, ctEqual } from "../../_shared";
+import { requireAdminRoute } from "@/lib/adminGuard";
 import { upsertReplyTemplate, REPLY_LANGS } from "../../../../lib/replyTemplateStore";
 import type { ReplyLang } from "../../../../lib/replyTemplates";
 
@@ -22,11 +22,8 @@ function back(req: NextRequest, msg: string, anchor?: string): Response {
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  if (!KEY) return back(req, "Server misconfigured: KLAR_ADMIN_KEY missing");
-  if (!ctEqual(readCookie(req, "klar_admin"), KEY)) {
-    return NextResponse.redirect(new URL("/admin/login", req.url), 303);
-  }
+  const auth = await requireAdminRoute(req, "login");
+  if (!auth.ok) return auth.response;
 
   let form: FormData;
   try {

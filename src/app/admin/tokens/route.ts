@@ -6,8 +6,8 @@
 // Same admin auth as /admin/settings/save (device cookie + admin session).
 
 import { NextResponse, type NextRequest } from "next/server";
-import { ctEqual, readCookie, STYLE, FONTS_LINK, THEME_INIT_SCRIPT, esc } from "@/app/admin/_shared";
-import { verifyDeviceCookie } from "@/lib/deviceCookie";
+import { STYLE, FONTS_LINK, THEME_INIT_SCRIPT, esc } from "@/app/admin/_shared";
+import { requireAdminRoute } from "@/lib/adminGuard";
 import {
   createToken,
   revokeToken,
@@ -56,16 +56,8 @@ function tokenShownOncePage(raw: string, label: string, scopes: string[]): Respo
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
-  if (!KEY || !DEV) return NextResponse.json({ ok: false, error: "admin not configured" }, { status: 503 });
-  if (!ctEqual(readCookie(req, "klar_admin"), KEY)) {
-    return NextResponse.redirect(new URL("/admin/login?next=/admin/brain", req.url), 303);
-  }
-  const device = await verifyDeviceCookie(readCookie(req, "klar_device"), DEV);
-  if (!device) {
-    return NextResponse.redirect(new URL("/admin/login?next=/admin/brain", req.url), 303);
-  }
+  const auth = await requireAdminRoute(req, "login");
+  if (!auth.ok) return auth.response;
 
   let form: FormData;
   try {

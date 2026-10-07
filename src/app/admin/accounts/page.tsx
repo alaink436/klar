@@ -7,10 +7,9 @@
 // note: an account is connected when Blotato lists the same platform + handle.
 
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { readCookieFromString } from "../_shared";
 import { LANG_COOKIE, flashText, normalizeAdminLang, tAdmin } from "../_i18n";
-import { verifyDeviceCookie } from "../../../lib/deviceCookie";
+import { requireAdminPage } from "../../../lib/adminGuard";
 import { listAccounts } from "../../../lib/socialAccountsStore";
 import { getBlotatoAccounts } from "../../../lib/blotato";
 import { APPS } from "../../../lib/socialAccounts";
@@ -28,14 +27,9 @@ export default async function AccountsPage({
 }: {
   searchParams: Promise<{ msg?: string; err?: string }>;
 }) {
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
-  const TOTP = process.env.KLAR_TOTP_SECRET ?? "";
-  if (!KEY || !DEV || !TOTP) redirect("/admin/login");
+  await requireAdminPage();
   const h = await headers();
   const cookieHeader = h.get("cookie") ?? "";
-  if (!(await verifyDeviceCookie(readCookieFromString(cookieHeader, "klar_device"), DEV))) redirect("/admin/login");
-  if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
   const sp = await searchParams;
   const lang = normalizeAdminLang(readCookieFromString(cookieHeader, LANG_COOKIE));

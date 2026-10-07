@@ -16,8 +16,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
-import { readCookie, ctEqual } from "@/app/admin/_shared";
-import { verifyDeviceCookie } from "@/lib/deviceCookie";
+import { requireAdminRoute } from "@/lib/adminGuard";
 import { setCollabZweiteEmail } from "@/lib/collabStore";
 
 export const runtime = "nodejs";
@@ -33,13 +32,8 @@ function back(req: NextRequest, msg: string): Response {
 export async function POST(req: NextRequest): Promise<Response> {
   // Der Auth-Gate der Seite reicht für die Anzeige, aber eine Route ist eine
   // eigene, direkt aufrufbare URL — sie prüft ihre Berechtigung selbst.
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
-  if (!KEY || !DEV) return back(req, "nicht konfiguriert");
-  if (!ctEqual(readCookie(req, "klar_admin"), KEY)) return back(req, "nicht angemeldet");
-  if (!(await verifyDeviceCookie(readCookie(req, "klar_device"), DEV))) {
-    return back(req, "nicht angemeldet");
-  }
+  const auth = await requireAdminRoute(req, "login");
+  if (!auth.ok) return auth.response;
 
   let form: FormData;
   try {

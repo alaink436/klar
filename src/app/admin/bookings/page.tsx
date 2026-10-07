@@ -9,12 +9,7 @@
 // Env: KLAR_ADMIN_KEY, KLAR_DEVICE_SECRET, KLAR_TOTP_SECRET,
 //      KLAR_INBOX_SUPABASE_URL (default anime-vault), KLAR_INBOX_SERVICE_KEY.
 
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import {
-  readCookieFromString,
-} from "../_shared";
-import { verifyDeviceCookie } from "../../../lib/deviceCookie";
+import { requireAdminPage } from "../../../lib/adminGuard";
 import { inZone } from "@/lib/zeit";
 
 import { AdminTopbar } from "../AdminTopbar";
@@ -202,16 +197,7 @@ function Body({ result }: { result: BookingsResult }) {
 }
 
 export default async function BookingsPage() {
-  // Auth — identical gate to brain/cal/analytics/settings (device cookie + admin session).
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
-  const TOTP = process.env.KLAR_TOTP_SECRET ?? "";
-  if (!KEY || !DEV || !TOTP) redirect("/admin/login");
-  const h = await headers();
-  const cookieHeader = h.get("cookie") ?? "";
-  const device = await verifyDeviceCookie(readCookieFromString(cookieHeader, "klar_device"), DEV);
-  if (!device) redirect("/admin/login");
-  if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
+  await requireAdminPage();
 
   const result = await loadBookings();
 

@@ -7,9 +7,8 @@
 // successful first login (handled in /admin/login).
 
 import { NextResponse, type NextRequest } from "next/server";
-import { ctEqual, readCookie } from "@/app/admin/_shared";
 import { createInvite } from "@/lib/adminSettings";
-import { verifyDeviceCookie } from "@/lib/deviceCookie";
+import { requireAdminRoute } from "@/lib/adminGuard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,18 +23,8 @@ function back(req: NextRequest, params: Record<string, string>): Response {
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
-  if (!KEY || !DEV) {
-    return NextResponse.json({ ok: false, error: "admin not configured" }, { status: 503 });
-  }
-  if (!ctEqual(readCookie(req, "klar_admin"), KEY)) {
-    return NextResponse.redirect(new URL("/admin/login?next=/admin/settings", req.url), 303);
-  }
-  const device = await verifyDeviceCookie(readCookie(req, "klar_device"), DEV);
-  if (!device) {
-    return NextResponse.redirect(new URL("/admin/login?next=/admin/settings", req.url), 303);
-  }
+  const auth = await requireAdminRoute(req, "login");
+  if (!auth.ok) return auth.response;
 
   let form: FormData;
   try {
@@ -59,7 +48,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     const inv = await createInvite({
       invitedName: name,
       invitedEmail: email,
-      createdByDevice: device.name,
+      createdByDevice: auth.deviceName,
       ttlDays,
     });
     // Pass the freshly-minted token through the flash so the admin sees it

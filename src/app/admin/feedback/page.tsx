@@ -7,11 +7,8 @@
 // Geantwortet wird aus dem eigenen Mailprogramm, damit die Antwort vom
 // Support-Postfach der App kommt und nicht von einer Klar-Adresse.
 
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { Mail } from "lucide-react";
-import { readCookieFromString } from "../_shared";
-import { verifyDeviceCookie } from "../../../lib/deviceCookie";
+import { requireAdminPage } from "../../../lib/adminGuard";
 import { FEEDBACK_APPS, feedbackAppName, listFeedback, type AppFeedback } from "@/lib/feedbackStore";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,15 +58,7 @@ export default async function FeedbackPage({
 }: {
   searchParams: Promise<{ id?: string; ordner?: string; app?: string; stand?: string; msg?: string }>;
 }) {
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
-  const TOTP = process.env.KLAR_TOTP_SECRET ?? "";
-  if (!KEY || !DEV || !TOTP) redirect("/admin/login");
-  const h = await headers();
-  const cookieHeader = h.get("cookie") ?? "";
-  const device = await verifyDeviceCookie(readCookieFromString(cookieHeader, "klar_device"), DEV);
-  if (!device) redirect("/admin/login");
-  if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
+  await requireAdminPage();
 
   const roh = await searchParams;
   const erledigt = roh.ordner === "erledigt";

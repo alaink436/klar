@@ -12,10 +12,9 @@
 import { headers } from "next/headers";
 import {
   ICON,
-  readCookieFromString,
   esc,
 } from "../_shared";
-import { verifyDeviceCookie } from "../../../lib/deviceCookie";
+import { adminConfig, readAdminSession } from "../../../lib/adminSession";
 import { fetchInvite } from "../../../lib/adminSettings";
 import OtpField from "./OtpField";
 
@@ -23,10 +22,6 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 void ICON;
-
-const KEY = () => process.env.KLAR_ADMIN_KEY ?? "";
-const TOTP_SECRET = () => process.env.KLAR_TOTP_SECRET ?? "";
-const DEVICE_SECRET = () => process.env.KLAR_DEVICE_SECRET ?? "";
 
 function Chrome({ children }: { children: React.ReactNode }) {
   return (
@@ -53,10 +48,11 @@ function BackLink() {
 const LOGIN_THEME_TOGGLE = `<button type="button" class="tbtn" onclick="klarToggleTheme()" aria-label="Theme wechseln" title="Theme wechseln"><svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg><svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg></button>`;
 
 function SetupHint() {
+  const config = adminConfig();
   const missing = [
-    KEY() ? "" : "KLAR_ADMIN_KEY",
-    TOTP_SECRET() ? "" : "KLAR_TOTP_SECRET",
-    DEVICE_SECRET() ? "" : "KLAR_DEVICE_SECRET",
+    config.adminKey ? "" : "KLAR_ADMIN_KEY",
+    config.totpSecret ? "" : "KLAR_TOTP_SECRET",
+    config.deviceSecret ? "" : "KLAR_DEVICE_SECRET",
   ].filter(Boolean);
   return (
     <Chrome>
@@ -94,19 +90,20 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ invite?: string; err?: string }>;
 }) {
-  if (!KEY() || !TOTP_SECRET() || !DEVICE_SECRET()) return <SetupHint />;
+  const session = await readAdminSession((await headers()).get("cookie"));
+  if (session.status === "not-configured") return <SetupHint />;
+  // Known device (with or without a live session): greet it, ask only for the code.
+  const knownDeviceName =
+    session.status === "ok" || session.status === "no-session" ? session.deviceName : null;
 
   const sp = await searchParams;
-  const h = await headers();
-  const cookieHeader = h.get("cookie") ?? "";
-  const device = await verifyDeviceCookie(readCookieFromString(cookieHeader, "klar_device"), DEVICE_SECRET());
 
   const inviteToken = (sp.invite ?? "").trim();
   let err = sp.err ? String(sp.err) : "";
   let inviteName: string | null = null;
   let validInvite = false;
 
-  if (inviteToken && !device) {
+  if (inviteToken && knownDeviceName === null) {
     const invite = await fetchInvite(inviteToken);
     if (!invite) {
       if (!err) err = "Invite-Link ungültig, abgelaufen oder schon eingelöst.";
@@ -116,7 +113,6 @@ export default async function LoginPage({
     }
   }
 
-  const knownDeviceName = device ? device.name : null;
   const isNewDevice = knownDeviceName === null;
   const hasInvite = validInvite;
   const showKeyInput = isNewDevice && !hasInvite;

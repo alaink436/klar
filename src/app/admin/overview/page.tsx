@@ -15,15 +15,12 @@
 //      Supabase-Schluessel je App fuer die Nutzerzahlen, und KLAR_INBOX_*
 //      fuer den Feed).
 
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { readCookieFromString } from "../_shared";
 import { AdminTopbar } from "../AdminTopbar";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Arbeitsliste, type Aufgabe } from "./Arbeitsliste";
 import { Projektliste } from "./Projektliste";
 import { AppKacheln } from "./AppKacheln";
-import { verifyDeviceCookie } from "../../../lib/deviceCookie";
+import { requireAdminPage } from "../../../lib/adminGuard";
 import { getApps, fetchAppUserStats, type AdminApp } from "../../../lib/adminApps";
 import { countOpenCollabs } from "@/lib/collabView";
 import { readActiveProjects, type BrainProject } from "@/lib/brainReader";
@@ -125,16 +122,7 @@ export default async function OverviewPage({
 }: {
   searchParams: Promise<{ msg?: string }>;
 }) {
-  // Schranke wie bei brain/cal/bookings/revenue (Geraete-Cookie + Sitzung).
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
-  const TOTP = process.env.KLAR_TOTP_SECRET ?? "";
-  if (!KEY || !DEV || !TOTP) redirect("/admin/login");
-  const h = await headers();
-  const cookieHeader = h.get("cookie") ?? "";
-  const device = await verifyDeviceCookie(readCookieFromString(cookieHeader, "klar_device"), DEV);
-  if (!device) redirect("/admin/login");
-  if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
+  await requireAdminPage();
 
   const sp = await searchParams;
   const apps = getApps();
