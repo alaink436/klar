@@ -1,13 +1,11 @@
 "use client";
 
-// Compact card layout for the 4 auth screens (signup / login / magic /
-// cancel). Kept as a single shared component so the screens stay visually
-// identical and only the form body changes. The KLAR wordmark sits above
-// the card as a small, restrained brand anchor.
+// Compact card layout for the AI-Brain login screen. The KLAR wordmark sits
+// above the card as a small, restrained brand anchor.
 
 import Link from "next/link";
 
-// Klar wordmark used on auth + cancel screens. Pure typography, no PNG,
+// Klar wordmark used on the login screen. Pure typography, no PNG,
 // so it stays sharp at any zoom level and avoids loading an extra image.
 // Declared BEFORE AuthShell so it's reachable from within AuthShell's JSX
 // without relying on function-hoisting subtleties under SWC transforms.
@@ -34,17 +32,6 @@ export function KlarWordmark({ size = "md" }: { size?: "sm" | "md" }) {
         }}
       >
         Klar
-      </span>
-      <span
-        style={{
-          fontFamily: "var(--font-editorial, Georgia, serif)",
-          fontStyle: "italic",
-          fontWeight: 400,
-          fontSize: fontSize * 0.7,
-          color: "var(--fg-3)",
-        }}
-      >
-        affiliate
       </span>
     </Link>
   );

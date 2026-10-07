@@ -1,8 +1,6 @@
 "use client";
 
-// Browser-side Supabase client for the dashboard auth forms. Lives in the
-// _shared folder so all three forms (signup / login / magic) share the
-// same singleton instance.
+// Browser-side Supabase client for the AI-Brain login form (singleton).
 
 import { createBrowserClient } from "@supabase/ssr";
 

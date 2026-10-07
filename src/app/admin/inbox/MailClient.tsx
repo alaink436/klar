@@ -6,8 +6,7 @@
 // docked composer. Shows per conversation: when they wrote (relative + exact
 // on hover), which app(s) it is about, an inline DE-translate per inbound
 // message, and the reply number ("3. Antwort"). Reply + translate go async
-// (no reload); approve / decline stay as plain form posts (terminal actions,
-// redirect back).
+// (no reload).
 //
 // Styling reuses the admin token system (var(--…)); the only RetroUI accents
 // are the hard offset-shadow on the Senden button and the reply-count chip,
@@ -47,10 +46,10 @@ export interface Conversation {
   lastActivityAt: string | null;
   // Source of the conversation. "inquiry" = website contact-form request,
   // "collab" = mail to a public per-app address (TikTok-Bio).
-  kind?: "inquiry" | "affiliate-chat" | "collab";
+  kind?: "inquiry" | "collab";
   // Admin star (klar_inbox_stars). Toggled optimistically in the client.
   starred?: boolean;
-  // Present when kind === "inquiry": the website request + approve/decline state.
+  // Present when kind === "inquiry": the website request.
   inquiry?: InquiryMeta;
   // Present when kind === "collab": which public mailbox der Thread gehört.
   // `channel` unterscheidet Mail-Threads von den seit 2026-08-18 möglichen,
@@ -65,9 +64,8 @@ export interface Conversation {
   };
 }
 
-// Website contact-form request folded into the inbox. Affiliate inquiries carry
-// the approve flow (mint onboarding link); consulting inquiries are reply/decline
-// only. The approve/decline business logic stays in /admin/approve + /admin/decline.
+// Website contact-form request folded into the inbox. Answered by mail; the
+// affiliate approve/decline flow is gone since 2026-10-07.
 export interface InquiryMeta {
   inquiryId: string;
   inquiryType: "affiliate" | "consulting" | string;
@@ -80,13 +78,6 @@ export interface InquiryMeta {
   project: string | null;
   budget: string | null;
   brief: string | null;
-  targetApp: string | null;
-  approvedApp: string | null;
-  approvedCode: string | null;
-  approvedAt: string | null;
-  declinedAt: string | null;
-  declineReason: string | null;
-  setupLink: string | null; // precomputed server-side when approved
 }
 
 export type AppMeta = Record<string, { name: string; icon: string }>;
@@ -193,14 +184,12 @@ const platformLabel = (p: string): string =>
 export default function MailClient({
   conversations,
   appMeta,
-  appSlugs,
   templates,
   initialFilter,
   initialSelId,
 }: {
   conversations: Conversation[];
   appMeta: AppMeta;
-  appSlugs: string[];
   templates: TemplatesMap;
   /** Deep-Link-Support (?f= / ?sel= auf /admin/inbox): Startfilter + vorselektierte
    *  Konversation. Nur Startwerte, danach übernimmt der Client-State wie bisher. */
@@ -263,8 +252,6 @@ export default function MailClient({
   // state → no hydration mismatch, no setState-in-effect lint).
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const [sendMsg, setSendMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [acceptOpen, setAcceptOpen] = useState(false);
-  const [declineArmed, setDeclineArmed] = useState(false);
 
   const sel = useMemo(
     () => convs.find((c) => c.id === selectedId) ?? null,
@@ -342,8 +329,6 @@ export default function MailClient({
     setComposer({ subject: sel.kind === "collab" ? collabSubject : `Re: Klar x ${who}`, body: "" });
     setComposerOpen(false);
     setSendMsg(null);
-    setAcceptOpen(false);
-    setDeclineArmed(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
@@ -375,7 +360,6 @@ export default function MailClient({
       if (filter === "starred" && !c.starred) return false;
       if (filter === "inquiry" && c.kind !== "inquiry") return false;
       if (filter === "collab" && c.kind !== "collab") return false;
-      if (filter === "replied" && (c.kind === "inquiry" || c.status !== "replied")) return false;
       if (!q) return true;
       const hay = `${c.displayName ?? ""} ${c.handle} ${c.messages.map((m) => m.body).join(" ")}`.toLowerCase();
       return hay.includes(q);
@@ -407,48 +391,6 @@ export default function MailClient({
 
   const send = useCallback(async () => {
     if (!sel) return;
-    // Affiliate chat: reply goes straight into the affiliate's dashboard (no
-    // email, no subject), via the dedicated endpoint keyed by their user id.
-    if (sel.kind === "affiliate-chat") {
-      if (!composer.body.trim()) {
-        setSendMsg({ ok: false, text: "Nachricht darf nicht leer sein." });
-        return;
-      }
-      // Optimistic: clear the field + show the bubble immediately, revert on error.
-      const chatBody = composer.body;
-      const now = new Date().toISOString();
-      const localId = `local-${Date.now()}`;
-      const optimistic: ThreadMessage = { id: localId, direction: "out", subject: null, body: chatBody, at: now, provider: "chat" };
-      setConvs((prev) => prev.map((c) => (c.id === sel.id ? { ...c, messages: [...c.messages, optimistic], lastActivityAt: now } : c)));
-      setComposer((c) => ({ ...c, body: "" }));
-      setSending(true);
-      setSendMsg(null);
-      try {
-        const fd = new URLSearchParams();
-        fd.set("affiliate_user_id", sel.id);
-        fd.set("body", chatBody);
-        const res = await fetch("/admin/affiliate-chat/reply?json=1", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: fd.toString(),
-        });
-        const j = (await res.json().catch(() => ({ ok: false, msg: "Antwort unlesbar" }))) as { ok?: boolean; msg?: string };
-        if (res.ok && j.ok) {
-          setSendMsg({ ok: true, text: "Gesendet. Der Creator sieht es im Dashboard-Chat." });
-        } else {
-          setConvs((prev) => prev.map((c) => (c.id === sel.id ? { ...c, messages: c.messages.filter((m) => m.id !== localId) } : c)));
-          setComposer((c) => ({ ...c, body: chatBody }));
-          setSendMsg({ ok: false, text: j.msg || "Senden fehlgeschlagen." });
-        }
-      } catch {
-        setConvs((prev) => prev.map((c) => (c.id === sel.id ? { ...c, messages: c.messages.filter((m) => m.id !== localId) } : c)));
-        setComposer((c) => ({ ...c, body: chatBody }));
-        setSendMsg({ ok: false, text: "Netzwerkfehler beim Senden." });
-      } finally {
-        setSending(false);
-      }
-      return;
-    }
     // Collab-Postfach: Antwort geht per Brevo über /admin/collab/reply raus,
     // replyTo = die Alias-Adresse, damit die Gegenantwort im Thread bleibt.
     if (sel.kind === "collab") {
@@ -558,7 +500,7 @@ export default function MailClient({
               </button>
             </div>
             <div className="seg" style={{ alignSelf: "flex-start" }}>
-              {(["all", "starred", "inquiry", "collab", "replied"] as const).map((f) => (
+              {(["all", "starred", "inquiry", "collab"] as const).map((f) => (
                 <a
                   key={f}
                   className={filter === f ? "on" : ""}
@@ -566,7 +508,7 @@ export default function MailClient({
                   title={f === "starred" ? "Nur mit Stern markierte" : f === "collab" ? "Mails an die öffentlichen App-Adressen (TikTok-Bio)" : undefined}
                   onClick={() => setFilter(f)}
                 >
-                  {f === "all" ? "Alle" : f === "starred" ? "★" : f === "inquiry" ? "Anfragen" : f === "collab" ? "Collabs" : "Antworten"}
+                  {f === "all" ? "Alle" : f === "starred" ? "★" : f === "inquiry" ? "Anfragen" : "Collabs"}
                 </a>
               ))}
             </div>
@@ -721,13 +663,8 @@ export default function MailClient({
                   </div>
                 </div>
 
-                {/* Actions: affiliate-chat (none), inquiry (approve/decline) */}
-                {sel.kind === "affiliate-chat" ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
-                    <span className="kr-chip">Creator-Chat</span>
-                    <span className="muted" style={{ fontSize: 12 }}>Antwort geht direkt ins Dashboard des Creators.</span>
-                  </div>
-                ) : sel.kind === "collab" ? (
+                {/* Context: collab mailbox, or the mail address of an inquiry */}
+                {sel.kind === "collab" ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
                     <span className="kr-chip">
                       {sel.collab?.channel && sel.collab.channel !== "email" ? "Collab-Gespräch" : "Collab-Anfrage"}
@@ -738,88 +675,8 @@ export default function MailClient({
                         : `Eingegangen über ${sel.collab?.address ?? "die öffentliche App-Adresse"} — deine Antwort geht per Mail raus und läuft über dieselbe Adresse zurück in diesen Thread.`}
                     </span>
                   </div>
-                ) : sel.kind === "inquiry" && sel.inquiry ? (
-                  (() => {
-                    const iq = sel.inquiry!;
-                    const isAffiliate = iq.inquiryType === "affiliate";
-                    if (iq.status === "declined") {
-                      return (
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
-                          <span className="muted" style={{ fontSize: 12 }}>Abgelehnt{iq.declinedAt ? ` ${rel(iq.declinedAt)}` : ""}{iq.declineReason ? ` · ${iq.declineReason}` : ""}.</span>
-                          <form method="POST" action="/admin/decline" style={{ marginLeft: "auto" }}>
-                            <input type="hidden" name="inquiry_id" value={iq.inquiryId} />
-                            <input type="hidden" name="action" value="reopen" />
-                            <button type="submit" className="kr-mini">Wieder öffnen</button>
-                          </form>
-                        </div>
-                      );
-                    }
-                    if (isAffiliate && iq.setupLink) {
-                      return (
-                        <div style={{ padding: "12px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                            <span className="kr-chip">{iq.status === "active" ? "active" : "invited"}{iq.approvedApp ? ` · ${iq.approvedApp}` : ""}</span>
-                            <a className="applink" href={iq.setupLink} target="_blank" rel="noopener" style={{ fontFamily: "var(--font-mono)", fontSize: 11, wordBreak: "break-all", flex: 1, minWidth: 200 }}>{iq.setupLink}</a>
-                            <button type="button" className="kr-mini" onClick={(e) => { navigator.clipboard?.writeText(iq.setupLink!); (e.currentTarget as HTMLButtonElement).textContent = "✓ kopiert"; }}>Copy</button>
-                          </div>
-                          {iq.approvedAt && <div className="muted" style={{ marginTop: 6, fontSize: 11 }}>Approved {rel(iq.approvedAt)}</div>}
-                        </div>
-                      );
-                    }
-                    return (
-                      <>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                          {isAffiliate && (
-                            <button className="kr-mini" onClick={() => { setAcceptOpen((v) => !v); setDeclineArmed(false); }} style={{ borderColor: "var(--line-strong)" }}>Approve · Onboarding-Link</button>
-                          )}
-                          {!declineArmed ? (
-                            <button className="kr-mini" onClick={() => { setDeclineArmed(true); setAcceptOpen(false); }}>Ablehnen</button>
-                          ) : (
-                            <form method="POST" action="/admin/decline" style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                              <input type="hidden" name="inquiry_id" value={iq.inquiryId} />
-                              <input type="hidden" name="action" value="decline" />
-                              <span className="muted" style={{ fontSize: 11.5 }}>Sicher?</span>
-                              <button type="submit" className="kr-mini" style={{ color: "var(--danger)", borderColor: "var(--danger)" }}>Ja, ablehnen</button>
-                              <button type="button" className="kr-mini" onClick={() => setDeclineArmed(false)}>Abbrechen</button>
-                            </form>
-                          )}
-                          {!isAffiliate && sel.contactEmail && (
-                            <span className="muted" style={{ fontSize: 11, fontStyle: "italic", marginLeft: "auto" }}>Antwort per Mail an {sel.contactEmail}</span>
-                          )}
-                        </div>
-                        {isAffiliate && acceptOpen && (
-                          <form method="POST" action="/admin/approve" style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap", padding: "12px 14px", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)" }}>
-                            <input type="hidden" name="inquiry_id" value={iq.inquiryId} />
-                            <input type="hidden" name="email" value={sel.contactEmail ?? ""} />
-                            <label style={{ fontSize: 11, color: "var(--fg-3)", display: "flex", flexDirection: "column", gap: 3 }}>App
-                              <select name="app" required className="kr-input" style={{ width: "auto", padding: "5px 8px", fontSize: 12 }} defaultValue={iq.targetApp ?? ""}>
-                                <option value="" disabled>— wählen —</option>
-                                {appSlugs.map((a) => <option key={a} value={a}>{appMeta[a]?.name ?? a}</option>)}
-                              </select>
-                            </label>
-                            <label style={{ fontSize: 11, color: "var(--fg-3)", display: "flex", flexDirection: "column", gap: 3 }}>Handle
-                              <input type="text" name="handle" required defaultValue={sel.handle} className="kr-input" style={{ width: 120, padding: "5px 8px", fontSize: 12 }} />
-                            </label>
-                            <label style={{ fontSize: 11, color: "var(--fg-3)", display: "flex", flexDirection: "column", gap: 3 }}>Display
-                              <input type="text" name="display_name" defaultValue={sel.displayName ?? ""} className="kr-input" style={{ width: 140, padding: "5px 8px", fontSize: 12 }} />
-                            </label>
-                            <label style={{ fontSize: 11, color: "var(--fg-3)", display: "flex", flexDirection: "column", gap: 3 }}>Lang
-                              <select name="language" className="kr-input" style={{ width: 64, padding: "5px 8px", fontSize: 12 }} defaultValue={pickLang(sel.language)}>
-                                <option value="de">DE</option><option value="en">EN</option><option value="fr">FR</option><option value="es">ES</option><option value="it">IT</option>
-                              </select>
-                            </label>
-                            <label style={{ fontSize: 11, color: "var(--fg-3)", display: "flex", flexDirection: "column", gap: 3 }}>Share %
-                              <input type="number" name="share_pct" min={1} max={100} defaultValue={50} className="kr-input" style={{ width: 64, padding: "5px 8px", fontSize: 12 }} />
-                            </label>
-                            <label style={{ fontSize: 11, color: "var(--fg-3)", display: "flex", flexDirection: "column", gap: 3 }}>Monate
-                              <input type="number" name="share_months" min={1} max={60} defaultValue={24} className="kr-input" style={{ width: 64, padding: "5px 8px", fontSize: 12 }} />
-                            </label>
-                            <button type="submit" className="kr-mini" style={{ borderColor: "var(--fg)", color: "var(--fg)", fontWeight: 600 }}>Onboarding-Link →</button>
-                          </form>
-                        )}
-                      </>
-                    );
-                  })()
+                ) : sel.kind === "inquiry" && sel.contactEmail ? (
+                  <span className="muted" style={{ fontSize: 11, fontStyle: "italic" }}>Antwort per Mail an {sel.contactEmail}</span>
                 ) : null}
               </div>
 
@@ -884,18 +741,16 @@ export default function MailClient({
                     onClick={() => { setComposerOpen(true); requestAnimationFrame(() => composerRef.current?.focus()); }}
                     style={{ width: "100%", textAlign: "left", padding: "11px 14px", border: "1px solid var(--line-strong)", borderRadius: "var(--radius-sm)", background: "var(--bg)", color: "var(--fg-3)", fontFamily: "var(--font-body)", fontSize: 13.5, cursor: "text" }}
                   >
-                    {sel.kind === "affiliate-chat" ? "Nachricht schreiben…" : "Antworten…"}
+                    Antworten…
                   </button>
                 ) : (
                   <>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <span className="muted" style={{ fontSize: 11.5, fontFamily: "var(--font-mono)" }}>
                     An:{" "}
-                    {sel.kind === "affiliate-chat"
-                      ? "Dashboard-Chat"
-                      : sel.collab?.channel && sel.collab.channel !== "email"
-                        ? `${sel.collab.channelLabel ?? sel.collab.channel} — kein Mailversand`
-                        : sel.contactEmail || "— keine Email"}
+                    {sel.collab?.channel && sel.collab.channel !== "email"
+                      ? `${sel.collab.channelLabel ?? sel.collab.channel} — kein Mailversand`
+                      : sel.contactEmail || "— keine Email"}
                   </span>
                   <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 8 }}>
                     <label style={{ fontSize: 11.5, color: "var(--fg-3)", display: "inline-flex", alignItems: "center", gap: 5 }}>
@@ -956,7 +811,7 @@ export default function MailClient({
                     onClick={send}
                     disabled={
                       sending ||
-                      (sel.kind !== "affiliate-chat" && !sel.contactEmail) ||
+                      !sel.contactEmail ||
                       Boolean(sel.collab?.channel && sel.collab.channel !== "email")
                     }
                   >

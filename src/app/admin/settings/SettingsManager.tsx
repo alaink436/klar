@@ -31,9 +31,7 @@ import type { ReactNode } from "react";
 
 export interface SettingsData {
   shader_enabled: boolean;
-  auto_accept_affiliates: boolean;
   notification_trigger_inquiry: boolean;
-  notification_trigger_complete: boolean;
   notification_batch_size: number;
   notification_recipient_email: string;
 }
@@ -98,7 +96,7 @@ export default function SettingsManager({
           <CardTitle className="flex items-center gap-2">
             <SlidersHorizontal className="size-4 text-fg-3" /> Globale Einstellungen
           </CardTitle>
-          <CardDescription>Studio-weite Schalter für die öffentliche Seite und das Affiliate-Handling.</CardDescription>
+          <CardDescription>Studio-weite Schalter für die öffentliche Seite.</CardDescription>
         </CardHeader>
         <form method="POST" action="/admin/settings/save">
           <input type="hidden" name="section" value="global" />
@@ -108,12 +106,6 @@ export default function SettingsManager({
               defaultChecked={settings.shader_enabled}
               title="Marketing-Shader (Smoke-BG)"
               desc="Animation auf der getklar.org-Homepage. Aus = statischer Hintergrund, schnellerer Load."
-            />
-            <Toggle
-              name="auto_accept_affiliates"
-              defaultChecked={settings.auto_accept_affiliates}
-              title="Affiliates automatisch annehmen"
-              desc="Eingehende Inquiries werden direkt approved + Brevo-Mail. Aus = bleibt im Inbox-View für manuellen Approve."
             />
           </CardContent>
           <CardFooter>
@@ -143,13 +135,7 @@ export default function SettingsManager({
                 name="notification_trigger_inquiry"
                 defaultChecked={settings.notification_trigger_inquiry}
                 title="Neue Inquiry"
-                desc="Wenn jemand das Affiliate-Bewerbungsformular ausfüllt."
-              />
-              <Toggle
-                name="notification_trigger_complete"
-                defaultChecked={settings.notification_trigger_complete}
-                title="Setup abgeschlossen"
-                desc="Wenn ein eingeladener Influencer den /affiliate/[token]-Apply-Flow durchgeklickt hat."
+                desc="Wenn jemand über die Website eine Anfrage schickt."
               />
             </div>
             <div className="flex flex-wrap gap-4">

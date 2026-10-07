@@ -90,9 +90,7 @@ export default async function SettingsPage({
         <SettingsManager
           settings={{
             shader_enabled: settings.shader_enabled,
-            auto_accept_affiliates: settings.auto_accept_affiliates,
             notification_trigger_inquiry: settings.notification_trigger_inquiry,
-            notification_trigger_complete: settings.notification_trigger_complete,
             notification_batch_size: settings.notification_batch_size,
             notification_recipient_email: settings.notification_recipient_email,
           }}

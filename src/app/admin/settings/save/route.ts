@@ -25,7 +25,7 @@ function redirectWith(req: NextRequest, params: Record<string, string>): Respons
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
-  // Auth — same shape as /admin/approve. Misconfigured env returns 503 so
+  // Auth: device cookie + session. Misconfigured env returns 503 so
   // the route never silently writes without proper guards.
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
   const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
@@ -53,7 +53,6 @@ export async function POST(req: NextRequest): Promise<Response> {
     // Checkboxes only post when checked → presence-check, not value-check.
     const patch = {
       shader_enabled: form.get("shader_enabled") != null,
-      auto_accept_affiliates: form.get("auto_accept_affiliates") != null,
     };
     try {
       await updateAdminSettings(patch, device.name);
@@ -78,7 +77,6 @@ export async function POST(req: NextRequest): Promise<Response> {
     }
     const patch = {
       notification_trigger_inquiry: form.get("notification_trigger_inquiry") != null,
-      notification_trigger_complete: form.get("notification_trigger_complete") != null,
       notification_batch_size: batchSize,
       notification_recipient_email: recipient,
     };

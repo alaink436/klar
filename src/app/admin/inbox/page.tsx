@@ -1,9 +1,7 @@
 // Klar Control · Inbox, the one mailbox. Folds website contact-form requests
-// (klar_inquiries), affiliate chats and collab threads into a single
-// Conversation[] and mounts the <MailClient/> (list · thread · composer).
-// Affiliate-approve / decline logic stays in their existing POST routes, the
-// client only renders the forms. Outreach threads and the Mailer are gone
-// since 2026-10-07.
+// (klar_inquiries) and collab threads into a single Conversation[] and mounts
+// the <MailClient/> (list · thread · composer). Outreach threads, the Mailer,
+// affiliate chats and the approve / decline flow are gone since 2026-10-07.
 //
 // Env: KLAR_ADMIN_KEY, KLAR_DEVICE_SECRET, KLAR_TOTP_SECRET, KLAR_INBOX_SERVICE_KEY
 //      (+ optional KLAR_INBOX_SUPABASE_URL).
@@ -14,10 +12,8 @@ import {
   readCookieFromString,
 } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
-import { setupLandingUrl } from "../../../lib/adminApps";
 import { KLAR_APPS } from "../../../lib/klarApps";
 import { getReplyTemplates } from "../../../lib/replyTemplateStore";
-import { loadAffiliateChatInbox } from "../../../lib/affiliateChatStore";
 import { listStarredIds } from "../../../lib/inboxStars";
 import { listCollabThreads, COLLAB_ALIASES, COLLAB_CHANNEL_LABELS } from "../../../lib/collabStore";
 import MailClient, {
@@ -54,12 +50,7 @@ interface Inquiry {
   budget?: string;
   brief?: string;
   source?: string;
-  approved_app?: string;
-  approved_code?: string;
-  approved_at?: string;
   target_app?: string;
-  declined_at?: string | null;
-  decline_reason?: string | null;
 }
 
 const isTestInquiry = (r: Inquiry): boolean => {
@@ -110,12 +101,11 @@ export default async function InboxPage({
 
   const appMeta: AppMeta = {};
   for (const a of KLAR_APPS) appMeta[a.slug] = { name: a.name, icon: a.icon };
-  // Collab-Postfächer können Apps ohne Affiliate-Schema abdecken (AnimeVault) —
+  // Collab-Postfächer können Apps abdecken, die KLAR_APPS nicht kennt —
   // Namen aus der Alias-Map nachtragen, damit ihre Badges nicht als Slug rendern.
   for (const meta of Object.values(COLLAB_ALIASES)) {
     if (!appMeta[meta.app]) appMeta[meta.app] = { name: meta.name, icon: "" };
   }
-  const appSlugs = KLAR_APPS.map((a) => a.slug);
 
   // ── Inquiry side: website contact-form requests ──────────────────────────
   let inquiryConvs: Conversation[] = [];
@@ -149,14 +139,6 @@ export default async function InboxPage({
             project: r.project ?? null,
             budget: r.budget ?? null,
             brief: r.brief ?? null,
-            targetApp: r.target_app ?? null,
-            approvedApp: r.approved_app ?? null,
-            approvedCode: r.approved_code ?? null,
-            approvedAt: r.approved_at ?? null,
-            declinedAt: r.declined_at ?? null,
-            declineReason: r.decline_reason ?? null,
-            setupLink:
-              r.approved_app && r.approved_code ? setupLandingUrl(r.approved_app, r.approved_code) : null,
           };
           return {
             id: `inq-${r.id}`,
@@ -166,12 +148,12 @@ export default async function InboxPage({
             profileUrl: null,
             contactEmail: r.email ?? null,
             language: "de",
-            apps: r.approved_app ? [r.approved_app] : r.target_app ? [r.target_app] : [],
+            apps: r.target_app ? [r.target_app] : [],
             status: r.status ?? "new",
             messages,
             replyCount: messages.filter((m) => m.direction === "in").length,
             lastInboundAt: at,
-            lastActivityAt: r.approved_at || r.declined_at || at,
+            lastActivityAt: at,
             kind: "inquiry",
             inquiry: meta,
           };
@@ -180,36 +162,6 @@ export default async function InboxPage({
       inquiryConvs = [];
     }
   }
-
-  // ── Affiliate chat: in-app messages from affiliates, one conversation each ──
-  const chatThreads = await loadAffiliateChatInbox();
-  const chatConvs: Conversation[] = chatThreads.map((t): Conversation => {
-    const messages: ThreadMessage[] = t.messages.map((m) => ({
-      id: m.id,
-      direction: m.direction,
-      subject: null,
-      body: m.body,
-      at: m.created_at,
-      provider: "chat",
-    }));
-    const lastInbound = [...messages].reverse().find((m) => m.direction === "in");
-    return {
-      id: t.affiliate_user_id,
-      handle: (t.email ?? "").split("@")[0] || t.display_name || "affiliate",
-      displayName: t.display_name,
-      platform: "",
-      profileUrl: null,
-      contactEmail: t.email,
-      language: "de",
-      apps: t.apps,
-      status: t.unread_in > 0 ? "replied" : "active",
-      messages,
-      replyCount: messages.filter((m) => m.direction === "in").length,
-      lastInboundAt: lastInbound?.at ?? null,
-      lastActivityAt: messages.length ? messages[messages.length - 1].at : null,
-      kind: "affiliate-chat",
-    };
-  });
 
   // ── Collab side: mail to the public per-app addresses (TikTok-Bio) ───────
   const collabThreads = await listCollabThreads();
@@ -253,7 +205,7 @@ export default async function InboxPage({
   });
 
   const starredIds = await listStarredIds();
-  const conversations: Conversation[] = [...inquiryConvs, ...chatConvs, ...collabConvs]
+  const conversations: Conversation[] = [...inquiryConvs, ...collabConvs]
     .sort((a, b) => (b.lastActivityAt || "").localeCompare(a.lastActivityAt || ""))
     .map((c) => (starredIds.has(c.id) ? { ...c, starred: true } : c));
 
@@ -269,7 +221,6 @@ export default async function InboxPage({
       <MailClient
         conversations={conversations}
         appMeta={appMeta}
-        appSlugs={appSlugs}
         templates={replyTemplates}
         initialFilter={initialFilter}
         initialSelId={initialSelId}
