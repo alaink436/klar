@@ -180,14 +180,7 @@ export async function fetchNote(
   }
 
   const url = `https://api.github.com/repos/${REPO}/contents/${encodeURI(clean)}?ref=${BRANCH}`;
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
-    cache: "no-store",
-  });
+  const res = await fetch(url, { headers: githubHeaders(), cache: "no-store" });
   if (!res.ok) return { ok: false, status: res.status, error: res.statusText };
 
   const data = await res.json();
@@ -195,6 +188,40 @@ export async function fetchNote(
   const b64 = (data.content ?? "").replace(/\n/g, "");
   const text = b64 ? Buffer.from(b64, "base64").toString("utf-8") : "";
   return { ok: true, text, name: (data.name as string) ?? clean };
+}
+
+export type PathsResult =
+  | { ok: true; paths: string[] }
+  | { ok: false; status: number; error: string };
+
+// Every file path on master, from one recursive tree call. Secret folders are
+// dropped here, so a path from this list passes the same guard as fetchNote.
+export async function fetchPaths(): Promise<PathsResult> {
+  if (!TOKEN) return { ok: false, status: 503, error: "BRAIN_GITHUB_TOKEN missing" };
+
+  const url = `https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1`;
+  const res = await fetch(url, { headers: githubHeaders(), cache: "no-store" });
+  if (!res.ok) return { ok: false, status: res.status, error: res.statusText };
+
+  const data = (await res.json()) as { tree?: { path: string; type: string }[]; truncated?: boolean };
+  // GitHub cuts the list beyond its limit. A partial list would hide files
+  // without a trace, so that counts as a failure.
+  if (data.truncated) return { ok: false, status: 502, error: "tree truncated" };
+  const paths = (data.tree ?? []).filter((e) => e.type === "blob" && !isHidden(e.path)).map((e) => e.path);
+  return { ok: true, paths };
+}
+
+/** The note's page on GitHub, for a link out of Klar Control. */
+export function blobUrl(path: string): string {
+  return `https://github.com/${REPO}/blob/${BRANCH}/${encodeURI(path)}`;
+}
+
+function githubHeaders(): Record<string, string> {
+  return {
+    Authorization: `Bearer ${TOKEN}`,
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
 }
 
 export function hasToken(): boolean {

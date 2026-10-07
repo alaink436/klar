@@ -14,7 +14,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { ICON, readCookieFromString } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
-import { readActiveProjects, readSessions } from "@/lib/brainStatus";
+import { readActiveProjects, readSessions } from "@/lib/brainReader";
 import { LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 
 import { AdminTopbar } from "../AdminTopbar";

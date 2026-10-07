@@ -18,7 +18,7 @@ import {
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { datumInZone, inZone } from "@/lib/zeit";
 import { scopeGraph, hasToken, availableFolders, SHOWCASE_FOLDERS } from "@/lib/brainVault";
-import { readLearnings, readVaultChecks } from "@/lib/brainStatus";
+import { readLearnings, readVaultChecks } from "@/lib/brainReader";
 import { listTokens } from "@/lib/apiTokens";
 import { listSecrets } from "@/lib/vault";
 import { buildAgentBriefing, buildBrainBriefing } from "@/lib/agentBriefing";

@@ -7,7 +7,7 @@
 // Bundle. Gruppiert nach Tagen, weil "heute" und "gestern" das ist, was noch im
 // Kopf steckt, und alles darunter die Frage aufwirft, ob es brachliegt.
 
-import type { BrainProject } from "@/lib/brainStatus";
+import type { BrainProject } from "@/lib/brainReader";
 
 function tagesgruppe(d: number | null): string {
   if (d === null) return "Ohne Datum";
