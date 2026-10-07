@@ -6,8 +6,7 @@
 // Template-Literal mit rund zehn Inline-Stilen, die Symbole als SVG-Fragmente
 // in einem Objekt daneben. Hier ist sie eine Komponente. Die Reihenfolge ist
 // unveraendert und traegt eine Aussage: zuerst wer auf eine Antwort von MIR
-// wartet, dann Geld, dann was still geworden ist, zuletzt was auf ANDERE
-// wartet, denn das ist informativ und keine Aufgabe.
+// wartet, dann Geld, dann was still geworden ist.
 //
 // Zeilen mit der Zahl null erscheinen nicht. Eine Aufgabe, die es nicht gibt,
 // soll keinen Platz brauchen.
@@ -17,19 +16,15 @@ import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { Inbox } from "@/components/animate-ui/icons/inbox";
 import { ClipboardList } from "@/components/animate-ui/icons/clipboard-list";
 import { MessageCircle } from "@/components/animate-ui/icons/message-circle";
-import { MessageSquareDot } from "@/components/animate-ui/icons/message-square-dot";
 import { Banknote } from "@/components/animate-ui/icons/banknote";
 import { Activity } from "@/components/animate-ui/icons/activity";
-import { Send } from "@/components/animate-ui/icons/send";
 
 const SYMBOL = {
   inbox: Inbox,
   check: ClipboardList,
   doc: MessageCircle,
-  reply: MessageSquareDot,
   coin: Banknote,
   pulse: Activity,
-  send: Send,
 } as const;
 
 export type Aufgabe = {

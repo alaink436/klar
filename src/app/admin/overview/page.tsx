@@ -1,7 +1,7 @@
 // Klar Control · Übersicht. Die Seite, auf der man landet.
 //
 // Server-Komponente und die Arbeitsliste des Studios: was wartet auf mich, und
-// woran bin ich gerade dran. Sie liest dieselben Affiliate- und Outreach-Daten
+// woran bin ich gerade dran. Sie liest dieselben Affiliate-Daten
 // wie zuvor, aber nur um "ist da etwas offen" zu beantworten. Das Umsatzbild,
 // der Funnel und die Tabelle je App, die frueher darunter standen, waren eine
 // Kopie von /admin/revenue und sind seit 2026-08-11 weg. Blankes /admin und
@@ -30,7 +30,6 @@ import { getApps, sbGet, fetchAppUserStats, type AdminApp } from "../../../lib/a
 import { countOpenCollabs } from "@/lib/collabView";
 import { countOpenTodos } from "@/lib/todoStore";
 import { readActiveProjects, type BrainProject } from "@/lib/brainReader";
-import { listOutreachTargets } from "../../../lib/outreachStore";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -89,29 +88,14 @@ async function uebersichtLaden(apps: AdminApp[]): Promise<Uebersicht> {
   ]);
   const anfragen = neueAnfragen();
 
-  // Outreach EINMAL fuer alle Apps holen und hier je App zaehlen. Vorher ging
-  // pro App eine eigene Abfrage mit allen Spalten raus, sieben fuer dieselbe
-  // Tabelle mit 400 Zeilen. Gezaehlt wird wie vorher: ein Creator, der fuer
-  // zwei Apps angefragt ist, zaehlt bei beiden.
-  const [outreach, rows] = await Promise.all([
-    listOutreachTargets({ platform: "all", status: "all", limit: 500 }),
-    Promise.all(
-      apps.map(async (app) => {
-        // Nur was die Arbeitsliste braucht: offenes Geld.
-        // Die Historie der Umsatzereignisse steht auf /admin/revenue.
-        const claim = await sbGet(app, "influencer_claimable?select=claimable_eur_cents", { revalidate: 30 });
-        return { open: claim.reduce((s: number, c: { claimable_eur_cents?: number }) => s + Number(c.claimable_eur_cents ?? 0), 0) };
-      }),
-    ),
-  ]);
-  let totalAngefragt = 0;
-  let totalReply = 0;
-  for (const t of outreach) {
-    const n = (t.for_apps ?? []).filter((s) => verdrahtet.has(s)).length;
-    if (t.status === "replied") totalReply += n;
-    else if (t.mail_status === "mail1_sent" || t.mail_status === "mail2_sent" || t.status === "dm_sent")
-      totalAngefragt += n;
-  }
+  const rows = await Promise.all(
+    apps.map(async (app) => {
+      // Nur was die Arbeitsliste braucht: offenes Geld.
+      // Die Historie der Umsatzereignisse steht auf /admin/revenue.
+      const claim = await sbGet(app, "influencer_claimable?select=claimable_eur_cents", { revalidate: 30 });
+      return { open: claim.reduce((s: number, c: { claimable_eur_cents?: number }) => s + Number(c.claimable_eur_cents ?? 0), 0) };
+    }),
+  );
 
   const inquiriesNew = await anfragen;
 
@@ -126,7 +110,7 @@ async function uebersichtLaden(apps: AdminApp[]): Promise<Uebersicht> {
   const totalOpen = rows.reduce((s, r) => s + r.open, 0);
 
   // Die Reihenfolge ist die Aussage: zuerst wer auf MICH wartet, dann Geld,
-  // dann was still geworden ist, zuletzt was auf ANDERE wartet.
+  // dann was still geworden ist.
   const aufgaben: Aufgabe[] = [
     {
       n: collabOpen,
@@ -153,14 +137,6 @@ async function uebersichtLaden(apps: AdminApp[]): Promise<Uebersicht> {
       ton: "var(--info)",
     },
     {
-      n: totalReply,
-      titel: "Outreach-Antworten offen",
-      meta: "Angeschriebene Creator haben geantwortet",
-      href: "/admin/outreach",
-      symbol: "reply",
-      ton: "var(--warning)",
-    },
-    {
       n: rows.filter((r) => r.open > 0).length,
       titel: "Auszahlungen fällig",
       meta: `${eur(totalOpen)} netto und gereift`,
@@ -175,14 +151,6 @@ async function uebersichtLaden(apps: AdminApp[]): Promise<Uebersicht> {
       href: "/admin/analytics",
       symbol: "pulse",
       ton: "var(--fg-3)",
-    },
-    {
-      n: totalAngefragt,
-      titel: "Wartet auf Antwort",
-      meta: "Rausgeschickt, Ball liegt bei den anderen",
-      href: "/admin/outreach",
-      symbol: "send",
-      ton: "var(--fg-4)",
     },
   ];
 

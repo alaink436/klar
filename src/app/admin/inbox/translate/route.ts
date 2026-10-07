@@ -1,7 +1,8 @@
-// POST /admin/outreach/translate — übersetzt eine eingegangene Affiliate-Reply
-// nach Deutsch (oder Zielsprache). Wird per fetch() aus dem Reply-Inbox-UI
+// POST /admin/inbox/translate: übersetzt eine eingegangene Nachricht der Inbox
+// nach Deutsch (oder Zielsprache). Wird per fetch() aus dem Inbox-UI
 // aufgerufen und liefert JSON zurück (kein Redirect). Cookie-auth wie der Rest
 // des Admin-Bereichs; bei Fehler 401/400/502 mit {ok:false,error}.
+// Lag bis 2026-10-07 unter /admin/outreach/translate.
 
 import { NextResponse, type NextRequest } from "next/server";
 import { readCookie, ctEqual } from "@/app/admin/_shared";

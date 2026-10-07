@@ -44,7 +44,6 @@ export const NAV_ITEMS: NavItemDef[] = [
   // Stelle. Passwoerter liegen verschluesselt im Vault, siehe lib/socialAccountsStore.
   { id: "accounts", labelKey: "navAccounts", icon: "lock", href: "/admin/accounts", section: "studios" },
   { id: "collabs", labelKey: "navCollabs", icon: "reply", href: "/admin/collabs", section: "studios" },
-  { id: "outreach", labelKey: "navOutreach", icon: "outreach", href: "/admin/outreach", section: "studios" },
   { id: "analytics", labelKey: "navAnalytics", icon: "analytics", href: "/admin/analytics", section: "studios" },
   // App-Nutzung aus PostHog (seit 2026-09-17): Starts, Screens, Versionen je
   // App. Eigener Punkt neben Analytics, weil Analytics die Landings und den

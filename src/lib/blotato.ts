@@ -5,7 +5,7 @@
 // (https://backend.blotato.com/v2, header auth `blotato-api-key`).
 //
 // The key comes from the Klar vault (provider "blotato"), decrypted server-side
-// like apifyAccount.ts does — VAULT_MASTER_KEY lives only in Vercel. Cached 5min
+// via lib/vault; VAULT_MASTER_KEY lives only in Vercel. Cached 5min
 // so admin refreshes don't hit Supabase + decrypt every render.
 import "server-only";
 import { listSecrets, revealSecret } from "./vault";
