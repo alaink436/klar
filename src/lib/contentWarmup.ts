@@ -5,9 +5,9 @@
 // posted MANUALLY (so the platform does not bot-flag a cold account). Blotato can
 // therefore never report how many posts actually sit on a cold account, and its
 // GET /v2/posts has no accountId either. The only source of truth is the public
-// profile itself. We read it the same way the outreach wave does: an Evomi
-// realtime scrape of the public TikTok/Instagram profile, then pull the native
-// post count (TikTok stats.videoCount / IG edge_owner_to_timeline_media.count).
+// profile itself. We read it with an Evomi realtime scrape of the public
+// TikTok/Instagram profile, then pull the native post count (TikTok
+// stats.videoCount / IG edge_owner_to_timeline_media.count).
 //
 // Bounded + cached: each lookup spends Evomi credits and the number only creeps
 // up slowly during warm-up, so successful reads cache 30 min (misses 5 min) and

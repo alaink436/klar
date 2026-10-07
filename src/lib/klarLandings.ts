@@ -107,10 +107,3 @@ export function normalizePath(path: string): string {
   if (clean === "/") return "/";
   return clean.replace(/\/+$/, "") || "/";
 }
-
-/** Findet die Landing-Definition zu einer gemessenen Zeile, sonst undefined. */
-export function findLanding(site: string, path: string): ResolvedLanding | undefined {
-  const s = normalizeSite(site);
-  const p = normalizePath(path);
-  return RESOLVED_LANDINGS.find((l) => l.site === s && normalizePath(l.path) === p);
-}

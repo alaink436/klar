@@ -1,11 +1,7 @@
-// SERVER ONLY. Dünner Brevo-Transactional-Wrapper für freie Outreach-Mails
-// (Antworten auf Replies), für vom Admin frei getippte Antworten gedacht.
+// SERVER ONLY. Dünner Brevo-Transactional-Wrapper für vom Admin frei getippte
+// Antworten (Collab-Antworten aus der Inbox).
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY ?? "";
-
-export function isBrevoConfigured(): boolean {
-  return Boolean(BREVO_API_KEY);
-}
 
 export interface SendMailArgs {
   to: string;

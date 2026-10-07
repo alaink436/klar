@@ -15,11 +15,6 @@
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY ?? "";
 const DEEPL_URL = "https://api-free.deepl.com/v2/translate";
 
-export function isTranslateConfigured(): boolean {
-  // Keyless-Fallbacks (Google/MyMemory) sind immer da, also immer verfügbar.
-  return true;
-}
-
 export interface TranslateResult {
   ok: boolean;
   text?: string;

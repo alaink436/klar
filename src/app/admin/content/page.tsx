@@ -22,7 +22,7 @@
 // a klar table at publish time to keep exact per-account counts.
 
 import Link from "next/link";
-import { ICON, fmtRelative } from "../_shared";
+import { fmtRelative } from "../_shared";
 import { requireAdminPage } from "../../../lib/adminGuard";
 import {
   getBlotatoOverview,

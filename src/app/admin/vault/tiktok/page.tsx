@@ -7,9 +7,9 @@
 
 import { headers } from "next/headers";
 import Link from "next/link";
-import { readCookieFromString } from "../../_shared";
 import { DATE_LOCALE, LANG_COOKIE, flashText, normalizeAdminLang } from "../../_i18n";
 import { requireAdminPage } from "../../../../lib/adminGuard";
+import { readCookie } from "../../../../lib/adminSession";
 import { datumInZone } from "@/lib/zeit";
 import { vaultReady } from "../../../../lib/vault";
 import { listTiktokAccounts } from "../../../../lib/tiktokAccounts";
@@ -35,7 +35,7 @@ export default async function TiktokPage({
   const cookieHeader = h.get("cookie") ?? "";
 
   const sp = await searchParams;
-  const lang = normalizeAdminLang(readCookieFromString(cookieHeader, LANG_COOKIE));
+  const lang = normalizeAdminLang(readCookie(cookieHeader, LANG_COOKIE));
   const flash = (code: string) => FLASH_EXTRA[code]?.[lang] ?? flashText(code, lang);
   const accounts = await listTiktokAccounts();
   const rows: TiktokRow[] = accounts.map((a) => ({

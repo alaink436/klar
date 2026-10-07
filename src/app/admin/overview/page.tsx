@@ -2,7 +2,7 @@
 //
 // Server-Komponente und die Arbeitsliste des Studios: was wartet auf mich, und
 // woran bin ich gerade dran. Blankes /admin und ?view=overview leiten mit 303
-// hierher. Affiliate (Auszahlungen, App-Seiten) ist seit 2026-10-07 weg.
+// hierher.
 //
 // 2026-08-25: Die Darstellung ist aus dieser Datei ausgezogen. Vorher wurden
 // gut hundertfuenfzig Zeilen HTML als Zeichenketten zusammengeklebt und per

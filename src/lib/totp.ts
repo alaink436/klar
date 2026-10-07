@@ -7,6 +7,8 @@
 // optional). Authenticator apps accept Base32 secrets in their "manual
 // entry" flow; that's the only input format we support.
 
+import { ctEqual } from "./adminSession";
+
 const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 function base32Decode(input: string): Uint8Array {
@@ -58,13 +60,6 @@ async function hotp(secret: Uint8Array, counter: number, digits = 6): Promise<st
   return String(truncated % 10 ** digits).padStart(digits, "0");
 }
 
-function ctEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let r = 0;
-  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return r === 0;
-}
-
 // Verify a 6-digit code against the Base32 secret. Allows ±1 step skew
 // (±30 s) to absorb clock drift between server and authenticator.
 export async function verifyTOTP(secretBase32: string, code: string): Promise<boolean> {
@@ -84,13 +79,4 @@ export async function verifyTOTP(secretBase32: string, code: string): Promise<bo
     if (ctEqual(expected, clean)) return true;
   }
   return false;
-}
-
-// Build an otpauth:// URL for the user's authenticator app (manual entry or
-// QR-render via any external tool). Issuer + label are URL-encoded; secret
-// is passed as-is (must already be Base32).
-export function otpauthUrl(secretBase32: string, label = "admin", issuer = "Klar Control"): string {
-  const lbl = encodeURIComponent(`${issuer}:${label}`);
-  const iss = encodeURIComponent(issuer);
-  return `otpauth://totp/${lbl}?secret=${secretBase32}&issuer=${iss}&algorithm=SHA1&digits=6&period=30`;
 }

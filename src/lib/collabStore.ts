@@ -6,7 +6,7 @@
 //
 // Tabelle `klar_collab_messages` (Migration 0013) im Klar-Hub-Supabase
 // (anime-vault, exiuwektrqxvycclqfdd). Ein Thread = (app, contact_email);
-// gruppiert wird beim Lesen, wie beim Outreach-Mail-Client.
+// gruppiert wird beim Lesen.
 //
 // Neue Adresse anlegen = eine Zeile in COLLAB_ALIASES. DNS/Brevo brauchen
 // nichts Neues: der Inbound-Parse auf KLAR_INBOUND_DOMAIN fängt bereits alle
@@ -176,12 +176,6 @@ export function isCollabChannel(v: string): v is CollabChannel {
 export function collabContactKey(channel: CollabChannel, handleOrEmail: string): string {
   const clean = handleOrEmail.trim().replace(/^@/, "").toLowerCase();
   return channel === "email" ? clean : `${channel}:${clean}`;
-}
-
-/** true, wenn der Thread-Key eine echte Mailadresse ist (nur dann kann aus der
- *  Inbox heraus geantwortet werden). */
-export function isEmailContactKey(key: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(key);
 }
 
 /** Map-Schlüssel für einen Thread. Trennzeichen ist NUL, weil es weder in

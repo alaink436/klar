@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 // Security headers applied to all routes. CSP intentionally permissive on
-// script-src ('unsafe-inline' needed for the inline THEME_INIT / smoke / etc
+// script-src ('unsafe-inline' needed for the inline THEME_INIT / THEME_TOGGLE
 // scripts in /admin) but tightens the rest (frame-ancestors, base-uri, etc).
 const SECURITY_HEADERS = [
   {

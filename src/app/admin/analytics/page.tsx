@@ -692,16 +692,11 @@ export default async function AnalyticsPage({
         ])
       : [EMPTY_APPS, EMPTY_CHART];
 
-  // React 19 hoists <title>, <link>, <style>, <script> into <head> automatically
-  // when they appear inside a page tree. We rely on that to inject the admin
-  // chrome (fonts + STYLE + theme-init/toggle) without owning <html>/<body>
-  // (the root layout does that).
+  // React 19 hoists <title> into <head>. The admin chrome (STYLE, theme
+  // scripts) comes from admin/layout.tsx.
   return (
     <>
       <title>Analytics · Klar Control</title>
-      {/* Smoke + Glass embeds (same as /admin route). suppressHydrationWarning:
-          SMOKE_BG_SCRIPT sets width/height on the canvas at runtime, which is
-          fine but trips React's SSR→client diff. */}
       <AdminTopbar titel="Analytics" />
       <div className="content">
         <h1>Analytics</h1>

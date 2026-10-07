@@ -17,6 +17,7 @@
 import { parseTarGzip } from "nanotar";
 import { clientIp, rateLimit } from "../../../../lib/apiGuards";
 import { verifyToken, hasStore } from "../../../../lib/apiTokens";
+import { ctEqual } from "../../../../lib/adminSession";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -32,14 +33,6 @@ function topFolder(p: string): string {
   const c = p.replace(/^\/+/, "");
   const i = c.indexOf("/");
   return i === -1 ? "_root" : c.slice(0, i);
-}
-
-function ctEqual(a: string, b: string): boolean {
-  const x = Buffer.from(a), y = Buffer.from(b);
-  if (x.length !== y.length) return false;
-  let r = 0;
-  for (let i = 0; i < x.length; i++) r |= x[i] ^ y[i];
-  return r === 0;
 }
 
 function bearer(req: Request): string {

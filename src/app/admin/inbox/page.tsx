@@ -1,7 +1,6 @@
 // Klar Control · Inbox, the one mailbox. Folds website contact-form requests
 // (klar_inquiries) and collab threads into a single Conversation[] and mounts
-// the <MailClient/> (list · thread · composer). Outreach threads, the Mailer,
-// affiliate chats and the approve / decline flow are gone since 2026-10-07.
+// the <MailClient/> (list · thread · composer).
 //
 // Env: KLAR_ADMIN_KEY, KLAR_DEVICE_SECRET, KLAR_TOTP_SECRET, KLAR_INBOX_SERVICE_KEY
 //      (+ optional KLAR_INBOX_SUPABASE_URL).
@@ -132,7 +131,6 @@ export default async function InboxPage({
             handle: (r.handle ?? "").replace(/^@/, "") || (r.email ?? "").split("@")[0] || "anfrage",
             displayName: r.name || r.handle || null,
             platform: "",
-            profileUrl: null,
             contactEmail: r.email ?? null,
             language: "de",
             apps: r.target_app ? [r.target_app] : [],
@@ -168,7 +166,6 @@ export default async function InboxPage({
       displayName: t.contactName,
       // DM-Threads tragen ihre Plattform, Mail-Threads wie bisher nichts.
       platform: t.channel === "email" ? "" : t.channel,
-      profileUrl: null,
       contactEmail: t.contactEmail,
       // Die Adressen stehen auf englischsprachigen App-Kanälen — Vorlagen
       // defaulten auf EN, umstellen geht im Composer-Dropdown.

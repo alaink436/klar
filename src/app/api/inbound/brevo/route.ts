@@ -2,8 +2,7 @@
 //
 // Brevo liefert eingehende Mails als JSON hierher. Erkannt wird in dieser
 // Reihenfolge: zuerst App-Feedback (feedback+<app>@), dann das Collab-Postfach
-// (öffentliche App-Adresse). Alles andere wird gezählt und verworfen. Der
-// Outreach-Zweig (Antworten auf Outreach-Mails) ist seit 2026-10-07 weg.
+// (öffentliche App-Adresse). Alles andere wird gezählt und verworfen.
 //
 // Setup (einmalig, durch den User):
 //   1. Subdomain reply.getklar.org mit MX → inbound1.sendinblue.com (10) +

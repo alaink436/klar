@@ -25,7 +25,7 @@ import {
   constructCategoryColors,
   getColorClassName,
 } from "../../utils/chartColors"
-import { cx } from "../../utils/cx"
+import { cn as cx } from "@/lib/utils"
 import { getYAxisDomain } from "../../utils/getYAxisDomain"
 
 //#region Shape

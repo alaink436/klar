@@ -1,16 +1,14 @@
-// Supabase Auth client factories scoped to the Klar Affiliate dashboard.
-// All auth state lives in anime-vault (project exiuwektrqxvycclqfdd) which
-// already hosts klar_inquiries + affiliate_agreements + klar_affiliates.
+// Supabase Auth client factories for the AI-Brain member login (/brain) and
+// the brain invites in Klar Control. All auth state lives in the Klar hub
+// (anime-vault, project exiuwektrqxvycclqfdd).
 //
-// Three flavours:
+// Two flavours:
 //   - `serverSupabase()`  → server-component / route-handler client that
 //                            reads cookies via next/headers and writes
 //                            back via cookies().set().
 //   - `serviceSupabase()` → server-side admin client with the service-role
-//                            key, used to write klar_affiliates rows and
-//                            do cross-supabase look-ups that bypass RLS.
-//   - `BROWSER_*`          → constants the browser client component reads
-//                            via process.env.NEXT_PUBLIC_*.
+//                            key, for look-ups that bypass RLS.
+// The browser client (app/brain/_shared) reads NEXT_PUBLIC_* itself.
 //
 // Env required:
 //   NEXT_PUBLIC_KLAR_INBOX_SUPABASE_URL   = https://exiuwektrqxvycclqfdd.supabase.co
@@ -28,19 +26,15 @@ const URL = process.env.NEXT_PUBLIC_KLAR_INBOX_SUPABASE_URL
 const ANON = process.env.NEXT_PUBLIC_KLAR_INBOX_ANON_KEY ?? "";
 const SERVICE = process.env.KLAR_INBOX_SERVICE_KEY ?? "";
 
-export const BROWSER_SUPABASE_URL = URL;
-export const BROWSER_SUPABASE_ANON_KEY = ANON;
-
 export async function serverSupabase() {
   // Bail out early if the anon-key is not configured rather than letting
   // createServerClient throw a generic "URL and Key required" error deep
   // inside a render. Callers should handle the null and surface a
-  // service-unavailable state to the affiliate.
+  // service-unavailable state.
   if (!ANON) return null;
   // Next 15 made cookies() async, we await it once and pass the store in.
   // The SSR cookie adapter only needs get + set + remove; readonly contexts
-  // (server-component render path) throw on set, which we swallow because
-  // the session is then refreshed by middleware on the next request.
+  // (server-component render path) throw on set, which we swallow.
   const store = await cookies();
   return createServerClient(URL, ANON, {
     cookies: {
@@ -51,7 +45,7 @@ export async function serverSupabase() {
         try {
           store.set({ name, value, ...options });
         } catch {
-          /* read-only context, middleware will refresh */
+          /* read-only context */
         }
       },
       remove(name: string, options: CookieOptions) {
@@ -74,7 +68,7 @@ export function serviceSupabase() {
   });
 }
 
-// Convenience: full user-record for the dashboard pages, null if not signed in.
+// Convenience: full user-record for the /brain pages, null if not signed in.
 export async function getSessionUser(): Promise<{
   id: string;
   email: string | null;

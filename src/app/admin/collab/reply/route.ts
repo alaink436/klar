@@ -2,8 +2,7 @@
 // öffentliche per-App Adresse (z.B. animevault@reply.getklar.org auf dem
 // TikTok-Kanal) reinkam. Versand per Brevo; replyTo zeigt auf dieselbe
 // Alias-Adresse, damit die Gegenantwort wieder im Inbound-Webhook (und damit
-// im selben Inbox-Thread) landet. Bewusst getrennt von /admin/outreach/reply —
-// hier gibt es kein Outreach-Target und keinen Status-Lifecycle.
+// im selben Inbox-Thread) landet.
 
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdminRoute } from "@/lib/adminGuard";

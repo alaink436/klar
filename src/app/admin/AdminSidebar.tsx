@@ -18,8 +18,6 @@
 //   - Klar Studios traegt seit 2026-09-22 alles, was die Apps betrifft:
 //     Feedback, Content, Collabs (mit der Zahl der offenen Anfragen),
 //     Analytics, App-Nutzung.
-//   - Der Creator-Zweig (Affiliate, Auszahlungen, die App-Seiten) ist seit
-//     2026-10-07 geloescht.
 //
 // Abmelden bleibt ein einfaches <a>: es ist ein Route-Handler, der Cookies
 // raeumt und umleitet.

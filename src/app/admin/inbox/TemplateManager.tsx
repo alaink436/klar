@@ -4,7 +4,6 @@
 // edit the canned replies without leaving the mailbox. Reply CRUD goes against
 // /admin/reply-templates/api (JSON); every change is handed back to MailClient
 // (onMapChange), so the composer dropdown reflects edits instantly (no reload).
-// The standalone /admin/reply-templates page stays for full-screen editing.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReplyLang, ReplyTemplate } from "@/lib/replyTemplates";

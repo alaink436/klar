@@ -5,8 +5,8 @@
 // Geantwortet wird in der Inbox; jede Zeile deep-linkt dorthin.
 
 import { headers } from "next/headers";
-import { ICON, readCookieFromString } from "../_shared";
 import { requireAdminPage } from "../../../lib/adminGuard";
+import { readCookie } from "../../../lib/adminSession";
 import { buildCollabView } from "@/lib/collabView";
 import { LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
 import CollabsView from "./CollabsView";
@@ -25,7 +25,7 @@ export default async function CollabsPage({
   const h = await headers();
   const cookieHeader = h.get("cookie") ?? "";
 
-  const lang = normalizeAdminLang(readCookieFromString(cookieHeader, LANG_COOKIE));
+  const lang = normalizeAdminLang(readCookie(cookieHeader, LANG_COOKIE));
   const t = tAdmin(lang);
   const view = await buildCollabView();
   const msg = (await searchParams).msg?.slice(0, 400);

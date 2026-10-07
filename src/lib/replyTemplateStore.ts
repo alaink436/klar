@@ -4,7 +4,7 @@
 // unconfigured or empty, so the composer dropdown is never blank.
 //
 // RLS: service-role only. Read/write goes through KLAR_INBOX_SERVICE_KEY, the
-// same anime-vault service-role key the outreach store uses.
+// anime-vault service-role key the rest of the inbox uses.
 // Migration: `klar_reply_templates_v1` (2026-06-07).
 
 import {

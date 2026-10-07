@@ -35,7 +35,6 @@ export interface Conversation {
   handle: string;
   displayName: string | null;
   platform: string;
-  profileUrl: string | null;
   contactEmail: string | null;
   language: string;
   apps: string[];
@@ -64,8 +63,7 @@ export interface Conversation {
   };
 }
 
-// Website contact-form request folded into the inbox. Answered by mail; the
-// affiliate approve/decline flow is gone since 2026-10-07.
+// Website contact-form request folded into the inbox. Answered by mail.
 export interface InquiryMeta {
   inquiryId: string;
   inquiryType: "affiliate" | "consulting" | string;
@@ -635,13 +633,7 @@ export default function MailClient({
                       >
                         {sel.starred ? "★" : "☆"}
                       </span>
-                      {sel.profileUrl ? (
-                        <a className="applink" href={sel.profileUrl} target="_blank" rel="noopener" style={{ fontSize: 12.5 }}>
-                          @{sel.handle}
-                        </a>
-                      ) : (
-                        <span className="muted" style={{ fontSize: 12.5 }}>@{sel.handle}</span>
-                      )}
+                      <span className="muted" style={{ fontSize: 12.5 }}>@{sel.handle}</span>
                       <span className="pill" style={{ fontSize: 9, padding: "1px 7px" }}>{platformLabel(sel.platform)}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 7 }}>

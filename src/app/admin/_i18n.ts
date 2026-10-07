@@ -52,13 +52,9 @@ const DE = {
   navChronik: "Chronik",
   navVault: "Vault",
   navAccounts: "Konten",
-  navNoApps: "keine Apps",
   navSettings: "Einstellungen",
   navLogout: "Logout",
-  themeToggle: "Theme wechseln",
   navDragHint: "Ziehen, um das Menü umzusortieren",
-  chronikSub:
-    "Gelesen aus STATUS.md und den PROGRESS-Dateien im AI-Brain. Hier lässt sich nichts abhaken — was hier steht, änderst du im Vault.",
   chronikGoals: "Vorgenommen",
   chronikGoalsMeta: (open: number, blocked: number) =>
     blocked > 0 ? `${open} offen, davon ${blocked} blockiert` : `${open} offen`,
@@ -76,8 +72,6 @@ const DE = {
   navShow: "Einblenden",
   navReset: "Auf Standard zurücksetzen",
   collabOpenAria: (n: number) => `${n} unbeantwortete Collab-Anfrage${n === 1 ? "" : "n"}`,
-  collabsSub:
-    "Geantwortet wird in der Inbox, nicht hier — jede Zeile führt direkt zum Thread. Wer an eine Bio-Adresse schreibt, landet ausserdem dort unter „Collabs“.",
 
   // Language switch
   langSection: "Sprache",
@@ -86,8 +80,6 @@ const DE = {
 
   // ── Vault page ───────────────────────────────────────────────────────────
   vaultTitle: "Vault",
-  vaultSubA: "Der Master-Key liegt nur in Vercel — steht er dort nicht, ist jeder Eintrag hier unlesbar. Ein Agent mit ",
-  vaultSubB: "-Token benutzt Keys über den Proxy, ohne sie je zu sehen; „Key anzeigen“ ist der einzige Weg zum Klartext und nur für dich.",
   vaultInactiveA: "Vault inaktiv: setze ",
   vaultInactiveB: " in Vercel, dann werden Keys ver- und entschlüsselt.",
   statStored: "Gespeicherte Keys",
@@ -220,13 +212,9 @@ const EN: AdminMessages = {
   navChronik: "History",
   navVault: "Vault",
   navAccounts: "Accounts",
-  navNoApps: "no apps",
   navSettings: "Settings",
   navLogout: "Log out",
-  themeToggle: "Switch theme",
   navDragHint: "Drag to reorder the menu",
-  chronikSub:
-    "Read from STATUS.md and the PROGRESS files in the AI-Brain. Nothing is editable here — what shows up changes in the vault.",
   chronikGoals: "Set out to do",
   chronikGoalsMeta: (open: number, blocked: number) =>
     blocked > 0 ? `${open} open, ${blocked} blocked` : `${open} open`,
@@ -243,8 +231,6 @@ const EN: AdminMessages = {
   navShow: "Show",
   navReset: "Reset to default",
   collabOpenAria: (n: number) => `${n} unanswered collab request${n === 1 ? "" : "s"}`,
-  collabsSub:
-    "You reply from the inbox, not here — every row leads straight to the thread. Anything sent to a bio address also lands there under “Collabs”.",
 
   langSection: "Language",
   langAria: "Interface language",
@@ -252,9 +238,6 @@ const EN: AdminMessages = {
 
   // ── Vault page ───────────────────────────────────────────────────────────
   vaultTitle: "Vault",
-  vaultSubA:
-    "The master key lives in Vercel only — without it every entry here is unreadable. An agent holding a ",
-  vaultSubB: " token uses keys through the proxy without ever seeing them; “Show key” is the only route to plaintext, and it is yours alone.",
   vaultInactiveA: "Vault inactive: set ",
   vaultInactiveB: " in Vercel, then keys get encrypted and decrypted.",
   statStored: "Stored keys",
