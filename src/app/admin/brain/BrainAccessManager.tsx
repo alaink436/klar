@@ -377,9 +377,6 @@ export default function BrainAccessManager({
                       />{" "}
                       vault:use
                     </label>
-                    <label className={chipCls}>
-                      <input type="checkbox" name="scope_todos" className="accent-[var(--accent)]" /> todos:ical
-                    </label>
                   </div>
                   <p className="text-[12px] leading-relaxed text-fg-3">
                     learnings:read liefert nur Learnings/. brain:read liefert das ganze Brain

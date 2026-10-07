@@ -28,7 +28,6 @@ import { AppKacheln } from "./AppKacheln";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { getApps, sbGet, fetchAppUserStats, type AdminApp } from "../../../lib/adminApps";
 import { countOpenCollabs } from "@/lib/collabView";
-import { countOpenTodos } from "@/lib/todoStore";
 import { readActiveProjects, type BrainProject } from "@/lib/brainReader";
 
 export const dynamic = "force-dynamic";
@@ -82,7 +81,6 @@ async function uebersichtLaden(apps: AdminApp[]): Promise<Uebersicht> {
   // wartete die Seite drei Etappen nacheinander ab.
   const signale = Promise.all([
     countOpenCollabs(),
-    countOpenTodos(),
     Promise.all(apps.map(async (a) => ({ app: a, stats: await fetchAppUserStats(a) }))),
     readActiveProjects(6),
   ]);
@@ -101,7 +99,7 @@ async function uebersichtLaden(apps: AdminApp[]): Promise<Uebersicht> {
 
   // Signale, die die Arbeitsliste braucht: wer wartet auf eine Antwort, welche
   // App ist still geworden, und woran arbeite ich laut AI-Brain gerade.
-  const [collabOpen, todoOpen, appStats, projekte] = await signale;
+  const [collabOpen, appStats, projekte] = await signale;
   // "Still" = Backend antwortet, hat Nutzer, aber seit 30 Tagen keinen neuen.
   const silentApps = appStats
     .filter((a) => a.stats !== null && a.stats.usersTotal > 0 && a.stats.usersNew30d === 0)
@@ -119,14 +117,6 @@ async function uebersichtLaden(apps: AdminApp[]): Promise<Uebersicht> {
       href: "/admin/collabs",
       symbol: "inbox",
       ton: "var(--warning)",
-    },
-    {
-      n: todoOpen,
-      titel: "Eigene To-dos offen",
-      meta: "Deine Liste, nicht aus Daten abgeleitet",
-      href: "/admin/todos",
-      symbol: "check",
-      ton: "var(--fg-2)",
     },
     {
       n: inquiriesNew,

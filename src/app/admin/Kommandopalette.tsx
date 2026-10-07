@@ -129,7 +129,7 @@ export function Kommandopalette({
               <CommandItem
                 key={item.id}
                 // `value` ist, wonach cmdk sucht. Die Kennung mit hinein, damit
-                // "todos" auch dann trifft, wenn der Eintrag "To-do" heisst.
+                // "todos" auch dann trifft, wenn der Eintrag "Tickets" heisst.
                 value={`${label} ${item.id}`}
                 onSelect={() => dann(() => router.push(item.href))}
               >
