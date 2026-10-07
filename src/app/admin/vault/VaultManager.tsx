@@ -292,6 +292,11 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   { id: "posthog", label: "PostHog (Personal API Key)", category: "Analytics", provider: "posthog", baseUrl: "https://eu.posthog.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "phx_…", labelExample: "PostHog Personal API Key" },
   // Infrastruktur
   { id: "vercel", label: "Vercel", category: "Infrastruktur", provider: "vercel", baseUrl: "https://api.vercel.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "Bearer-Token …", en: "Bearer token …" }, labelExample: "Vercel Token" },
+  // Scaleway: an API key is an access key (SCW…) plus a secret key (UUID). Only
+  // the SECRET key authenticates, raw on `x-auth-token` with no scheme. base_url
+  // without a product segment so Apple silicon (`apple-silicon/v1alpha1/…`),
+  // Instances and IAM all go through one entry.
+  { id: "scaleway", label: "Scaleway", category: "Infrastruktur", provider: "scaleway", baseUrl: "https://api.scaleway.com", authHeader: "x-auth-token", authScheme: "", keyExample: { de: "Secret Key (UUID), nicht der Access Key SCW…", en: "secret key (UUID), not the SCW… access key" }, labelExample: "Scaleway API Key" },
   { id: "github", label: "GitHub", category: "Infrastruktur", provider: "github", baseUrl: "https://api.github.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "ghp_… / github_pat_…", labelExample: "GitHub PAT" },
   // Nanite's GitHub App is six values: app id, slug, client id, client secret,
   // webhook secret and the private key. Six entries here would mean six chances
