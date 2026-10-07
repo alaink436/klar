@@ -10,26 +10,12 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { ICON, readCookieFromString } from "../_shared";
 import { verifyDeviceCookie } from "../../../lib/deviceCookie";
 import { listTodos, todosConfigured } from "@/lib/todoStore";
-import { listAccountStatus, listPostLog, listPostTotals } from "@/lib/accountStatus";
-import { listCurrentDirections, listDirectionCounts, slotKey } from "@/lib/accountDirection";
-import { listChannelReferences, type ChannelReference } from "@/lib/channelReference";
-import { listPostSamples, type PostSample } from "@/lib/postSample";
-import { ACCOUNTS, APPS, PLATFORM_LABEL, accountKey } from "@/lib/socialAccounts";
 import { DATE_LOCALE, LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
-import Planner, { type PlannerDay, type PlannerPosting, type PlannerTodo } from "./Planner";
-import PostingBoard, {
-  type BoardAccount,
-  type BoardDay,
-  type ViewDirection,
-} from "./PostingBoard";
-import { type SlotRef } from "./ReferenceSlot";
-import { type ViewPost } from "./PostSamples";
+import Planner, { type PlannerDay, type PlannerTodo } from "./Planner";
 import WeekNav from "./WeekNav";
-import { viewHref, type TodoView } from "./views";
 import { tagInZone } from "@/lib/zeit";
 
 import { AdminTopbar } from "../AdminTopbar";
@@ -54,7 +40,7 @@ function mondayOf(iso: string): string {
 export default async function TodosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ w?: string; v?: string; msg?: string }>;
+  searchParams: Promise<{ w?: string }>;
 }) {
   const KEY = process.env.KLAR_ADMIN_KEY ?? "";
   const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
@@ -74,13 +60,6 @@ export default async function TodosPage({
   const rawW = Number.parseInt(sp.w ?? "0", 10);
   const weekOffset = Number.isFinite(rawW) ? Math.max(-52, Math.min(52, rawW)) : 0;
 
-  // Die Ansicht steht in `?v=`, nicht im Client-State: so lässt sie sich
-  // verlinken, überlebt einen Reload, und jede Seite holt nur ihre eigenen
-  // Daten statt beide Hälften bei jedem Aufruf.
-  const view: TodoView =
-    sp.v === "posting" ? "posting" : "todo";
-  const onPosting = view === "posting";
-
   const today = todayInZurich();
   const start = addDays(mondayOf(today), weekOffset * 7);
   const locale = DATE_LOCALE[lang];
@@ -97,7 +76,7 @@ export default async function TodosPage({
   });
   const weekLabel = `${days[0].dayLabel} – ${days[6].dayLabel}`;
 
-  const todos = onPosting ? [] : await listTodos();
+  const todos = await listTodos();
   const rows: PlannerTodo[] = todos.map((td) => {
     const due = td.due_on ? td.due_on.slice(0, 10) : "";
     return {
@@ -113,231 +92,6 @@ export default async function TodosPage({
     };
   });
 
-  // ── Posting-Board ────────────────────────────────────────────────────────
-  // Die Account-Liste ist die aus dem Code (lib/socialAccounts) plus die selbst
-  // angelegten Zeilen aus der Datenbank — anders liesse sich ein YouTube-Kanal
-  // nur per Deploy eintragen. Blotato wird hier bewusst NICHT gefragt und der
-  // Profil-Scraper nicht angeworfen: diese Seite geht mehrmals täglich auf, und
-  // beides kostet Wartezeit bzw. Guthaben. Was die Plattform selbst zählt,
-  // steht auf /admin/content.
-  // Beide Ansichten brauchen Accounts und den Wochenverlauf: das Board zeigt
-  // sie als Raster, der Wochenplan als Punkte. Nur die Gesamtzahlen sind allein
-  // Sache des Boards.
-  const [statusByKey, postLog] = await Promise.all([
-    listAccountStatus(),
-    listPostLog(days[0].iso, days[6].iso),
-  ]);
-  const postTotals = onPosting ? await listPostTotals() : {};
-  // Die laufenden Richtungen brauchen inzwischen BEIDE Ansichten: seit
-  // 2026-08-21 steht die Richtung auch auf der Abhak-Karte im Wochenplan, weil
-  // dort vorher nur Handle und App standen und zwei Kanaele derselben App
-  // damit gleich aussahen.
-  //
-  // Die ZAEHLER bleiben beim Board. Die Zahl „N vorher" ist der Einstieg in den
-  // Verlauf, und den klappt man nur dort auf; eine zweite Abfrage fuer etwas,
-  // das der Wochenplan nicht anzeigt, waere weiterhin Verschwendung.
-  const directionByKey = await listCurrentDirections();
-  const directionCounts = onPosting ? await listDirectionCounts() : {};
-
-  /**
-   * Die laufenden Richtungen eines Kanals als flache Form fuer die Zeile.
-   *
-   * Seit Migration 0037 sind es bis zu zwei: Platz 1 ist das Hauptformat,
-   * Platz 2 laeuft daneben mit. Frueher standen die vier Felder direkt an der
-   * Zeile; mit zwei Formaten waeren das acht, und die naechste Erweiterung
-   * zwoelf. Deshalb eine Liste.
-   */
-  const richtungenVon = (key: string): ViewDirection[] =>
-    (directionByKey.get(key) ?? []).map((d) => ({
-      slot: d.slot,
-      richtung: d.richtung,
-      variante: d.variante ?? "",
-      ab: d.ab,
-      referenz: d.referenz ?? "",
-      spiegelt: d.spiegelt ?? "",
-      frueher: directionCounts[slotKey(key, d.slot)] ?? 0,
-    }));
-  // Die Referenz-Ebenen braucht nur das Board. Seit 2026-08-20 haengt das
-  // Video am Kanal (oder an seiner App), und das Board ist der Ort, an dem
-  // die Kanaele stehen — ein eigener Reiter dafuer war einer zu viel.
-  // Die leeren Karten brauchen ihren Typ: ohne ihn faellt der Zweig auf `any`
-  // zurueck, und die Umformung darunter verliert jede Pruefung.
-  const [scopeRefs, postSamples]: [Map<string, ChannelReference>, Map<string, PostSample[]>] =
-    onPosting
-      ? await Promise.all([listChannelReferences(), listPostSamples()])
-      : [new Map(), new Map()];
-
-  // Flache Formen fuer den Reiter: die Store-Typen tragen Supabase-Feldnamen
-  // (`video_pfad`), und die haben in einer Client-Komponente nichts verloren.
-  const postsByScope: Record<string, ViewPost[]> = Object.fromEntries(
-    [...postSamples.entries()].map(([scope, liste]) => [
-      scope,
-      liste.map((p) => ({
-        id: p.id,
-        scope: p.scope,
-        titel: p.titel,
-        notiz: p.notiz,
-        medien: p.medien,
-        videoLink: p.video_link,
-        ergebnis: p.ergebnis,
-      })),
-    ]),
-  );
-  const scopeRefsFlach: Record<string, SlotRef> = Object.fromEntries(
-    [...scopeRefs.values()].map((r) => [
-      r.scope,
-      {
-        scope: r.scope,
-        titel: r.titel,
-        notiz: r.notiz,
-        medien: r.medien,
-        videoLink: r.video_link,
-      },
-    ]),
-  );
-
-  const appMeta = new Map(APPS.map((a) => [a.key as string, { label: a.name, color: a.color }]));
-  const OTHER = { label: "Weitere", color: "#8C93A8" };
-
-  const fromCode: BoardAccount[] = APPS.flatMap((app) =>
-    ACCOUNTS.filter((a) => a.app === app.key).map((a) => {
-      const key = accountKey(a);
-      const saved = statusByKey.get(key);
-      return {
-        key,
-        handle: a.handle,
-        platformLabel: PLATFORM_LABEL[a.platform],
-        appLabel: app.name,
-        appColor: app.color,
-        automated: Boolean(a.blotatoId),
-        custom: false,
-        // Ohne gepflegte Zeile entscheidet die Rolle im Code: `legacy` heisst
-        // aufgegeben. So stimmt das Board schon beim ersten Öffnen.
-        state: saved?.state ?? (a.role === "legacy" ? "dropped" : "active"),
-        rhythm: saved?.rhythm ?? [],
-        format: saved?.format ?? "",
-        material: saved?.material ?? "",
-        materialReady: saved?.material_ready ?? false,
-        niche: saved?.niche ?? "",
-        contentGroup: saved?.content_group ?? "",
-        steeredRounds: saved?.steered_rounds ?? [],
-        perDay: saved?.per_day ?? 1,
-        note: saved?.note ?? "",
-        directions: richtungenVon(key),
-      };
-    }),
-  );
-
-  const codeKeys = new Set(fromCode.map((r) => r.key));
-  const custom: BoardAccount[] = [...statusByKey.values()]
-    .filter((s) => s.handle && s.platform && !codeKeys.has(s.account_key))
-    .map((s) => {
-      const meta = appMeta.get(s.app ?? "") ?? OTHER;
-      return {
-        key: s.account_key,
-        handle: s.handle ?? "",
-        platformLabel: (s.platform ?? "").replace(/^./, (c) => c.toUpperCase()),
-        appLabel: meta.label,
-        appColor: meta.color,
-        automated: false,
-        custom: true,
-        state: s.state,
-        rhythm: s.rhythm,
-        format: s.format ?? "",
-        material: s.material ?? "",
-        materialReady: s.material_ready ?? false,
-        niche: s.niche ?? "",
-        contentGroup: s.content_group ?? "",
-        steeredRounds: s.steered_rounds ?? [],
-        perDay: s.per_day ?? 1,
-        note: s.note ?? "",
-        directions: richtungenVon(s.account_key),
-      };
-    });
-
-  // Nach App gruppiert ausliefern, damit das Board seine Trennzeilen setzen kann.
-  const byApp = [...fromCode, ...custom].sort((a, b) =>
-    a.appLabel === b.appLabel ? 0 : a.appLabel < b.appLabel ? -1 : 1,
-  );
-
-  // Kanäle desselben Kontos rücken zusammen. Nicht sortiert, sondern
-  // eingesammelt: die erste Zeile eines Kontos bleibt, wo sie war, und die
-  // übrigen ziehen zu ihr hoch. Eine echte Sortierung nach Kontoname würde die
-  // gewachsene Reihenfolge der Account-Liste umwerfen, und das Board zeichnet
-  // die Verbindungslinie nur zwischen benachbarten Zeilen — über eine fremde
-  // Zeile hinweg wäre sie eine Behauptung, die man nicht nachvollziehen kann.
-  const clustered: BoardAccount[] = [];
-  const placed = new Set<string>();
-  for (const a of byApp) {
-    if (placed.has(a.key)) continue;
-    clustered.push(a);
-    placed.add(a.key);
-    if (!a.contentGroup) continue;
-    // Nur innerhalb derselben App: quer über die App-Trennzeilen zu ziehen
-    // würde eine zweite Kopfzeile derselben App erzeugen. Ein Konto, das über
-    // Apps hinweg geht, trägt seinen Namen trotzdem an jeder Zeile — nur die
-    // Linie hört an der App-Grenze auf.
-    for (const b of byApp) {
-      if (placed.has(b.key) || b.appLabel !== a.appLabel) continue;
-      if (b.contentGroup !== a.contentGroup) continue;
-      clustered.push(b);
-      placed.add(b.key);
-    }
-  }
-  const boardAccounts = clustered;
-
-
-  const boardDays: BoardDay[] = days.map((d) => {
-    const dow = new Date(`${d.iso}T12:00:00Z`).getUTCDay();
-    return { ...d, dow: dow === 0 ? 7 : dow }; // ISO: Sonntag ist 7, nicht 0
-  });
-
-  const log: Record<string, string> = {};
-  for (const e of postLog) log[`${e.account_key}|${e.day}|${e.slot}`] = e.note ?? "";
-
-  // Posting-Punkte fuer den Wochenplan: abgeleitet, nicht gespeichert. Wer den
-  // Rhythmus aendert, aendert damit die Punkte — ohne dass irgendwo Leichen
-  // liegen bleiben.
-  const plannerPostings: PlannerPosting[] = onPosting
-    ? []
-    : boardAccounts
-        .filter((a) => a.state === "active" || a.state === "warmup")
-        .flatMap((a) =>
-          boardDays
-            .filter((d) => a.rhythm.includes(d.dow))
-            .flatMap((d) =>
-              Array.from({ length: a.perDay }, (_, i) => i + 1).map((slot) => ({
-                accountKey: a.key,
-                day: d.iso,
-                slot,
-                perDay: a.perDay,
-                handle: a.handle,
-                platformLabel: a.platformLabel,
-                // Richtung samt Variante, damit die Karte „Slideshow · Widget"
-                // zeigt und nicht zweimal dasselbe Wort fuer zwei Macharten.
-                richtungen: a.directions.map((d) =>
-                  d.variante ? `${d.richtung} · ${d.variante}` : d.richtung,
-                ),
-                format: a.format,
-                appLabel: a.appLabel,
-                appColor: a.appColor,
-                done: `${a.key}|${d.iso}|${slot}` in log,
-              })),
-            ),
-        );
-
-  const platformHints = [
-    ...new Set([
-      ...ACCOUNTS.map((a) => a.platform as string),
-      ...[...statusByKey.values()].map((s) => s.platform ?? "").filter(Boolean),
-      "youtube",
-      "threads",
-      "reddit",
-      "pinterest",
-    ]),
-  ];
-
-
   return (
     <>
       <title>To-do · Klar Control</title>
@@ -350,67 +104,24 @@ export default async function TodosPage({
           </div>
         ) : null}
 
-        {/* Umschalter + Wochenzeile: beide Ansichten zeigen dieselbe Woche, also
-            wird sie einmal oben bedient und nicht in jeder Ansicht erneut. */}
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 mb-4 border-b border-line">
-          <div className="flex items-center gap-1">
-            {(
-              [
-                { key: "todo", label: t.todoTabPlanner, href: viewHref("todo", weekOffset) },
-                { key: "posting", label: t.todoTabPosting, href: viewHref("posting", weekOffset) },
-              ] as const
-            ).map((tab) => (
-              <Link
-                key={tab.key}
-                href={tab.href}
-                className={`-mb-px border-b-2 px-4 py-2.5 text-[13px] transition-colors ${
-                  view === tab.key
-                    ? "border-fg font-semibold text-fg"
-                    : "border-transparent text-fg-3 hover:text-fg"
-                }`}
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </div>
           <div className="pb-2.5">
-            {/* `view` statt einer href-Funktion: Funktionen lassen sich nicht
-                an eine Client-Komponente übergeben. Im Referenz-Reiter bleibt
-                die Zeile stehen, aber unsichtbar: sie steuert dort nichts, und
-                sie ganz wegzunehmen liesse die Kopfzeile springen. */}
             <WeekNav
               lang={lang}
               weekLabel={weekLabel}
               weekOffset={weekOffset}
               today={today}
-              view={view}
             />
           </div>
         </div>
 
-        {onPosting ? (
-          <PostingBoard
-            accounts={boardAccounts}
-            days={boardDays}
-            apps={[...APPS.map((a) => ({ key: a.key as string, label: a.name })), { key: "studio", label: "Studio" }]}
-            log={log}
-            totals={postTotals}
-            platforms={platformHints}
-            today={today}
-            scopeRefs={scopeRefsFlach}
-            postsByScope={postsByScope}
-            meldung={sp.msg}
-          />
-        ) : (
-          <Planner
-            rows={rows}
-            days={days}
-            postings={plannerPostings}
-            lang={lang}
-            today={today}
-            tomorrow={addDays(today, 1)}
-          />
-        )}
+        <Planner
+          rows={rows}
+          days={days}
+          lang={lang}
+          today={today}
+          tomorrow={addDays(today, 1)}
+        />
       </div>
     </>
   );
