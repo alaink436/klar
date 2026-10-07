@@ -376,9 +376,6 @@ tbody tr:hover td{background:var(--surface-2)}
 .legend{font-family:var(--font-mono);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.12em;color:var(--fg-3);margin-top:14px;display:flex;gap:22px;flex-wrap:wrap}
 .legend i{display:inline-block;width:10px;height:10px;margin-right:7px;vertical-align:-1px;border-radius:2px}
 
-.iframewrap{border:1px solid var(--line);background:#fff;border-radius:var(--radius);overflow:hidden}
-iframe{width:100%;height:88vh;border:0;display:block}
-
 .seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface)}
 .seg a{padding:7px 14px;font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-3);transition:background .15s,color .15s;border-right:1px solid var(--line)}
 .seg a:last-child{border-right:0}
@@ -523,7 +520,6 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border
 /* Login card glass in dark, monochrome wash */
 [data-theme="dark"] .login{background:#0A0A0A}
 [data-theme="dark"] .login-card{background:var(--surface);border:1px solid var(--line);box-shadow:none}
-[data-theme="dark"] .iframewrap{background:var(--surface);border:1px solid var(--line)}
 
 @media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none}html{scroll-behavior:auto}.card{transition:none}}
 @media(max-width:820px){

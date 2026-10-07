@@ -12,8 +12,8 @@
 //   - Alles, was die Schiene KANN, bleibt: Ziehen ordnet um, Ausblenden in den
 //     Einstellungen, beides ueber dieselbe `klar_nav`-Cookie, die das Layout
 //     vor dem Rendern liest. Der Creator-Zweig bleibt zugeklappt, solange man
-//     nicht darin steht. Der Block unten (Sprache, Cal, Einstellungen,
-//     Abmelden) bleibt fest: er ist der Weg hinaus und gehoert nicht sortiert.
+//     nicht darin steht. Der Block unten (Sprache, Einstellungen, Abmelden)
+//     bleibt fest: er ist der Weg hinaus und gehoert nicht sortiert.
 //
 // Was die Form erzaehlt (unveraendert gegenueber vorher):
 //   - Klar Studios traegt seit 2026-09-22 alles, was die Apps betrifft:
@@ -24,15 +24,15 @@
 //     Der Zweig ruht, also soll er keine sechs festen Zeilen kosten, aber er
 //     ist einen Klick entfernt und nicht geloescht.
 //
-// Abmelden und Cal bleiben ein einfaches <a>: das eine ist ein Route-Handler,
-// der Cookies raeumt und umleitet, das andere geht in einen neuen Tab.
+// Abmelden bleibt ein einfaches <a>: es ist ein Route-Handler, der Cookies
+// raeumt und umleitet.
 
 "use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
-import { ChevronRight, ArrowUpRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -65,7 +65,6 @@ export default function AdminSidebar({
   lang,
   prefs,
   collabOpen = 0,
-  cakedayOpen = 0,
 }: {
   active: string;
   apps: { slug: string; name: string }[];
@@ -73,8 +72,6 @@ export default function AdminSidebar({
   prefs: NavPrefs;
   /** Unbeantwortete Collab-Anfragen. Das ist die Zahl neben dem Eintrag. */
   collabOpen?: number;
-  /** Ungelesene Mails im Postfach von mycakeday.ch, neben „MyCakeDay". */
-  cakedayOpen?: number;
 }) {
   const t = tAdmin(lang);
   const router = useRouter();
@@ -95,7 +92,6 @@ export default function AdminSidebar({
 
   const studio = orderedSection("studio", prefs);
   const studios = orderedSection("studios", prefs);
-  const mycakeday = orderedSection("mycakeday", prefs);
   const creator = orderedSection("creator", prefs);
   const creatorActive = creator.some((i) => i.id === active) || appNav.some((a) => active === a.slug);
 
@@ -132,11 +128,7 @@ export default function AdminSidebar({
           >
             <Link
               href={item.href}
-              title={item.external ? t.navExternalHint : t.navDragHint}
-              // Absprung nach mycakeday.ch: neuer Tab, kein Vorabruf, kein
-              // Client-Routing. Der Route-Handler dahinter leitet auf eine
-              // fremde Domain um, und die kann next/link nicht auffangen.
-              {...(item.external ? { target: "_blank", rel: "noopener", prefetch: false } : {})}
+              title={t.navDragHint}
               draggable
               onDragStart={(e) => {
                 setDragId(item.id);
@@ -167,7 +159,6 @@ export default function AdminSidebar({
             >
               <Icon size={16} />
               <span>{t[item.labelKey] as string}</span>
-              {item.external ? <ArrowUpRight className="ml-auto size-3 opacity-60" /> : null}
             </Link>
           </SidebarMenuButton>
         </AnimateIcon>
@@ -176,7 +167,6 @@ export default function AdminSidebar({
     );
   }
 
-  const Cal = navIcon("calendar");
   const Einstellungen = navIcon("lock");
   const Abmelden = navIcon("logout");
 
@@ -280,49 +270,11 @@ export default function AdminSidebar({
             ) : null}
           </SidebarGroup>
         ) : null}
-
-        {/* MyCakeDay, gleichrangig mit Studio (Alain, 2026-09-06: ein ganzes
-            Menue, kein Untermenue). Das Postfach ist eine Seite hier, die
-            anderen Eintraege springen ohne zweiten Login ins Cakeday-Dashboard. */}
-        {mycakeday.length > 0 ? (
-          <SidebarGroup>
-            <SidebarGroupLabel>{t.sectionMycakeday}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {mycakeday.map((item) =>
-                  navRow(
-                    item,
-                    item.id === "mycakeday" && cakedayOpen > 0 ? (
-                      <SidebarMenuBadge
-                        className="bg-[var(--danger)] text-white"
-                        aria-label={t.mycakedayOpenAria(cakedayOpen)}
-                      >
-                        {cakedayOpen}
-                      </SidebarMenuBadge>
-                    ) : undefined,
-                  ),
-                )}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ) : null}
       </SidebarContent>
 
       <SidebarFooter>
         <LangSwitch lang={lang} />
         <SidebarMenu>
-          <SidebarMenuItem>
-            <AnimateIcon animateOnHover>
-              <SidebarMenuButton asChild tooltip={t.navCalNewTab}>
-                <a href="https://cal.getklar.org" target="_blank" rel="noopener">
-                  <Cal size={16} />
-                  <span>{t.navCalNewTab}</span>
-                  <ArrowUpRight className="ml-auto size-3 opacity-60" />
-                </a>
-              </SidebarMenuButton>
-            </AnimateIcon>
-          </SidebarMenuItem>
-
           <SidebarMenuItem>
             <AnimateIcon animateOnHover>
               <SidebarMenuButton asChild isActive={active === "settings"} tooltip={t.navSettings}>

@@ -3,7 +3,6 @@ import type { NextConfig } from "next";
 // Security headers applied to all routes. CSP intentionally permissive on
 // script-src ('unsafe-inline' needed for the inline THEME_INIT / smoke / etc
 // scripts in /admin) but tightens the rest (frame-ancestors, base-uri, etc).
-// frame-src allows cal.getklar.org so the /admin?view=cal iframe works.
 const SECURITY_HEADERS = [
   {
     key: "Content-Security-Policy",
@@ -17,9 +16,9 @@ const SECURITY_HEADERS = [
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https:",
       "media-src 'self' blob:",
-      // Permit embedding our own Cal.com and Brevo/Supabase POST targets
-      "frame-src 'self' https://cal.getklar.org",
-      "connect-src 'self' https://*.supabase.co https://api.brevo.com https://cal.getklar.org https://va.vercel-scripts.com",
+      // Permit Brevo/Supabase POST targets
+      "frame-src 'self'",
+      "connect-src 'self' https://*.supabase.co https://api.brevo.com https://va.vercel-scripts.com",
       // Only Klar itself may embed Klar pages
       "frame-ancestors 'self'",
       "base-uri 'self'",
