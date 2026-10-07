@@ -13,10 +13,7 @@
 //      master key (VAULT_MASTER_KEY) so the PostHog key can be decrypted.
 
 import Link from "next/link";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { readCookieFromString } from "../_shared";
-import { verifyDeviceCookie } from "../../../lib/deviceCookie";
+import { requireAdminPage } from "../../../lib/adminGuard";
 import {
   POSTHOG_APPS,
   fetchAppUsage,
@@ -95,18 +92,7 @@ export default async function AppAnalyticsPage({
 }: {
   searchParams: Promise<{ app?: string; p?: string }>;
 }) {
-  // Auth: matches /admin route — requires klar_device (HMAC-verified) + klar_admin
-  // session (KLAR_ADMIN_KEY equality). Both cookies are issued by /admin/login
-  // after admin-key + TOTP succeed.
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
-  const TOTP = process.env.KLAR_TOTP_SECRET ?? "";
-  if (!KEY || !DEV || !TOTP) redirect("/admin/login");
-  const h = await headers();
-  const cookieHeader = h.get("cookie") ?? "";
-  const device = await verifyDeviceCookie(readCookieFromString(cookieHeader, "klar_device"), DEV);
-  if (!device) redirect("/admin/login");
-  if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
+  await requireAdminPage();
 
   const sp = await searchParams;
   const app = POSTHOG_APPS.find((a) => a.slug === sp.app) ?? POSTHOG_APPS[0];

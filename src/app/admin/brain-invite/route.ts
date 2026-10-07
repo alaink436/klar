@@ -16,8 +16,7 @@
 // auth.users row is left intact — it may be shared with the affiliate app).
 
 import { NextResponse, type NextRequest } from "next/server";
-import { ctEqual, readCookie } from "@/app/admin/_shared";
-import { verifyDeviceCookie } from "@/lib/deviceCookie";
+import { requireAdminRoute } from "@/lib/adminGuard";
 import { serviceSupabase } from "@/lib/supabaseAuth";
 import { availableFolders } from "@/lib/brainVault";
 import {
@@ -38,18 +37,8 @@ function back(req: NextRequest, params: Record<string, string>): Response {
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
-  if (!KEY || !DEV) {
-    return NextResponse.json({ ok: false, error: "admin not configured" }, { status: 503 });
-  }
-  if (!ctEqual(readCookie(req, "klar_admin"), KEY)) {
-    return NextResponse.redirect(new URL("/admin/login?next=/admin/brain", req.url), 303);
-  }
-  const device = await verifyDeviceCookie(readCookie(req, "klar_device"), DEV);
-  if (!device) {
-    return NextResponse.redirect(new URL("/admin/login?next=/admin/brain", req.url), 303);
-  }
+  const auth = await requireAdminRoute(req, "login");
+  if (!auth.ok) return auth.response;
 
   let form: FormData;
   try {
@@ -102,7 +91,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     }
 
     // 2. scope row
-    await upsertBrainMember({ email, clearance, folders, invitedBy: device.name });
+    await upsertBrainMember({ email, clearance, folders, invitedBy: auth.deviceName });
 
     const scopeText =
       clearance === "full" ? "voller Zugriff" : `Bereiche: ${folders.join(", ")}`;

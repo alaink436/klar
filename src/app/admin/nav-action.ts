@@ -10,8 +10,11 @@
 
 import { cookies } from "next/headers";
 import { NAV_COOKIE, NAV_COOKIE_MAX_AGE, NAV_ITEMS, type NavPrefs } from "./_nav";
+import { requireAdminAction } from "@/lib/adminGuard";
 
-export async function setNavPrefs(prefs: NavPrefs): Promise<void> {
+export async function setNavPrefs(prefs: NavPrefs): Promise<{ ok: true } | { ok: false; error: string }> {
+  const auth = await requireAdminAction();
+  if (!auth.ok) return auth;
   const known = new Set(NAV_ITEMS.map((i) => i.id));
   const clean = (arr: string[] | undefined): string[] =>
     [...new Set((arr ?? []).filter((id) => known.has(id)))];
@@ -21,4 +24,5 @@ export async function setNavPrefs(prefs: NavPrefs): Promise<void> {
     maxAge: NAV_COOKIE_MAX_AGE,
     sameSite: "lax",
   });
+  return { ok: true };
 }

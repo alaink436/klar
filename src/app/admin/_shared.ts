@@ -1,27 +1,8 @@
-// Shared admin chrome: auth helpers, STYLE constant, and SVG icons.
+// Shared admin chrome: cookie reader, STYLE constant, and SVG icons. The admin
+// check itself lives in lib/adminSession (adapters in lib/adminGuard).
 // Imported by both /admin (route.ts, returns HTML strings) and
 // /admin/analytics (page.tsx, returns JSX). Single source of truth so the
 // two routes look identical.
-
-import { verifyDeviceCookie } from "../../lib/deviceCookie";
-
-export function ctEqual(a: string, b: string): boolean {
-  const x = new TextEncoder().encode(a),
-    y = new TextEncoder().encode(b);
-  if (x.length !== y.length) return false;
-  let r = 0;
-  for (let i = 0; i < x.length; i++) r |= x[i] ^ y[i];
-  return r === 0;
-}
-
-export function readCookie(req: Request, name: string): string {
-  const raw = req.headers.get("cookie") ?? "";
-  for (const part of raw.split(";")) {
-    const [k, ...v] = part.trim().split("=");
-    if (k === name) return decodeURIComponent(v.join("="));
-  }
-  return "";
-}
 
 export function readCookieFromString(raw: string, name: string): string {
   for (const part of (raw ?? "").split(";")) {
@@ -54,35 +35,6 @@ export function fmtRelative(ts: string | null): string {
   const months = Math.floor(days / 30);
   if (months < 12) return `vor ${months}mo`;
   return `vor ${Math.floor(months / 12)}y`;
-}
-
-// Hardened auth:
-//   1) klar_device cookie must verify against KLAR_DEVICE_SECRET (HMAC).
-//      Without it, the browser is unknown and gets redirected to login.
-//   2) klar_admin session cookie must equal KLAR_ADMIN_KEY (constant-time).
-//      This is set by /admin/login after TOTP succeeds; 12h lifetime.
-// The legacy ?key= bypass is gone — first-time setup goes through
-// /admin/login which validates admin-key + TOTP and then issues both
-// cookies.
-export async function checkAuth(req: Request): Promise<{
-  authed: boolean;
-  hasDevice: boolean;
-  reason: "ok" | "no-device" | "no-session" | "misconfigured";
-}> {
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
-  const TOTP = process.env.KLAR_TOTP_SECRET ?? "";
-  if (!KEY || !DEV || !TOTP) {
-    return { authed: false, hasDevice: false, reason: "misconfigured" };
-  }
-  const deviceRaw = readCookie(req, "klar_device");
-  const device = await verifyDeviceCookie(deviceRaw, DEV);
-  if (!device) return { authed: false, hasDevice: false, reason: "no-device" };
-  const session = readCookie(req, "klar_admin");
-  if (!ctEqual(session, KEY)) {
-    return { authed: false, hasDevice: true, reason: "no-session" };
-  }
-  return { authed: true, hasDevice: true, reason: "ok" };
 }
 
 // Inline lucide-style SVGs, sized via parent `.nav .d` etc.

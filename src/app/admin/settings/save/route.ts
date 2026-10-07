@@ -7,9 +7,8 @@
 // settings page with ?err=… and no DB write happens.
 
 import { NextResponse, type NextRequest } from "next/server";
-import { ctEqual, readCookie } from "@/app/admin/_shared";
 import { updateAdminSettings } from "@/lib/adminSettings";
-import { verifyDeviceCookie } from "@/lib/deviceCookie";
+import { requireAdminRoute } from "@/lib/adminGuard";
 import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
@@ -25,20 +24,8 @@ function redirectWith(req: NextRequest, params: Record<string, string>): Respons
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
-  // Auth: device cookie + session. Misconfigured env returns 503 so
-  // the route never silently writes without proper guards.
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
-  if (!KEY || !DEV) {
-    return NextResponse.json({ ok: false, error: "admin not configured" }, { status: 503 });
-  }
-  if (!ctEqual(readCookie(req, "klar_admin"), KEY)) {
-    return NextResponse.redirect(new URL("/admin/login?next=/admin/settings", req.url), 303);
-  }
-  const device = await verifyDeviceCookie(readCookie(req, "klar_device"), DEV);
-  if (!device) {
-    return NextResponse.redirect(new URL("/admin/login?next=/admin/settings", req.url), 303);
-  }
+  const auth = await requireAdminRoute(req, "login");
+  if (!auth.ok) return auth.response;
 
   let form: FormData;
   try {
@@ -55,7 +42,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       shader_enabled: form.get("shader_enabled") != null,
     };
     try {
-      await updateAdminSettings(patch, device.name);
+      await updateAdminSettings(patch, auth.deviceName);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return redirectWith(req, { err: msg });
@@ -81,7 +68,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       notification_recipient_email: recipient,
     };
     try {
-      await updateAdminSettings(patch, device.name);
+      await updateAdminSettings(patch, auth.deviceName);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return redirectWith(req, { err: msg });

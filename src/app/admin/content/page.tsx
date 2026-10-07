@@ -21,11 +21,9 @@
 // if a second account on the same platform is ever connected, mirror posts into
 // a klar table at publish time to keep exact per-account counts.
 
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ICON, readCookieFromString, fmtRelative } from "../_shared";
-import { verifyDeviceCookie } from "../../../lib/deviceCookie";
+import { ICON, fmtRelative } from "../_shared";
+import { requireAdminPage } from "../../../lib/adminGuard";
 import {
   getBlotatoOverview,
   getBlotatoAccounts,
@@ -407,16 +405,7 @@ export default async function ContentPage({
 }: {
   searchParams: Promise<{ range?: string; hide?: string; tab?: string }>;
 }) {
-  // Auth — identical gate to outreach/brain/cal/bookings (device cookie + admin session).
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
-  const TOTP = process.env.KLAR_TOTP_SECRET ?? "";
-  if (!KEY || !DEV || !TOTP) redirect("/admin/login");
-  const h = await headers();
-  const cookieHeader = h.get("cookie") ?? "";
-  const device = await verifyDeviceCookie(readCookieFromString(cookieHeader, "klar_device"), DEV);
-  if (!device) redirect("/admin/login");
-  if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
+  await requireAdminPage();
 
   const sp = await searchParams;
   const tab = sp.tab === "pipeline" ? "pipeline" : "map";

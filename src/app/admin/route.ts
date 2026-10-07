@@ -4,10 +4,10 @@
 // `view`) so the ?msg= flashes + filters those routes render still arrive
 // after a POST-action redirect.
 //
-// Env: KLAR_ADMIN_KEY, KLAR_TOTP_SECRET, KLAR_DEVICE_SECRET (auth via _shared
-// checkAuth).
+// Env: KLAR_ADMIN_KEY, KLAR_TOTP_SECRET, KLAR_DEVICE_SECRET (auth via
+// lib/adminGuard).
 
-import { checkAuth } from "./_shared";
+import { requireAdminRoute } from "@/lib/adminGuard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -26,12 +26,10 @@ function redirectTo(url: URL, target: string): Response {
 }
 
 export async function GET(req: Request): Promise<Response> {
-  const auth = await checkAuth(req);
-  if (!auth.authed) {
-    // Misconfigured envs or unknown device or expired session — bounce to
-    // the unified login page, which handles all three cases.
-    return new Response(null, { status: 303, headers: { Location: "/admin/login" } });
-  }
+  // Misconfigured envs or unknown device or expired session: bounce to the
+  // unified login page, which handles all three cases.
+  const auth = await requireAdminRoute(req, "login");
+  if (!auth.ok) return auth.response;
 
   const url = new URL(req.url);
   const view = url.searchParams.get("view") || "overview";

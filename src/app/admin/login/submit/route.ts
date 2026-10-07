@@ -5,32 +5,24 @@
 // to /admin/login?err=… so the page can show the message; on success it 303s to
 // /admin. Auth logic is unchanged from the previous implementation.
 
-import { ctEqual, readCookie } from "../../_shared";
 import { verifyTOTP } from "../../../../lib/totp";
 import {
   signDeviceCookie,
-  verifyDeviceCookie,
   deviceCookieHeader,
   newDeviceId,
 } from "../../../../lib/deviceCookie";
+import {
+  adminConfig,
+  adminKeyMatches,
+  readAdminSession,
+  startSessionCookies,
+} from "../../../../lib/adminSession";
 import { fetchInvite, markInviteUsed } from "../../../../lib/adminSettings";
 import { clientIp, rateLimit } from "../../../../lib/apiGuards";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const KEY = () => process.env.KLAR_ADMIN_KEY ?? "";
-const TOTP_SECRET = () => process.env.KLAR_TOTP_SECRET ?? "";
-const DEVICE_SECRET = () => process.env.KLAR_DEVICE_SECRET ?? "";
-
-const SESSION_COOKIE_MAX_AGE = 12 * 60 * 60; // 12h
-
-function sessionCookieHeader(keyValue: string): string {
-  return `klar_admin=${encodeURIComponent(keyValue)}; HttpOnly; Secure; SameSite=Strict; Path=/admin; Max-Age=${SESSION_COOKIE_MAX_AGE}`;
-}
-function clearLegacyRootPath(): string {
-  return `klar_admin=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`;
-}
 function clearLegacyDeviceRootPath(): string {
   return `klar_device=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`;
 }
@@ -47,7 +39,9 @@ function back(err: string, invite?: string, extraHeaders?: HeadersInit): Respons
 }
 
 export async function POST(req: Request): Promise<Response> {
-  if (!KEY() || !TOTP_SECRET() || !DEVICE_SECRET()) {
+  const config = adminConfig();
+  const session = await readAdminSession(req.headers.get("cookie"), config);
+  if (session.status === "not-configured") {
     return new Response(null, { status: 303, headers: { Location: "/admin/login" } });
   }
 
@@ -66,20 +60,20 @@ export async function POST(req: Request): Promise<Response> {
   const deviceName = String(form.get("name") ?? "").trim().slice(0, 40);
   const inviteToken = String(form.get("invite") ?? "").trim();
 
-  const deviceRaw = readCookie(req, "klar_device");
-  const knownDevice = await verifyDeviceCookie(deviceRaw, DEVICE_SECRET());
+  const knownDevice =
+    session.status === "ok" || session.status === "no-session" ? session.deviceName : null;
 
   // TOTP required on every path.
-  const totpOk = await verifyTOTP(TOTP_SECRET(), totp);
+  const totpOk = await verifyTOTP(config.totpSecret, totp);
   if (!totpOk) {
     return back("Code falsch oder abgelaufen.", inviteToken || undefined);
   }
 
   let issueDeviceCookie = false;
-  let newName = knownDevice?.name ?? "";
+  let newName = knownDevice ?? "";
   let consumedInvite: string | null = null;
 
-  if (!knownDevice) {
+  if (knownDevice === null) {
     if (inviteToken) {
       const invite = await fetchInvite(inviteToken);
       if (!invite) {
@@ -92,7 +86,7 @@ export async function POST(req: Request): Promise<Response> {
       newName = deviceName;
       consumedInvite = inviteToken;
     } else {
-      if (!ctEqual(keyInput, KEY())) {
+      if (!adminKeyMatches(keyInput, config)) {
         return back("Admin-Key falsch.");
       }
       if (!deviceName) {
@@ -104,13 +98,12 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const headers = new Headers({ Location: "/admin" });
-  headers.append("Set-Cookie", clearLegacyRootPath());
   headers.append("Set-Cookie", clearLegacyDeviceRootPath());
-  headers.append("Set-Cookie", sessionCookieHeader(KEY()));
+  for (const c of startSessionCookies(config)) headers.append("Set-Cookie", c);
   if (issueDeviceCookie) {
     const signed = await signDeviceCookie(
       { deviceId: newDeviceId(), name: newName, issuedAt: Math.floor(Date.now() / 1000) },
-      DEVICE_SECRET(),
+      config.deviceSecret,
     );
     headers.append("Set-Cookie", deviceCookieHeader(signed));
   }

@@ -5,17 +5,15 @@
 // Lag bis 2026-10-07 unter /admin/outreach/translate.
 
 import { NextResponse, type NextRequest } from "next/server";
-import { readCookie, ctEqual } from "@/app/admin/_shared";
+import { requireAdminRoute } from "@/lib/adminGuard";
 import { translateText } from "@/lib/translate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest): Promise<Response> {
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  if (!KEY || !ctEqual(readCookie(req, "klar_admin"), KEY)) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAdminRoute(req);
+  if (!auth.ok) return auth.response;
 
   let body: { text?: string; target?: string; source?: string };
   try {

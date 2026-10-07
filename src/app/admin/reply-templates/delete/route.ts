@@ -2,7 +2,7 @@
 // Form-POST: id (uuid).
 
 import { NextResponse, type NextRequest } from "next/server";
-import { readCookie, ctEqual } from "../../_shared";
+import { requireAdminRoute } from "@/lib/adminGuard";
 import { deleteReplyTemplate } from "../../../../lib/replyTemplateStore";
 
 export const runtime = "nodejs";
@@ -18,11 +18,8 @@ function back(req: NextRequest, msg: string): Response {
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  if (!KEY) return back(req, "Server misconfigured: KLAR_ADMIN_KEY missing");
-  if (!ctEqual(readCookie(req, "klar_admin"), KEY)) {
-    return NextResponse.redirect(new URL("/admin/login", req.url), 303);
-  }
+  const auth = await requireAdminRoute(req, "login");
+  if (!auth.ok) return auth.response;
 
   let form: FormData;
   try {

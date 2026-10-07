@@ -11,11 +11,7 @@
 // Env: KLAR_ADMIN_KEY, KLAR_DEVICE_SECRET, KLAR_TOTP_SECRET, BRAIN_GITHUB_TOKEN.
 
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import {
-  readCookieFromString,
-} from "../_shared";
-import { verifyDeviceCookie } from "../../../lib/deviceCookie";
+import { requireAdminPage } from "../../../lib/adminGuard";
 import { datumInZone, inZone } from "@/lib/zeit";
 import { scopeGraph, hasToken, availableFolders, SHOWCASE_FOLDERS } from "@/lib/brainVault";
 import { readLearnings, readVaultChecks } from "@/lib/brainReader";
@@ -48,16 +44,8 @@ export default async function BrainPage({
 }: {
   searchParams: Promise<{ msg?: string; err?: string; tab?: string }>;
 }) {
-  // Auth — identical gate to analytics/page.tsx (device cookie + admin session).
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
-  const TOTP = process.env.KLAR_TOTP_SECRET ?? "";
-  if (!KEY || !DEV || !TOTP) redirect("/admin/login");
+  await requireAdminPage();
   const h = await headers();
-  const cookieHeader = h.get("cookie") ?? "";
-  const device = await verifyDeviceCookie(readCookieFromString(cookieHeader, "klar_device"), DEV);
-  if (!device) redirect("/admin/login");
-  if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
   const sp = await searchParams;
 

@@ -1,15 +1,15 @@
 // POST /admin/feedback/aktion — Feedback abhaken oder wieder oeffnen.
 
 import { NextResponse, type NextRequest } from "next/server";
-import { checkAuth } from "@/app/admin/_shared";
+import { requireAdminRoute } from "@/lib/adminGuard";
 import { setFeedbackDone } from "@/lib/feedbackStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest): Promise<Response> {
-  const auth = await checkAuth(req);
-  if (!auth.authed) return NextResponse.redirect(new URL("/admin/login", req.url), 303);
+  const auth = await requireAdminRoute(req, "login");
+  if (!auth.ok) return auth.response;
 
   let form: FormData;
   try {

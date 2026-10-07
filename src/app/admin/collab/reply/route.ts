@@ -6,7 +6,7 @@
 // hier gibt es kein Outreach-Target und keinen Status-Lifecycle.
 
 import { NextResponse, type NextRequest } from "next/server";
-import { readCookie, ctEqual } from "@/app/admin/_shared";
+import { requireAdminRoute } from "@/lib/adminGuard";
 import {
   COLLAB_ALIASES,
   collabAddressFor,
@@ -24,11 +24,8 @@ export async function POST(req: NextRequest): Promise<Response> {
   const done = (ok: boolean, msg: string, status = 400): Response =>
     NextResponse.json({ ok, msg }, { status: ok ? 200 : status });
 
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  if (!KEY) return done(false, "Server misconfigured", 500);
-  if (!ctEqual(readCookie(req, "klar_admin"), KEY)) {
-    return done(false, "unauthorized", 401);
-  }
+  const auth = await requireAdminRoute(req);
+  if (!auth.ok) return auth.response;
 
   let form: FormData;
   try {

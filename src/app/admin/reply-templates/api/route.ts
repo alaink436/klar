@@ -8,7 +8,7 @@
 // composer live without a full navigation.
 
 import { type NextRequest } from "next/server";
-import { readCookie, ctEqual } from "../../_shared";
+import { requireAdminRoute } from "@/lib/adminGuard";
 import {
   listReplyTemplateRows,
   upsertReplyTemplate,
@@ -34,19 +34,16 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-function authed(req: NextRequest): boolean {
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  return Boolean(KEY) && ctEqual(readCookie(req, "klar_admin"), KEY);
-}
-
 export async function GET(req: NextRequest): Promise<Response> {
-  if (!authed(req)) return json({ ok: false, error: "unauthorized" }, 401);
+  const auth = await requireAdminRoute(req);
+  if (!auth.ok) return auth.response;
   const rows = await listReplyTemplateRows();
   return json({ ok: true, rows });
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
-  if (!authed(req)) return json({ ok: false, error: "unauthorized" }, 401);
+  const auth = await requireAdminRoute(req);
+  if (!auth.ok) return auth.response;
 
   let b: Record<string, unknown>;
   try {
@@ -85,7 +82,8 @@ export async function POST(req: NextRequest): Promise<Response> {
 }
 
 export async function DELETE(req: NextRequest): Promise<Response> {
-  if (!authed(req)) return json({ ok: false, error: "unauthorized" }, 401);
+  const auth = await requireAdminRoute(req);
+  if (!auth.ok) return auth.response;
 
   let b: Record<string, unknown>;
   try {

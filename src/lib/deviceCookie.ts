@@ -79,6 +79,7 @@ function deviceCookieMaxAgeSeconds(): number {
 export async function verifyDeviceCookie(
   raw: string,
   secret: string,
+  now: number = Math.floor(Date.now() / 1000),
 ): Promise<DevicePayload | null> {
   if (!raw || !secret) return null;
   const parts = raw.split(".");
@@ -108,7 +109,6 @@ export async function verifyDeviceCookie(
     ) {
       return null;
     }
-    const now = Math.floor(Date.now() / 1000);
     const age = now - obj.issuedAt;
     if (age < 0 || age > deviceCookieMaxAgeSeconds()) {
       return null;

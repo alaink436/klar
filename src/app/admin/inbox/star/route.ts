@@ -1,9 +1,9 @@
 // POST /admin/inbox/star — toggle the star on one inbox conversation.
 // JSON body { id, on } -> { ok } | { ok:false, error }. Backs the optimistic
-// star buttons in MailClient; admin-cookie auth like reply-templates/api.
+// star buttons in MailClient; admin session like every admin route.
 
 import { type NextRequest } from "next/server";
-import { readCookie, ctEqual } from "../../_shared";
+import { requireAdminRoute } from "@/lib/adminGuard";
 import { setStarred } from "../../../../lib/inboxStars";
 
 export const runtime = "nodejs";
@@ -20,10 +20,8 @@ function json(body: unknown, status = 200): Response {
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  if (!KEY || !ctEqual(readCookie(req, "klar_admin"), KEY)) {
-    return json({ ok: false, error: "unauthorized" }, 401);
-  }
+  const auth = await requireAdminRoute(req);
+  if (!auth.ok) return auth.response;
 
   let b: Record<string, unknown>;
   try {

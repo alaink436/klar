@@ -6,11 +6,10 @@
 // /admin/vault/tiktok/reveal on click. Same 2FA gate as /admin/vault.
 
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { readCookieFromString } from "../../_shared";
 import { DATE_LOCALE, LANG_COOKIE, flashText, normalizeAdminLang } from "../../_i18n";
-import { verifyDeviceCookie } from "../../../../lib/deviceCookie";
+import { requireAdminPage } from "../../../../lib/adminGuard";
 import { datumInZone } from "@/lib/zeit";
 import { vaultReady } from "../../../../lib/vault";
 import { listTiktokAccounts } from "../../../../lib/tiktokAccounts";
@@ -31,15 +30,9 @@ export default async function TiktokPage({
 }: {
   searchParams: Promise<{ msg?: string; err?: string }>;
 }) {
-  const KEY = process.env.KLAR_ADMIN_KEY ?? "";
-  const DEV = process.env.KLAR_DEVICE_SECRET ?? "";
-  const TOTP = process.env.KLAR_TOTP_SECRET ?? "";
-  if (!KEY || !DEV || !TOTP) redirect("/admin/login");
+  await requireAdminPage();
   const h = await headers();
   const cookieHeader = h.get("cookie") ?? "";
-  const device = await verifyDeviceCookie(readCookieFromString(cookieHeader, "klar_device"), DEV);
-  if (!device) redirect("/admin/login");
-  if (readCookieFromString(cookieHeader, "klar_admin") !== KEY) redirect("/admin/login");
 
   const sp = await searchParams;
   const lang = normalizeAdminLang(readCookieFromString(cookieHeader, LANG_COOKIE));

@@ -7,12 +7,16 @@
 
 import { cookies } from "next/headers";
 import { LANG_COOKIE, LANG_COOKIE_MAX_AGE, normalizeAdminLang } from "./_i18n";
+import { requireAdminAction } from "@/lib/adminGuard";
 
-export async function setAdminLang(input: string): Promise<void> {
+export async function setAdminLang(input: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const auth = await requireAdminAction();
+  if (!auth.ok) return auth;
   const lang = normalizeAdminLang(input);
   (await cookies()).set(LANG_COOKIE, lang, {
     path: "/",
     maxAge: LANG_COOKIE_MAX_AGE,
     sameSite: "lax",
   });
+  return { ok: true };
 }
