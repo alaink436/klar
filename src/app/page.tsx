@@ -32,7 +32,7 @@ const APPS = [
   { name: "My Yarn Stash", kind: "row counter", line: "A row counter built for the moment your hands are full.", ...fromRegistry("yarn-stash") },
   { name: "Kelva", kind: "strength & cycle", line: "Your programme stays put. Kelva adjusts today's session to the week you are having.", ...fromRegistry("kelva") },
   { name: "Basalt", kind: "weekly habits", line: "Write down what you want to follow through on, then tick it off on the home screen.", ...fromRegistry("wavelength") },
-  { name: "Focus Crew", kind: "study together, live", line: "Pick a room, set a timer and study next to everyone else who is focusing right now.", icon: "/focuscrew/icon.webp", href: "/focuscrew", soon: true },
+  { name: "Learnbound", kind: "put your phone in the box", line: "Set a box on your desk and put your phone in. Only the time it stays there counts as study time.", icon: "/learnbound/icon.webp", href: "/learnbound", soon: true },
 ];
 
 export default function Home() {

@@ -4,10 +4,11 @@
 // installed app instead of Safari. Served from a route handler so the response
 // is JSON with the right content type and no extension.
 //
-// Focus Crew (com.podifyapp.app): everything under /focuscrew opens the app,
-// except the legal pages, which must stay readable in the browser.
+// Learnbound (com.podifyapp.app, called Focus Crew until 8 October 2026):
+// everything under /learnbound opens the app, and so does the old /focuscrew
+// prefix, except the legal pages, which must stay readable in the browser.
 
-const FOCUS_CREW = "SQ7SA4F47Q.com.podifyapp.app";
+const LEARNBOUND = "SQ7SA4F47Q.com.podifyapp.app";
 
 export const dynamic = "force-static";
 
@@ -16,8 +17,12 @@ export function GET() {
     applinks: {
       details: [
         {
-          appIDs: [FOCUS_CREW],
+          appIDs: [LEARNBOUND],
           components: [
+            { "/": "/learnbound/privacy*", exclude: true },
+            { "/": "/learnbound/terms*", exclude: true },
+            { "/": "/learnbound" },
+            { "/": "/learnbound/*" },
             { "/": "/focuscrew/privacy*", exclude: true },
             { "/": "/focuscrew/terms*", exclude: true },
             { "/": "/focuscrew" },

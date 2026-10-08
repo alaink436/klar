@@ -1,11 +1,14 @@
-// Privacy Policy for Focus Crew (com.podifyapp.app; the bundle id is inherited from Podify).
+// Privacy Policy for Learnbound (com.podifyapp.app; the bundle id is inherited from Podify,
+// the app was called Focus Crew until 8 October 2026).
 //
 // Linked from App Store Connect, from the in-app Settings, onboarding and the paywall.
-// Kept in sync with what the app does (AI-Brain Projects/Study-Buddies-App/SPEC-v1.md):
+// Kept in sync with what the app does (AI-Brain Projects/Pod/specs/learnbound-umbau/spec.md):
+// the AR box (camera with ARKit while placing the box, motion sensors on the device, only
+// study-time segments leave the phone), nudges as push notifications through Expo,
 // live study rooms where other people see your chibi and timer, an account via Sign in
 // with Apple on Supabase (EU), friends, postcards (user-generated content) with reports
 // and moderation, study stats and an exam planner, an app lock on Apple's Screen Time,
-// purchases through Apple and RevenueCat, local notifications only, and a one-time
+// purchases through Apple and RevenueCat, and a one-time
 // anonymous install event to the Klar hub for adults only.
 //
 // What a reviewer will look for, said plainly:
@@ -21,21 +24,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Focus Crew Privacy Policy · Klar",
+  title: "Learnbound Privacy Policy · Klar",
   description:
-    "How Focus Crew handles your data. No ads, no tracking, no selling of data. What others in a study room can see, what we store, and how to delete it.",
+    "How Learnbound handles your data. No ads, no tracking, no selling of data. What the AR box uses, what others can see, what we store, and how to delete it.",
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "1 October 2026";
-const CONTACT = "feedback+focuscrew@reply.getklar.org";
+const AS_OF = "8 October 2026";
+const CONTACT = "feedback+learnbound@reply.getklar.org";
 
-export default function FocusCrewPrivacyPage() {
+export default function LearnboundPrivacyPage() {
   return (
     <main className="min-h-screen relative z-10 px-4 sm:px-8 py-16 sm:py-24" style={{ color: "var(--fg)" }}>
       <article className="max-w-3xl mx-auto" style={{ fontFamily: "var(--font-body), system-ui, sans-serif" }}>
         <div className="label mb-3" style={{ color: "var(--fg-3)" }}>
-          Focus Crew · Privacy · as of {AS_OF}
+          Learnbound · Privacy · as of {AS_OF}
         </div>
 
         <h1
@@ -46,9 +49,10 @@ export default function FocusCrewPrivacyPage() {
         </h1>
 
         <p className="t-body-lg" style={{ color: "var(--fg-2)", marginBottom: 12 }}>
-          Focus Crew lets you study live next to other people: you pick a room, start a timer,
-          and your chibi sits down at a table with everyone else who is focusing. We do not show
-          ads, we do not track you across apps or websites, and we never sell your data.
+          Learnbound helps you prepare for exams: you put your phone into a virtual box on your
+          desk, and only the time it stays there counts as verified study time. You can study
+          alone or sit down in a room with other people. We do not show ads, we do not track you
+          across apps or websites, and we never sell your data.
         </p>
         <p className="t-body-lg" style={{ color: "var(--fg-3)", marginBottom: 48, fontSize: 14, lineHeight: 1.55 }}>
           This policy explains what we store, what other people can see, why, and the choices you have.
@@ -78,8 +82,9 @@ export default function FocusCrewPrivacyPage() {
         <Section n="03" title="What other people can see">
           <p>
             <b>In a study room</b>, others see your chibi, your public name, the subject you are
-            studying, whether you are focusing or on a break, and how long you have studied today.
-            This presence is live and ends when you leave the room.
+            studying, whether you are focusing, on a break or on your phone, whether your time is
+            verified by the box, and how long you have studied today. This presence is live and ends
+            when you leave the room. Your friends see the same in the friends list while you study.
           </p>
           <p>
             <b>Your public name.</b> Friends you accepted see your display name. Everyone else sees an
@@ -87,8 +92,8 @@ export default function FocusCrewPrivacyPage() {
             display name. Members under 18 see the alias of everyone who is not their friend.
           </p>
           <p>
-            <b>Leaderboards</b> show your public name and your weekly study time, among friends, in
-            your country or globally.
+            <b>Leaderboards</b> show your public name and your weekly verified study time, among
+            friends, in your country or globally.
           </p>
           <p>
             <b>Postcards</b> are short notes you can post. Public postcards are for adults only;
@@ -99,7 +104,9 @@ export default function FocusCrewPrivacyPage() {
 
         <Section n="04" title="What we store to run the app">
           <p>
-            Your study sessions (room, subject, planned and actual minutes, how a session ended),
+            Your study sessions (room if you sat in one, subject, box or device mode, planned and
+            actual minutes, verified and unverified minutes, the time segments behind them and the
+            number of interruptions, how a session ended),
             your subjects, exams and study phases from the planner, daily and weekly totals for your
             stats and streaks, your avatar (the item ids you picked, never a photo), the items and
             acorns you earned, your season progress, your friends and blocked users, your postcards
@@ -112,14 +119,38 @@ export default function FocusCrewPrivacyPage() {
           <p>
             With Pro you can lock apps while you study. The lock runs on Apple&apos;s Screen Time
             framework (Family Controls). The apps you pick are an opaque token that Apple keeps on
-            your device: Focus Crew never learns which apps or websites you chose, and neither do we.
+            your device: Learnbound never learns which apps or websites you chose, and neither do we.
             We only store counts for your stats, such as how often you tapped the lock screen during
             a session, never the names of apps. You can end a lock in the app and withdraw the Screen
             Time permission in iOS Settings at any time.
           </p>
         </Section>
 
-        <Section n="06" title="Reports and moderation">
+        <Section n="06" title="The AR box and motion sensors">
+          <p>
+            <b>Camera.</b> To place the box and to check that your phone arrived in it, the app uses
+            the camera through Apple&apos;s ARKit, only while you place the box or put the phone back.
+            The camera image is processed on your phone, it is never recorded, stored or sent to us
+            or anyone else.
+          </p>
+          <p>
+            <b>Motion sensors.</b> While the phone lies in the box, the app reads the motion sensors
+            on your phone to notice when it is lifted. The sensor readings stay on your phone. What
+            reaches our server is only the result: when your study time was verified, unverified, a
+            break or an interruption.
+          </p>
+        </Section>
+
+        <Section n="07" title="Nudges">
+          <p>
+            When your phone leaves the box outside a break, people in your room and your friends can
+            nudge you. We store who nudged whom and when, so that each person can nudge you only once
+            per interruption, and we delete these entries after 30 days. You can turn nudges off in
+            the app&apos;s settings.
+          </p>
+        </Section>
+
+        <Section n="08" title="Reports and moderation">
           <p>
             You can report a user or a postcard. A report stores who reported what and the reason you
             gave. A new report sends an email with the reported content to our support inbox so we can
@@ -128,23 +159,25 @@ export default function FocusCrewPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="07" title="Notifications">
+        <Section n="09" title="Notifications">
           <p>
-            Notifications about your study session, such as its end, are local notifications scheduled on your
-            phone. There is no push token and no server involved.
+            Notifications about your study session, such as its end or a reminder to put your phone back in the box, are
+            local notifications scheduled on your phone. Nudges are push notifications: if you allow notifications,
+            the app stores a push token for your phone with your account, and our server sends a nudge with the
+            sender&apos;s public name through Expo&apos;s push service to Apple.
           </p>
         </Section>
 
-        <Section n="08" title="Purchases">
+        <Section n="10" title="Purchases">
           <p>
-            Payments are processed by Apple. To unlock Focus Crew Pro, our subscription provider
+            Payments are processed by Apple. To unlock Learnbound Pro, our subscription provider
             RevenueCat receives the App Store receipt together with your account id. We receive only the
             resulting entitlement status (active or not, and when it ends). We never receive your card or
             payment details.
           </p>
         </Section>
 
-        <Section n="09" title="An anonymous install signal (adults only)">
+        <Section n="11" title="An anonymous install signal (adults only)">
           <p>
             If your age band is 18 and over, the app sends a single anonymous event to our own server so we
             can count installs. It contains a random identifier generated on your device, the platform, the
@@ -153,24 +186,25 @@ export default function FocusCrewPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="10" title="What we do not do">
+        <Section n="12" title="What we do not do">
           <p>
             No advertising and no ad networks. No analytics SDK. No cross-app or cross-site tracking, and no
-            advertising identifier (IDFA). No microphone, no camera, no contacts, no precise location. No
-            private messages. We do not sell or rent personal data to anyone.
+            advertising identifier (IDFA). The camera is only used for the AR box and never records. No
+            microphone, no contacts, no precise location. No private messages. We do not sell or rent personal
+            data to anyone.
           </p>
         </Section>
 
-        <Section n="11" title="Children and teenagers">
+        <Section n="13" title="Children and teenagers">
           <p>
-            Focus Crew is for people aged 13 and over. If you choose an age under 13 in onboarding, no account
+            Learnbound is for people aged 13 and over. If you choose an age under 13 in onboarding, no account
             is created. For members under 18 we show an alias to anyone who is not their friend, keep their
             postcards out of the public feed, and send no install signal. If you believe a child under 13 has
             created an account, contact us and we will delete it.
           </p>
         </Section>
 
-        <Section n="12" title="Why we process this data">
+        <Section n="14" title="Why we process this data">
           <p>
             To provide the app and its social features, to keep your Pro purchase, to keep the community safe,
             and to count installs. Legal bases under the GDPR are the performance of our contract with you
@@ -180,17 +214,17 @@ export default function FocusCrewPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="13" title="Service providers">
+        <Section n="15" title="Service providers">
           <p>
             <b>Apple</b> for Sign in with Apple, Screen Time, notifications and all payments, under its own
             privacy policy. <b>Supabase</b> for authentication, database and realtime presence, hosted in the
-            European Union (Frankfurt). <b>RevenueCat</b> for purchase entitlements. <b>Resend</b> to deliver
-            report emails to our support inbox. These providers process data on our behalf under data
+            European Union (Frankfurt). <b>RevenueCat</b> for purchase entitlements. <b>Expo</b> (650 Industries)
+            to deliver nudges as push notifications. <b>Resend</b> to deliver report emails to our support inbox. These providers process data on our behalf under data
             processing agreements.
           </p>
         </Section>
 
-        <Section n="14" title="How long we keep data">
+        <Section n="16" title="How long we keep data">
           <p>
             Your account data is kept for as long as your account exists. Live room presence ends when you leave.
             Reports are kept while they are needed for moderation. Purchase entitlements are held by RevenueCat
@@ -198,16 +232,16 @@ export default function FocusCrewPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="15" title="Deleting your account">
+        <Section n="17" title="Deleting your account">
           <p>
             Delete your account in the app under Settings → Account → Delete account. Deletion is immediate and
             removes your account and everything attached to it on our side: profile, sessions, stats, planner,
-            avatar, items, friends, postcards and reports you filed. An active subscription keeps running at Apple
+            avatar, items, friends, nudges, push tokens, postcards and reports you filed. An active subscription keeps running at Apple
             until you cancel it in your Apple ID settings.
           </p>
         </Section>
 
-        <Section n="16" title="Your rights">
+        <Section n="18" title="Your rights">
           <p>
             You have the right to access, correct, delete and export your personal data, and to object to or
             restrict its processing. For any request, write to{" "}
@@ -216,7 +250,7 @@ export default function FocusCrewPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="17" title="Changes to this policy">
+        <Section n="19" title="Changes to this policy">
           <p>
             We may update this policy as the app evolves. The current version is always available at this page,
             with the date shown below.
@@ -227,8 +261,8 @@ export default function FocusCrewPrivacyPage() {
 
         <p style={{ fontSize: 13, color: "var(--fg-3)", fontFamily: "var(--font-mono), monospace", letterSpacing: "0.05em" }}>
           As of {AS_OF} · Controller Alain Kessler (CH sole proprietorship) · {CONTACT} ·{" "}
-          <Link href="/focuscrew" className="underline">Focus Crew</Link> ·{" "}
-          <Link href="/focuscrew/terms" className="underline">Terms</Link>
+          <Link href="/learnbound" className="underline">Learnbound</Link> ·{" "}
+          <Link href="/learnbound/terms" className="underline">Terms</Link>
         </p>
       </article>
     </main>
