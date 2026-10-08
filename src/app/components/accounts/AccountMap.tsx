@@ -8,8 +8,13 @@
 // here is known — studio → app → accounts — so a solved layout reads cleaner and
 // stays stable between renders. Apps sit on a ring around the hub; each app's
 // accounts fan out along its own radial, spread across the arc it owns.
+//
+// Redesign 2026-10-08 (Ticket 03): Knoten als dunkle Karten mit feiner Kante,
+// Raster weiss statt tuerkis. Die App-Farbe (gedaempft, dieselbe wie in
+// Analytics) steht nur noch im Punkt vor dem App-Namen, auf den Kanten und in
+// der Minikarte; Handles stehen in Textfarbe.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -75,7 +80,7 @@ function HubNode({ data }: NodeProps) {
 function AppNode({ data }: NodeProps) {
   const d = data as AppData;
   return (
-    <div className="am-app" style={{ borderColor: d.app.color, color: d.app.color }}>
+    <div className="am-app" style={{ "--app": d.app.color } as CSSProperties}>
       <Handle type="target" position={Position.Top} className="am-handle" />
       <Handle type="source" position={Position.Bottom} className="am-handle" />
       <div className="am-app-name">{d.app.name}</div>
@@ -94,7 +99,7 @@ function AcctNode({ data }: NodeProps) {
     <div className={`am-acct${d.active ? " active" : ""}${worst ? ` flag-${worst}` : ""}`}>
       <Handle type="target" position={Position.Top} className="am-handle" />
       <div className="am-acct-top">
-        <span className="am-handle-txt" style={{ color: d.color }}>
+        <span className="am-handle-txt">
           {a.handle ? `@${a.handle}` : "Handle offen"}
         </span>
         <span className="am-role">{ROLE_LABEL[a.role]}</span>
@@ -126,27 +131,28 @@ const CSS = `
 .am-rf .react-flow__attribution{display:none}
 .am-handle{opacity:0;pointer-events:none;width:1px;height:1px;min-width:1px;min-height:1px;border:0;background:transparent}
 
-.am-hub{width:190px;height:190px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:var(--surface);border:1px solid var(--line-strong,var(--line));box-shadow:0 0 0 10px color-mix(in oklab,var(--surface) 60%,transparent),var(--shadow-sm)}
-.am-hub-label{font-family:var(--font-display,var(--font-body));font-size:19px;font-weight:700;letter-spacing:-.01em;color:var(--fg)}
+.am-hub{width:190px;height:190px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:radial-gradient(90% 60% at 50% 0,rgba(255,255,255,.07),transparent),linear-gradient(180deg,#181818,#0e0e0e);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 0 0 1px rgba(255,255,255,.06),0 0 0 1px var(--edge-outer),0 0 0 12px rgba(255,255,255,.02)}
+.am-hub-label{font-family:var(--font-display,var(--font-body));font-size:19px;font-weight:500;letter-spacing:-.02em;color:var(--fg)}
 .am-hub-sub{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--fg-4)}
 
-.am-app{width:224px;padding:12px 14px;border-radius:var(--radius-sm,8px);background:var(--surface);border:1px solid;border-left-width:3px;box-shadow:var(--shadow-sm)}
-.am-app-name{font-size:16px;font-weight:650;letter-spacing:-.01em;color:var(--fg)}
+.am-app{width:224px;padding:12px 14px;border-radius:12px;background:linear-gradient(180deg,#1a1a1a,#111);box-shadow:inset 0 1px 0 rgba(255,255,255,.13),inset 0 0 0 1px rgba(255,255,255,.06),0 0 0 1px var(--edge-outer)}
+.am-app-name{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:500;letter-spacing:-.015em;color:var(--fg)}
+.am-app-name::before{content:"";width:8px;height:8px;border-radius:999px;flex-shrink:0;background:var(--app)}
 .am-app-meta{font-family:var(--font-mono);font-size:10px;color:var(--fg-4);margin-top:4px;font-variant-numeric:tabular-nums}
 
-.am-acct{width:${CARD_W}px;box-sizing:border-box;padding:9px 11px;border-radius:var(--radius-sm,8px);background:var(--surface-2,var(--surface));border:1px solid var(--line);display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
-.am-acct:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);border-color:var(--line-strong,var(--line))}
-.am-acct.active{border-color:var(--bx-accent,#74D6C4);box-shadow:0 0 0 2px color-mix(in oklab,var(--bx-accent,#74D6C4) 40%,transparent)}
-.am-acct.flag-warn{border-left:3px solid #d9a45f}
-.am-acct.flag-crit{border-left:3px solid #e8827c}
+.am-acct{width:${CARD_W}px;box-sizing:border-box;padding:9px 11px;border-radius:10px;background:linear-gradient(180deg,#161616,#0f0f0f);box-shadow:inset 0 1px 0 rgba(255,255,255,.09),inset 0 0 0 1px rgba(255,255,255,.05),0 0 0 1px var(--edge-outer);display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:box-shadow .15s ease}
+.am-acct:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.12),0 0 0 1px var(--edge-outer)}
+.am-acct.active{box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.4),0 0 0 1px var(--edge-outer)}
+.am-acct.flag-warn{box-shadow:inset 2px 0 0 var(--warning),inset 0 1px 0 rgba(255,255,255,.09),inset 0 0 0 1px rgba(255,255,255,.05),0 0 0 1px var(--edge-outer)}
+.am-acct.flag-crit{box-shadow:inset 2px 0 0 var(--danger),inset 0 1px 0 rgba(255,255,255,.09),inset 0 0 0 1px rgba(255,255,255,.05),0 0 0 1px var(--edge-outer)}
 .am-acct-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-.am-handle-txt{font-family:var(--font-mono);font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.am-handle-txt{font-family:var(--font-mono);font-size:12.5px;font-weight:500;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .am-role{font-family:var(--font-mono);font-size:8.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--fg-4);flex-shrink:0}
 .am-nums{display:flex;gap:12px;font-size:9px;color:var(--fg-4);font-variant-numeric:tabular-nums;text-transform:uppercase;letter-spacing:.08em}
-.am-nums b{display:block;font-size:14px;font-weight:650;color:var(--fg);letter-spacing:-.02em;text-transform:none}
+.am-nums b{display:block;font-size:14px;font-weight:500;color:var(--fg);letter-spacing:-.02em;text-transform:none}
 .am-chips{display:flex;flex-wrap:wrap;gap:4px}
-.am-chip{font-family:var(--font-mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--surface);border:1px solid var(--line);color:var(--fg-3)}
-.am-chip.linked{color:#3fa06a;border-color:color-mix(in oklab,#3fa06a 40%,transparent)}
+.am-chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);color:var(--fg-3)}
+.am-chip.linked::before{content:"";width:5px;height:5px;border-radius:999px;background:var(--success)}
 .am-chip.unlinked{color:var(--fg-4)}
 
 .am-rf-hint{position:absolute;bottom:10px;left:12px;right:12px;pointer-events:none;font-family:var(--font-body),system-ui,sans-serif;font-size:11px;letter-spacing:.02em;color:var(--fg-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:5}
@@ -367,12 +373,12 @@ function AccountMapInner({ accounts, onSelect, activeKey, height = "100%" }: Map
         }}
         onNodeMouseLeave={() => setHover(null)}
       >
-        <Background id="am-grid-lines" variant={BackgroundVariant.Lines} gap={120} lineWidth={0.5} color="rgba(116,214,196,0.06)" />
-        <Background id="am-grid-dots" variant={BackgroundVariant.Dots} gap={30} size={1.2} color="rgba(116,214,196,0.22)" />
+        <Background id="am-grid-lines" variant={BackgroundVariant.Lines} gap={120} lineWidth={0.5} color="rgba(255,255,255,0.05)" />
+        <Background id="am-grid-dots" variant={BackgroundVariant.Dots} gap={30} size={1.1} color="rgba(255,255,255,0.12)" />
         <MiniMap
           pannable
           zoomable
-          nodeColor={(n) => (n.data as Partial<AcctData>)?.color ?? "#8AA6C9"}
+          nodeColor={(n) => (n.data as Partial<AcctData>)?.color ?? "var(--fg-4)"}
           nodeStrokeWidth={0}
           maskColor="color-mix(in oklab, var(--bg) 70%, transparent)"
         />

@@ -7,6 +7,7 @@
 // note: an account is connected when Blotato lists the same platform + handle.
 
 import { headers } from "next/headers";
+import { AtSign } from "lucide-react";
 import { LANG_COOKIE, flashText, normalizeAdminLang, tAdmin } from "../_i18n";
 import { requireAdminPage } from "../../../lib/adminGuard";
 import { readCookie } from "../../../lib/adminSession";
@@ -14,6 +15,7 @@ import { listAccounts } from "../../../lib/socialAccountsStore";
 import { getBlotatoAccounts } from "../../../lib/blotato";
 import { APPS } from "../../../lib/socialAccounts";
 import { AdminTopbar } from "../AdminTopbar";
+import { PageHeader } from "@/components/ui/page-header";
 import AccountsManager, { type AccountRow } from "./AccountsManager";
 
 export const dynamic = "force-dynamic";
@@ -75,7 +77,7 @@ export default async function AccountsPage({
       <title>{`${t.navAccounts} · Klar Control`}</title>
       <AdminTopbar titel={t.navAccounts} />
       <div className="content">
-        <h1>{t.navAccounts}</h1>
+        <PageHeader eyebrow="Klar Control" icon={<AtSign />} title={t.navAccounts} />
         {sp.err && (
           <div
             className="flash"

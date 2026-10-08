@@ -4,10 +4,14 @@
 // VaultManager next door: forms post straight to the save route, a password is
 // only ever fetched on an explicit "show" click through the vault's own reveal
 // route and is cleared when the dialog closes.
+//
+// Redesign 2026-10-08 (Ticket 03): jede App als Karte mit ihrer Tabelle darin,
+// Knoepfe als Pillen (weiss nur fuer die Hauptaktion).
 
 import { useState } from "react";
 import { Copy, Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TextureCard, TextureCardHeader, TextureCardTitle } from "@/components/ui/texture-card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -215,34 +219,33 @@ export default function AccountsManager({
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-fg-4 pointer-events-none" />
           <Input className="pl-9" placeholder={t.search} value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
         <div className="flex items-center gap-3">
           <span className="text-[12px] text-fg-4">{t.total(rows.length, linked, withPw)}</span>
-          <Button onClick={() => setAdding(true)}>
+          <Button variant="pill" size="sm" onClick={() => setAdding(true)}>
             <Plus /> {t.add}
           </Button>
         </div>
       </div>
 
       {groups.map((g) => (
-        <div key={g.key} className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">
-              {g.name}
-            </div>
+        <TextureCard key={g.key} className="mb-4">
+          <TextureCardHeader className="pb-1">
+            <TextureCardTitle>{g.name}</TextureCardTitle>
             <Button
-              variant="ghost"
+              variant="pill-dark"
               size="sm"
+              className="h-7 px-3 text-[12px] text-fg-2"
               onClick={() => setRemoveApp({ key: g.key, name: g.name, count: rows.filter((r) => r.app === g.key).length })}
             >
               <Trash2 /> {t.removeApp}
             </Button>
-          </div>
-          <Table>
+          </TextureCardHeader>
+          <Table className="rounded-none border-0 bg-transparent [&_th]:bg-transparent">
             <TableHeader>
               <TableRow>
                 <TableHead>{t.account}</TableHead>
@@ -257,8 +260,8 @@ export default function AccountsManager({
               {g.rows.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>
-                    <div className="font-semibold text-fg">{r.handle ? `@${r.handle}` : t.none}</div>
-                    <div className="text-[11px] text-fg-4">
+                    <div className="font-medium text-fg">{r.handle ? `@${r.handle}` : t.none}</div>
+                    <div className="mt-0.5 text-[11.5px] text-fg-4">
                       {PLATFORM_LABEL[r.platform] ?? r.platform} · {t[`role_${r.role}` as `role_${(typeof ROLES)[number]}`] ?? r.role}
                       {r.displayName ? ` · ${r.displayName}` : ""}
                     </div>
@@ -282,11 +285,11 @@ export default function AccountsManager({
                   </TableCell>
                   <TableCell>
                     {r.passwordSecretId ? (
-                      <Button variant="outline" size="sm" onClick={() => openReveal(r)}>
+                      <Button variant="pill-dark" size="sm" className="h-7 px-3" onClick={() => openReveal(r)}>
                         <Eye /> {t.show}
                       </Button>
                     ) : (
-                      <Button variant="outline" size="sm" onClick={() => setEditRow(r)}>
+                      <Button variant="pill-dark" size="sm" className="h-7 px-3 text-fg-3" onClick={() => setEditRow(r)}>
                         <Plus /> {t.setPassword}
                       </Button>
                     )}
@@ -303,10 +306,10 @@ export default function AccountsManager({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="outline" size="icon" aria-label={t.edit} onClick={() => setEditRow(r)}>
+                      <Button variant="pill-dark" size="icon" aria-label={t.edit} onClick={() => setEditRow(r)}>
                         <Pencil />
                       </Button>
-                      <Button variant="outline" size="icon" aria-label={t.del} onClick={() => setDeleteRow(r)}>
+                      <Button variant="pill-dark" size="icon" aria-label={t.del} onClick={() => setDeleteRow(r)}>
                         <Trash2 />
                       </Button>
                     </div>
@@ -315,7 +318,7 @@ export default function AccountsManager({
               ))}
             </TableBody>
           </Table>
-        </div>
+        </TextureCard>
       ))}
 
       {/* Add / edit share one form. */}
@@ -395,11 +398,11 @@ export default function AccountsManager({
             </div>
             <DialogFooter className="col-span-2">
               <DialogClose asChild>
-                <Button type="button" variant="outline">
+                <Button type="button" variant="pill-dark">
                   {t.cancel}
                 </Button>
               </DialogClose>
-              <Button type="submit">{t.save}</Button>
+              <Button type="submit" variant="pill">{t.save}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -423,7 +426,7 @@ export default function AccountsManager({
               <code className="flex-1 break-all rounded-md border border-line bg-surface-2 px-3 py-2 [font-family:var(--font-mono)] text-[13px]">
                 {reveal.key}
               </code>
-              <Button variant="outline" size="sm" onClick={() => copy(reveal.key ?? "", "reveal")}>
+              <Button variant="pill-dark" size="sm" onClick={() => copy(reveal.key ?? "", "reveal")}>
                 <Copy /> {copied === "reveal" ? t.copied : t.copy}
               </Button>
             </div>
@@ -442,7 +445,7 @@ export default function AccountsManager({
             <input type="hidden" name="app" value={removeApp?.key ?? ""} />
             <DialogFooter>
               <DialogClose asChild>
-                <Button type="button" variant="outline">
+                <Button type="button" variant="pill-dark">
                   {t.cancel}
                 </Button>
               </DialogClose>
@@ -465,7 +468,7 @@ export default function AccountsManager({
             <input type="hidden" name="id" value={deleteRow?.id ?? ""} />
             <DialogFooter>
               <DialogClose asChild>
-                <Button type="button" variant="outline">
+                <Button type="button" variant="pill-dark">
                   {t.cancel}
                 </Button>
               </DialogClose>

@@ -1,5 +1,7 @@
 // Tremor AreaChart [v1.0.0]
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// Klar: Raster, Achsen, Legende und Tooltip monochrom auf den Klar-Tokens
+// (Redesign 2026-10-08, Ticket 03); Farbe tragen nur die Reihen.
 
 "use client"
 
@@ -53,7 +55,7 @@ const LegendItem = ({
         // base
         "group inline-flex flex-nowrap items-center gap-1.5 rounded-sm px-2 py-1 whitespace-nowrap transition",
         hasOnValueChange
-          ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
+          ? "cursor-pointer hover:bg-white/5"
           : "cursor-default",
       )}
       onClick={(e) => {
@@ -74,9 +76,8 @@ const LegendItem = ({
           // base
           "truncate text-xs whitespace-nowrap",
           // text color
-          "text-gray-700 dark:text-gray-300",
-          hasOnValueChange &&
-            "group-hover:text-gray-900 dark:group-hover:text-gray-50",
+          "text-fg-3",
+          hasOnValueChange && "group-hover:text-fg",
           activeLegend && activeLegend !== name ? "opacity-40" : "opacity-100",
         )}
       >
@@ -122,8 +123,8 @@ const ScrollButton = ({ icon, onClick, disabled }: ScrollButtonProps) => {
         // base
         "group inline-flex size-5 items-center truncate rounded-sm transition",
         disabled
-          ? "cursor-not-allowed text-gray-400 dark:text-gray-600"
-          : "cursor-pointer text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-50",
+          ? "cursor-not-allowed text-fg-4"
+          : "cursor-pointer text-fg-3 hover:bg-white/5 hover:text-fg",
       )}
       disabled={disabled}
       onClick={(e) => {
@@ -287,7 +288,7 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
               // base
               "absolute top-0 right-0 bottom-0 flex h-full items-center justify-center pr-1",
               // background color
-              "bg-white dark:bg-gray-950",
+              "bg-surface",
             )}
           >
             <ScrollButton
@@ -390,35 +391,15 @@ const ChartTooltip = ({
 }: ChartTooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div
-        className={cx(
-          // base
-          "rounded-md border text-sm shadow-md",
-          // border color
-          "border-gray-200 dark:border-gray-800",
-          // background color
-          "bg-white dark:bg-gray-950",
-        )}
-      >
-        <div className={cx("border-b border-inherit px-4 py-2")}>
-          <p
-            className={cx(
-              // base
-              "font-medium",
-              // text color
-              "text-gray-900 dark:text-gray-50",
-            )}
-          >
-            {label}
-          </p>
-        </div>
-        <div className={cx("space-y-1 px-4 py-2")}>
+      <div className="klar-tooltip">
+        <div className="klar-tooltip-kopf">{label}</div>
+        <div className="klar-tooltip-zeilen">
           {payload.map(({ value, category, color }, index) => (
             <div
               key={`id-${index}`}
-              className="flex items-center justify-between space-x-8"
+              className="flex items-center justify-between gap-6"
             >
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <span
                   aria-hidden="true"
                   className={cx(
@@ -426,27 +407,9 @@ const ChartTooltip = ({
                     getColorClassName(color, "bg"),
                   )}
                 />
-                <p
-                  className={cx(
-                    // base
-                    "text-right whitespace-nowrap",
-                    // text color
-                    "text-gray-700 dark:text-gray-300",
-                  )}
-                >
-                  {category}
-                </p>
+                <p className="m-0 whitespace-nowrap">{category}</p>
               </div>
-              <p
-                className={cx(
-                  // base
-                  "text-right font-medium whitespace-nowrap tabular-nums",
-                  // text color
-                  "text-gray-900 dark:text-gray-50",
-                )}
-              >
-                {valueFormatter(value)}
-              </p>
+              <b className="text-right whitespace-nowrap">{valueFormatter(value)}</b>
             </div>
           ))}
         </div>
@@ -567,8 +530,10 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
       activeLegend: string | undefined
       category: string
     }) => {
+      // Klar: leiser als Tremors 0.3, sonst stapeln sich fuenf Flaechen zu
+      // einem trueben Schleier auf dem dunklen Grund.
       const stopOpacity =
-        activeDot || (activeLegend && activeLegend !== category) ? 0.1 : 0.3
+        activeDot || (activeLegend && activeLegend !== category) ? 0.05 : 0.16
 
       switch (fillType) {
         case "none":
@@ -671,7 +636,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
           >
             {showGridLines ? (
               <CartesianGrid
-                className={cx("stroke-gray-200 stroke-1 dark:stroke-gray-800")}
+                className="stroke-[var(--chart-grid)] stroke-1"
                 horizontal={true}
                 vertical={false}
               />
@@ -693,7 +658,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                 // base
                 "text-xs",
                 // text fill
-                "fill-gray-500 dark:fill-gray-500",
+                "fill-[var(--fg-4)] [font-family:var(--font-mono)] text-[10.5px]",
               )}
               tickLine={false}
               axisLine={false}
@@ -703,7 +668,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                 <Label
                   position="insideBottom"
                   offset={-20}
-                  className="fill-gray-800 text-sm font-medium dark:fill-gray-200"
+                  className="fill-[var(--fg-2)] text-sm font-medium"
                 >
                   {xAxisLabel}
                 </Label>
@@ -723,7 +688,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                 // base
                 "text-xs",
                 // text fill
-                "fill-gray-500 dark:fill-gray-500",
+                "fill-[var(--fg-4)] [font-family:var(--font-mono)] text-[10.5px]",
               )}
               tickFormatter={
                 type === "percent" ? valueToPercent : valueFormatter
@@ -736,7 +701,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                   style={{ textAnchor: "middle" }}
                   angle={-90}
                   offset={-15}
-                  className="fill-gray-800 text-sm font-medium dark:fill-gray-200"
+                  className="fill-[var(--fg-2)] text-sm font-medium"
                 >
                   {yAxisLabel}
                 </Label>
@@ -746,7 +711,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
               wrapperStyle={{ outline: "none" }}
               isAnimationActive={true}
               animationDuration={100}
-              cursor={{ stroke: "#d1d5db", strokeWidth: 1 }}
+              cursor={{ stroke: "var(--chart-cursor)", strokeWidth: 1 }}
               offset={20}
               position={{ y: 0 }}
               content={({ active, payload, label }) => {
@@ -869,7 +834,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                       return (
                         <Dot
                           className={cx(
-                            "stroke-white dark:stroke-gray-950",
+                            "stroke-[var(--bg)]",
                             onValueChange ? "cursor-pointer" : "",
                             getColorClassName(
                               categoryColors.get(
@@ -923,7 +888,7 @@ const AreaChart = React.forwardRef<HTMLDivElement, AreaChartProps>(
                             strokeLinejoin={strokeLinejoin}
                             strokeWidth={strokeWidth}
                             className={cx(
-                              "stroke-white dark:stroke-gray-950",
+                              "stroke-[var(--bg)]",
                               onValueChange ? "cursor-pointer" : "",
                               getColorClassName(
                                 categoryColors.get(

@@ -4,9 +4,14 @@
 // account beside the map, and lists everything that needs a decision underneath.
 // Kept separate from AccountMap so the graph stays a pure rendering component
 // and the server page hands down plain data.
+//
+// Redesign 2026-10-08 (Ticket 03): Kennzahlen, Karte, Detail und offene Punkte
+// stehen als Karten mit glaenzender Kante; Status nur noch als Punkt.
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import AccountMap from "./AccountMap";
+import { Kennzahlen } from "@/app/admin/Kennzahlen";
+import { TextureCard, TextureCardHeader, TextureCardTitle } from "@/components/ui/texture-card";
 import {
   APPS,
   ROLE_LABEL,
@@ -20,15 +25,26 @@ const fmt = new Intl.NumberFormat("de-CH");
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-[var(--radius-sm)] border border-line bg-surface px-4 py-3">
-      <div className="[font-family:var(--font-mono)] text-[9px] font-semibold uppercase tracking-[0.14em] text-fg-4">
+    <div className="rounded-[var(--radius-sm)] border border-line bg-white/[.02] px-4 py-3">
+      <div className="[font-family:var(--font-mono)] text-[9.5px] font-medium uppercase tracking-[0.14em] text-fg-3">
         {label}
       </div>
-      <div className="mt-1 text-[24px] font-semibold leading-none tracking-[-0.02em] text-fg tabular-nums">
+      <div className="mt-1.5 text-[22px] font-medium leading-none tracking-[-0.025em] text-fg tabular-nums">
         {value}
       </div>
       {hint ? <div className="mt-1.5 text-[11px] text-fg-4">{hint}</div> : null}
     </div>
+  );
+}
+
+/** Status nur als Punkt: Warnung oder kritisch. */
+function FlagPunkt({ level }: { level: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="klar-punkt mt-[7px]"
+      style={{ "--ton": level === "crit" ? "var(--danger)" : "var(--warning)" } as CSSProperties}
+    />
   );
 }
 
@@ -37,10 +53,10 @@ function Detail({ a }: { a: SocialAccount }) {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <div className="[font-family:var(--font-mono)] text-[9px] font-semibold uppercase tracking-[0.14em] text-fg-4">
+        <div className="[font-family:var(--font-mono)] text-[9.5px] font-medium uppercase tracking-[0.14em] text-fg-3">
           {app?.name} · {PLATFORM_LABEL[a.platform]} · {ROLE_LABEL[a.role]}
         </div>
-        <div className="mt-1 [font-family:var(--font-mono)] text-[15px] font-semibold text-fg break-all">
+        <div className="mt-1.5 [font-family:var(--font-mono)] text-[15px] font-medium text-fg break-all">
           {a.handle ? `@${a.handle}` : "Handle offen"}
         </div>
         {a.displayName ? (
@@ -79,12 +95,9 @@ function Detail({ a }: { a: SocialAccount }) {
           {a.flags.map((f, i) => (
             <p
               key={i}
-              className={`m-0 rounded-[var(--radius-sm)] px-3 py-2 text-[12px] leading-relaxed ${
-                f.level === "crit"
-                  ? "bg-red-500/10 text-red-600 dark:text-red-300"
-                  : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-              }`}
+              className="m-0 flex gap-2.5 rounded-[var(--radius-sm)] bg-white/[.03] px-3 py-2 text-[12px] leading-relaxed text-fg-2"
             >
+              <FlagPunkt level={f.level} />
               {f.text}
             </p>
           ))}
@@ -119,28 +132,27 @@ export default function AccountBoard({ accounts }: { accounts: SocialAccount[] }
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        <Stat label="Follower gesamt" value={fmt.format(t.followers)} hint="ohne Instagram" />
-        <Stat label="Likes gesamt" value={fmt.format(t.likes)} />
-        <Stat label="Accounts" value={String(t.accounts)} />
-        <Stat
-          label="In Blotato"
-          value={`${t.linked} / ${t.accounts}`}
-          hint={`${t.accounts - t.linked} nur von Hand bespielbar`}
-        />
-      </div>
+      <Kennzahlen
+        className="mb-0"
+        zahlen={[
+          { label: "Follower gesamt", wert: fmt.format(t.followers), zusatz: "ohne Instagram" },
+          { label: "Likes gesamt", wert: fmt.format(t.likes) },
+          { label: "Accounts", wert: String(t.accounts) },
+          { label: "In Blotato", wert: `${t.linked} / ${t.accounts}`, zusatz: `${t.accounts - t.linked} nur von Hand bespielbar` },
+        ]}
+      />
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_300px]">
-        <div className="h-[calc(100vh-260px)] min-h-[600px] overflow-hidden rounded-[var(--radius-lg)] border border-line bg-surface">
+        <TextureCard className="h-[calc(100vh-260px)] min-h-[600px]">
           <AccountMap accounts={accounts} onSelect={setActive} activeKey={active ? accountKey(active) : null} />
-        </div>
+        </TextureCard>
 
-        <aside className="rounded-[var(--radius-lg)] border border-line bg-surface p-5">
+        <TextureCard className="p-5">
           {active ? (
             <Detail a={active} />
           ) : (
             <div className="flex h-full flex-col justify-center gap-2 text-center">
-              <div className="[font-family:var(--font-mono)] text-[9px] font-semibold uppercase tracking-[0.14em] text-fg-4">
+              <div className="[font-family:var(--font-mono)] text-[9.5px] font-medium uppercase tracking-[0.14em] text-fg-3">
                 Kein Account gewählt
               </div>
               <p className="m-0 text-[13px] leading-relaxed text-fg-3">
@@ -148,22 +160,23 @@ export default function AccountBoard({ accounts }: { accounts: SocialAccount[] }
               </p>
             </div>
           )}
-        </aside>
+        </TextureCard>
       </div>
 
       {flagged.length ? (
-        <section className="rounded-[var(--radius-lg)] border border-line bg-surface p-5">
-          <h2 className="m-0 mb-3 text-[15px] font-semibold tracking-[-0.01em] text-fg">Was offen ist</h2>
-          <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+        <TextureCard>
+          <TextureCardHeader className="pb-3">
+            <TextureCardTitle>Was offen ist</TextureCardTitle>
+          </TextureCardHeader>
+          <ul className="m-0 flex list-none flex-col gap-2.5 px-6 pb-5 pt-0">
             {flagged.flatMap((a) =>
               (a.flags ?? []).map((f, i) => (
-                <li key={`${accountKey(a)}-${i}`} className="grid grid-cols-[auto_1fr] gap-3 text-[13px] leading-relaxed">
+                <li key={`${accountKey(a)}-${i}`} className="grid grid-cols-[auto_auto_1fr] gap-x-2.5 gap-y-1 text-[13px] leading-relaxed">
+                  <FlagPunkt level={f.level} />
                   <button
                     type="button"
                     onClick={() => setActive(a)}
-                    className={`[font-family:var(--font-mono)] text-[11px] font-semibold underline underline-offset-4 ${
-                      f.level === "crit" ? "text-red-600 dark:text-red-300" : "text-amber-700 dark:text-amber-300"
-                    }`}
+                    className="self-start [font-family:var(--font-mono)] text-[11.5px] font-medium text-fg underline decoration-[var(--line-strong)] underline-offset-4 hover:decoration-[var(--fg)]"
                   >
                     {a.handle ? `@${a.handle}` : "Handle offen"}
                   </button>
@@ -172,7 +185,7 @@ export default function AccountBoard({ accounts }: { accounts: SocialAccount[] }
               )),
             )}
           </ul>
-        </section>
+        </TextureCard>
       ) : null}
     </div>
   );
