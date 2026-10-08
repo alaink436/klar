@@ -8,11 +8,12 @@
 // their own content (and any page-specific extra <style>, e.g. settings).
 
 import type { ReactNode } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { LANG_COOKIE, normalizeAdminLang } from "./_i18n";
 import { NAV_COOKIE, parseNavPrefs } from "./_nav";
 import { countOpenCollabs } from "@/lib/collabView";
+import { readAdminSession } from "@/lib/adminSession";
 import { THEME_INIT_SCRIPT } from "./_shared";
 import AdminShell from "./AdminShell";
 import "./admin.css";
@@ -32,8 +33,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // Menu order + hidden entries, so the first paint is already the admin's.
   const navPrefs = parseNavPrefs(jar.get(NAV_COOKIE)?.value);
   // Sidebar badge. Cached for a minute inside countOpenCollabs, so it does not
-  // add a PostgREST round-trip to every single admin navigation.
-  const collabOpen = await countOpenCollabs();
+  // add a PostgREST round-trip to every single admin navigation. Only for a
+  // signed-in request: the login page renders through this layout too, and
+  // AdminShell's props land in its page source.
+  const signedIn = (await readAdminSession((await headers()).get("cookie"))).status === "ok";
+  const collabOpen = signedIn ? await countOpenCollabs() : undefined;
   // Ob die Schiene ein- oder ausgeklappt war. shadcn schreibt diese Cookie
   // beim Umschalten; ohne sie hier klappt die Schiene beim ersten Bild kurz
   // auf und dann wieder zu.

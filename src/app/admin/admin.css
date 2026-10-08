@@ -440,3 +440,86 @@
   .login-back svg { width: 13px; height: 13px; }
   @media (max-width: 520px) { .login-card { padding: 32px 24px 26px; } .login-mark { font-size: 26px; } .login-badge { width: 44px; height: 44px; } .login-badge img { width: 24px; height: 24px; } }
 }
+
+/* ── Login (Redesign, Ticket 05) ─────────────────────────────────────────────
+   /admin/login steht ohne Schiene (AdminShell gibt die Seite blank aus) und
+   zeichnet Raster und Lichtschein deshalb selbst. Oben gross das Klar-Symbol
+   (public/logo/klar-symbol.png, unveraendert), dahinter ein Schein per CSS,
+   darunter das Formular in einer `.klar-karte`. Die Felder tragen ihre Kante
+   als Schatten, weil `* { border-color }` aus globals.css jede Randfarbe
+   schlaegt. Die alten Klassen `.login*` und `.otp*` im Altbestand sind damit
+   unbenutzt und fallen mit Ticket 06. */
+@layer components {
+  .klar-login {
+    position: relative; isolation: isolate; overflow: hidden;
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 64px 20px 40px;
+  }
+  .klar-login-spalte { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .klar-login-zurueck { position: absolute; top: 20px; left: 20px; z-index: 2; height: 32px; padding: 0 13px 0 9px; gap: 6px; font-size: 12px; color: var(--fg-2); }
+  .klar-login-zurueck:hover { color: var(--fg); }
+  .klar-login-zurueck svg { width: 14px; height: 14px; }
+
+  /* Das Symbol: 500 px PNG mit viel Luft rundherum, darum die negativen
+     Raender. Der Schein liegt dahinter, ruhig, ohne Bewegung. */
+  .klar-login-symbol { position: relative; isolation: isolate; width: 280px; height: 280px; margin: -44px 0 -22px; }
+  .klar-login-symbol::before {
+    content: ""; position: absolute; inset: 16%; z-index: -1; border-radius: 999px;
+    background: radial-gradient(closest-side, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.07) 60%, transparent);
+    filter: blur(22px);
+  }
+  .klar-login-symbol img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 22px 30px rgba(0, 0, 0, 0.6)); }
+
+  .klar-login-kopf { display: flex; flex-direction: column; align-items: center; margin: 0 0 26px; }
+  .klar-login-kopf h1 { margin: 18px auto 0; font-size: clamp(36px, 5vw, 46px); }
+  .klar-login-kopf p { margin: 12px 0 0; max-width: 36ch; font-size: 13.5px; line-height: 1.55; color: var(--fg-3); }
+
+  .klar-login-karte { width: 100%; padding: 24px; text-align: left; }
+  .klar-login-form { display: flex; flex-direction: column; gap: 16px; }
+  .klar-login-feld { display: flex; flex-direction: column; gap: 7px; }
+  .klar-login-label { font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-3); padding-left: 2px; }
+
+  /* Felder: vertieft, Kante innen hell, beim Fokus etwas heller. */
+  .klar-login-eingabe, .klar-otp-feld {
+    width: 100%; height: 44px; padding: 0 14px; border: 0; border-radius: 12px;
+    font-family: var(--font-body); font-size: 14px; color: var(--fg);
+    background: linear-gradient(180deg, #0b0b0b, #101010);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 1px 0 rgba(255, 255, 255, 0.04);
+    transition: box-shadow 0.15s ease, background 0.15s ease;
+  }
+  .klar-login-eingabe::placeholder { color: var(--fg-4); }
+  .klar-login-eingabe:hover, .klar-otp-feld:hover { box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 1px 0 rgba(255, 255, 255, 0.04); }
+  .klar-login-eingabe:focus, .klar-otp-feld[data-aktiv="ja"] {
+    outline: none; background: #121212;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.32), 0 0 0 3px rgba(255, 255, 255, 0.06);
+  }
+
+  /* TOTP: sechs Felder, 3 + 3 mit feinem Strich (input-otp, OtpField.tsx). */
+  .klar-otp { display: flex; }
+  .klar-otp-gruppe { display: flex; gap: 8px; flex: 1; }
+  .klar-otp-feld { position: relative; flex: 1; min-width: 0; height: 52px; padding: 0; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 22px; font-weight: 500; user-select: none; }
+  .klar-otp-feld[data-voll="ja"] { background: #141414; }
+  .klar-otp-trenner { width: 10px; height: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.16); flex-shrink: 0; }
+  .klar-otp-caret { width: 2px; height: 22px; border-radius: 1px; background: var(--fg); animation: klar-otp-blinken 1s steps(2, start) infinite; }
+  @keyframes klar-otp-blinken { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .klar-otp-caret { animation: none; } }
+
+  /* Fehler: Farbe nur im Punkt und in einer feinen Kante. */
+  .klar-login-fehler {
+    display: flex; align-items: flex-start; gap: 10px; margin: 0 0 18px; padding: 10px 12px;
+    border-radius: 12px; font-size: 13px; line-height: 1.45; color: var(--fg);
+    background: rgba(255, 255, 255, 0.02);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--danger) 30%, transparent);
+  }
+  .klar-login-fehler::before { content: ""; width: 6px; height: 6px; margin-top: 6px; border-radius: 999px; background: var(--danger); flex-shrink: 0; }
+
+  .klar-login-fuss { margin: 18px 0 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-4); }
+
+  @media (max-width: 520px) {
+    .klar-login { justify-content: flex-start; padding: 68px 16px 36px; }
+    .klar-login-symbol { width: 220px; height: 220px; margin: -34px 0 -18px; }
+    .klar-login-karte { padding: 20px; }
+    .klar-login-fuss { letter-spacing: 0.08em; }
+  }
+}
