@@ -182,7 +182,7 @@ function SectionHead({ children }: { children: ReactNode }) {
 
 function RangeSegment({ active, hideParam }: { active: RangeKey; hideParam: string }) {
   return (
-    <div className="klar-wahl" role="tablist" aria-label="Zeitraum">
+    <div className="klar-segment" role="tablist" aria-label="Zeitraum">
       {RANGES.map((r) => (
         <Link
           key={r.key}
@@ -553,7 +553,7 @@ export default async function ContentPage({
       <div className="content">
         <PageHeader eyebrow="Marketing-Infrastruktur" icon={<Clapperboard />} title="Content" />
 
-        <div className="klar-wahl mb-5" role="tablist" aria-label="Content Tab">
+        <div className="klar-segment mb-5" role="tablist" aria-label="Content Tab">
           {(
             [
               { key: "map", label: "Landkarte", href: "/admin/content" },

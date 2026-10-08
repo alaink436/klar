@@ -124,14 +124,14 @@ export default async function AppAnalyticsPage({
         </PageHeader>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
-          <div className="klar-wahl" role="tablist" aria-label="App">
+          <div className="klar-segment" role="tablist" aria-label="App">
             {POSTHOG_APPS.map((a) => (
               <Link key={a.slug} href={hrefFor(a.slug, period)} role="tab" aria-selected={a.slug === app.slug} prefetch>
                 {a.label}
               </Link>
             ))}
           </div>
-          <div className="klar-wahl" role="tablist" aria-label="Zeitraum">
+          <div className="klar-segment" role="tablist" aria-label="Zeitraum">
             {PERIODS.map((p) => (
               <Link key={p.id} href={hrefFor(app.slug, p.id)} role="tab" aria-selected={p.id === period} prefetch>
                 {p.label}
@@ -144,7 +144,7 @@ export default async function AppAnalyticsPage({
             href={posthogDashboardUrl(app)}
             target="_blank"
             rel="noopener noreferrer"
-            className="klar-pille klar-pille-dunkel h-[34px] gap-1.5 px-4 text-[12.5px] sm:ml-auto [&_svg]:size-3.5"
+            className="klar-pille klar-pille-dunkel h-8 gap-1.5 px-4 text-[12.5px] sm:ml-auto [&_svg]:size-3.5"
           >
             In PostHog öffnen
             <ArrowUpRight />

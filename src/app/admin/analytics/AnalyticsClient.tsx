@@ -167,7 +167,7 @@ function TabSelector({
     return `/admin/analytics?${params.toString()}`;
   };
   return (
-    <div className="klar-wahl mb-5" role="tablist" aria-label="Analytics Tab">
+    <div className="klar-segment mb-5" role="tablist" aria-label="Analytics Tab">
       {TABS.map((t) => (
         <Link
           key={t.id}
@@ -185,7 +185,7 @@ function TabSelector({
 
 function PeriodSelector({ active, hrefFor }: { active: Period; hrefFor: (p: Period) => string }) {
   return (
-    <div className="klar-wahl" role="tablist" aria-label="Zeitraum">
+    <div className="klar-segment" role="tablist" aria-label="Zeitraum">
       {PERIODS.map((p) => (
         <Link
           key={p.id}
@@ -650,7 +650,7 @@ function AppsChartSection({ chart }: { chart: AppsChartPayload }) {
     <>
       <h2>Verlauf</h2>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-        <div className="klar-wahl" role="tablist" aria-label="Metrik">
+        <div className="klar-segment" role="tablist" aria-label="Metrik">
           {APPS_METRICS.map((m) => (
             <Link
               key={m.id}
@@ -663,7 +663,7 @@ function AppsChartSection({ chart }: { chart: AppsChartPayload }) {
             </Link>
           ))}
         </div>
-        <div className="klar-wahl" role="tablist" aria-label="Zeitraum">
+        <div className="klar-segment" role="tablist" aria-label="Zeitraum">
           {PERIODS.map((p) => (
             <Link
               key={p.id}
