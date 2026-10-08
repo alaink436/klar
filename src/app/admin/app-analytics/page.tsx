@@ -13,6 +13,7 @@
 //      master key (VAULT_MASTER_KEY) so the PostHog key can be decrypted.
 
 import Link from "next/link";
+import { Activity, ArrowUpRight } from "lucide-react";
 import { requireAdminPage } from "../../../lib/adminGuard";
 import {
   POSTHOG_APPS,
@@ -23,6 +24,8 @@ import {
 } from "../../../lib/posthog";
 import { AdminTopbar } from "../AdminTopbar";
 import { Kennzahlen, type Kennzahl } from "../Kennzahlen";
+import { PageHeader } from "@/components/ui/page-header";
+import { TextureCard } from "@/components/ui/texture-card";
 import UsageChart from "./UsageChart";
 
 export const dynamic = "force-dynamic";
@@ -48,42 +51,44 @@ const num = (n: number) => n.toLocaleString("de-CH");
 function RankedTable({ rows, head, unit }: { rows: RankedRow[]; head: string; unit: string }) {
   if (rows.length === 0) {
     return (
-      <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+      <TextureCard className="p-5 text-[13px] text-fg-3">
         Noch nichts angekommen.
-      </p>
+      </TextureCard>
     );
   }
   const max = rows[0]?.count || 1;
+  // Die Karte traegt Kante und Grund, die Tabelle darin steht ohne eigenen Rahmen.
   return (
-    <table>
-      <thead>
-        <tr>
-          <th>{head}</th>
-          <th style={{ textAlign: "right" }}>{unit}</th>
-          <th style={{ width: "40%" }} aria-hidden="true" />
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.name}>
-            <td style={{ fontFamily: "var(--font-mono)", fontSize: 12.5 }}>{r.name}</td>
-            <td style={{ textAlign: "right" }}>{num(r.count)}</td>
-            <td>
-              <div
-                aria-hidden="true"
-                style={{
-                  height: 6,
-                  borderRadius: 999,
-                  background: "var(--fg)",
-                  opacity: 0.55,
-                  width: `${Math.max(3, Math.round((r.count / max) * 100))}%`,
-                }}
-              />
-            </td>
+    <TextureCard>
+      <table className="rounded-none border-0 bg-transparent [&_th]:bg-transparent">
+        <thead>
+          <tr>
+            <th>{head}</th>
+            <th style={{ textAlign: "right" }}>{unit}</th>
+            <th style={{ width: "40%" }} aria-hidden="true" />
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.name}>
+              <td style={{ fontFamily: "var(--font-mono)", fontSize: 12.5 }}>{r.name}</td>
+              <td style={{ textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 12.5 }}>{num(r.count)}</td>
+              <td>
+                <div
+                  aria-hidden="true"
+                  style={{
+                    height: 6,
+                    borderRadius: 999,
+                    background: "linear-gradient(90deg, rgba(255, 255, 255, 0.4), #f5f5f5)",
+                    width: `${Math.max(3, Math.round((r.count / max) * 100))}%`,
+                  }}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </TextureCard>
   );
 }
 
@@ -112,58 +117,61 @@ export default async function AppAnalyticsPage({
   return (
     <>
       <title>App-Nutzung · Klar Control</title>
-      <AdminTopbar
-        titel="App-Nutzung"
-        rechts={
-          <a href={posthogDashboardUrl(app)} target="_blank" rel="noopener noreferrer" className="pill">
-            In PostHog öffnen
-          </a>
-        }
-      />
+      <AdminTopbar titel="App-Nutzung" />
       <div className="content">
-        <h1>App-Nutzung</h1>
-        <p className="muted" style={{ marginTop: -6, marginBottom: 18, fontSize: 13.5 }}>
+        <PageHeader eyebrow="Klar Control" icon={<Activity />} title="App-Nutzung">
           Was die Apps an PostHog melden: Starts, Screens, Versionen. Die Zahlen sind bis zu fünf Minuten alt.
-        </p>
+        </PageHeader>
 
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
-          <div className="seg" role="tablist" aria-label="App">
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
+          <div className="klar-segment" role="tablist" aria-label="App">
             {POSTHOG_APPS.map((a) => (
-              <Link key={a.slug} href={hrefFor(a.slug, period)} className={a.slug === app.slug ? "on" : ""} role="tab" aria-selected={a.slug === app.slug} prefetch>
+              <Link key={a.slug} href={hrefFor(a.slug, period)} role="tab" aria-selected={a.slug === app.slug} prefetch>
                 {a.label}
               </Link>
             ))}
           </div>
-          <div className="seg" role="tablist" aria-label="Zeitraum">
+          <div className="klar-segment" role="tablist" aria-label="Zeitraum">
             {PERIODS.map((p) => (
-              <Link key={p.id} href={hrefFor(app.slug, p.id)} className={p.id === period ? "on" : ""} role="tab" aria-selected={p.id === period} prefetch>
+              <Link key={p.id} href={hrefFor(app.slug, p.id)} role="tab" aria-selected={p.id === period} prefetch>
                 {p.label}
               </Link>
             ))}
           </div>
+          {/* Stand bis zum Redesign in der Kopfzeile; dort drueckte er auf dem
+              Handy den Seitentitel unter "Springen". */}
+          <a
+            href={posthogDashboardUrl(app)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="klar-pille klar-pille-dunkel h-8 gap-1.5 px-4 text-[12.5px] sm:ml-auto [&_svg]:size-3.5"
+          >
+            In PostHog öffnen
+            <ArrowUpRight />
+          </a>
         </div>
 
         {!result.ok ? (
-          <div className="card">
-            <div className="k">PostHog antwortet nicht</div>
-            <div className="s" style={{ marginTop: 6 }}>{result.error}</div>
-          </div>
+          <TextureCard className="p-5">
+            <div className="text-[14px] font-medium text-fg">PostHog antwortet nicht</div>
+            <div className="mt-1.5 text-[13px] leading-relaxed text-fg-3">{result.error}</div>
+          </TextureCard>
         ) : (
           <>
             <Kennzahlen zahlen={kennzahlen} />
 
             <h2>Verlauf</h2>
-            <div className="chart">
+            <TextureCard className="mb-2 px-4 pb-4 pt-5 sm:px-6">
               {result.usage.series.some((p) => p.users > 0 || p.starts > 0) ? (
                 <UsageChart points={result.usage.series} />
               ) : (
-                <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+                <p className="m-0 text-[13px] text-fg-3">
                   Noch keine Starts im Zeitraum. Sobald die App mit PostHog draussen ist, füllt sich die Kurve.
                 </p>
               )}
-            </div>
+            </TextureCard>
 
-            <div className="chart-grid">
+            <div className="grid grid-cols-1 gap-x-3.5 md:grid-cols-2">
               <div>
                 <h2>Screens</h2>
                 <RankedTable rows={result.usage.screens} head="Screen" unit="Aufrufe" />
@@ -174,7 +182,7 @@ export default async function AppAnalyticsPage({
               </div>
             </div>
 
-            <p className="muted" style={{ fontSize: 12, marginTop: 24 }}>
+            <p className="m-0 mt-6 text-[12px] text-fg-4">
               PostHog-Projekt „Klar Apps“, Filter <code>app = {app.slug}</code>, Antwort in {num(result.usage.tookMs)} ms.
             </p>
           </>

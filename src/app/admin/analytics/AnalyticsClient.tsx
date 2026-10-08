@@ -9,10 +9,24 @@
 // rather than a full reload, so Recharts is not re-bootstrapped on every
 // click.
 
+//
+// Redesign 2026-10-08 (Ticket 03): Karten, Umschalter und Chips aus den
+// Klar-Bausteinen (admin.css); die Apps behalten in Diagrammen ihre Farbe,
+// gedaempft (`chartColorValue`). Zahlen und Verhalten unveraendert.
+
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { AreaChart } from "../tremor/components/AreaChart/AreaChart";
 import { BarChart } from "../tremor/components/BarChart/BarChart";
-import type { AvailableChartColorsKeys } from "../tremor/utils/chartColors";
+import { chartColorValue, type AvailableChartColorsKeys } from "../tremor/utils/chartColors";
+import { Kennzahlen } from "../Kennzahlen";
+import { Badge } from "@/components/ui/badge";
+import {
+  TextureCard,
+  TextureCardContent,
+  TextureCardHeader,
+  TextureCardTitle,
+} from "@/components/ui/texture-card";
 
 export type Period = "week" | "month" | "year";
 export type AnalyticsTab = "apps" | "landings" | "site";
@@ -35,6 +49,8 @@ export interface AppRow {
   new7dPrev?: number | null;
   /** New signups per day, oldest first — the sparkline behind the number. */
   spark?: number[];
+  /** Chart colour key of the app, the same as its line in the chart. */
+  color?: string;
   hasRevenueCat: boolean;
   mrr: number | null;
   revenue28d: number | null;
@@ -151,12 +167,11 @@ function TabSelector({
     return `/admin/analytics?${params.toString()}`;
   };
   return (
-    <div className="seg" role="tablist" aria-label="Analytics Tab" style={{ marginBottom: 18 }}>
+    <div className="klar-segment mb-5" role="tablist" aria-label="Analytics Tab">
       {TABS.map((t) => (
         <Link
           key={t.id}
           href={hrefFor(t.id)}
-          className={active === t.id ? "on" : ""}
           role="tab"
           aria-selected={active === t.id}
           prefetch
@@ -170,12 +185,11 @@ function TabSelector({
 
 function PeriodSelector({ active, hrefFor }: { active: Period; hrefFor: (p: Period) => string }) {
   return (
-    <div className="seg" role="tablist" aria-label="Zeitraum">
+    <div className="klar-segment" role="tablist" aria-label="Zeitraum">
       {PERIODS.map((p) => (
         <Link
           key={p.id}
           href={hrefFor(p.id)}
-          className={active === p.id ? "on" : ""}
           role="tab"
           aria-selected={active === p.id}
           prefetch
@@ -187,29 +201,40 @@ function PeriodSelector({ active, hrefFor }: { active: Period; hrefFor: (p: Peri
   );
 }
 
-function StatRow({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="card">
-      <div className="k">{label}</div>
-      <div className="v">{value}</div>
-      {sub ? <div className="s">{sub}</div> : null}
-    </div>
+    <TextureCard>
+      <TextureCardHeader className="pb-1">
+        <TextureCardTitle>{title}</TextureCardTitle>
+      </TextureCardHeader>
+      <TextureCardContent className="pb-5">{children}</TextureCardContent>
+    </TextureCard>
   );
 }
 
-function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+/** Eine Karte um ein Diagramm, mit Luft fuer Achsen und Legende. */
+function ChartFrame({ children }: { children: React.ReactNode }) {
+  return <TextureCard className="px-4 pb-4 pt-5 sm:px-6">{children}</TextureCard>;
+}
+
+/** Zwei Karten nebeneinander, auf dem Handy untereinander. */
+const ZWEIER = "mb-7 grid grid-cols-1 gap-3.5 md:grid-cols-2";
+
+/** Der Punkt mit der Farbe einer App oder Landing. */
+function FarbPunkt({ color, className }: { color: string; className?: string }) {
   return (
-    <div className="chart">
-      <h3>{title}</h3>
-      {children}
-    </div>
+    <span
+      aria-hidden="true"
+      className={`klar-punkt ${className ?? ""}`}
+      style={{ "--ton": chartColorValue(color) } as CSSProperties}
+    />
   );
 }
 
 function HBar({ data, max }: { data: { label: string; count: number }[]; max?: number }) {
   if (data.length === 0) {
     return (
-      <p className="muted" style={{ fontSize: 13, margin: "12px 0 0" }}>
+      <p className="m-0 mt-3 text-[13px] text-fg-3">
         Noch keine Daten.
       </p>
     );
@@ -245,9 +270,9 @@ function HBar({ data, max }: { data: { label: string; count: number }[]; max?: n
           <span
             aria-hidden
             style={{
-              height: 8,
-              borderRadius: 4,
-              background: "var(--surface-2)",
+              height: 6,
+              borderRadius: 999,
+              background: "rgba(255, 255, 255, 0.06)",
               overflow: "hidden",
               position: "relative",
             }}
@@ -257,8 +282,8 @@ function HBar({ data, max }: { data: { label: string; count: number }[]; max?: n
                 display: "block",
                 height: "100%",
                 width: `${(d.count / M) * 100}%`,
-                background: "var(--chart-1)",
-                borderRadius: 4,
+                background: "linear-gradient(90deg, rgba(255, 255, 255, 0.4), #f5f5f5)",
+                borderRadius: 999,
                 transition: "width .25s ease",
               }}
             />
@@ -266,6 +291,7 @@ function HBar({ data, max }: { data: { label: string; count: number }[]; max?: n
           <span
             style={{
               fontVariantNumeric: "tabular-nums",
+              fontFamily: "var(--font-mono)",
               color: "var(--fg-2)",
               textAlign: "right",
               fontSize: 12,
@@ -380,20 +406,19 @@ function MiniStat({
         style={{
           fontFamily: "var(--font-mono)",
           fontSize: 9.5,
-          fontWeight: 600,
-          letterSpacing: ".1em",
+          fontWeight: 500,
+          letterSpacing: ".12em",
           textTransform: "uppercase",
           color: "var(--fg-3)",
-          marginBottom: 4,
+          marginBottom: 6,
         }}
       >
         {label}
       </div>
       <div
         style={{
-          fontFamily: "var(--font-display)",
-          fontWeight: 700,
-          fontSize: 20,
+          fontWeight: 500,
+          fontSize: 19,
           lineHeight: 1,
           letterSpacing: "-.02em",
           fontVariantNumeric: "tabular-nums",
@@ -410,8 +435,10 @@ function MiniStat({
  * 28 days of daily signups as thin bars. Deliberately unlabelled: it answers
  * "is this moving and when" at a glance, the exact numbers are underneath.
  */
-function Sparkline({ values }: { values: number[] }) {
+function Sparkline({ values, color }: { values: number[]; color?: string }) {
   const max = Math.max(1, ...values);
+  // In der Farbe der App, wie ihre Linie im Verlauf; ohne Farbe weiss.
+  const ton = color ? chartColorValue(color) : "#f5f5f5";
   const cutoff = values.length - 7;
   return (
     <div
@@ -427,8 +454,9 @@ function Sparkline({ values }: { values: number[] }) {
             // A zero day still gets a hairline, otherwise the gap reads as
             // "no data" rather than "nobody signed up".
             height: `${Math.max(v === 0 ? 1.5 : 8, (v / max) * 100)}%`,
-            background: i >= cutoff ? "var(--fg)" : "color-mix(in oklab,var(--fg) 26%,transparent)",
-            borderRadius: 1,
+            background: ton,
+            opacity: i >= cutoff ? 0.95 : 0.3,
+            borderRadius: 1.5,
           }}
         />
       ))}
@@ -467,29 +495,16 @@ function growthFor(row: AppRow): { headline: string; unit: string; caption: stri
 function AppCard({ row }: { row: AppRow }) {
   const growth = growthFor(row);
   return (
-    <div className="card" style={{ padding: 22 }}>
+    <TextureCard className="p-[22px]">
       <div
         style={{
           display: "flex",
           alignItems: "center",
           gap: 12,
-          marginBottom: 18,
+          marginBottom: 20,
         }}
       >
-        <span
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 11,
-            overflow: "hidden",
-            flexShrink: 0,
-            background: "var(--surface-2)",
-            border: "1px solid var(--line)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+        <span className="klar-kachel size-11">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={row.icon}
@@ -503,18 +518,18 @@ function AppCard({ row }: { row: AppRow }) {
           style={{
             margin: 0,
             flex: 1,
-            fontFamily: "var(--font-display)",
-            fontWeight: 700,
-            fontSize: 18,
-            letterSpacing: "-.01em",
+            minWidth: 0,
+            fontWeight: 500,
+            fontSize: 17,
+            letterSpacing: "-.015em",
             color: "var(--fg)",
           }}
         >
           {row.name}
         </h3>
-        <span className={`pill${row.hasBackend ? " live" : ""}`} style={{ fontSize: 9 }}>
+        <Badge tone={row.hasBackend ? "ok" : "neutral"} dot>
           {row.hasBackend ? "live" : "kein Backend"}
-        </span>
+        </Badge>
       </div>
 
       {/* Users — the movement is the headline, the total is the context. */}
@@ -523,11 +538,10 @@ function AppCard({ row }: { row: AppRow }) {
           <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
             <span
               style={{
-                fontFamily: "var(--font-display)",
-                fontWeight: 800,
+                fontWeight: 500,
                 fontSize: 38,
                 lineHeight: 1,
-                letterSpacing: "-.03em",
+                letterSpacing: "-.035em",
                 fontVariantNumeric: "tabular-nums",
                 color: growth.tone,
               }}
@@ -543,23 +557,23 @@ function AppCard({ row }: { row: AppRow }) {
         <div style={{ marginLeft: "auto", textAlign: "right" }}>
           <div
             style={{
-              fontFamily: "var(--font-display)",
-              fontWeight: 700,
+              fontWeight: 500,
               fontSize: 20,
               lineHeight: 1,
+              letterSpacing: "-.02em",
               fontVariantNumeric: "tabular-nums",
               color: "var(--fg-2)",
             }}
           >
             {fmtInt(row.usersTotal)}
           </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--fg-4)", marginTop: 4 }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--fg-4)", marginTop: 6, whiteSpace: "nowrap" }}>
             User gesamt
           </div>
         </div>
       </div>
 
-      {row.spark && row.spark.length > 0 ? <Sparkline values={row.spark} /> : null}
+      {row.spark && row.spark.length > 0 ? <Sparkline values={row.spark} color={row.color} /> : null}
 
       <div
         style={{
@@ -588,7 +602,7 @@ function AppCard({ row }: { row: AppRow }) {
           <>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 14 }}>
               <MiniStat label="MRR" value={fmtMoney(row.mrr, row.currency)} accent />
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--fg-4)" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--fg-4)" }}>
                 RevenueCat
               </span>
             </div>
@@ -599,29 +613,16 @@ function AppCard({ row }: { row: AppRow }) {
             </div>
           </>
         ) : (
-          <p className="muted" style={{ fontSize: 12, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-            <span className="pill" style={{ fontSize: 9 }}>Umsatz</span>
-            RevenueCat-Key fehlt: im Vault als <code style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>Revenuecat &lt;App&gt;</code> ablegen.
+          <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] leading-relaxed text-fg-3">
+            <Badge>Umsatz</Badge>
+            <span>
+              RevenueCat-Key fehlt: im Vault als <code style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>Revenuecat &lt;App&gt;</code> ablegen.
+            </span>
           </p>
         )}
       </div>
-    </div>
+    </TextureCard>
   );
-}
-
-// Hex for the chip dots, matching the Tailwind *-500 the AreaChart fills with.
-const CHART_DOT: Record<string, string> = {
-  blue: "#3b82f6",
-  emerald: "#10b981",
-  violet: "#8b5cf6",
-  amber: "#f59e0b",
-  cyan: "#06b6d4",
-  pink: "#ec4899",
-  lime: "#84cc16",
-  fuchsia: "#d946ef",
-};
-function dotColor(c: string): string {
-  return CHART_DOT[c] ?? "var(--fg-3)";
 }
 
 // Build an Apps-tab URL preserving metric/period/app-selection. Omits the `apps`
@@ -648,13 +649,12 @@ function AppsChartSection({ chart }: { chart: AppsChartPayload }) {
   return (
     <>
       <h2>Verlauf</h2>
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
-        <div className="seg" role="tablist" aria-label="Metrik">
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+        <div className="klar-segment" role="tablist" aria-label="Metrik">
           {APPS_METRICS.map((m) => (
             <Link
               key={m.id}
               href={appsHref(m.id, chart.period, onSlugs, allCount)}
-              className={chart.metric === m.id ? "on" : ""}
               role="tab"
               aria-selected={chart.metric === m.id}
               prefetch
@@ -663,12 +663,11 @@ function AppsChartSection({ chart }: { chart: AppsChartPayload }) {
             </Link>
           ))}
         </div>
-        <div className="seg" role="tablist" aria-label="Zeitraum">
+        <div className="klar-segment" role="tablist" aria-label="Zeitraum">
           {PERIODS.map((p) => (
             <Link
               key={p.id}
               href={appsHref(chart.metric, p.id, onSlugs, allCount)}
-              className={chart.period === p.id ? "on" : ""}
               role="tab"
               aria-selected={chart.period === p.id}
               prefetch
@@ -688,35 +687,16 @@ function AppsChartSection({ chart }: { chart: AppsChartPayload }) {
               key={a.slug}
               href={appsHref(chart.metric, chart.period, next, allCount)}
               prefetch
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                padding: "5px 11px",
-                borderRadius: 999,
-                fontSize: 12,
-                fontFamily: "var(--font-mono)",
-                border: "1px solid var(--line-strong)",
-                background: a.on ? "var(--surface-2)" : "var(--surface)",
-                color: a.on ? "var(--fg)" : "var(--fg-4)",
-              }}
+              className="klar-chip"
+              data-aus={a.on ? undefined : "ja"}
             >
-              <span
-                style={{
-                  width: 9,
-                  height: 9,
-                  borderRadius: 3,
-                  background: dotColor(a.color),
-                  display: "inline-block",
-                  opacity: a.on ? 1 : 0.35,
-                }}
-              />
+              <FarbPunkt color={a.color} />
               {a.name}
             </Link>
           );
         })}
       </div>
-      <div className="chart">
+      <ChartFrame>
         {chart.categories.length > 0 && chart.data.length > 0 ? (
           <AreaChart
             data={chart.data}
@@ -731,16 +711,16 @@ function AppsChartSection({ chart }: { chart: AppsChartPayload }) {
             className="h-72"
           />
         ) : (
-          <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+          <p className="m-0 text-[13px] text-fg-3">
             Keine App ausgewählt oder keine Daten im Zeitraum.
           </p>
         )}
         {chart.note ? (
-          <p className="muted" style={{ fontSize: 12, margin: "12px 0 0" }}>
+          <p className="m-0 mt-3 text-[12px] text-fg-3">
             {chart.note}
           </p>
         ) : null}
-      </div>
+      </ChartFrame>
     </>
   );
 }
@@ -748,37 +728,33 @@ function AppsChartSection({ chart }: { chart: AppsChartPayload }) {
 function AppsView({ apps, chart }: { apps: AppsPayload; chart: AppsChartPayload }) {
   return (
     <>
-      <div className="cards">
-        <StatRow
-          label="User gesamt"
-          value={fmtInt(apps.totalUsers)}
-          sub={`+${fmtInt(apps.totalNew30d)} in 30 Tagen · ${apps.connectedCount}/${apps.perApp.length} Apps verbunden`}
-        />
-        <StatRow
-          label="Aktive Abos"
-          value={fmtInt(apps.totalActiveSubs)}
-          sub={apps.revenueCatCount > 0 ? `${apps.revenueCatCount} Apps mit RevenueCat` : "RevenueCat noch nicht verbunden"}
-        />
-        <StatRow
-          label="MRR gesamt"
-          value={apps.revenueCatCount > 0 ? fmtMoney(apps.totalMrr, apps.currency) : "—"}
-          sub={apps.revenueCatCount > 0 ? "Σ über verbundene Apps" : "Key fehlt"}
-        />
-        <StatRow
-          label="Umsatz 28T"
-          value={apps.revenueCatCount > 0 ? fmtMoney(apps.totalRevenue28d, apps.currency) : "—"}
-          sub={apps.revenueCatCount > 0 ? "letzte 28 Tage (RevenueCat)" : "Key fehlt"}
-        />
-      </div>
+      <Kennzahlen
+        zahlen={[
+          {
+            label: "User gesamt",
+            wert: fmtInt(apps.totalUsers),
+            zusatz: `+${fmtInt(apps.totalNew30d)} in 30 Tagen · ${apps.connectedCount}/${apps.perApp.length} Apps verbunden`,
+          },
+          {
+            label: "Aktive Abos",
+            wert: fmtInt(apps.totalActiveSubs),
+            zusatz: apps.revenueCatCount > 0 ? `${apps.revenueCatCount} Apps mit RevenueCat` : "RevenueCat noch nicht verbunden",
+          },
+          {
+            label: "MRR gesamt",
+            wert: apps.revenueCatCount > 0 ? fmtMoney(apps.totalMrr, apps.currency) : "—",
+            zusatz: apps.revenueCatCount > 0 ? "Σ über verbundene Apps" : "Key fehlt",
+          },
+          {
+            label: "Umsatz 28T",
+            wert: apps.revenueCatCount > 0 ? fmtMoney(apps.totalRevenue28d, apps.currency) : "—",
+            zusatz: apps.revenueCatCount > 0 ? "letzte 28 Tage (RevenueCat)" : "Key fehlt",
+          },
+        ]}
+      />
       <AppsChartSection chart={chart} />
       <h2>Pro App</h2>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          gap: 14,
-        }}
-      >
+      <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))]">
         {apps.perApp.map((row) => (
           <AppCard key={row.slug} row={row} />
         ))}
@@ -825,19 +801,15 @@ function prevLabel(p: Period): string {
 function LandingCard({ row, period }: { row: LandingRow; period: Period }) {
   const delta = deltaOf(row.visits, row.prevVisits);
   return (
-    <div className="card" style={{ padding: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 14 }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={row.icon}
-          alt=""
-          width={30}
-          height={30}
-          style={{ borderRadius: 7, flexShrink: 0 }}
-        />
+    <TextureCard className="p-5">
+      <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 16 }}>
+        <span className="klar-kachel size-8">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={row.icon} alt="" width={32} height={32} className="size-full object-cover" />
+        </span>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: "var(--fg)" }}>{row.name}</span>
+            <span style={{ fontSize: 14, fontWeight: 500, color: "var(--fg)" }}>{row.name}</span>
           </div>
           <a
             href={row.url}
@@ -858,23 +830,16 @@ function LandingCard({ row, period }: { row: LandingRow; period: Period }) {
             {row.label}
           </a>
         </div>
-        <span
-          aria-hidden
-          style={{
-            width: 10,
-            height: 10,
-            borderRadius: 3,
-            background: dotColor(row.color),
-            flexShrink: 0,
-          }}
-        />
+        <FarbPunkt color={row.color} className="size-2" />
       </div>
 
       <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
         <span
           style={{
             fontSize: 30,
+            fontWeight: 500,
             lineHeight: 1,
+            letterSpacing: "-.03em",
             fontVariantNumeric: "tabular-nums",
             color: row.visits > 0 ? "var(--fg)" : "var(--fg-4)",
           }}
@@ -899,7 +864,7 @@ function LandingCard({ row, period }: { row: LandingRow; period: Period }) {
       </div>
 
       <div style={{ marginTop: 14 }}>
-        <Sparkline values={row.spark} />
+        <Sparkline values={row.spark} color={row.color} />
       </div>
 
       <div style={{ fontSize: 11.5, color: "var(--fg-4)", marginTop: 10 }}>
@@ -918,7 +883,7 @@ function LandingCard({ row, period }: { row: LandingRow; period: Period }) {
           </>
         )}
       </div>
-    </div>
+    </TextureCard>
   );
 }
 
@@ -929,32 +894,33 @@ function LandingsView({ landings }: { landings: LandingsPayload }) {
 
   return (
     <>
-      <div className="cards">
-        <StatRow
-          label="Aufrufe gesamt"
-          value={fmtInt(landings.totalVisits)}
-          sub={`${periodLabel(landings.period)} · ${total.text} vs. ${prevLabel(landings.period)} (${fmtInt(landings.totalPrev)})`}
-        />
-        <StatRow
-          label="Sessions"
-          value={fmtInt(landings.totalSessions)}
-          sub="unique pro Tag, über alle Landings"
-        />
-        <StatRow
-          label="Stärkste Seite"
-          value={landings.best ?? "—"}
-          sub={landings.best ? "meiste Aufrufe im Zeitraum" : "noch keine Aufrufe"}
-        />
-        <StatRow
-          label="Seiten mit Daten"
-          value={`${landings.withData} / ${landings.trackedCount}`}
-          sub={
-            landings.withData === 0
-              ? "Beacon noch nicht deployt?"
-              : "gemessene von definierten Landings"
-          }
-        />
-      </div>
+      <Kennzahlen
+        zahlen={[
+          {
+            label: "Aufrufe gesamt",
+            wert: fmtInt(landings.totalVisits),
+            zusatz: `${periodLabel(landings.period)} · ${total.text} vs. ${prevLabel(landings.period)} (${fmtInt(landings.totalPrev)})`,
+          },
+          {
+            label: "Sessions",
+            wert: fmtInt(landings.totalSessions),
+            zusatz: "unique pro Tag, über alle Landings",
+          },
+          {
+            label: "Stärkste Seite",
+            wert: landings.best ?? "—",
+            zusatz: landings.best ? "meiste Aufrufe im Zeitraum" : "noch keine Aufrufe",
+          },
+          {
+            label: "Seiten mit Daten",
+            wert: `${landings.withData} / ${landings.trackedCount}`,
+            zusatz:
+              landings.withData === 0
+                ? "Beacon noch nicht deployt?"
+                : "gemessene von definierten Landings",
+          },
+        ]}
+      />
 
       <h2>Verlauf</h2>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
@@ -968,35 +934,16 @@ function LandingsView({ landings }: { landings: LandingsPayload }) {
               key={c.key}
               href={landingsHref(landings.period, next, allCount)}
               prefetch
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                padding: "5px 11px",
-                borderRadius: 999,
-                fontSize: 12,
-                fontFamily: "var(--font-mono)",
-                border: "1px solid var(--line-strong)",
-                background: c.on ? "var(--surface-2)" : "var(--surface)",
-                color: c.on ? "var(--fg)" : "var(--fg-4)",
-              }}
+              className="klar-chip"
+              data-aus={c.on ? undefined : "ja"}
             >
-              <span
-                style={{
-                  width: 9,
-                  height: 9,
-                  borderRadius: 3,
-                  background: dotColor(c.color),
-                  display: "inline-block",
-                  opacity: c.on ? 1 : 0.35,
-                }}
-              />
+              <FarbPunkt color={c.color} />
               {c.label}
             </Link>
           );
         })}
       </div>
-      <div className="chart">
+      <ChartFrame>
         {landings.categories.length > 0 && landings.data.length > 0 ? (
           <AreaChart
             data={landings.data}
@@ -1009,30 +956,24 @@ function LandingsView({ landings }: { landings: LandingsPayload }) {
             className="h-72"
           />
         ) : (
-          <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+          <p className="m-0 text-[13px] text-fg-3">
             Keine Seite ausgewählt.
           </p>
         )}
-      </div>
+      </ChartFrame>
 
       <h2>Pro Landing</h2>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: 14,
-        }}
-      >
+      <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))]">
         {landings.perLanding.map((row) => (
           <LandingCard key={row.key} row={row} period={landings.period} />
         ))}
       </div>
 
       <h2>Andere Seiten</h2>
-      <div className="chart-grid">
+      <div className="mb-7">
         <ChartCard title="Gemessen, aber keine Landing">
           <HBar data={landings.otherPages} />
-          <p className="muted" style={{ fontSize: 12, margin: "14px 0 0" }}>
+          <p className="m-0 mt-3.5 text-[12px] leading-relaxed text-fg-3">
             Alles, was auf einer getrackten Domain aufgerufen wurde und in keiner
             Landing-Definition steht: Rechtstexte, Support, Einladungslinks. Taucht hier ein
             Pfad auf, der eigentlich eine Landing ist, wurde er umbenannt und gehört in{" "}
@@ -1060,23 +1001,25 @@ function SiteView({ site }: { site: SitePayload }) {
 
   return (
     <>
-      <div className="cards">
-        <StatRow
-          label="Sitzungen"
-          value={fmtInt(site.totalSessions)}
-          sub={`${periodLabel(site.period)} · ${delta.text} vs. ${prevLabel(site.period)} (${fmtInt(site.prevSessions)})`}
-        />
-        <StatRow
-          label="Aufrufe"
-          value={fmtInt(site.totalVisits)}
-          sub={perSession === "—" ? "keine Aufrufe" : `${perSession} Seiten pro Sitzung`}
-        />
-        <StatRow label="Top-Seite" value={site.topPage ?? "—"} sub="meist besucht" />
-        <StatRow label="Top-Quelle" value={site.topReferrer ?? "—"} sub="Referrer" />
-      </div>
+      <Kennzahlen
+        zahlen={[
+          {
+            label: "Sitzungen",
+            wert: fmtInt(site.totalSessions),
+            zusatz: `${periodLabel(site.period)} · ${delta.text} vs. ${prevLabel(site.period)} (${fmtInt(site.prevSessions)})`,
+          },
+          {
+            label: "Aufrufe",
+            wert: fmtInt(site.totalVisits),
+            zusatz: perSession === "—" ? "keine Aufrufe" : `${perSession} Seiten pro Sitzung`,
+          },
+          { label: "Top-Seite", wert: site.topPage ?? "—", zusatz: "meist besucht" },
+          { label: "Top-Quelle", wert: site.topReferrer ?? "—", zusatz: "Referrer" },
+        ]}
+      />
 
       <h2>Verlauf</h2>
-      <div className="chart">
+      <ChartFrame>
         {site.series.length > 0 ? (
           <AreaChart
             data={site.series.map((d) => ({
@@ -1093,17 +1036,17 @@ function SiteView({ site }: { site: SitePayload }) {
             className="h-60"
           />
         ) : (
-          <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+          <p className="m-0 text-[13px] text-fg-3">
             Keine Daten im Zeitraum.
           </p>
         )}
-      </div>
+      </ChartFrame>
 
       <h2>Seiten · Quellen</h2>
-      <div className="chart-grid">
+      <div className={ZWEIER}>
         <ChartCard title="Seiten">
           <HBar data={site.pages} />
-          <p className="muted" style={{ fontSize: 12, margin: "14px 0 0" }}>
+          <p className="m-0 mt-3.5 text-[12px] leading-relaxed text-fg-3">
             Ohne <code>/admin</code> und <code>/api</code>, die stehen gar nicht erst in der
             Tabelle. Affiliate-Links (<code>/i/…</code>) sind hier ausgenommen, weil es von
             denen eine pro Code gibt und sie die Liste sonst fluten.
@@ -1111,7 +1054,7 @@ function SiteView({ site }: { site: SitePayload }) {
         </ChartCard>
         <ChartCard title="Quellen">
           <HBar data={site.referrers} />
-          <p className="muted" style={{ fontSize: 12, margin: "14px 0 0" }}>
+          <p className="m-0 mt-3.5 text-[12px] leading-relaxed text-fg-3">
             {"„(direkt)“"} heisst: kein Referrer mitgeschickt. Das ist nicht nur
             direkte Eingabe, sondern auch jeder In-App-Browser, der keinen setzt.
           </p>
@@ -1119,20 +1062,20 @@ function SiteView({ site }: { site: SitePayload }) {
       </div>
 
       <h2>Länder · Browser</h2>
-      <div className="chart-grid">
+      <div className={ZWEIER}>
         <ChartCard title="Länder">
           {site.countries.length > 0 ? (
             <BarChart
               data={site.countries.map((c) => ({ label: c.label, Aufrufe: c.count }))}
               index="label"
               categories={["Aufrufe"]}
-              colors={["ink"]}
+              colors={["steel"]}
               valueFormatter={(v) => v.toLocaleString("de-CH")}
               showLegend={false}
               className="h-52"
             />
           ) : (
-            <p className="muted" style={{ fontSize: 13, margin: "12px 0 0" }}>
+            <p className="m-0 mt-3 text-[13px] text-fg-3">
               Noch keine Daten.
             </p>
           )}

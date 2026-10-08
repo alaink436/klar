@@ -2,7 +2,8 @@
 
 // Published-posts-over-time chart for /admin/content, stacked by platform.
 // Pure presentational: the server page buckets the posts (day/week/month per
-// range) and passes plain rows; colors are the Klar monochrome chart tokens.
+// range) and passes plain rows; colors are the Klar monochrome chart tokens,
+// grey first: a full white block glares on the dark card (redesign 2026-10-08).
 
 import { BarChart } from "../tremor/components/BarChart/BarChart";
 
@@ -23,7 +24,7 @@ export default function ContentChart({
       data={data}
       index="label"
       categories={categories}
-      colors={["ink", "steel", "silver"]}
+      colors={["steel", "silver", "ink"]}
       type="stacked"
       valueFormatter={(v: number) => String(Math.round(v))}
       allowDecimals={false}

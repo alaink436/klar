@@ -16,6 +16,10 @@
 // `?tab=`, and every link inside the pipeline tab carries it, so filtering
 // there does not bounce back to the map.
 //
+// Redesign 2026-10-08 (Ticket 03): Karten mit glaenzender Kante, Umschalter
+// und Chips aus admin.css, Kennzahlen ueber `Kennzahlen`. Im Vergleich der
+// Apps traegt jeder Balken die Farbe seiner App, gedaempft wie in Analytics.
+//
 // Note: GET /v2/posts has no accountId field, so per-channel numbers group by
 // platform. With one account per platform (current setup) that is identical;
 // if a second account on the same platform is ever connected, mirror posts into
@@ -34,13 +38,16 @@ import {
 import { getNativeCounts, type NativeCount } from "../../../lib/contentWarmup";
 import { KLAR_APPS } from "../../../lib/klarApps";
 import { ACCOUNTS, reconcile } from "@/lib/socialAccounts";
+import { Clapperboard } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
-import { Card } from "@/components/ui/card";
+import { TextureCard, TextureCardHeader, TextureCardTitle } from "@/components/ui/texture-card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ContentChart, { type ContentChartRow } from "./ContentChart";
+import { Kennzahlen } from "../Kennzahlen";
+import { appChartColor, chartColorValue } from "../tremor/utils/chartColors";
 import AccountBoard from "@/app/components/accounts/AccountBoard";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
@@ -165,16 +172,6 @@ function fmtCompact(n: number): string {
 
 // ---------- presentational bits ----------
 
-function Kpi({ k, v, s }: { k: string; v: ReactNode; s: ReactNode }) {
-  return (
-    <Card className="px-5 py-4">
-      <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">{k}</div>
-      <div className="[font-family:var(--font-display)] font-extrabold text-[32px] leading-none tracking-[-0.03em] text-fg mt-2 [font-variant-numeric:tabular-nums]">{v}</div>
-      <div className="text-[12.5px] text-fg-3 mt-2 font-medium truncate">{s}</div>
-    </Card>
-  );
-}
-
 function SectionHead({ children }: { children: ReactNode }) {
   return (
     <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.16em] text-fg-3 mb-3 mt-9 flex items-center gap-2.5 after:content-[''] after:flex-1 after:h-px after:bg-line">
@@ -185,16 +182,13 @@ function SectionHead({ children }: { children: ReactNode }) {
 
 function RangeSegment({ active, hideParam }: { active: RangeKey; hideParam: string }) {
   return (
-    <div className="inline-flex items-center gap-0.5 rounded-full border border-line bg-surface p-1 shadow-[var(--shadow-sm)]">
+    <div className="klar-segment" role="tablist" aria-label="Zeitraum">
       {RANGES.map((r) => (
         <Link
           key={r.key}
           href={`/admin/content?tab=pipeline&range=${r.key}${hideParam ? `&hide=${hideParam}` : ""}`}
-          className={`[font-family:var(--font-mono)] text-[10.5px] uppercase tracking-[0.06em] px-3 py-1.5 rounded-full border transition-colors ${
-            active === r.key
-              ? "border-line-strong bg-surface-2 text-fg font-semibold"
-              : "border-transparent text-fg-3 hover:text-fg"
-          }`}
+          role="tab"
+          aria-selected={active === r.key}
         >
           {r.label}
         </Link>
@@ -207,17 +201,17 @@ function Stat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="min-w-0">
       <div className="[font-family:var(--font-mono)] text-[9px] uppercase tracking-[0.12em] text-fg-4">{label}</div>
-      <div className="[font-family:var(--font-display)] font-extrabold text-[22px] leading-none tracking-[-0.02em] text-fg mt-1.5 [font-variant-numeric:tabular-nums]">
+      <div className="font-medium text-[21px] leading-none tracking-[-0.025em] text-fg mt-2 [font-variant-numeric:tabular-nums]">
         {value}
       </div>
     </div>
   );
 }
 
-function MiniStat({ value, label }: { value: string; label: string }) {
+function MiniStat({ value, label, className }: { value: string; label: string; className?: string }) {
   return (
-    <div className="w-14 text-right">
-      <div className="text-[13px] font-semibold text-fg [font-variant-numeric:tabular-nums]">{value}</div>
+    <div className={`w-14 text-right ${className ?? ""}`}>
+      <div className="text-[13px] font-medium text-fg [font-variant-numeric:tabular-nums]">{value}</div>
       <div className="[font-family:var(--font-mono)] text-[8.5px] uppercase tracking-[0.1em] text-fg-4 mt-0.5">{label}</div>
     </div>
   );
@@ -252,14 +246,14 @@ function ChannelCard({
   const profilePosts = native?.posts ?? null;
   const followers = native?.followers ?? null;
   return (
-    <Card className="px-5 py-4">
+    <TextureCard className="px-5 py-4">
       <div className="flex items-center gap-3">
-        <div className="size-9 shrink-0 rounded-[var(--radius-sm)] border border-line bg-surface-2 text-fg-2 p-2">{meta.icon}</div>
+        <span className="klar-kachel size-9 p-2.5">{meta.icon}</span>
         <div className="min-w-0">
-          <div className="font-semibold text-fg text-[14px] leading-tight truncate">@{account.username || account.id}</div>
-          <div className="[font-family:var(--font-mono)] text-[9px] uppercase tracking-[0.14em] text-fg-4 mt-0.5">{meta.label}</div>
+          <div className="font-medium text-fg text-[14px] leading-tight truncate">@{account.username || account.id}</div>
+          <div className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.14em] text-fg-4 mt-1">{meta.label}</div>
         </div>
-        <span className="ml-auto text-[11px] text-fg-4 whitespace-nowrap">
+        <span className="ml-auto text-[11.5px] text-fg-4 whitespace-nowrap">
           {followers !== null
             ? `${fmtCompact(followers)} Follower`
             : lastPost
@@ -272,7 +266,7 @@ function ChannelCard({
         <Stat label="Views" value={fmtCompact(views)} />
         <Stat label="Likes" value={fmtCompact(likes)} />
       </div>
-    </Card>
+    </TextureCard>
   );
 }
 
@@ -287,7 +281,7 @@ const isWarmAccount = (a: BlotatoAccount): boolean => WARM_USERNAMES.has((a.user
 
 function ChannelSubhead({ children }: { children: ReactNode }) {
   return (
-    <div className="[font-family:var(--font-mono)] text-[9px] font-semibold uppercase tracking-[0.14em] text-fg-4 px-1 pt-1 first:pt-0">
+    <div className="[font-family:var(--font-mono)] text-[9.5px] font-medium uppercase tracking-[0.14em] text-fg-3 px-1 pt-1 first:pt-0">
       {children}
     </div>
   );
@@ -300,27 +294,27 @@ function ColdChannelCard({ account, native }: { account: BlotatoAccount; native?
   const posts = native?.posts ?? null;
   const followers = native?.followers ?? null;
   return (
-    <Card className="px-5 py-4 border-amber-500/30">
+    <TextureCard className="px-5 py-4">
       <div className="flex items-center gap-3">
-        <div className="size-9 shrink-0 rounded-[var(--radius-sm)] border border-line bg-surface-2 text-fg-2 p-2">{meta.icon}</div>
+        <span className="klar-kachel size-9 p-2.5">{meta.icon}</span>
         <div className="min-w-0">
-          <div className="font-semibold text-fg text-[14px] leading-tight truncate">@{account.username || account.id}</div>
-          <div className="[font-family:var(--font-mono)] text-[9px] uppercase tracking-[0.14em] text-fg-4 mt-0.5">{meta.label}</div>
+          <div className="font-medium text-fg text-[14px] leading-tight truncate">@{account.username || account.id}</div>
+          <div className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.14em] text-fg-4 mt-1">{meta.label}</div>
         </div>
-        <span className="ml-auto [font-family:var(--font-mono)] text-[9px] uppercase tracking-[0.1em] text-amber-600 dark:text-amber-400 border border-amber-500/40 rounded-full px-2 py-0.5">
+        <Badge tone="warn" className="ml-auto">
           Kalt
-        </span>
+        </Badge>
       </div>
       <div className="grid grid-cols-2 gap-2 mt-4 pt-3.5 border-t border-line">
         <Stat label="Posts (Profil)" value={posts === null ? "—" : posts} />
         <Stat label="Follower" value={followers === null ? "—" : fmtCompact(followers)} />
       </div>
-      <p className="text-[11px] text-fg-4 mt-3 leading-relaxed m-0">
+      <p className="text-[11.5px] text-fg-4 mt-3 leading-relaxed m-0">
         {posts === null
           ? "Profil gerade nicht lesbar — Postzahl lädt beim nächsten Aufruf."
           : "Native Postzahl vom Profil. Manuell weiter aufwärmen, dann auf Auto-Pipeline."}
       </p>
-    </Card>
+    </TextureCard>
   );
 }
 
@@ -557,24 +551,16 @@ export default async function ContentPage({
       <title>Content · Klar Control</title>
       <AdminTopbar titel="Content" />
       <div className="content">
-        <PageHeader eyebrow="Marketing-Infrastruktur" title="Content" />
+        <PageHeader eyebrow="Marketing-Infrastruktur" icon={<Clapperboard />} title="Content" />
 
-        <div className="mb-4 flex items-center gap-1 border-b border-line">
+        <div className="klar-segment mb-5" role="tablist" aria-label="Content Tab">
           {(
             [
               { key: "map", label: "Landkarte", href: "/admin/content" },
               { key: "pipeline", label: "Pipeline", href: `/admin/content?tab=pipeline&range=${range.key}` },
             ] as const
           ).map((t) => (
-            <Link
-              key={t.key}
-              href={t.href}
-              className={`-mb-px border-b-2 px-4 py-2.5 text-[13px] transition-colors ${
-                tab === t.key
-                  ? "border-fg font-semibold text-fg"
-                  : "border-transparent text-fg-3 hover:text-fg"
-              }`}
-            >
+            <Link key={t.key} href={t.href} role="tab" aria-selected={tab === t.key}>
               {t.label}
             </Link>
           ))}
@@ -583,13 +569,13 @@ export default async function ContentPage({
         {onMap ? (
           <AccountBoard accounts={mapAccounts} />
         ) : !data.ok ? (
-          <Card className="px-6 py-5">
-            <div className="font-semibold text-fg text-[14px] mb-1.5">Blotato nicht erreichbar</div>
+          <TextureCard className="px-6 py-5">
+            <div className="font-medium text-fg text-[14px] mb-1.5">Blotato nicht erreichbar</div>
             <p className="text-[13px] text-fg-3 m-0 leading-relaxed">
               {data.reason === "no-key" ? (
                 <>
                   Kein nutzbarer Blotato-Key gefunden. Der Key liegt im{" "}
-                  <Link href="/admin/vault" className="font-semibold border-b border-line-strong hover:border-fg">Vault</Link>{" "}
+                  <Link href="/admin/vault" className="font-medium text-fg border-b border-line-strong hover:border-fg">Vault</Link>{" "}
                   (Provider <code>blotato</code>) und braucht <code>VAULT_MASTER_KEY</code> +{" "}
                   <code>KLAR_INBOX_SERVICE_KEY</code> in der Server-Env zum Entschlüsseln.
                 </>
@@ -597,10 +583,10 @@ export default async function ContentPage({
                 <>Die Blotato-API hat nicht geantwortet ({data.reason}). Kurz warten und neu laden, Rate-Limit ist 30 req/min.</>
               )}
             </p>
-          </Card>
+          </TextureCard>
         ) : (
           <>
-            <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
               <RangeSegment active={range.key} hideParam={[...hidden].join(",")} />
               <span className="[font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.1em] text-fg-4">
                 Stand {stand}
@@ -608,8 +594,8 @@ export default async function ContentPage({
             </div>
 
             {bucketStats.length > 0 ? (
-              <div className="flex items-center flex-wrap gap-1.5 mb-6">
-                <span className="[font-family:var(--font-mono)] text-[9.5px] font-semibold uppercase tracking-[0.14em] text-fg-4 mr-1">
+              <div className="flex items-center flex-wrap gap-2 mb-6">
+                <span className="[font-family:var(--font-mono)] text-[9.5px] font-medium uppercase tracking-[0.14em] text-fg-4 mr-1">
                   Apps
                 </span>
                 {bucketStats.map((b) => {
@@ -619,16 +605,13 @@ export default async function ContentPage({
                       key={b.meta.slug}
                       href={toggleHref(b.meta.slug)}
                       title={off ? `${b.meta.label} einblenden` : `${b.meta.label} ausblenden`}
-                      className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border transition-all ${
-                        off
-                          ? "border-line text-fg-4 opacity-50 hover:opacity-80"
-                          : "border-line-strong bg-surface text-fg-2 hover:text-fg"
-                      }`}
+                      className="klar-chip"
+                      data-aus={off ? "ja" : undefined}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={b.meta.icon} alt="" width={14} height={14} className="size-3.5 rounded-[4px]" />
-                      <span className={off ? "line-through" : "font-medium"}>{b.meta.label}</span>
-                      <span className="[font-family:var(--font-mono)] text-[9px] text-fg-4 [font-variant-numeric:tabular-nums]">
+                      <img src={b.meta.icon} alt="" width={14} height={14} className={`size-3.5 rounded-[4px] ${off ? "opacity-40" : ""}`} />
+                      <span className={off ? "line-through" : undefined}>{b.meta.label}</span>
+                      <span className="[font-family:var(--font-mono)] text-[10px] text-fg-4 [font-variant-numeric:tabular-nums]">
                         {b.posts}
                       </span>
                     </Link>
@@ -639,39 +622,45 @@ export default async function ContentPage({
               <div className="mb-6" />
             )}
 
-            <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(165px,1fr))]">
-              <Kpi k="Published" v={publishedInRange.length} s={`${published.length} gesamt${data.truncated ? " (letzte 2000)" : ""}`} />
-              <Kpi k="Views" v={fmtCompact(viewsTotal)} s={viewsSub} />
-              <Kpi
-                k="Engagement"
-                v={fmtCompact(engagementTotal)}
-                s={
-                  engagementTotal > 0
-                    ? `${fmtCompact(likesTotal)} Likes · ${fmtCompact(commentsTotal)} Komm. · ${fmtCompact(sharesTotal)} Shares`
-                    : "Likes, Kommentare und Shares"
-                }
-              />
-              <Kpi k="Geplant" v={scheduled.length} s={nextScheduled ? `nächster ${fmtWhen(nextScheduled.postTime)}` : "nichts in der Queue"} />
-            </div>
+            <Kennzahlen
+              className="mb-0"
+              zahlen={[
+                { label: "Published", wert: publishedInRange.length, zusatz: `${published.length} gesamt${data.truncated ? " (letzte 2000)" : ""}` },
+                { label: "Views", wert: fmtCompact(viewsTotal), zusatz: viewsSub },
+                {
+                  label: "Engagement",
+                  wert: fmtCompact(engagementTotal),
+                  zusatz:
+                    engagementTotal > 0
+                      ? `${fmtCompact(likesTotal)} Likes · ${fmtCompact(commentsTotal)} Komm. · ${fmtCompact(sharesTotal)} Shares`
+                      : "Likes, Kommentare und Shares",
+                },
+                { label: "Geplant", wert: scheduled.length, zusatz: nextScheduled ? `nächster ${fmtWhen(nextScheduled.postTime)}` : "nichts in der Queue" },
+              ]}
+            />
 
             {failedInRange.length > 0 ? (
-              <div className="mt-3 px-4 py-3 rounded-[var(--radius-sm)] border border-red-500/25 bg-red-500/5 text-[12.5px] text-fg-2">
-                <span className="font-semibold text-danger">
-                  {failedInRange.length} {failedInRange.length === 1 ? "Post" : "Posts"} fehlgeschlagen
-                </span>{" "}
-                im Zeitraum, Details unten in der Historie.
-              </div>
+              // Farbe nur im Punkt, wie bei jeder Statusmarke.
+              <TextureCard className="mt-3 flex items-center gap-2.5 px-4 py-3 text-[12.5px] text-fg-2">
+                <span aria-hidden="true" className="klar-punkt" style={{ "--ton": "var(--danger)" } as CSSProperties} />
+                <span>
+                  <span className="font-medium text-fg">
+                    {failedInRange.length} {failedInRange.length === 1 ? "Post" : "Posts"} fehlgeschlagen
+                  </span>{" "}
+                  im Zeitraum, Details unten in der Historie.
+                </span>
+              </TextureCard>
             ) : null}
 
             <SectionHead>Kanäle &amp; Verlauf</SectionHead>
             <div className="grid gap-3 lg:[grid-template-columns:minmax(300px,5fr)_7fr]">
               <div className="grid gap-3 content-start">
                 {data.accounts.length === 0 ? (
-                  <Card className="px-5 py-4">
+                  <TextureCard className="px-5 py-4">
                     <p className="text-[13px] text-fg-3 m-0">
                       Keine Social-Accounts mit Blotato verbunden. In der Blotato-App unter Accounts verbinden.
                     </p>
-                  </Card>
+                  </TextureCard>
                 ) : (
                   <>
                     {warmAccounts.length > 0 ? (
@@ -708,66 +697,73 @@ export default async function ContentPage({
                   </>
                 )}
               </div>
-              <Card className="px-5 py-4">
-                <div className="flex items-baseline justify-between mb-4">
-                  <span className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">
-                    Published pro {chart.unitLabel}
-                  </span>
-                  <span className="text-[11px] text-fg-4">{publishedInRange.length} Posts ({range.label})</span>
+              <TextureCard className="self-start">
+                <TextureCardHeader className="pb-2">
+                  <TextureCardTitle>Published pro {chart.unitLabel}</TextureCardTitle>
+                  <span className="text-[12px] text-fg-4">{publishedInRange.length} Posts ({range.label})</span>
+                </TextureCardHeader>
+                <div className="px-4 pb-4 sm:px-6">
+                  {publishedInRange.length > 0 ? (
+                    <ContentChart data={chart.rows} categories={chart.categories} />
+                  ) : (
+                    <div className="h-56 flex items-center justify-center text-[12.5px] text-fg-4">
+                      Noch keine veröffentlichten Posts im Zeitraum
+                    </div>
+                  )}
                 </div>
-                {publishedInRange.length > 0 ? (
-                  <ContentChart data={chart.rows} categories={chart.categories} />
-                ) : (
-                  <div className="h-56 flex items-center justify-center text-[12.5px] text-fg-4 italic">
-                    Noch keine veröffentlichten Posts im Zeitraum
-                  </div>
-                )}
-              </Card>
+              </TextureCard>
             </div>
 
             {visibleBuckets.length > 0 ? (
               <>
                 <SectionHead>Apps im Vergleich</SectionHead>
-                <Card className="p-0 overflow-hidden">
+                <TextureCard>
                   {visibleBuckets.map((b, i) => (
                     <div key={b.meta.slug} className="flex items-center gap-4 px-5 py-3 border-t border-line first:border-t-0">
-                      <span className="[font-family:var(--font-display)] font-extrabold text-[20px] leading-none text-fg-4 w-6 text-right shrink-0 [font-variant-numeric:tabular-nums]">
+                      <span className="[font-family:var(--font-mono)] text-[13px] leading-none text-fg-4 w-5 text-right shrink-0 [font-variant-numeric:tabular-nums]">
                         {i + 1}
                       </span>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={b.meta.icon} alt="" width={28} height={28} className="size-7 shrink-0 rounded-[7px] border border-line" />
-                      <div className="w-32 shrink-0 min-w-0">
-                        <div className="font-semibold text-fg text-[13px] leading-tight truncate">{b.meta.label}</div>
+                      <span className="klar-kachel size-8">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={b.meta.icon} alt="" width={32} height={32} className="size-full object-cover" />
+                      </span>
+                      <div className="min-w-0 flex-1 md:w-32 md:flex-none">
+                        <div className="font-medium text-fg text-[13.5px] leading-tight truncate">{b.meta.label}</div>
                         <div className="[font-family:var(--font-mono)] text-[9px] uppercase tracking-[0.1em] text-fg-4 mt-0.5">
                           {b.posts} {b.posts === 1 ? "Post" : "Posts"}
                         </div>
                       </div>
                       <div className="flex-1 hidden md:block">
-                        <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden">
+                        <div className="h-1.5 rounded-full bg-white/[.06] overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-[var(--chart-1)]"
-                            style={{ width: `${Math.max(2, Math.round((b.views / maxBucketViews) * 100))}%` }}
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${Math.max(2, Math.round((b.views / maxBucketViews) * 100))}%`,
+                              // Jede App in ihrer Farbe; das Studio ist keine App und bleibt grau.
+                              background: b.meta.slug === "studio" ? "var(--fg-3)" : chartColorValue(appChartColor(b.meta.slug)),
+                            }}
                           />
                         </div>
                       </div>
+                      {/* Auf dem Handy nur die Views, sonst laeuft die Zeile ueber die Kante. */}
                       <div className="flex gap-4 shrink-0 ml-auto">
                         <MiniStat value={fmtCompact(b.views)} label="Views" />
-                        <MiniStat value={fmtCompact(b.posts > 0 ? Math.round(b.views / b.posts) : b.views)} label="Ø/Post" />
-                        <MiniStat value={fmtCompact(b.likes)} label="Likes" />
+                        <MiniStat value={fmtCompact(b.posts > 0 ? Math.round(b.views / b.posts) : b.views)} label="Ø/Post" className="hidden sm:block" />
+                        <MiniStat value={fmtCompact(b.likes)} label="Likes" className="hidden sm:block" />
                       </div>
                     </div>
                   ))}
-                </Card>
+                </TextureCard>
               </>
             ) : null}
 
             {topPosts.length > 0 ? (
               <>
                 <SectionHead>Top Posts</SectionHead>
-                <Card className="p-0 overflow-hidden">
+                <TextureCard>
                   {topPosts.map((t, i) => (
                     <div key={t.id} className="flex items-center gap-4 px-5 py-3 border-t border-line first:border-t-0">
-                      <span className="[font-family:var(--font-display)] font-extrabold text-[20px] leading-none text-fg-4 w-6 text-right shrink-0 [font-variant-numeric:tabular-nums]">
+                      <span className="[font-family:var(--font-mono)] text-[13px] leading-none text-fg-4 w-5 text-right shrink-0 [font-variant-numeric:tabular-nums]">
                         {i + 1}
                       </span>
                       <div className="min-w-0 flex-1">
@@ -797,7 +793,7 @@ export default async function ContentPage({
                           href={t.postUrl}
                           target="_blank"
                           rel="noopener"
-                          className="shrink-0 text-[12px] font-semibold text-fg-2 border-b border-line-strong hover:border-fg hover:text-fg"
+                          className="shrink-0 text-[12px] font-medium text-fg-2 border-b border-line-strong hover:border-fg hover:text-fg"
                         >
                           ↗
                         </a>
@@ -806,101 +802,103 @@ export default async function ContentPage({
                       )}
                     </div>
                   ))}
-                </Card>
+                </TextureCard>
               </>
             ) : null}
 
             <SectionHead>Historie</SectionHead>
             {recentPosts.length === 0 ? (
-              <Card className="px-6 py-6">
-                <div className="font-semibold text-fg text-[14px] mb-1.5">Noch keine Posts über Blotato</div>
+              <TextureCard className="px-6 py-6">
+                <div className="font-medium text-fg text-[14px] mb-1.5">Noch keine Posts über Blotato</div>
                 <p className="text-[13px] text-fg-3 m-0 leading-relaxed">
                   Sobald die Posting-Pipeline den ersten Post über die API rausschickt, erscheinen hier
                   Status und Counts pro Kanal. Publizieren läuft über <code>POST /v2/posts</code> mit dem
                   Vault-Key, Referenz liegt im AI-Brain (<code>Infrastructure/blotato-api.md</code>).
                 </p>
-              </Card>
+              </TextureCard>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Wann</TableHead>
-                    <TableHead>Kanal</TableHead>
-                    <TableHead>App</TableHead>
-                    <TableHead>Text</TableHead>
-                    <TableHead className="text-right">Views</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Link</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentPosts.map((p) => {
-                    const badge = STATE_BADGE[p.state.type];
-                    const m = metricsFor(p);
-                    return (
-                      <TableRow key={p.id}>
-                        <TableCell className="whitespace-nowrap text-fg-3 text-[11px]" title={p.postTime}>
-                          {fmtWhen(p.postTime)}
-                        </TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center gap-1.5">
-                            <span className="size-3.5 text-fg-3">{platformMeta(p.platform).icon}</span>
-                            <span className="[font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.08em] text-fg-2">
-                              {platformMeta(p.platform).label}
+              <TextureCard>
+                <Table className="rounded-none border-0 bg-transparent [&_th]:bg-transparent">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Wann</TableHead>
+                      <TableHead>Kanal</TableHead>
+                      <TableHead>App</TableHead>
+                      <TableHead>Text</TableHead>
+                      <TableHead className="text-right">Views</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Link</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentPosts.map((p) => {
+                      const badge = STATE_BADGE[p.state.type];
+                      const m = metricsFor(p);
+                      return (
+                        <TableRow key={p.id}>
+                          <TableCell className="whitespace-nowrap text-fg-3 text-[11px]" title={p.postTime}>
+                            {fmtWhen(p.postTime)}
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="size-3.5 text-fg-3">{platformMeta(p.platform).icon}</span>
+                              <span className="[font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.08em] text-fg-2">
+                                {platformMeta(p.platform).label}
+                              </span>
                             </span>
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center gap-1.5">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={bucketMeta(appOfPost.get(p.id) ?? "studio").icon}
-                              alt=""
-                              width={14}
-                              height={14}
-                              className="size-3.5 rounded-[4px]"
-                            />
-                            <span className="[font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.08em] text-fg-2">
-                              {bucketMeta(appOfPost.get(p.id) ?? "studio").label}
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center gap-1.5">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={bucketMeta(appOfPost.get(p.id) ?? "studio").icon}
+                                alt=""
+                                width={14}
+                                height={14}
+                                className="size-3.5 rounded-[4px]"
+                              />
+                              <span className="[font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.08em] text-fg-2">
+                                {bucketMeta(appOfPost.get(p.id) ?? "studio").label}
+                              </span>
                             </span>
-                          </span>
-                        </TableCell>
-                        <TableCell className="max-w-[380px]">
-                          <span className="block truncate text-[12.5px] text-fg-2" title={p.text}>
-                            {p.text || <span className="text-fg-4 italic">ohne Text</span>}
-                          </span>
-                          {p.state.type === "failed" && p.state.errorMessage ? (
-                            <span className="block truncate text-[11px] text-danger mt-0.5" title={p.state.errorMessage}>
-                              {p.state.errorMessage}
+                          </TableCell>
+                          <TableCell className="max-w-[380px]">
+                            <span className="block truncate text-[12.5px] text-fg-2" title={p.text}>
+                              {p.text || <span className="text-fg-4 italic">ohne Text</span>}
                             </span>
-                          ) : null}
-                        </TableCell>
-                        <TableCell className="text-right text-[12.5px] [font-variant-numeric:tabular-nums]">
-                          {p.state.type === "published" ? (m ? fmtCompact(m.metrics.views) : "—") : ""}
-                        </TableCell>
-                        <TableCell>
-                          <Badge tone={badge.tone}>{badge.label}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {p.state.postUrl ? (
-                            <a
-                              href={p.state.postUrl}
-                              target="_blank"
-                              rel="noopener"
-                              title="Post öffnen"
-                              className="text-[13px] font-semibold text-fg-2 hover:text-fg"
-                            >
-                              ↗
-                            </a>
-                          ) : (
-                            <span className="text-fg-4 text-[12px]">—</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                            {p.state.type === "failed" && p.state.errorMessage ? (
+                              <span className="block truncate text-[11px] text-danger mt-0.5" title={p.state.errorMessage}>
+                                {p.state.errorMessage}
+                              </span>
+                            ) : null}
+                          </TableCell>
+                          <TableCell className="text-right text-[12.5px] [font-variant-numeric:tabular-nums]">
+                            {p.state.type === "published" ? (m ? fmtCompact(m.metrics.views) : "—") : ""}
+                          </TableCell>
+                          <TableCell>
+                            <Badge tone={badge.tone}>{badge.label}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {p.state.postUrl ? (
+                              <a
+                                href={p.state.postUrl}
+                                target="_blank"
+                                rel="noopener"
+                                title="Post öffnen"
+                                className="text-[13px] font-medium text-fg-2 hover:text-fg"
+                              >
+                                ↗
+                              </a>
+                            ) : (
+                              <span className="text-fg-4 text-[12px]">—</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TextureCard>
             )}
           </>
         )}

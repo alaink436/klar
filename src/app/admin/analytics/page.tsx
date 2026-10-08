@@ -31,7 +31,7 @@ import {
   type Bucket,
   type UserSeries,
 } from "../../../lib/appMetrics";
-import { KLAR_APPS, LISTED_APPS, resolveBackendKey } from "../../../lib/klarApps";
+import { LISTED_APPS, resolveBackendKey } from "../../../lib/klarApps";
 import {
   RESOLVED_LANDINGS,
   landingKey,
@@ -49,6 +49,9 @@ import AnalyticsClient, {
   type LandingRow,
   type SitePayload,
 } from "./AnalyticsClient";
+import { appChartColor } from "../tremor/utils/chartColors";
+import { ChartColumn } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 
 import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
@@ -144,11 +147,12 @@ function isAffiliatePath(path: string): boolean {
 // wenn ein Pfad umbenannt wurde: die Zahl verschwindet dann nicht, sie wandert
 // nur sichtbar in die Restliste, statt still auf null zu fallen.
 
-/** Stabile Farbe pro Landing, an der Reihenfolge der Registry festgemacht. */
-const LANDING_CHART_COLORS = ["blue", "emerald", "violet", "amber", "cyan", "pink", "lime", "fuchsia"];
+/** Jede Landing gehoert genau einer App und traegt deren Farbe (Redesign
+    2026-10-08). Vorher zaehlte die Farbe die Registry durch, und Kelva war
+    hier gruen, aber unter Apps cyan. */
 function colorForLanding(key: string): string {
-  const i = RESOLVED_LANDINGS.findIndex((l) => landingKey(l.site, l.path) === key);
-  return LANDING_CHART_COLORS[(i < 0 ? 0 : i) % LANDING_CHART_COLORS.length];
+  const l = RESOLVED_LANDINGS.find((x) => landingKey(x.site, x.path) === key);
+  return appChartColor(l?.app ?? "");
 }
 
 /** Zu welcher Landing gehoert diese Zeile, oder null. */
@@ -436,6 +440,7 @@ async function buildApps(): Promise<AppsPayload> {
         new7d: spark.length ? sum(SPARK_DAYS - 7, SPARK_DAYS) : null,
         new7dPrev: spark.length ? sum(SPARK_DAYS - 14, SPARK_DAYS - 7) : null,
         spark,
+        color: colorForSlug(meta.slug),
         hasRevenueCat: !!rc?.ok,
         mrr: rc?.mrr ?? null,
         revenue28d: rc?.revenue28d ?? null,
@@ -487,12 +492,9 @@ const EMPTY_APPS: AppsPayload = {
 // history comes from the daily snapshots in klar_app_metrics_daily.
 
 // Stable per-app colours (assigned by KLAR_APPS order) so an app keeps its
-// colour regardless of which others are toggled on.
-const APP_CHART_COLORS = ["blue", "emerald", "violet", "amber", "cyan", "pink", "lime"];
-function colorForSlug(slug: string): string {
-  const i = KLAR_APPS.findIndex((a) => a.slug === slug);
-  return APP_CHART_COLORS[(i < 0 ? 0 : i) % APP_CHART_COLORS.length];
-}
+// colour regardless of which others are toggled on. Since the redesign the
+// mapping lives next to the colours in tremor/utils/chartColors.ts.
+const colorForSlug = appChartColor;
 
 function parseMetric(m: string | undefined): AppsMetric {
   return m === "revenue" ? "revenue" : "users";
@@ -699,7 +701,7 @@ export default async function AnalyticsPage({
       <title>Analytics · Klar Control</title>
       <AdminTopbar titel="Analytics" />
       <div className="content">
-        <h1>Analytics</h1>
+        <PageHeader eyebrow="Klar Control" icon={<ChartColumn />} title="Analytics" />
         <AnalyticsClient
           landings={landings}
           site={site}

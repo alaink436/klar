@@ -4,12 +4,16 @@
 // vier verschachtelten div mit den Klassen `card`, `k`, `v`, `s`. Wer eine
 // Kachel dazunahm, kopierte die Zeile und tauschte den Inhalt.
 //
-// Bewusst mit DENSELBEN Klassen wie bisher: das CSS dafuer steht seit je im
-// STYLE-Block, und wer es hier neu erfinden wuerde, aendert das Aussehen von
-// fuenf Seiten, ohne sie gesehen zu haben. Der Umbau soll die Struktur
-// aufraeumen, nicht das Bild verschieben.
+// Seit dem Redesign (2026-10-08, Ticket 03) steht jede Kachel als Karte mit
+// glaenzender Kante (`TextureCard`), die Zahl mit Verlauf von Weiss nach Grau.
+// Analytics, App-Nutzung, Content und die Account-Landkarte zeigen ihre
+// Kennzahlen alle hierueber, statt je eine eigene Kachel zu bauen.
 //
-// Server-Komponente: hier bewegt sich nichts, also kostet sie nichts im Bundle.
+// Ohne Hooks und ohne Server-Importe: laeuft als Server-Komponente und laesst
+// sich genauso aus einer Client-Komponente heraus benutzen.
+
+import { TextureCard } from "@/components/ui/texture-card";
+import { cn } from "@/lib/utils";
 
 export type Kennzahl = {
   /** Die Ueberschrift der Kachel, klein und in Kapitaelchen. */
@@ -21,17 +25,31 @@ export type Kennzahl = {
   zusatz?: string;
 };
 
-export function Kennzahlen({ zahlen }: { zahlen: Kennzahl[] }) {
+export function Kennzahlen({ zahlen, className }: { zahlen: Kennzahl[]; className?: string }) {
   if (zahlen.length === 0) return null;
   return (
-    <div className="cards">
-      {zahlen.map((z) => (
-        <div className="card" key={z.label}>
-          <div className="k">{z.label}</div>
-          <div className="v">{z.wert}</div>
-          {z.zusatz ? <div className="s">{z.zusatz}</div> : null}
-        </div>
-      ))}
+    <div className={cn("mb-8 grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fit,minmax(190px,1fr))]", className)}>
+      {zahlen.map((z) => {
+        // Ein Wort statt einer Zahl ("kelva.space/get") steht kleiner, sonst
+        // laeuft es auf dem Handy ueber die Kante.
+        const lang = String(z.wert).length > 9;
+        return (
+          <TextureCard key={z.label} className="px-5 pb-4 pt-[18px]">
+            <div className="[font-family:var(--font-mono)] text-[10px] font-medium uppercase tracking-[0.14em] text-fg-3">
+              {z.label}
+            </div>
+            <div
+              className={cn(
+                "klar-verlauf mt-2.5 w-fit max-w-full font-medium leading-none tracking-[-0.03em] [overflow-wrap:anywhere] [font-variant-numeric:tabular-nums]",
+                lang ? "text-[16px] leading-tight sm:text-[19px]" : "text-[32px]",
+              )}
+            >
+              {z.wert}
+            </div>
+            {z.zusatz ? <div className="mt-2.5 text-[12.5px] leading-snug text-fg-3">{z.zusatz}</div> : null}
+          </TextureCard>
+        );
+      })}
     </div>
   );
 }

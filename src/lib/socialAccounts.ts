@@ -59,7 +59,10 @@ export interface AppMeta {
   name: string;
   /** One line on what this app posts and how. */
   content: string;
-  /** Node accent — cool palette, same family the brain graph uses. */
+  /**
+   * Node accent on the account map. Since the redesign (2026-10-08) the same
+   * muted app colour as in Analytics, a token from admin/admin.css.
+   */
   color: string;
 }
 
@@ -68,20 +71,20 @@ export const APPS: AppMeta[] = [
     key: "animevault",
     name: "Anime Vault",
     content: "Foto-Carousels über Blotato, 3 Formate. Täglich 3 Drafts + Trending-Sound.",
-    color: "#7BE0CD",
+    color: "var(--chart-violet)",
   },
   {
     key: "trubel",
     name: "Trubel",
     content:
       "Manuell posten. Vorproduziert: 10 Fast-Cut-TikToks + Pain-Point-Spots. Auf X Replies unter grösseren Creatorn.",
-    color: "#56C6E0",
+    color: "var(--chart-blue)",
   },
   {
     key: "kelva",
     name: "Kelva",
     content: "App im Bau. Marketing über Alains Schwester. Content-Muster wie Basalt.",
-    color: "#74D6C4",
+    color: "var(--chart-cyan)",
   },
   {
     key: "myloo",
@@ -89,19 +92,19 @@ export const APPS: AppMeta[] = [
     // die Konten in social_accounts und die Landkarte weiter zusammenfinden.
     name: "Pocketmate",
     content: "Werbung, die wie ein privater Account aussieht. Slideshows primär, Aufhänger Widgets.",
-    color: "#5E93C9",
+    color: "var(--chart-emerald)",
   },
   {
     key: "basalt",
     name: "Basalt",
     content: "Ein Account, der in der Nische gut lief, dient als Vorlage — Format auf beiden privaten nachbauen.",
-    color: "#6FD8A6",
+    color: "var(--chart-lime)",
   },
   {
     key: "focuscrew",
     name: "Focus Crew",
     content: "Seit 2026-10-02 eigener TikTok-Kanal (@realone9947, vorher Basalt).",
-    color: "#8FB4F0",
+    color: "var(--chart-fuchsia)",
   },
 ];
 

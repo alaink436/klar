@@ -1,31 +1,38 @@
 // Tremor chartColors [v0.1.0]
+//
+// Redesign 2026-10-08 (Ticket 03): die Farbnamen zeigen nicht mehr auf die
+// Tailwind-500er, sondern auf gedaempfte Tokens in admin/admin.css
+// (`--chart-<name>`). Die Namen bleiben, damit die Aufrufer unveraendert
+// laufen; welche App welchen Namen traegt, steht unten in APP_CHART_COLORS.
+
+import { KLAR_APPS } from "@/lib/klarApps"
 
 export type ColorUtility = "bg" | "stroke" | "fill" | "text"
 
 export const chartColors = {
   blue: {
-    bg: "bg-blue-500",
-    stroke: "stroke-blue-500",
-    fill: "fill-blue-500",
-    text: "text-blue-500",
+    bg: "bg-[var(--chart-blue)]",
+    stroke: "stroke-[var(--chart-blue)]",
+    fill: "fill-[var(--chart-blue)]",
+    text: "text-[var(--chart-blue)]",
   },
   emerald: {
-    bg: "bg-emerald-500",
-    stroke: "stroke-emerald-500",
-    fill: "fill-emerald-500",
-    text: "text-emerald-500",
+    bg: "bg-[var(--chart-emerald)]",
+    stroke: "stroke-[var(--chart-emerald)]",
+    fill: "fill-[var(--chart-emerald)]",
+    text: "text-[var(--chart-emerald)]",
   },
   violet: {
-    bg: "bg-violet-500",
-    stroke: "stroke-violet-500",
-    fill: "fill-violet-500",
-    text: "text-violet-500",
+    bg: "bg-[var(--chart-violet)]",
+    stroke: "stroke-[var(--chart-violet)]",
+    fill: "fill-[var(--chart-violet)]",
+    text: "text-[var(--chart-violet)]",
   },
   amber: {
-    bg: "bg-amber-500",
-    stroke: "stroke-amber-500",
-    fill: "fill-amber-500",
-    text: "text-amber-500",
+    bg: "bg-[var(--chart-amber)]",
+    stroke: "stroke-[var(--chart-amber)]",
+    fill: "fill-[var(--chart-amber)]",
+    text: "text-[var(--chart-amber)]",
   },
   gray: {
     bg: "bg-gray-500",
@@ -34,28 +41,28 @@ export const chartColors = {
     text: "text-gray-500",
   },
   cyan: {
-    bg: "bg-cyan-500",
-    stroke: "stroke-cyan-500",
-    fill: "fill-cyan-500",
-    text: "text-cyan-500",
+    bg: "bg-[var(--chart-cyan)]",
+    stroke: "stroke-[var(--chart-cyan)]",
+    fill: "fill-[var(--chart-cyan)]",
+    text: "text-[var(--chart-cyan)]",
   },
   pink: {
-    bg: "bg-pink-500",
-    stroke: "stroke-pink-500",
-    fill: "fill-pink-500",
-    text: "text-pink-500",
+    bg: "bg-[var(--chart-pink)]",
+    stroke: "stroke-[var(--chart-pink)]",
+    fill: "fill-[var(--chart-pink)]",
+    text: "text-[var(--chart-pink)]",
   },
   lime: {
-    bg: "bg-lime-500",
-    stroke: "stroke-lime-500",
-    fill: "fill-lime-500",
-    text: "text-lime-500",
+    bg: "bg-[var(--chart-lime)]",
+    stroke: "stroke-[var(--chart-lime)]",
+    fill: "fill-[var(--chart-lime)]",
+    text: "text-[var(--chart-lime)]",
   },
   fuchsia: {
-    bg: "bg-fuchsia-500",
-    stroke: "stroke-fuchsia-500",
-    fill: "fill-fuchsia-500",
-    text: "text-fuchsia-500",
+    bg: "bg-[var(--chart-fuchsia)]",
+    stroke: "stroke-[var(--chart-fuchsia)]",
+    fill: "fill-[var(--chart-fuchsia)]",
+    text: "text-[var(--chart-fuchsia)]",
   },
   // Klar admin token-bound shades (monochrome, theme-aware via CSS vars).
   ink: {
@@ -110,4 +117,21 @@ export const getColorClassName = (
     text: "text-gray-500",
   }
   return chartColors[color]?.[type] ?? fallbackColor[type]
+}
+
+// Jede App behaelt ihre Farbe, festgemacht an ihrer Stelle in KLAR_APPS, egal
+// welche anderen gerade eingeblendet sind: MyLoo gruen, Anime Vault violett,
+// Yarn Stash orange, Kelva cyan, Basalt lime, Trubel blau.
+const APP_CHART_COLORS: AvailableChartColorsKeys[] = ["blue", "emerald", "violet", "amber", "cyan", "pink", "lime"]
+
+export function appChartColor(slug: string): AvailableChartColorsKeys {
+  const i = KLAR_APPS.findIndex((a) => a.slug === slug)
+  return APP_CHART_COLORS[(i < 0 ? 0 : i) % APP_CHART_COLORS.length]
+}
+
+const HUES = new Set(["blue", "emerald", "violet", "amber", "cyan", "pink", "lime", "fuchsia"])
+
+/** Dieselbe Farbe als CSS-Wert, fuer Punkte und Markierungen ausserhalb der Diagramme. */
+export function chartColorValue(color: string): string {
+  return HUES.has(color) ? `var(--chart-${color})` : "var(--fg-3)"
 }
