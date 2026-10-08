@@ -6,6 +6,10 @@
 //
 // Seit 2026-10-08 ist Klar Control nur noch dunkel; der Umschalter fuer hell
 // und dunkel, der hier stand, ist weg.
+//
+// Im installierten App-Fenster ist diese Leiste die Fensterleiste: sie weicht
+// den Fensterknoepfen aus, und ihre Knoepfe nehmen die Hoehe aus
+// --klar-kopf-knopf (admin.css, Abschnitt "App-Fenster"), im Tab 32 px.
 
 "use client";
 
@@ -28,7 +32,7 @@ export function AdminTopbar({
 }) {
   return (
     <div className="topbar">
-      <SidebarTrigger className="-ml-1 size-8 rounded-full" />
+      <SidebarTrigger className="-ml-1 size-(--klar-kopf-knopf) rounded-full" />
       <span className="crumb">
         <b>{titel}</b>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -39,7 +43,7 @@ export function AdminTopbar({
       {/* Der Weg zur Palette muss sichtbar sein. Ein Kuerzel, das nirgends
           steht, kennt nur, wer es gebaut hat. Deshalb ein benannter Knopf und
           nicht nur ein Symbol, mit dem Kuerzel als Beschriftung daneben. */}
-      <Button variant="pill" size="sm" onClick={paletteOeffnen} className="h-8 shrink-0 pl-3 pr-1.5">
+      <Button variant="pill" size="sm" onClick={paletteOeffnen} className="h-(--klar-kopf-knopf) shrink-0 pl-3 pr-1.5">
         <Search />
         <span>Springen</span>
         <kbd className="rounded-full bg-black/10 px-1.5 py-0.5 [font-family:var(--font-mono)] text-[10px] font-medium text-black/60">

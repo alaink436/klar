@@ -204,12 +204,11 @@
 
 /* ── Bausteine ──────────────────────────────────────────────────────────── */
 @layer components {
-  /* Rahmen: Kopfzeile und Inhaltsflaeche */
+  /* Rahmen: Kopfzeile und Inhaltsflaeche. Hoehe und Innenabstand der
+     Kopfzeile stehen im Abschnitt "App-Fenster" am Ende. */
   .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .topbar {
     display: flex; align-items: center; gap: 14px;
-    padding: 12px 36px;
-    min-height: 58px;
     font-size: 13px; color: var(--fg-3);
     position: sticky; top: 0; z-index: 5;
     background: var(--bg);
@@ -346,7 +345,6 @@
   form[data-klar-laeuft="ja"] button { cursor: progress; }
 
   @media (max-width: 820px) {
-    .topbar { padding: 10px 16px; min-height: 54px; }
     .content { padding: 28px 16px 44px; }
   }
 }
@@ -773,3 +771,71 @@ body .bx-cmdk {
   box-shadow: 0 0 0 1px var(--edge-outer), inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 30px 90px -20px rgba(0, 0, 0, 0.85);
 }
 body .bx-cmdk-item[data-selected="true"] { background: rgba(255, 255, 255, 0.07); }
+
+/* ── App-Fenster und Palette (Redesign, Ticket 07) ──────────────────────────
+   Installiert laeuft Klar Control mit `window-controls-overlay`
+   (public/admin.webmanifest): die Seite reicht bis an den oberen Fensterrand,
+   die Fensterknoepfe liegen darueber, unter Windows rechts, unter macOS links.
+   Den freien Streifen daneben meldet der Browser als env(titlebar-area-*).
+   Im Browser-Tab gibt es diese Werte nicht; dann gelten die Rueckfallwerte,
+   und alles steht wie vorher (Kopfzeile 58 px, Rand 36 px). */
+@layer components {
+  /* Wo die Kopfzeile links anfaengt: neben der Schiene, eingeklappt neben der
+     Symbolleiste, im schmalen Fenster (Schiene als Lade) am Rand. */
+  .main { --klar-links: var(--sidebar-width); }
+  [data-slot="sidebar"][data-state="collapsed"] ~ .main { --klar-links: var(--sidebar-width-icon); }
+
+  /* Kopfzeile: so hoch wie der Streifen der Fensterknoepfe, ihre Knoepfe
+     (AdminTopbar.tsx) passen sich an. Seitlich weicht der Inhalt aus: rechts
+     um die Breite der Knoepfe, links nur so weit, wie sie ueber die Schiene
+     hinaus in die Kopfzeile ragen. Die Kopfzeile ist die Fensterleiste zum
+     Ziehen, alles Klickbare darin nicht. */
+  .topbar {
+    --klar-rand: 36px;
+    --klar-kopf-knopf: min(32px, calc(env(titlebar-area-height, 58px) - 7px));
+    min-height: env(titlebar-area-height, 58px);
+    padding-block: 0;
+    padding-left: max(var(--klar-rand), calc(env(titlebar-area-x, 0px) + 12px - var(--klar-links, 0px)));
+    padding-right: calc(var(--klar-rand) + 100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+  .topbar :is(a, button, input, select, textarea, [role="button"]) { -webkit-app-region: no-drag; app-region: no-drag; }
+  @media (max-width: 820px) {
+    .topbar { --klar-rand: 16px; min-height: env(titlebar-area-height, 54px); }
+  }
+  @media (max-width: 767px) {
+    :is(.main, [data-slot="sidebar"] ~ .main) { --klar-links: 0px; }
+  }
+
+  /* Was sich ueber die Kopfzeile legt (Dialog, Lade, Menue), bleibt
+     klickbar. Eine Zieh-Flaeche nimmt sonst jeden Klick, auch durch ein
+     Element hindurch, das darueber liegt. */
+  body > [data-state="open"], [data-radix-popper-content-wrapper] { -webkit-app-region: no-drag; app-region: no-drag; }
+
+  /* Palette (Strg+K): das Suchfeld gehoert zur Palette und hat keinen
+     eigenen Rahmen. Die Basisregel `input:focus` legte ihm Kante und Ring um,
+     die ueber die Lupe und an den Rand der Palette ragten. Gilt fuer jedes
+     cmdk-Feld, auch fuer die Notizsuche im AI-Brain. Den Fokus zeigt die
+     Palette selbst. */
+  [cmdk-input], [cmdk-input]:focus { background: transparent; box-shadow: none; outline: none; }
+  [data-slot="dialog-content"]:has([cmdk-input]:focus) {
+    box-shadow: 0 0 0 1px var(--edge-outer), 0 0 0 4px rgba(255, 255, 255, 0.08), 0 24px 48px -28px rgba(0, 0, 0, 0.9);
+  }
+  [data-slot="dialog-content"]:has([cmdk-input]:focus)::before { opacity: 1; }
+}
+
+/* Ungeschichtet, weil der Schienenkopf `p-2` als Utility traegt und die
+   Notizsuche (Ticket 04) ungeschichtet steht. Unter macOS liegen die Knoepfe
+   links oben auf dem Klar-Logo: dort rueckt der Kopf um die Hoehe des
+   Streifens nach unten. Unter Windows ist titlebar-area-x 0, das min() ergibt
+   0, und nichts bewegt sich. */
+[data-slot="sidebar-header"] {
+  padding-top: calc(0.5rem + min(env(titlebar-area-height, 0px), env(titlebar-area-x, 0px) * 1000));
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+[data-slot="sidebar-header"] a { -webkit-app-region: no-drag; app-region: no-drag; }
+body .bx-cmdk:has([cmdk-input]:focus) {
+  box-shadow: 0 0 0 1px var(--edge-outer), 0 0 0 4px rgba(255, 255, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 30px 90px -20px rgba(0, 0, 0, 0.85);
+}
