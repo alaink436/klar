@@ -15,7 +15,7 @@ export function AppKacheln() {
             <img src={a.icon} alt="" width={40} height={40} className="size-full object-cover" loading="lazy" />
           </span>
           <span className="mt-3 truncate text-[13.5px] font-medium text-[var(--fg)]">{a.name}</span>
-          <Badge variant={a.status === "LIVE" ? "success" : "neutral"} dot className="mt-2 self-start">
+          <Badge tone={a.status === "LIVE" ? "ok" : "neutral"} dot className="mt-2 self-start">
             {a.status === "LIVE" ? "Live" : a.status}
           </Badge>
         </TextureCard>

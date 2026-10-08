@@ -694,8 +694,8 @@ export default async function AnalyticsPage({
         ])
       : [EMPTY_APPS, EMPTY_CHART];
 
-  // React 19 hoists <title> into <head>. The admin chrome (STYLE, theme
-  // scripts) comes from admin/layout.tsx.
+  // React 19 hoists <title> into <head>. The admin chrome (admin.css, theme
+  // script) comes from admin/layout.tsx.
   return (
     <>
       <title>Analytics · Klar Control</title>

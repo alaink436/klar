@@ -34,12 +34,6 @@ export const chartColors = {
     fill: "fill-[var(--chart-amber)]",
     text: "text-[var(--chart-amber)]",
   },
-  gray: {
-    bg: "bg-gray-500",
-    stroke: "stroke-gray-500",
-    fill: "fill-gray-500",
-    text: "text-gray-500",
-  },
   cyan: {
     bg: "bg-[var(--chart-cyan)]",
     stroke: "stroke-[var(--chart-cyan)]",
@@ -57,12 +51,6 @@ export const chartColors = {
     stroke: "stroke-[var(--chart-lime)]",
     fill: "fill-[var(--chart-lime)]",
     text: "text-[var(--chart-lime)]",
-  },
-  fuchsia: {
-    bg: "bg-[var(--chart-fuchsia)]",
-    stroke: "stroke-[var(--chart-fuchsia)]",
-    fill: "fill-[var(--chart-fuchsia)]",
-    text: "text-[var(--chart-fuchsia)]",
   },
   // Klar admin token-bound shades (monochrome, theme-aware via CSS vars).
   ink: {
@@ -129,7 +117,7 @@ export function appChartColor(slug: string): AvailableChartColorsKeys {
   return APP_CHART_COLORS[(i < 0 ? 0 : i) % APP_CHART_COLORS.length]
 }
 
-const HUES = new Set(["blue", "emerald", "violet", "amber", "cyan", "pink", "lime", "fuchsia"])
+const HUES = new Set(["blue", "emerald", "violet", "amber", "cyan", "pink", "lime"])
 
 /** Dieselbe Farbe als CSS-Wert, fuer Punkte und Markierungen ausserhalb der Diagramme. */
 export function chartColorValue(color: string): string {

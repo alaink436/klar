@@ -1,7 +1,8 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-// shadcn-style Input, themed to the admin .login-input look.
+// shadcn-style Input, themed to the admin tokens (look of the former
+// .login-input, which went with ticket 06 of the redesign).
 export function Input({ className, ...props }: React.ComponentProps<"input">) {
   return (
     <input
