@@ -15,12 +15,15 @@ import { vaultReady } from "../../../../lib/vault";
 import { listTiktokAccounts } from "../../../../lib/tiktokAccounts";
 import TiktokManager, { type TiktokRow } from "./TiktokManager";
 import { AdminTopbar } from "../../AdminTopbar";
+import { ArrowLeft, LockKeyhole } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const TITLE = { de: "TikTok-Kanäle", en: "TikTok channels" } as const;
-const BACK = { de: "← Vault", en: "← Vault" } as const;
 const FLASH_EXTRA: Record<string, { de: string; en: string }> = {
   "tiktok-missing": { de: "Kanal und Benutzername sind Pflicht.", en: "Channel and username are required." },
 };
@@ -53,22 +56,21 @@ export default async function TiktokPage({
       <title>{`${TITLE[lang]} · Klar Control`}</title>
       <AdminTopbar titel={TITLE[lang]} />
       <div className="content">
-        <Link href="/admin/vault" className="text-[13px] text-fg-3 hover:text-fg no-underline">
-          {BACK[lang]}
-        </Link>
-        <h1>{TITLE[lang]}</h1>
+        <Button asChild variant="pill-dark" size="sm" className="mb-6 h-7 px-3 text-[12px]">
+          <Link href="/admin/vault">
+            <ArrowLeft />
+            Vault
+          </Link>
+        </Button>
+        <PageHeader eyebrow="Klar Control" icon={<LockKeyhole />} title={TITLE[lang]} />
 
         {!vaultReady() && (
-          <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--warning) 35%,var(--line))", color: "var(--warning)" }}>
-            <code>VAULT_MASTER_KEY</code> fehlt in Vercel — Passwörter lassen sich weder speichern noch anzeigen.
-          </div>
+          <Notice tone="warn">
+            <code>VAULT_MASTER_KEY</code> fehlt in Vercel. Passwörter lassen sich weder speichern noch anzeigen.
+          </Notice>
         )}
-        {sp.err && (
-          <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--danger) 35%,var(--line))", color: "var(--danger)" }}>
-            {flash(sp.err)}
-          </div>
-        )}
-        {sp.msg && <div className="flash">{flash(sp.msg)}</div>}
+        {sp.err && <Notice tone="danger">{flash(sp.err)}</Notice>}
+        {sp.msg && <Notice tone="ok">{flash(sp.msg)}</Notice>}
 
         <TiktokManager rows={rows} lang={lang} />
       </div>

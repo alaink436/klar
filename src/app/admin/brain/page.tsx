@@ -22,6 +22,10 @@ import { listBrainMembers } from "@/lib/brainMembers";
 import BrainExplorer from "@/app/components/brain/BrainExplorer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/ui/page-header";
+import { TextureCard, TextureCardHeader, TextureCardTitle } from "@/components/ui/texture-card";
+import { Badge } from "@/components/ui/badge";
+import { Notice } from "@/components/ui/notice";
+import { CircuitBoard } from "lucide-react";
 import BrainAccessManager, {
   type TokenRow,
   type MemberRow,
@@ -38,6 +42,9 @@ function originFromHeaders(h: Headers): string {
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "getklar.org";
   return `${proto}://${host}`;
 }
+
+// Kleine Ueberschrift ueber einer Zahl oder einem Diagramm.
+const LABEL = "[font-family:var(--font-mono)] text-[10.5px] font-medium uppercase tracking-[0.14em] text-fg-3";
 
 export default async function BrainPage({
   searchParams,
@@ -135,14 +142,10 @@ export default async function BrainPage({
       <title>AI-Brain · Klar Control</title>
       <AdminTopbar titel="AI-Brain" />
       <div className="content" style={{ maxWidth: "none" }}>
-        <PageHeader eyebrow="Klar Control" title="AI-Brain" />
+        <PageHeader eyebrow="Klar Control" icon={<CircuitBoard />} title="AI-Brain" />
 
-        {sp.err && (
-          <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--danger) 35%,var(--line))", color: "var(--danger)" }}>
-            {sp.err}
-          </div>
-        )}
-        {sp.msg && <div className="flash">{sp.msg}</div>}
+        {sp.err && <Notice tone="danger">{sp.err}</Notice>}
+        {sp.msg && <Notice tone="ok">{sp.msg}</Notice>}
 
         {/* Zustand. Seit dem 2026-08-20 sind STATUS.md, die Registry-Tabelle,
             Learnings/INDEX.md, der Skill-Bestand und die Supabase-Tabelle
@@ -152,101 +155,99 @@ export default async function BrainPage({
         {(() => {
           const offen = checks.reduce((n, c) => n + c.meldungen.length, 0);
           return (
-            <div className="card" style={{ marginBottom: 16, padding: "18px 22px", display: "block" }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap", marginBottom: offen ? 14 : 0 }}>
-                <div className="k" style={{ margin: 0 }}>Zustand</div>
-                <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, lineHeight: 1, fontVariantNumeric: "tabular-nums", color: offen ? "var(--warning, var(--fg))" : "var(--success)" }}>
-                  {offen === 0 ? "sauber" : offen}
-                </div>
-                <p className="s" style={{ margin: 0, flex: 1, minWidth: 240, maxWidth: "60ch" }}>
-                  {offen === 0
-                    ? "Keine offenen Punkte aus den Generatoren."
-                    : "Punkte, die die Generatoren nicht selbst auflösen können. Sie kürzen nichts still, sie melden."}
-                </p>
-                <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+            <TextureCard className="mb-4">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-6 pt-5">
+                <TextureCardTitle>Zustand</TextureCardTitle>
+                <Badge tone={offen ? "warn" : "ok"}>{offen === 0 ? "sauber" : `${offen} offen`}</Badge>
+                <div className="flex flex-wrap gap-x-3.5 gap-y-1 sm:ml-auto">
                   {checks.map((c) => (
-                    <span key={c.pfad} style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: c.meldungen.length ? "var(--fg-2)" : "var(--fg-4)" }}>
+                    <span
+                      key={c.pfad}
+                      className={`[font-family:var(--font-mono)] text-[11px] ${c.meldungen.length ? "text-fg-2" : "text-fg-4"}`}
+                    >
                       {c.quelle} {c.meldungen.length || "✓"}
-                      {c.stand ? <span style={{ color: "var(--fg-4)" }}> · {c.stand}</span> : null}
+                      {c.stand ? <span className="text-fg-4"> · {c.stand}</span> : null}
                     </span>
                   ))}
                 </div>
               </div>
+              <p className="m-0 max-w-[72ch] px-6 pb-4 pt-2 text-[13px] leading-relaxed text-fg-3">
+                {offen === 0
+                  ? "Keine offenen Punkte aus den Generatoren."
+                  : "Punkte, die die Generatoren nicht selbst auflösen können. Sie kürzen nichts still, sie melden."}
+              </p>
               {offen > 0 && (
-                <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                <ul className="m-0 list-none p-0">
                   {checks.flatMap((c) =>
                     c.meldungen.map((m, i) => (
-                      <li key={`${c.pfad}-${i}`} style={{ display: "flex", gap: 12, alignItems: "baseline", padding: "8px 0", borderTop: "1px solid var(--line)" }}>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-4)", flexShrink: 0, minWidth: 72 }}>{c.quelle}</span>
-                        <span style={{ fontSize: 13, color: "var(--fg-2)" }}>{m}</span>
+                      <li key={`${c.pfad}-${i}`} className="flex items-baseline gap-3 border-t border-line px-6 py-2.5">
+                        <span className="min-w-[72px] shrink-0 [font-family:var(--font-mono)] text-[11px] text-fg-4">{c.quelle}</span>
+                        <span className="text-[13px] text-fg-2">{m}</span>
                       </li>
                     )),
                   )}
                 </ul>
               )}
-            </div>
+            </TextureCard>
           );
         })()}
 
         {/* Wächst das Brain? Der Graph darunter zählt DATEIEN, und alle
-            Learnings hängen sich an dieselben fünf an — 60 Erkenntnisse sehen
+            Learnings hängen sich an dieselben fünf an. 60 Erkenntnisse sehen
             dort aus wie 5 Punkte. Darum hier die Einträge, gezählt. */}
         {learnings ? (
-          <div className="card" style={{ marginBottom: 16, padding: "18px 22px", display: "block" }}>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 26, flexWrap: "wrap" }}>
+          <TextureCard className="mb-8">
+            <TextureCardHeader className="items-end gap-x-9 pb-2">
               <div>
-                <div className="k" style={{ margin: 0 }}>Learnings gesamt</div>
-                <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 34, lineHeight: 1.05, letterSpacing: "-.03em", fontVariantNumeric: "tabular-nums", color: "var(--fg)" }}>
+                <div className={LABEL}>Learnings gesamt</div>
+                <div className="klar-verlauf mt-2 text-[40px] font-medium leading-none tracking-[-0.035em] [font-variant-numeric:tabular-nums]">
                   {learnings.total}
                 </div>
               </div>
               <div>
-                <div className="k" style={{ margin: 0 }}>Diese Woche</div>
-                <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22, lineHeight: 1.4, fontVariantNumeric: "tabular-nums", color: learnings.last7 > 0 ? "var(--success)" : "var(--fg-3)" }}>
+                <div className={LABEL}>Diese Woche</div>
+                <div className={`mt-2 text-[22px] font-medium leading-none [font-variant-numeric:tabular-nums] ${learnings.last7 > 0 ? "text-fg" : "text-fg-3"}`}>
                   +{learnings.last7}
                 </div>
               </div>
               <div>
-                <div className="k" style={{ margin: 0 }}>30 Tage</div>
-                <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22, lineHeight: 1.4, fontVariantNumeric: "tabular-nums", color: "var(--fg-2)" }}>
+                <div className={LABEL}>30 Tage</div>
+                <div className="mt-2 text-[22px] font-medium leading-none text-fg-2 [font-variant-numeric:tabular-nums]">
                   +{learnings.last30}
                 </div>
               </div>
-              <p className="s" style={{ margin: 0, flex: 1, minWidth: 260, maxWidth: "56ch" }}>
-                Der Graph unten zeigt <b>Dateien</b>. Learnings werden an fünf Dateien angehängt, also
-                bleiben es dort fünf Punkte — gewachsen ist trotzdem, was hier steht.
+              <p className="m-0 min-w-[260px] max-w-[56ch] flex-1 text-[13px] leading-relaxed text-fg-3">
+                Der Graph unten zeigt <b className="font-medium text-fg-2">Dateien</b>. Learnings werden an fünf Dateien
+                angehängt, also bleiben es dort fünf Punkte. Gewachsen ist trotzdem, was hier steht.
               </p>
-            </div>
+            </TextureCardHeader>
             {/* Verlauf und Themen. Beides steckte schon in den Daten und wurde
                 weggeworfen: die Monatsverteilung beantwortet "wann habe ich
                 gelernt", die Tags "woran". Eine Serie, also eine Farbe und keine
                 Legende; der Titel benennt sie. Reines SVG/CSS, damit die Karte
                 serverseitig rendert und kein Bundle kostet. */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 26, marginTop: 20 }}>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-x-8 gap-y-6 px-6 pb-5 pt-4">
               {learnings.byWeek.length > 1 && (() => {
                 const max = Math.max(...learnings.byWeek.map((w) => w.count), 1);
                 const kurz = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
                 return (
                   <div>
-                    <div className="k" style={{ margin: "0 0 10px" }}>Pro Woche</div>
-                    <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 76 }}>
+                    <div className={`${LABEL} mb-3`}>Pro Woche</div>
+                    <div className="flex h-[76px] items-end gap-[3px]">
                       {learnings.byWeek.map((w) => (
                         <div
                           key={w.week}
                           title={`Woche ab ${kurz(w.week)}: ${w.count} Learning${w.count === 1 ? "" : "s"}`}
-                          style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", height: "100%" }}
+                          className="flex h-full flex-1 flex-col justify-end"
                         >
                           <div
-                            style={{
-                              height: `${Math.max((w.count / max) * 100, w.count > 0 ? 4 : 2)}%`,
-                              background: w.count > 0 ? "var(--brand)" : "var(--line)",
-                              borderRadius: "3px 3px 0 0",
-                            }}
+                            className={`rounded-t-[3px] ${w.count > 0 ? "bg-[linear-gradient(180deg,#f5f5f5,rgba(255,255,255,0.4))]" : "bg-white/[.08]"}`}
+                            style={{ height: `${Math.max((w.count / max) * 100, w.count > 0 ? 4 : 2)}%` }}
                           />
                         </div>
                       ))}
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--fg-4)" }}>
+                    <div className="mt-2 flex justify-between [font-family:var(--font-mono)] text-[10px] text-fg-4">
                       <span>{kurz(learnings.byWeek[0]!.week)}</span>
                       <span>höchste Woche: {max}</span>
                       <span>{kurz(learnings.byWeek[learnings.byWeek.length - 1]!.week)}</span>
@@ -259,22 +260,18 @@ export default async function BrainPage({
                 const max = Math.max(...learnings.topTags.map((t) => t.count), 1);
                 return (
                   <div>
-                    <div className="k" style={{ margin: "0 0 10px" }}>Häufigste Tags</div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                    <div className={`${LABEL} mb-3`}>Häufigste Tags</div>
+                    <div className="flex flex-col gap-[7px]">
                       {learnings.topTags.slice(0, 6).map((t) => (
-                        <div key={t.tag} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", width: 116, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <div key={t.tag} className="flex items-center gap-2.5">
+                          <span className="w-[116px] shrink-0 truncate [font-family:var(--font-mono)] text-[11px] text-fg-3">
                             {t.tag}
                           </span>
-                          <div style={{ position: "relative", flex: 1, height: 8, background: "var(--surface-2)", borderRadius: 4 }}>
+                          <div className="relative h-1.5 flex-1 rounded-full bg-white/[.08]">
                             <div
                               title={`${t.tag}: ${t.count} von ${learnings.total} (${Math.round(t.share * 100)} %)`}
-                              style={{
-                                width: `${(t.count / max) * 100}%`,
-                                height: "100%",
-                                background: "var(--brand)",
-                                borderRadius: 4,
-                              }}
+                              className="h-full rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.45),#f5f5f5)]"
+                              style={{ width: `${(t.count / max) * 100}%` }}
                             />
                             {/* 15-%-Marke als Referenzlinie statt als zweite
                                 Farbe: eine Serie behaelt eine Farbe, und die
@@ -282,23 +279,17 @@ export default async function BrainPage({
                                 Mehrheit der Tags darueber liegt. */}
                             <div
                               aria-hidden
-                              style={{
-                                position: "absolute",
-                                left: `${Math.min((0.15 * learnings.total) / max, 1) * 100}%`,
-                                top: -2,
-                                bottom: -2,
-                                width: 1,
-                                background: "var(--fg-4)",
-                              }}
+                              className="absolute -bottom-[3px] -top-[3px] w-px bg-fg-4"
+                              style={{ left: `${Math.min((0.15 * learnings.total) / max, 1) * 100}%` }}
                             />
                           </div>
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-4)", width: 26, textAlign: "right", flexShrink: 0 }}>
+                          <span className="w-[26px] shrink-0 text-right [font-family:var(--font-mono)] text-[11px] text-fg-4">
                             {t.count}
                           </span>
                         </div>
                       ))}
                     </div>
-                    <p className="s" style={{ margin: "8px 0 0", fontSize: 11 }}>
+                    <p className="m-0 mt-2.5 text-[11.5px] leading-relaxed text-fg-4">
                       Der Strich steht bei 15 % vom Bestand. Was darüber liegt, grenzt beim Suchen
                       nichts mehr ein.
                     </p>
@@ -307,15 +298,15 @@ export default async function BrainPage({
               })()}
             </div>
 
-            <ul style={{ listStyle: "none", margin: "20px 0 0", padding: 0 }}>
+            <ul className="m-0 list-none p-0">
               {learnings.recent.map((e) => (
-                <li key={`${e.date}-${e.title}`} style={{ display: "flex", gap: 12, alignItems: "baseline", padding: "8px 0", borderTop: "1px solid var(--line)" }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-4)", flexShrink: 0 }}>{e.date}</span>
-                  <span style={{ fontSize: 13, color: "var(--fg-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title}</span>
+                <li key={`${e.date}-${e.title}`} className="flex items-baseline gap-3 border-t border-line px-6 py-2.5">
+                  <span className="shrink-0 [font-family:var(--font-mono)] text-[11px] text-fg-4">{e.date}</span>
+                  <span className="truncate text-[13px] text-fg-2">{e.title}</span>
                 </li>
               ))}
             </ul>
-          </div>
+          </TextureCard>
         ) : null}
 
         <Tabs defaultValue={defaultTab}>
@@ -326,15 +317,14 @@ export default async function BrainPage({
 
           <TabsContent value="graph">
             {!tokenReady && (
-              <div className="card" style={{ marginBottom: 16 }}>
-                <div className="k">Notiz-Inhalte deaktiviert</div>
-                <p className="s">
-                  Der Graph wird angezeigt, aber zum Öffnen von Notizen fehlt <code>BRAIN_GITHUB_TOKEN</code>{" "}
-                  (Fine-grained PAT, Contents: Read) in den Vercel-Env-Vars. Nach dem Setzen neu deployen.
-                </p>
-              </div>
+              <Notice tone="warn" className="mb-4">
+                <b className="font-medium text-fg">Notiz-Inhalte deaktiviert.</b> Der Graph wird angezeigt, aber zum
+                Öffnen von Notizen fehlt <code>BRAIN_GITHUB_TOKEN</code> (Fine-grained PAT, Contents: Read) in den
+                Vercel-Env-Vars. Nach dem Setzen neu deployen.
+              </Notice>
             )}
-            <div style={{ height: "calc(100dvh - 280px)", minHeight: 480 }}>
+            {/* klar-brain: Explorer und Graph im Klar-Look, siehe admin.css. */}
+            <div className="klar-brain" style={{ height: "calc(100dvh - 280px)", minHeight: 480 }}>
               <BrainExplorer graph={graph} noteApi="/admin/brain/note" />
             </div>
           </TabsContent>

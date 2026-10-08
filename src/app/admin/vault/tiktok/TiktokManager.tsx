@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TextureCard } from "@/components/ui/texture-card";
 import {
   Dialog,
   DialogClose,
@@ -107,6 +108,10 @@ const COPY = {
     noHits: (q: string) => `Nothing found for “${q}”`,
   },
 };
+
+// Ab lg eigene Spalten; darunter (Handy) stehen Benutzername, E-Mail,
+// Passwort und Datum unter dem Kanal.
+const BREIT = "hidden lg:table-cell";
 
 function Field({
   name,
@@ -224,12 +229,12 @@ export default function TiktokManager({ rows, lang }: { rows: TiktokRow[]; lang:
             aria-label={t.search}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="pl-9"
+            className="h-9 rounded-full py-0 pl-9 text-[13px]"
           />
         </div>
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="pop">
+            <Button variant="pill">
               <Plus /> {t.add}
             </Button>
           </DialogTrigger>
@@ -243,11 +248,11 @@ export default function TiktokManager({ rows, lang }: { rows: TiktokRow[]; lang:
               <AccountFields t={t} />
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button type="button" variant="ghost">
+                  <Button type="button" variant="pill-dark">
                     {t.cancel}
                   </Button>
                 </DialogClose>
-                <Button type="submit">{t.save}</Button>
+                <Button type="submit" variant="pill">{t.save}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -255,61 +260,74 @@ export default function TiktokManager({ rows, lang }: { rows: TiktokRow[]; lang:
       </div>
 
       {rows.length === 0 || filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 text-center px-6 py-10 border border-dashed border-line-strong rounded-[var(--radius)] bg-surface text-fg-3">
-          <div className="[font-family:var(--font-body)] font-semibold text-sm text-fg-2">
+        <TextureCard className="flex flex-col items-center justify-center gap-2 text-center px-6 py-10 text-fg-3">
+          <div className="text-sm font-medium text-fg">
             {rows.length === 0 ? t.emptyTitle : t.noHits(query.trim())}
           </div>
           {rows.length === 0 && <div className="text-[13px] text-fg-3 max-w-[42ch] leading-relaxed">{t.emptyBody}</div>}
-        </div>
+        </TextureCard>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t.channel}</TableHead>
-              <TableHead>{t.username}</TableHead>
-              <TableHead>{t.email}</TableHead>
-              <TableHead>{t.colPassword}</TableHead>
-              <TableHead className="text-right">{t.colUpdated}</TableHead>
-              <TableHead className="w-px" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell>
-                  <div className="font-semibold text-fg">{r.channel}</div>
-                  {r.note && <div className="text-[11px] text-fg-4">{r.note}</div>}
-                </TableCell>
-                <TableCell>
-                  {copyCell(r.username, `${r.id}:u`)}
-                </TableCell>
-                <TableCell>
-                  {copyCell(r.email, `${r.id}:e`)}
-                </TableCell>
-                <TableCell>
-                  {r.hasPassword ? (
-                    <Button variant="outline" size="sm" onClick={() => openReveal(r)}>
-                      <Eye /> {t.show}
-                    </Button>
-                  ) : (
-                    <span className="text-fg-4">{t.none}</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right text-fg-3">{r.updated}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="outline" size="icon" aria-label={t.editTitle} onClick={() => setEditRow(r)}>
-                      <Pencil />
-                    </Button>
-                    <Button variant="outline" size="icon" aria-label={t.deleteTitle} onClick={() => setDeleteRow(r)}>
-                      <Trash2 />
-                    </Button>
-                  </div>
-                </TableCell>
+        // Die Karte traegt Kante und Grund, die Tabelle darin steht ohne eigenen Rahmen.
+        <TextureCard>
+          <Table className="rounded-none border-0 bg-transparent [&_th]:bg-transparent [&_th]:pt-3.5 lg:[&_td]:align-middle">
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t.channel}</TableHead>
+                <TableHead className={BREIT}>{t.username}</TableHead>
+                <TableHead className={BREIT}>{t.email}</TableHead>
+                <TableHead className={BREIT}>{t.colPassword}</TableHead>
+                <TableHead className={`${BREIT} text-right`}>{t.colUpdated}</TableHead>
+                <TableHead className="w-px" />
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((r) => {
+                const passwort = r.hasPassword ? (
+                  <Button variant="pill-dark" size="sm" onClick={() => openReveal(r)}>
+                    <Eye /> {t.show}
+                  </Button>
+                ) : (
+                  <span className="text-fg-4">{t.none}</span>
+                );
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell>
+                      <div className="font-medium text-fg">{r.channel}</div>
+                      {r.note && <div className="text-[11px] text-fg-4">{r.note}</div>}
+                      {/* Unter lg dieselben Angaben als Zeilen unter dem Kanal. */}
+                      <div className="mt-2.5 flex flex-col items-start gap-1.5 lg:hidden">
+                        {copyCell(r.username, `${r.id}:u`)}
+                        {copyCell(r.email, `${r.id}:e`)}
+                        <div className="flex items-center gap-3 text-[12px] text-fg-3">
+                          {passwort}
+                          {r.updated}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className={BREIT}>
+                      {copyCell(r.username, `${r.id}:u`)}
+                    </TableCell>
+                    <TableCell className={BREIT}>
+                      {copyCell(r.email, `${r.id}:e`)}
+                    </TableCell>
+                    <TableCell className={BREIT}>{passwort}</TableCell>
+                    <TableCell className={`${BREIT} text-right text-fg-3`}>{r.updated}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="pill-dark" size="icon" aria-label={t.editTitle} onClick={() => setEditRow(r)}>
+                          <Pencil />
+                        </Button>
+                        <Button variant="pill-dark" size="icon" aria-label={t.deleteTitle} onClick={() => setDeleteRow(r)}>
+                          <Trash2 />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TextureCard>
       )}
 
       {/* Edit */}
@@ -326,11 +344,11 @@ export default function TiktokManager({ rows, lang }: { rows: TiktokRow[]; lang:
               <AccountFields row={editRow} t={t} />
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button type="button" variant="ghost">
+                  <Button type="button" variant="pill-dark">
                     {t.cancel}
                   </Button>
                 </DialogClose>
-                <Button type="submit">{t.save}</Button>
+                <Button type="submit" variant="pill">{t.save}</Button>
               </DialogFooter>
             </form>
           )}
@@ -350,16 +368,16 @@ export default function TiktokManager({ rows, lang }: { rows: TiktokRow[]; lang:
             <p className="text-danger text-sm">{reveal.error}</p>
           ) : (
             <>
-              <code className="block [font-family:var(--font-mono)] text-[13px] bg-surface-2 border border-line-strong rounded-[var(--radius-sm)] px-4 py-3.5 text-fg break-all leading-relaxed">
+              <code className="block [font-family:var(--font-mono)] text-[13px] bg-black/40 border border-line rounded-[var(--radius-sm)] px-4 py-3.5 text-fg break-all leading-relaxed">
                 {reveal.pw}
               </code>
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button type="button" variant="ghost">
+                  <Button type="button" variant="pill-dark">
                     {t.close}
                   </Button>
                 </DialogClose>
-                <Button type="button" onClick={() => reveal.pw && copy(reveal.pw, "pw")}>
+                <Button type="button" variant="pill" onClick={() => reveal.pw && copy(reveal.pw, "pw")}>
                   {copied === "pw" ? t.copied : t.copy}
                 </Button>
               </DialogFooter>
@@ -380,11 +398,11 @@ export default function TiktokManager({ rows, lang }: { rows: TiktokRow[]; lang:
             <input type="hidden" name="id" value={deleteRow?.id ?? ""} />
             <AlertDialogFooter>
               <AlertDialogCancel asChild>
-                <Button type="button" variant="ghost">
+                <Button type="button" variant="pill-dark">
                   {t.cancel}
                 </Button>
               </AlertDialogCancel>
-              <Button type="submit" variant="danger">
+              <Button type="submit" variant="pill-dark" className="text-danger">
                 {t.deleteSubmit}
               </Button>
             </AlertDialogFooter>

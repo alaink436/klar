@@ -23,6 +23,9 @@ import { LANG_COOKIE, normalizeAdminLang } from "../_i18n";
 import { NAV_COOKIE, parseNavPrefs } from "../_nav";
 
 import { AdminTopbar } from "../AdminTopbar";
+import { Settings } from "lucide-react";
+import { Notice } from "@/components/ui/notice";
+import { PageHeader } from "@/components/ui/page-header";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -60,24 +63,13 @@ export default async function SettingsPage({
   const flashRaw = sp.err ?? sp.msg ?? null;
   const isErr = Boolean(sp.err);
 
-
   return (
     <>
       <title>Einstellungen · Klar Control</title>
       <AdminTopbar titel="Einstellungen" />
       <div className="content">
-        <h1>Einstellungen</h1>
-        {flashRaw ? (
-          <div
-            className={
-              isErr
-                ? "mb-6 rounded-[var(--radius-sm)] border border-[color-mix(in_oklab,var(--danger)_35%,var(--line))] bg-[color-mix(in_oklab,var(--danger)_10%,var(--surface))] px-4 py-3 text-[13.5px] text-danger"
-                : "mb-6 rounded-[var(--radius-sm)] border border-line bg-surface-2 px-4 py-3 text-[13.5px] text-fg-2"
-            }
-          >
-            {flashRaw}
-          </div>
-        ) : null}
+        <PageHeader eyebrow="Klar Control" icon={<Settings />} title="Einstellungen" />
+        {flashRaw ? <Notice tone={isErr ? "danger" : "ok"}>{flashRaw}</Notice> : null}
         <NavSettings lang={lang} prefs={navPrefs} />
         <SettingsManager
           settings={{

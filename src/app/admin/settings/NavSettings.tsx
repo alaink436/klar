@@ -12,7 +12,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { Card } from "@/components/ui/card";
+import { TextureCard, TextureCardDescription, TextureCardHeader, TextureCardTitle } from "@/components/ui/texture-card";
 import { Button } from "@/components/ui/button";
 import { setNavPrefs } from "../nav-action";
 import { orderedAll, type NavPrefs } from "../_nav";
@@ -49,60 +49,62 @@ export default function NavSettings({ lang, prefs }: { lang: AdminLang; prefs: N
   }
 
   return (
-    <Card className="p-0 overflow-hidden mb-6">
-      <div className="px-5 py-4 border-b border-line">
-        <div className="font-bold text-[14px] text-fg">{t.navSettingsTitle}</div>
-        <p className="text-fg-3 text-[12px] mt-1 max-w-[64ch]">{t.navSettingsBody}</p>
-      </div>
+    <TextureCard className="mb-6">
+      <TextureCardHeader className="flex-col items-start gap-1.5">
+        <TextureCardTitle>{t.navSettingsTitle}</TextureCardTitle>
+        <TextureCardDescription className="max-w-[64ch]">{t.navSettingsBody}</TextureCardDescription>
+      </TextureCardHeader>
       <ul className="list-none m-0 p-0" style={{ opacity: pending ? 0.6 : 1 }}>
         {items.map((item, i) => {
           const hidden = prefs.hidden.includes(item.id);
           return (
             <li
               key={item.id}
-              className="flex items-center gap-3 px-5 py-2.5 border-t border-line first:border-t-0"
+              className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-6 py-2.5"
             >
-              <span className={`flex-1 text-[13.5px] ${hidden ? "text-fg-4 line-through" : "text-fg"}`}>
+              <span className={`min-w-[150px] flex-1 text-[13.5px] ${hidden ? "text-fg-4 line-through" : "text-fg"}`}>
                 {t[item.labelKey] as string}
                 <span className="ml-2 text-[10.5px] [font-family:var(--font-mono)] uppercase tracking-[0.1em] text-fg-4 no-underline">
                   {item.section === "studio" ? t.sectionStudio : t.sectionStudios}
                 </span>
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={pending || i === 0}
-                onClick={() => move(item.id, -1)}
-              >
-                {t.navMoveUp}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={pending || i === items.length - 1}
-                onClick={() => move(item.id, 1)}
-              >
-                {t.navMoveDown}
-              </Button>
-              <Button
-                variant={hidden ? "outline" : "ghost"}
-                size="sm"
-                disabled={pending}
-                onClick={() => toggle(item.id)}
-              >
-                {hidden ? t.navShow : t.navHide}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="pill-dark"
+                  size="sm"
+                  disabled={pending || i === 0}
+                  onClick={() => move(item.id, -1)}
+                >
+                  {t.navMoveUp}
+                </Button>
+                <Button
+                  variant="pill-dark"
+                  size="sm"
+                  disabled={pending || i === items.length - 1}
+                  onClick={() => move(item.id, 1)}
+                >
+                  {t.navMoveDown}
+                </Button>
+                <Button
+                  variant={hidden ? "pill" : "pill-dark"}
+                  size="sm"
+                  disabled={pending}
+                  onClick={() => toggle(item.id)}
+                >
+                  {hidden ? t.navShow : t.navHide}
+                </Button>
+              </div>
             </li>
           );
         })}
       </ul>
       {prefs.order.length > 0 || prefs.hidden.length > 0 ? (
-        <div className="px-5 py-3 border-t border-line">
-          <Button variant="ghost" size="sm" disabled={pending} onClick={() => save({ order: [], hidden: [] })}>
+        <div className="border-t border-line px-6 py-3.5">
+          <Button variant="pill-dark" size="sm" disabled={pending} onClick={() => save({ order: [], hidden: [] })}>
             {t.navReset}
           </Button>
         </div>
       ) : null}
-    </Card>
+    </TextureCard>
   );
 }

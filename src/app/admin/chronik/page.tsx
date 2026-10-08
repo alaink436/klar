@@ -15,6 +15,11 @@ import { requireAdminPage } from "../../../lib/adminGuard";
 import { readCookie } from "../../../lib/adminSession";
 import { readActiveProjects, readSessions } from "@/lib/brainReader";
 import { LANG_COOKIE, normalizeAdminLang, tAdmin } from "../_i18n";
+import { Clock } from "lucide-react";
+import { TextureCard, TextureCardHeader, TextureCardTitle } from "@/components/ui/texture-card";
+import { Badge } from "@/components/ui/badge";
+import { Notice } from "@/components/ui/notice";
+import { PageHeader } from "@/components/ui/page-header";
 
 import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
@@ -50,108 +55,76 @@ export default async function ChronikPage() {
     else byDay.set(s.date, [s]);
   }
 
-
   return (
     <>
       <title>Chronik · Klar Control</title>
       <AdminTopbar titel={t.navChronik} />
       <div className="content">
-        <h1>{t.navChronik}</h1>
+        <PageHeader eyebrow="Klar Control" icon={<Clock />} title={t.navChronik} />
 
-        {projects.length === 0 && sessions.length === 0 ? (
-          <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--warning) 35%,var(--line))", color: "var(--warning)" }}>
-            {t.chronikNoBrain}
-          </div>
-        ) : null}
+        {projects.length === 0 && sessions.length === 0 ? <Notice tone="warn">{t.chronikNoBrain}</Notice> : null}
 
         {/* ── Vorgenommen ── */}
         {goals.length > 0 ? (
-          <div className="card" style={{ padding: 0, display: "block", marginBottom: 18 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "18px 22px 13px" }}>
-              <span className="k" style={{ margin: 0 }}>{t.chronikGoals}</span>
-              <span className="muted" style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>
-                {t.chronikGoalsMeta(openTotal, blockedTotal)}
-              </span>
-            </div>
+          <TextureCard className="mb-5">
+            <TextureCardHeader className="justify-start gap-x-3 pb-3.5">
+              <TextureCardTitle>{t.chronikGoals}</TextureCardTitle>
+              <span className="[font-family:var(--font-mono)] text-[11px] text-fg-3">{t.chronikGoalsMeta(openTotal, blockedTotal)}</span>
+            </TextureCardHeader>
             {goals.map((g) => (
-              <div key={g.project} style={{ padding: "12px 22px", borderTop: "1px solid var(--line)" }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)", marginBottom: 6 }}>{g.project}</div>
-                <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+              <div key={g.project} className="border-t border-line px-6 py-3.5">
+                <div className="mb-2 text-[13.5px] font-medium text-fg">{g.project}</div>
+                <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
                   {g.blockers.map((b, i) => (
-                    <li key={`b${i}`} style={{ display: "flex", gap: 9, alignItems: "baseline", padding: "3px 0" }}>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 9,
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: ".1em",
-                          color: "var(--danger)",
-                          flexShrink: 0,
-                        }}
-                      >
+                    <li key={`b${i}`} className="flex items-baseline gap-2.5">
+                      <Badge tone="danger" className="relative top-px h-5 shrink-0 px-2 text-[10.5px]">
                         {t.chronikBlocked}
-                      </span>
+                      </Badge>
                       {/* Stand hier als dangerouslySetInnerHTML mit einem
                           eigenen esc() davor. In JSX ist das genau {b}, nur
                           umstaendlicher, und es wird zur Luecke, sobald jemand
                           das esc() vergisst. Die Hilfsfunktion ist mit weg. */}
-                      <span style={{ fontSize: 12.5, color: "var(--fg-2)" }}>{b}</span>
+                      <span className="text-[13px] text-fg-2">{b}</span>
                     </li>
                   ))}
                   {g.rest.map((n, i) => (
-                    <li key={`n${i}`} style={{ display: "flex", gap: 9, alignItems: "baseline", padding: "3px 0" }}>
-                      <span style={{ color: "var(--fg-4)", flexShrink: 0, fontSize: 12 }}>·</span>
-                      <span style={{ fontSize: 12.5, color: "var(--fg-3)" }}>{n}</span>
+                    <li key={`n${i}`} className="flex items-baseline gap-2.5">
+                      <span className="shrink-0 text-[12px] text-fg-4">·</span>
+                      <span className="text-[13px] text-fg-3">{n}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             ))}
-          </div>
+          </TextureCard>
         ) : null}
 
         {/* ── Gelaufen ── */}
         {sessions.length > 0 ? (
-          <div className="card" style={{ padding: 0, display: "block" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "18px 22px 13px" }}>
-              <span className="k" style={{ margin: 0 }}>{t.chronikSessions}</span>
-              <span className="muted" style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>
+          <TextureCard>
+            <TextureCardHeader className="justify-start gap-x-3 pb-3.5">
+              <TextureCardTitle>{t.chronikSessions}</TextureCardTitle>
+              <span className="[font-family:var(--font-mono)] text-[11px] text-fg-3">
                 {t.chronikSessionsMeta(sessions.length, byDay.size)}
               </span>
-            </div>
+            </TextureCardHeader>
             {[...byDay.entries()].map(([day, items]) => (
-              <div key={day} style={{ borderTop: "1px solid var(--line)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 22px 6px", background: "var(--surface-2)" }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, letterSpacing: ".1em", color: "var(--fg-3)" }}>
-                    {day}
-                  </span>
-                  <span className="muted" style={{ fontFamily: "var(--font-mono)", fontSize: 9.5 }}>{items.length}</span>
+              <div key={day} className="border-t border-line">
+                <div className="flex items-center gap-2 bg-white/[.025] px-6 pb-1.5 pt-2.5">
+                  <span className="[font-family:var(--font-mono)] text-[10.5px] font-medium tracking-[0.1em] text-fg-3">{day}</span>
+                  <span className="[font-family:var(--font-mono)] text-[10px] text-fg-4">{items.length}</span>
                 </div>
-                <ul style={{ listStyle: "none", margin: 0, padding: "6px 22px 10px" }}>
+                <ul className="m-0 flex list-none flex-col gap-1 px-6 pb-3 pt-2">
                   {items.map((s, i) => (
-                    <li key={i} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "3px 0" }}>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 10,
-                          color: "var(--fg-4)",
-                          minWidth: 96,
-                          flexShrink: 0,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {s.project}
-                      </span>
-                      <span style={{ fontSize: 12.5, color: "var(--fg-2)" }}>{s.title}</span>
+                    <li key={i} className="flex items-baseline gap-2.5">
+                      <span className="min-w-24 shrink-0 truncate [font-family:var(--font-mono)] text-[10.5px] text-fg-4">{s.project}</span>
+                      <span className="text-[13px] text-fg-2">{s.title}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             ))}
-          </div>
+          </TextureCard>
         ) : null}
       </div>
     </>

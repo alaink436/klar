@@ -33,6 +33,8 @@ function backWith(req: NextRequest, params: Record<string, string>): Response {
 // design file itself (shipped with the function, see next.config.ts). Read on
 // each call: the token is already minted at this point, and a missing file
 // must cost the styling, not the one chance to copy the token.
+// It uses only the building blocks from that file (`.klar-karte`, the pills,
+// `.klar-marke`), no Tailwind: utilities are not part of the raw file.
 function adminCss(): string {
   try {
     return readFileSync(join(process.cwd(), "src/app/admin/admin.css"), "utf8");
@@ -46,24 +48,20 @@ function tokenShownOncePage(raw: string, label: string, scopes: string[]): Respo
 <script>${THEME_INIT_SCRIPT}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="${FONTS_LINK}" rel="stylesheet"><style>:root{--font-geist-sans:"Geist";--font-geist-mono:"Geist Mono"}${adminCss()}</style></head><body>
-<div class="login">
-  <div class="login-card" style="max-width:560px">
-    <div class="login-head">
-      <div class="login-head-text">
-        <span class="login-eyebrow">Klar Control · API-Token</span>
-        <span class="login-mark">Einmal sichtbar<span class="dot">.</span></span>
-      </div>
+<div style="position:relative;isolation:isolate;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
+  <div class="klar-hintergrund" aria-hidden="true"><svg style="position:absolute;inset:0;width:100%;height:100%"><defs><pattern id="raster" width="56" height="56" patternUnits="userSpaceOnUse" x="-1" y="-1"><path d="M.5 56V.5H56" style="fill:none;stroke:var(--grid-line)"/></pattern></defs><rect width="100%" height="100%" fill="url(#raster)"/></svg></div>
+  <div class="klar-karte" style="width:100%;max-width:560px;padding:34px 32px 26px">
+    <span class="klar-marke">Klar Control · API-Token</span>
+    <h1 style="font-size:40px;margin:18px 0 10px">Einmal sichtbar</h1>
+    <p style="margin:0 0 24px;font-size:13.5px;line-height:1.6;color:var(--fg-3)">Kopiere den Token jetzt. Er wird nur gehasht gespeichert und ist danach nicht mehr abrufbar.</p>
+    <div style="margin:0 0 8px;font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3)">Token · ${esc(label)} · ${esc(scopes.join(", "))}</div>
+    <code id="tok" style="display:block;font-family:var(--font-mono);font-size:13px;background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px 16px;color:var(--fg);word-break:break-all;line-height:1.5">${esc(raw)}</code>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:18px">
+      <button type="button" class="klar-pille klar-pille-hell" style="height:36px;padding:0 18px;border:0;font-size:13px" onclick="navigator.clipboard.writeText(document.getElementById('tok').textContent).then(()=>{this.textContent='✓ Kopiert'}).catch(()=>{this.textContent='Copy fehlgeschlagen'})">Token kopieren</button>
+      <a class="klar-pille klar-pille-dunkel" style="height:36px;padding:0 18px;font-size:13px" href="/admin/brain">Fertig, zurück</a>
     </div>
-    <p class="login-tag">Kopiere den Token jetzt. Er wird nur gehasht gespeichert und ist danach nicht mehr abrufbar.</p>
-    <div class="login-field">
-      <label class="login-label">Token · ${esc(label)} · ${esc(scopes.join(", "))}</label>
-      <code id="tok" style="display:block;font-family:var(--font-mono);font-size:13px;background:var(--surface-2);border:1px solid var(--line-strong);border-radius:var(--radius-sm);padding:14px 16px;color:var(--fg);word-break:break-all;line-height:1.5">${esc(raw)}</code>
-    </div>
-    <div style="display:flex;gap:10px;margin-top:16px">
-      <button type="button" class="btn pop" onclick="navigator.clipboard.writeText(document.getElementById('tok').textContent).then(()=>{this.textContent='✓ Kopiert'}).catch(()=>{this.textContent='Copy fehlgeschlagen'})">Token kopieren</button>
-      <a class="btn ghost" href="/admin/brain">Fertig, zurück</a>
-    </div>
-    <div class="login-foot"><span class="login-foot-text">Nutzung: Authorization: Bearer &lt;token&gt;</span></div>
+    <div class="klar-trenner" style="margin:24px 0 14px"></div>
+    <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-4)">Nutzung: Authorization: Bearer &lt;token&gt;</span>
   </div>
 </div>
 </body></html>`;

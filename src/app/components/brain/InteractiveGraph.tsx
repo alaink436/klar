@@ -15,6 +15,7 @@ import {
   MiniMap,
   Handle,
   Position,
+  useStore,
   type Node,
   type Edge,
   type NodeProps,
@@ -76,6 +77,14 @@ function DotNode({ data }: NodeProps) {
 }
 
 const nodeTypes = { dot: DotNode };
+
+// Der Zoom als CSS-Variable am Graphen. Klar Control (admin.css, .klar-brain)
+// rechnet damit die Beschriftung gegen den Zoom, damit sie beim Herauszoomen
+// lesbar bleibt; /brain benutzt sie nicht.
+function ZoomVar() {
+  const zoom = useStore((st) => st.transform[2]);
+  return <style>{`.brain-rf{--rf-zoom:${zoom}}`}</style>;
+}
 
 const CSS = `
 .brain-rf{width:100%;height:100%;position:relative}
@@ -215,9 +224,11 @@ export default function InteractiveGraph({
           target: String(b),
           // Der Ordnerbaum traegt die Struktur, die Wikilinks sind die
           // Querverweise. Baumkanten deshalb zurueckhaltender zeichnen.
+          // Farben als Variable mit dem bisherigen Wert als Rueckfall: Klar
+          // Control setzt sie in admin.css (.klar-brain), /brain bleibt gleich.
           style: baum
-            ? { stroke: "var(--line)", strokeWidth: 0.7, opacity: 0.5 }
-            : { stroke: "var(--bx-accent,#74D6C4)", strokeWidth: 1, opacity: 0.35 },
+            ? { stroke: "var(--brain-kante-baum, var(--line))", strokeWidth: 0.7, opacity: 0.5 }
+            : { stroke: "var(--brain-kante-link, var(--bx-accent,#74D6C4))", strokeWidth: 1, opacity: 0.35 },
         };
       }),
     [edges],
@@ -259,8 +270,9 @@ export default function InteractiveGraph({
         onNodeMouseEnter={(_, n) => setHover((n.data as DotData)?.label ?? null)}
         onNodeMouseLeave={() => setHover(null)}
       >
-        <Background id="bx-grid-lines" variant={BackgroundVariant.Lines} gap={120} lineWidth={0.5} color="rgba(116,214,196,0.06)" />
-        <Background id="bx-grid-dots" variant={BackgroundVariant.Dots} gap={30} size={1.2} color="rgba(116,214,196,0.30)" />
+        <Background id="bx-grid-lines" variant={BackgroundVariant.Lines} gap={120} lineWidth={0.5} color="var(--brain-raster-linie, rgba(116,214,196,0.06))" />
+        <Background id="bx-grid-dots" variant={BackgroundVariant.Dots} gap={30} size={1.2} color="var(--brain-raster-punkt, rgba(116,214,196,0.30))" />
+        <ZoomVar />
         <MiniMap
           pannable
           zoomable
