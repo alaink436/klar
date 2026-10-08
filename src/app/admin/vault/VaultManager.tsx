@@ -219,6 +219,12 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   // submitted there and polled, e.g. `mirelo-ai/sfx-v1.5/video-to-audio` and
   // then `…/requests/<id>/status`. Billed per use, per second of output.
   { id: "fal", label: "fal.ai (Key)", category: "KI / LLM", provider: "fal", baseUrl: "https://queue.fal.run", authHeader: "authorization", authScheme: "Key ", keyExample: { de: "Key aus fal.ai/dashboard/keys, ganz einfügen", en: "key from fal.ai/dashboard/keys, paste it whole" }, labelExample: "fal.ai API Key" },
+  // Higgsfield (image and video models) also takes "Key " on authorization,
+  // but the value is TWO parts joined by a colon: `<key id>:<secret>`, both
+  // from console.higgsfield.ai. Generations are queued: the POST answers with
+  // a status_url on the same host, polled through this entry
+  // (`requests/<id>/status`). Docs: docs.higgsfield.ai/docs/authentication.
+  { id: "higgsfield", label: "Higgsfield", category: "KI / LLM", provider: "higgsfield", baseUrl: "https://api.higgsfield.ai", authHeader: "authorization", authScheme: "Key ", keyExample: { de: "KEY_ID:SECRET aus console.higgsfield.ai, mit Doppelpunkt", en: "KEY_ID:SECRET from console.higgsfield.ai, joined by a colon" }, labelExample: "Higgsfield API" },
   // Datenbank
   { id: "supabase", label: "Supabase (Service Role)", category: "Datenbank", provider: "supabase", baseUrl: "", authHeader: "authorization", authScheme: "Bearer ", keyExample: "eyJ… (JWT) / sb_secret_…", labelExample: "Supabase Service Role" },
   // RevenueCat
