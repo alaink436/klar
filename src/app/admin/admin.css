@@ -523,3 +523,108 @@
     .klar-login-fuss { letter-spacing: 0.08em; }
   }
 }
+
+/* ── Postfaecher: Inbox, Collabs, Feedback (Redesign, Ticket 02) ───────────
+   Feld, Segment, Einschub und Blase sind allgemein und stehen auch anderen
+   Seiten offen. Der Rahmen der Inbox greift nur, solange sie montiert ist
+   (:has), und loest die STYLE-Zeichenkette ab, die bis dahin in
+   `inbox/MailClient.tsx` stand. */
+:root {
+  /* Stand "zugesagt" der Collabs, gedaempft wie die Status-Farben. Liegt in
+     der Folge Kontakt, Gespraech, zugesagt, Material, live zwischen Blau und
+     Gelb. */
+  --indigo: #a29ee0;
+}
+
+@layer components {
+  /* Eingabefeld (input, select, textarea): vertieft statt erhaben. Die
+     Randfarbe setzt globals.css fuer jedes Element (* { border-color }),
+     deshalb liegt die Fokus-Kante im Schatten. */
+  .klar-feld {
+    width: 100%;
+    padding: 8px 12px;
+    font-family: var(--font-body); font-size: 13px; line-height: 1.45;
+    color: var(--fg);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid;
+    border-radius: var(--radius-sm);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.035);
+    transition: box-shadow 0.15s ease, background 0.15s ease;
+  }
+  .klar-feld::placeholder { color: var(--fg-4); }
+  .klar-feld:focus {
+    outline: none;
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.2), 0 0 0 4px rgba(255, 255, 255, 0.05);
+  }
+  .klar-feld:disabled { opacity: 0.45; cursor: not-allowed; }
+  textarea.klar-feld { resize: vertical; }
+  select.klar-feld option { background: var(--surface-2); color: var(--fg); }
+
+  /* Segment: Filter und Umschalter in einer vertieften Rinne, das aktive Teil
+     steht als dunkle Pille darin (wie der Sprachschalter in der Schiene).
+     Aktiv heisst aria-pressed="true" (Knopf) oder aria-current="page" (Link). */
+  .klar-segment {
+    display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px;
+    padding: 3px; border-radius: 16px;
+    background: rgba(0, 0, 0, 0.35);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 1px 0 rgba(255, 255, 255, 0.035);
+  }
+  .klar-segment > * {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 26px; padding: 0 11px; border-radius: 999px;
+    font-family: var(--font-body); font-size: 12px; font-weight: 500; white-space: nowrap;
+    color: var(--fg-3); background: transparent; cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  }
+  .klar-segment > *:hover { color: var(--fg); }
+  .klar-segment > [aria-pressed="true"], .klar-segment > [aria-current="page"] {
+    color: var(--fg);
+    background: linear-gradient(180deg, #1f1f1f, #151515);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.13), inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 0 0 1px var(--edge-outer);
+  }
+  .klar-segment svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+  /* Einschub: vertiefte Flaeche in einer Karte oder Kopfzeile, fuer Hinweise
+     und Uebersetzungen. */
+  .klar-einschub {
+    border-radius: var(--radius-sm);
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.045), 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  /* Blase: eine Nachricht im Gespraech. Eingehend dunkel wie die Karte,
+     ausgehend (data-richtung="aus") eine Stufe heller, beide mit Kante.
+     --fg-4 haelt auf dem helleren Grund oben noch 4,6:1. */
+  .klar-blase {
+    border-radius: 14px; padding: 11px 14px;
+    font-size: 13.5px; line-height: 1.5;
+    background: linear-gradient(180deg, #161616, #101010);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.045), 0 0 0 1px var(--edge-outer);
+  }
+  .klar-blase[data-richtung="aus"] {
+    background: linear-gradient(180deg, #222222, #1a1a1a);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.17), inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 0 0 1px var(--edge-outer);
+  }
+
+  /* Rahmen der Inbox: die Seite hat eine feste Hoehe, Liste und Gespraech
+     scrollen je fuer sich. Die alte Fassung band die Hoehe ueber `.layout`,
+     das es seit dem Umzug auf die shadcn-Schiene (2026-08-25) nicht mehr
+     gibt: ein langes Gespraech schob den Composer aus dem Bild. */
+  html:has(.klar-postfach), html:has(.klar-postfach) body { overflow: hidden; }
+  .main:has(> .klar-postfach) { height: 100svh; min-height: 0; overflow: hidden; }
+  .klar-postfach { flex: 1; min-height: 0; display: flex; }
+  .klar-postfach-liste { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .klar-postfach-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .klar-postfach-detail { min-width: 0; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .klar-postfach-griff { width: 7px; flex-shrink: 0; cursor: col-resize; position: relative; background: transparent; touch-action: none; }
+  .klar-postfach-griff::after { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 1px; background: var(--line); transition: background 0.15s ease; }
+  .klar-postfach-griff:hover::after,
+  .klar-postfach-griff[data-resize-handle-state="hover"]::after,
+  .klar-postfach-griff[data-resize-handle-state="drag"]::after { background: var(--fg-4); }
+  @media (max-width: 760px) {
+    .klar-postfach-griff { display: none; }
+    .klar-postfach-liste { width: 100% !important; }
+    .klar-postfach-detail { width: 100%; }
+  }
+}

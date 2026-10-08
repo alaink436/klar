@@ -21,6 +21,7 @@ import MailClient, {
 // (Laufzeit-TypeError bei .includes), tsc/build merken davon nichts.
 import { INBOX_FILTERS, type InboxFilter } from "./inboxFilters";
 
+import { TextureCard } from "@/components/ui/texture-card";
 import { AdminTopbar } from "../AdminTopbar";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -201,7 +202,7 @@ export default async function InboxPage({
     <>
       <title>Inbox · Klar Control</title>
       <AdminTopbar titel="Inbox" />
-      {flashMsg && <div className="flash" style={{ margin: "12px 36px 0" }}>{flashMsg}</div>}
+      {flashMsg && <TextureCard className="mx-9 mt-3 shrink-0 px-4 py-3 text-[13px] text-fg-2 max-[820px]:mx-4">{flashMsg}</TextureCard>}
       <MailClient
         conversations={conversations}
         appMeta={appMeta}
