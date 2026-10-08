@@ -110,7 +110,7 @@ html,body{overflow:hidden}
 textarea.kr-input{resize:vertical;line-height:1.5}
 .kr-mini{padding:5px 9px;border:1px solid var(--line-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg-2);font-size:11.5px;font-family:var(--font-body);cursor:pointer;transition:background .12s,color .12s,border-color .12s}
 .kr-mini:hover{background:var(--surface-2);color:var(--fg);border-color:var(--fg-3)}
-.retro-send{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--fg);background:var(--accent);color:var(--accent-fg);font-family:var(--font-body);font-size:13px;font-weight:700;padding:9px 18px;border-radius:var(--radius-sm);cursor:pointer;box-shadow:3px 3px 0 0 var(--fg);transition:transform .08s ease,box-shadow .08s ease}
+.retro-send{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--fg);background:var(--brand);color:var(--brand-fg);font-family:var(--font-body);font-size:13px;font-weight:700;padding:9px 18px;border-radius:var(--radius-sm);cursor:pointer;box-shadow:3px 3px 0 0 var(--fg);transition:transform .08s ease,box-shadow .08s ease}
 .retro-send:hover{box-shadow:4px 4px 0 0 var(--fg)}
 .retro-send:active{transform:translate(3px,3px);box-shadow:0 0 0 0 var(--fg)}
 .retro-send:disabled{opacity:.45;box-shadow:none;cursor:not-allowed;transform:none}

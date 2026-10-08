@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 // Security headers applied to all routes. CSP intentionally permissive on
-// script-src ('unsafe-inline' needed for the inline THEME_INIT / THEME_TOGGLE
-// scripts in /admin) but tightens the rest (frame-ancestors, base-uri, etc).
+// script-src ('unsafe-inline' needed for the inline THEME_INIT script in
+// /admin) but tightens the rest (frame-ancestors, base-uri, etc).
 const SECURITY_HEADERS = [
   {
     key: "Content-Security-Policy",
@@ -72,6 +72,11 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   compress: true,
+  // The token page (admin/tokens/route.ts) renders its own HTML and inlines
+  // admin.css read from disk, so the file must ship with that function.
+  outputFileTracingIncludes: {
+    "/admin/tokens": ["./src/app/admin/admin.css"],
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [

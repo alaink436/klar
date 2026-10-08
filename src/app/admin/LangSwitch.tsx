@@ -37,7 +37,7 @@ export default function LangSwitch({ lang }: { lang: AdminLang }) {
         role="group"
         aria-label={t.langAria}
         title={t.langHint}
-        className="flex items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface)] p-0.5"
+        className="flex items-center gap-1 rounded-full border border-[var(--line)] bg-[var(--surface)] p-0.5"
         style={{ opacity: pending ? 0.6 : 1 }}
       >
         {ADMIN_LANGS.map((code) => {
@@ -49,9 +49,9 @@ export default function LangSwitch({ lang }: { lang: AdminLang }) {
               onClick={() => pick(code)}
               aria-pressed={on}
               disabled={pending}
-              className={`flex-1 rounded-[calc(var(--radius-sm)-2px)] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] [font-family:var(--font-mono)] transition-colors ${
+              className={`flex-1 rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] [font-family:var(--font-mono)] transition-colors ${
                 on
-                  ? "bg-[var(--surface-2)] text-[var(--fg)] shadow-[inset_0_0_0_1px_var(--line-strong)]"
+                  ? "klar-pille-dunkel text-[var(--fg)]"
                   : "text-[var(--fg-4)] hover:text-[var(--fg-2)]"
               }`}
             >

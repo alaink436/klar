@@ -5,16 +5,21 @@ import { cn } from "@/lib/utils";
 // shadcn-style Button, themed to the /admin tokens (see globals.css bridge).
 // Variants mirror the existing admin .btn family: default (solid fg), pop
 // (RetroUI tactile offset-shadow CTA), ghost/outline/subtle, danger.
-type Variant = "default" | "pop" | "ghost" | "outline" | "subtle" | "danger";
+// Since the 2026-10-08 redesign also the two pills: `pill` (white, the main
+// action) and `pill-dark` (dark with an edge, everything else). Their look
+// lives in admin/admin.css (`.klar-pille-*`).
+type Variant = "default" | "pop" | "ghost" | "outline" | "subtle" | "danger" | "pill" | "pill-dark";
 type Size = "default" | "sm" | "icon";
 
 const VARIANTS: Record<Variant, string> = {
-  default: "bg-fg text-accent-fg border border-fg hover:opacity-90",
-  pop: "bg-fg text-accent-fg border-[1.5px] border-fg shadow-[3px_3px_0_0_var(--fg)] hover:shadow-[4px_4px_0_0_var(--fg)] hover:-translate-x-px hover:-translate-y-px active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+  default: "bg-fg text-brand-fg border border-fg hover:opacity-90",
+  pop: "bg-fg text-brand-fg border-[1.5px] border-fg shadow-[3px_3px_0_0_var(--fg)] hover:shadow-[4px_4px_0_0_var(--fg)] hover:-translate-x-px hover:-translate-y-px active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
   ghost: "bg-surface text-fg-2 border border-line-strong hover:bg-surface-2 hover:text-fg",
   outline: "bg-transparent text-fg-2 border border-line-strong hover:bg-surface-2 hover:text-fg",
   subtle: "bg-surface-2 text-fg-2 border border-line hover:bg-surface-3 hover:text-fg",
   danger: "bg-danger text-white border border-danger hover:opacity-90",
+  pill: "klar-pille klar-pille-hell rounded-full font-medium",
+  "pill-dark": "klar-pille klar-pille-dunkel rounded-full font-medium",
 };
 const SIZES: Record<Size, string> = {
   default: "h-9 px-4 text-[13px] gap-2",

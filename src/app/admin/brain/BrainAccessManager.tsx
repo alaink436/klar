@@ -362,10 +362,10 @@ export default function BrainAccessManager({
                   <Label>Scopes</Label>
                   <div className="flex flex-wrap gap-2">
                     <label className={chipCls}>
-                      <input type="checkbox" name="scope_learnings" defaultChecked className="accent-[var(--accent)]" /> learnings:read
+                      <input type="checkbox" name="scope_learnings" defaultChecked className="accent-[var(--brand)]" /> learnings:read
                     </label>
                     <label className={chipCls}>
-                      <input type="checkbox" name="scope_brain" className="accent-[var(--accent)]" /> brain:read
+                      <input type="checkbox" name="scope_brain" className="accent-[var(--brand)]" /> brain:read
                     </label>
                     <label className={chipCls}>
                       <input
@@ -373,7 +373,7 @@ export default function BrainAccessManager({
                         name="scope_vault"
                         checked={useOn}
                         onChange={(e) => setUseOn(e.target.checked)}
-                        className="accent-[var(--accent)]"
+                        className="accent-[var(--brand)]"
                       />{" "}
                       vault:use
                     </label>
@@ -396,7 +396,7 @@ export default function BrainAccessManager({
                               type="checkbox"
                               name="secret_id"
                               value={sec.id}
-                              className="accent-[var(--accent)]"
+                              className="accent-[var(--brand)]"
                             />{" "}
                             {sec.label}
                           </label>
@@ -546,7 +546,7 @@ export default function BrainAccessManager({
                   <div className="flex flex-wrap gap-2">
                     {folders.map((f) => (
                       <label key={f.key} className={chipCls}>
-                        <input type="checkbox" name="folders" value={f.key} defaultChecked={f.checked} className="accent-[var(--accent)]" />
+                        <input type="checkbox" name="folders" value={f.key} defaultChecked={f.checked} className="accent-[var(--brand)]" />
                         <span className="size-2 rounded-full" style={{ background: f.color }} />
                         {f.label} <span className="text-fg-4">({f.count})</span>
                       </label>
@@ -683,7 +683,7 @@ export default function BrainAccessManager({
                         value={sec.id}
                         checked={release?.picked.includes(sec.id) ?? false}
                         onChange={(e) => togglePicked(sec.id, e.target.checked)}
-                        className="accent-[var(--accent)]"
+                        className="accent-[var(--brand)]"
                       />{" "}
                       {sec.label}
                     </label>
@@ -719,7 +719,7 @@ export default function BrainAccessManager({
                 name="all_devices"
                 checked={allDevices}
                 onChange={(e) => setAllDevices(e.target.checked)}
-                className="accent-[var(--accent)]"
+                className="accent-[var(--brand)]"
               />{" "}
               Auf allen Geräten
             </label>

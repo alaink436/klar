@@ -41,7 +41,7 @@ export function Arbeitsliste({ aufgaben }: { aufgaben: Aufgabe[] }) {
 
   if (offen.length === 0) {
     return (
-      <div className="flex items-center gap-2.5 border-t border-[var(--line)] px-6 py-5 text-[13px] text-[var(--fg-3)]">
+      <div className="flex items-center gap-2.5 border-t border-[var(--line)] px-6 py-5 text-[13.5px] text-[var(--fg-3)]">
         <ClipboardList size={15} className="shrink-0" />
         Nichts offen. Keine Anfrage und keine Antwort wartet auf dich.
       </div>
@@ -58,17 +58,14 @@ export function Arbeitsliste({ aufgaben }: { aufgaben: Aufgabe[] }) {
           <AnimateIcon key={a.titel} animateOnHover>
             <Link
               href={a.href}
-              className="flex items-center gap-3.5 border-t border-[var(--line)] px-6 py-3.5 no-underline transition-colors hover:bg-[var(--surface-2)]"
+              className="flex items-center gap-3.5 border-t border-[var(--line)] px-6 py-3.5 no-underline transition-colors hover:bg-white/[.025]"
             >
-              <span
-                className="inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--line)]"
-                style={{ color: a.ton }}
-              >
+              <span className="klar-kachel size-9" style={{ color: a.ton }}>
                 <Symbol size={15} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] font-semibold text-[var(--fg)]">{a.titel}</span>
-                <span className="block truncate text-[11.5px] text-[var(--fg-3)]">{a.meta}</span>
+                <span className="block text-[14px] font-medium text-[var(--fg)]">{a.titel}</span>
+                <span className="block truncate text-[12.5px] text-[var(--fg-3)]">{a.meta}</span>
               </span>
               {/* Bewusst KEIN NumberTicker: der startet bei null und federt
                   erst nach der Hydration hoch. Bei einer Arbeitsliste ist die
@@ -76,12 +73,9 @@ export function Arbeitsliste({ aufgaben }: { aufgaben: Aufgabe[] }) {
                   Zahl ueber null liegt. Beim Rastern der hellen Fassung am
                   2026-08-25 stand genau das im Bild: sieben Zeilen, alle null.
                   Die Bewegung in dieser Zeile liefert das Symbol.
-                  Der Ton wiederholt sich auf der Zahl, damit die Zeile von
-                  links nach rechts dieselbe Dringlichkeit traegt. */}
-              <span
-                className="[font-family:var(--font-mono)] text-[15px] font-bold tabular-nums"
-                style={{ color: a.ton }}
-              >
+                  Seit dem Redesign (2026-10-08) traegt nur das Symbol den
+                  Ton, die Zahl steht weiss: Farbe nur als Markierung. */}
+              <span className="[font-family:var(--font-mono)] text-[17px] font-medium tabular-nums text-[var(--fg)]">
                 {a.n}
               </span>
             </Link>

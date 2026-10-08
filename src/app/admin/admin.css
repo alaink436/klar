@@ -1,0 +1,433 @@
+/* Klar Control: alle Gestaltungswerte an einer Stelle.
+
+   Seit 2026-10-08 (Redesign, Ticket 01). Vorher standen Tokens und Regeln als
+   STYLE-Zeichenkette in `_shared.ts` und wurden in jede Seite geschrieben.
+   Diese Datei importiert `admin/layout.tsx`; die Token-Seite in
+   `tokens/route.ts` rendert eigenes HTML und liest sie roh ein.
+
+   Nur dunkel. Kein Hell-Modus, kein Umschalter, kein Block, der je nach
+   OS-Einstellung andere Werte setzt.
+
+   Schichtung: Die Tokens stehen ungeschichtet, weil `globals.css` seine
+   Rueckfall-Tokens fuer die oeffentlichen Seiten ebenfalls ungeschichtet auf
+   :root setzt; eine Schicht verloere dagegen, egal wie spezifisch. Alles, was
+   Elemente gestaltet, steht in `base` und `components` UNTER den
+   Tailwind-Utilities. Eine Utility am Element gewinnt also immer; vorher
+   schlug der STYLE-Block sie (bekannte Falle: `a{color:inherit}`).
+
+   Der Abschnitt "Altbestand" traegt die Klassen der Seiten, die noch nicht
+   umgestellt sind (.card, .pill, .btn, .login ...). Er faellt mit Ticket 06. */
+
+@layer theme, base, components, utilities;
+
+/* ── Tokens ─────────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+
+  /* Grund und Flaechen */
+  --bg: #0a0a0a;
+  --surface: #121212;
+  --surface-2: #181818;
+  --surface-3: #202020;
+
+  /* Text in drei Stufen (voll, gedaempft, leise) plus eine fuer Beiwerk.
+     Jede Stufe haelt auf --surface-2 mindestens 4,5:1. */
+  --fg: #f5f5f5;
+  --fg-2: #c9c9c9;
+  --fg-3: #a1a1a1;
+  --fg-4: #8a8a8a;
+
+  /* Linien: Weiss mit geringer Deckkraft */
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.14);
+
+  /* Primaerfarbe von Klar. Hiess bis 2026-10-08 --accent und stiess mit
+     shadcn zusammen, wo --accent die leise Hover-Flaeche ist. */
+  --brand: #f5f5f5;
+  --brand-fg: #0a0a0a;
+
+  /* Bedeutung, gedaempft: nur als Punkt oder feine Markierung */
+  --success: #6dbb8c;
+  --warning: #d2ad62;
+  --danger: #e07c7c;
+  --info: #82a8d8;
+
+  --chart-1: #fafafa;
+  --chart-2: #a3a3a3;
+  --chart-3: #737373;
+  --chart-4: #525252;
+  --chart-fill: rgba(250, 250, 250, 0.16);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.45), 0 8px 24px -8px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 4px 14px rgba(0, 0, 0, 0.55), 0 18px 48px -16px rgba(0, 0, 0, 0.7);
+
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-lg: 20px;
+
+  /* Kanten nach dem Texture-Card-Prinzip: dunkle Linie aussen, helle innen,
+     die nach unten auslaeuft, dazu ein Hauch Glanz oben. */
+  --edge-outer: rgba(0, 0, 0, 0.85);
+  --edge-top: rgba(255, 255, 255, 0.13);
+  --edge-mid: rgba(255, 255, 255, 0.05);
+  --edge-bottom: rgba(255, 255, 255, 0.025);
+  --card-top: #151515;
+  --card-bottom: #0e0e0e;
+  --gloss: rgba(255, 255, 255, 0.045);
+
+  /* Hintergrund: Raster und Lichtschein, beide statisch */
+  --grid-line: rgba(255, 255, 255, 0.055);
+  --glow: rgba(255, 255, 255, 0.11);
+
+  /* Ueberschrift mit Verlauf */
+  --heading-from: #ffffff;
+  --heading-to: #808080;
+
+  /* ── Bruecke zu den Library-Komponenten ──
+     shadcn-Namen zeigen auf die Klar-Tokens, damit alles aus einer Registry
+     ohne Nacharbeit im Klar-Look steht. --accent ist hier shadcns Hover-Flaeche. */
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card: var(--surface);
+  --card-foreground: var(--fg);
+  --popover: var(--surface);
+  --popover-foreground: var(--fg);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-fg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--fg);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--fg-3);
+  --accent: var(--surface-2);
+  --accent-foreground: var(--fg);
+  --destructive: var(--danger);
+  --destructive-foreground: #fff;
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--fg-4);
+
+  /* Die Schiene liegt auf dem Grund, der Inhalt steht vorne. */
+  --sidebar: #080808;
+  --sidebar-foreground: var(--fg-3);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-fg);
+  --sidebar-accent: var(--surface-2);
+  --sidebar-accent-foreground: var(--fg);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--fg-4);
+}
+
+/* Schriften: Geist Sans fuer alles, Geist Mono fuer Zahlen und Kuerzel. Die
+   Familien kommen aus next/font (admin/layout.tsx setzt --font-geist-*).
+   Auf body, weil app/layout.tsx dort per next/font-Klasse die Schriften der
+   oeffentlichen Seiten setzt; `:root body` schlaegt diese Klasse. */
+:root body {
+  --font-body: var(--font-geist-sans), system-ui, sans-serif;
+  --font-display: var(--font-geist-sans), system-ui, sans-serif;
+  --font-editorial: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+/* ── Basis ──────────────────────────────────────────────────────────────── */
+@layer base {
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; background: var(--bg); }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern", "liga", "calt";
+  }
+  a { color: inherit; text-decoration: none; }
+  ::selection { background: var(--brand); color: var(--brand-fg); }
+
+  /* Seitentitel: gross, leicht, Verlauf von Weiss nach Grau. */
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(34px, 4.4vw, 52px);
+    letter-spacing: -0.035em;
+    line-height: 1.04;
+    margin: 0 0 22px;
+    padding-bottom: 0.06em;
+    /* So breit wie der Text, sonst laeuft der Verlauf ueber die ganze Zeile
+       und das Wort steht nur im weissen Anfang. */
+    width: fit-content;
+    max-width: 100%;
+    background: linear-gradient(172deg, var(--heading-from) 30%, var(--heading-to) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  h2 {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+    margin: 32px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13.5px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  th { font-family: var(--font-mono); font-size: 9.5px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-3); text-align: left; border-bottom: 1px solid var(--line); padding: 12px 14px; background: var(--surface-2); }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; color: var(--fg); }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr { transition: background 0.12s ease; }
+  tbody tr:hover td { background: rgba(255, 255, 255, 0.03); }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--fg-4); }
+
+  input:focus, select:focus, textarea:focus, button:focus-visible {
+    outline: none;
+    border-color: var(--fg-3);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+  }
+
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+}
+
+/* ── Bausteine ──────────────────────────────────────────────────────────── */
+@layer components {
+  /* Rahmen: Kopfzeile und Inhaltsflaeche */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 36px;
+    min-height: 58px;
+    font-size: 13px; color: var(--fg-3);
+    position: sticky; top: 0; z-index: 5;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  .crumb { color: var(--fg-4); display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; white-space: nowrap; }
+  .crumb b { color: var(--fg); font-weight: 500; }
+  .crumb svg { width: 12px; height: 12px; stroke-width: 2; color: var(--fg-4); flex-shrink: 0; }
+  .content { padding: 44px 36px 56px; max-width: 1180px; width: 100%; margin: 0 auto; }
+
+  /* Schiene: der aktive Eintrag ist eine dunkle Pille mit Kante. */
+  [data-slot="sidebar-container"] { border-color: var(--line); }
+  [data-slot="sidebar-menu-button"][data-active="true"] {
+    background-image: linear-gradient(180deg, #1c1c1c, #131313);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 0 1px var(--edge-outer);
+  }
+
+  /* Hintergrund: feines Raster (Magic UI Grid Pattern) mit Lichtschein oben.
+     Statisch, nichts bewegt sich. Laeuft nach unten und zu den Seiten aus.
+     z-index -1 in der isolierten Inhaltsflaeche (AdminShell): ueber deren
+     Grund, unter jedem Seiteninhalt, auch dem ohne eigene Positionierung. */
+  .klar-hintergrund {
+    position: absolute; inset: 0 0 auto 0; height: 760px; z-index: -1;
+    pointer-events: none; overflow: hidden;
+    -webkit-mask-image: radial-gradient(ellipse 75% 85% at 50% 0%, #000 35%, transparent 100%);
+    mask-image: radial-gradient(ellipse 75% 85% at 50% 0%, #000 35%, transparent 100%);
+  }
+  .klar-hintergrund::after {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 50% 360px at 50% 40px, var(--glow), transparent 75%);
+  }
+
+  /* Karte nach dem Prinzip der cult-ui Texture Card: dunkle Linie aussen
+     (Schatten), helle Linie innen, die nach unten auslaeuft (::before), Glanz
+     oben im Hintergrund. Kein Backdrop-Blur. Hover hellt nur die Kante auf. */
+  .klar-karte {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: var(--radius);
+    background:
+      radial-gradient(120% 70px at 50% 0, var(--gloss), transparent),
+      linear-gradient(180deg, var(--card-top), var(--card-bottom));
+    box-shadow: 0 0 0 1px var(--edge-outer), 0 24px 48px -28px rgba(0, 0, 0, 0.9);
+  }
+  .klar-karte::before {
+    content: ""; position: absolute; inset: 0; z-index: 2;
+    border-radius: inherit; padding: 1px; pointer-events: none;
+    background: linear-gradient(180deg, var(--edge-top), var(--edge-mid) 45%, var(--edge-bottom));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.85;
+    transition: opacity 0.2s ease;
+  }
+  .klar-karte:hover::before { opacity: 1; }
+  /* Doppelte Trennlinie im selben Prinzip: dunkel oben, hell darunter. */
+  .klar-trenner { height: 2px; border-top: 1px solid rgba(0, 0, 0, 0.75); border-bottom: 1px solid rgba(255, 255, 255, 0.045); }
+
+  /* Ueberschrift mit Verlauf, fuer alles ausser h1 (das hat ihn als Basis). */
+  .klar-verlauf {
+    background: linear-gradient(172deg, var(--heading-from) 30%, var(--heading-to) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Pillen: Knopf hell (Hauptaktion), Knopf dunkel (Nebenaktion), Marke. */
+  .klar-pille {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 999px; white-space: nowrap; cursor: pointer;
+    font-family: var(--font-body); font-weight: 500; letter-spacing: -0.005em;
+    transition: box-shadow 0.15s ease, background 0.15s ease, color 0.15s ease;
+  }
+  .klar-pille-hell {
+    color: #0a0a0a;
+    background: linear-gradient(180deg, #ffffff, #dedede);
+    box-shadow: inset 0 1px 0 #ffffff, inset 0 -1px 0 rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.7), 0 6px 18px -8px rgba(255, 255, 255, 0.28);
+  }
+  .klar-pille-hell:hover { box-shadow: inset 0 1px 0 #ffffff, inset 0 -1px 0 rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.7), 0 8px 22px -8px rgba(255, 255, 255, 0.42); }
+  .klar-pille-dunkel {
+    color: var(--fg);
+    background: linear-gradient(180deg, #1d1d1d, #131313);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 0 0 1px var(--edge-outer);
+  }
+  .klar-pille-dunkel:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 0 0 1px rgba(255, 255, 255, 0.11), 0 0 0 1px var(--edge-outer); }
+
+  /* Marke: kleine Pille mit Symbol oder Status-Punkt. Farbe nur im Punkt. */
+  .klar-marke {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 22px; padding: 0 9px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 500; line-height: 1; white-space: nowrap;
+    color: var(--fg-2);
+    background: linear-gradient(180deg, #1a1a1a, #121212);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 0 0 1px var(--edge-outer);
+  }
+  .klar-marke svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .klar-punkt { width: 6px; height: 6px; border-radius: 999px; flex-shrink: 0; background: var(--ton, var(--fg-4)); }
+
+  /* Kachel fuer ein Symbol oder ein App-Icon: dunkel, mit derselben Kante. */
+  .klar-kachel {
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    overflow: hidden; border-radius: 10px; color: var(--fg-2);
+    background: linear-gradient(180deg, #1c1c1c, #121212);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 0 1px var(--edge-outer);
+  }
+
+  /* Fortschritt als feine Leiste */
+  .klar-leiste { display: block; height: 3px; width: 72px; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, 0.08); }
+  .klar-leiste > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, rgba(255, 255, 255, 0.45), #f5f5f5); }
+  .klar-leiste[data-voll="ja"] > span { background: var(--success); }
+
+  /* Griffe an den Tabellen (TabellenGriffe.tsx): Suchfeld darueber,
+     Sortierung auf der Kopfzeile. */
+  .klar-tabellengriff { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; }
+  .klar-karte .klar-tabellengriff { margin: 0; padding: 14px 14px 4px; }
+  .klar-tabellengriff input[type="search"] { flex: 0 1 260px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--fg); font-family: var(--font-body); font-size: 12.5px; }
+  .klar-tabellengriff input[type="search"]:focus { outline: none; border-color: var(--line-strong); }
+  .klar-tabellenzahl { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-4); }
+  th[data-klar-sortierbar="ja"] { cursor: pointer; user-select: none; }
+  th[data-klar-sortierbar="ja"]:hover { color: var(--fg); }
+  th[data-klar-sortiert="auf"]::after { content: " \2191"; color: var(--fg-3); }
+  th[data-klar-sortiert="ab"]::after { content: " \2193"; color: var(--fg-3); }
+
+  /* Ein Formular, das gerade laeuft (FormulareOhneSprung.tsx). */
+  form[data-klar-laeuft="ja"] { opacity: 0.6; pointer-events: none; }
+  form[data-klar-laeuft="ja"] button { cursor: progress; }
+
+  @media (max-width: 820px) {
+    .topbar { padding: 10px 16px; min-height: 54px; }
+    .content { padding: 28px 16px 44px; }
+  }
+}
+
+/* ── Altbestand ─────────────────────────────────────────────────────────────
+   Klassen der Seiten, die noch im alten Look stehen. Werte unveraendert bis
+   auf die Tokens; die frueheren Dunkel-Ueberschreibungen sind eingerechnet.
+   Faellt mit Ticket 06. */
+@layer components {
+  .sub { font-family: var(--font-body); font-size: 13px; line-height: 1.6; color: var(--fg-3); margin: -6px 0 26px; max-width: 68ch; }
+  .flash { border: 1px solid var(--line-strong); padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 24px; font-size: 13.5px; background: var(--surface-2); box-shadow: var(--shadow-sm); color: var(--fg-2); }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 28px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; transition: border-color 0.18s ease; position: relative; overflow: hidden; }
+  .card:hover { border-color: var(--line-strong); }
+
+  .k { font-family: var(--font-mono); color: var(--fg-3); font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; }
+  .v { font-family: var(--font-display); font-weight: 600; font-size: 34px; margin-top: 8px; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--fg); }
+  .s { font-family: var(--font-body); color: var(--fg-3); font-size: 13px; margin-top: 8px; font-weight: 500; }
+
+  .r { text-align: right; }
+  .c { text-align: center; }
+
+  .pill { display: inline-block; padding: 3px 10px; font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; color: var(--fg-2); background: rgba(255, 255, 255, 0.04); }
+  .pill.live { background: var(--brand); color: var(--brand-fg); border-color: var(--brand); }
+
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border: 1px solid rgba(255, 255, 255, 0.18); background: var(--brand); color: var(--brand-fg); font-family: var(--font-body); font-size: 13px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer; box-shadow: 0 4px 14px -4px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 255, 255, 0.5) inset; transition: opacity 0.15s, transform 0.12s, background 0.15s, box-shadow 0.15s; }
+  .btn:hover { box-shadow: 0 8px 22px -6px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.6) inset; transform: translateY(-1px); }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost { background: var(--surface); color: var(--fg-2); border-color: var(--line-strong); box-shadow: none; }
+  .btn.ghost:hover { background: var(--surface-2); color: var(--fg); }
+  .btn svg { width: 14px; height: 14px; stroke-width: 2; }
+  .btn.pop { border: 1.5px solid rgba(255, 255, 255, 0.85); box-shadow: 3px 3px 0 0 rgba(255, 255, 255, 0.85); transition: transform 0.09s cubic-bezier(0.2, 0.6, 0.3, 1), box-shadow 0.09s cubic-bezier(0.2, 0.6, 0.3, 1), opacity 0.15s; }
+  .btn.pop:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 0 rgba(255, 255, 255, 0.95); }
+  .btn.pop:active { transform: translate(3px, 3px); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.85); }
+
+  .muted { color: var(--fg-3); }
+  .warn { display: inline-block; color: var(--danger); background: color-mix(in oklab, var(--danger) 10%, var(--surface)); border: 1px solid color-mix(in oklab, var(--danger) 30%, var(--line)); padding: 2px 8px; border-radius: 999px; font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
+  .applink { font-weight: 500; color: var(--fg); border-bottom: 1px solid var(--line-strong); padding-bottom: 1px; transition: border-color 0.15s, color 0.15s; }
+  .applink:hover { border-color: var(--fg); }
+
+  .chart { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 22px; }
+  .chart svg .bar { transition: opacity 0.14s ease; }
+  .chart svg:hover .bar { opacity: 0.45; }
+  .chart svg .bar:hover { opacity: 1; }
+  .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .chart h3 { font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-3); margin: 0 0 14px; }
+
+  .seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); overflow: hidden; background: var(--surface); }
+  .seg a { padding: 7px 14px; font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-3); transition: background 0.15s, color 0.15s; border-right: 1px solid var(--line); }
+  .seg a:last-child { border-right: 0; }
+  .seg a:hover { background: var(--surface-2); color: var(--fg-2); }
+  .seg a.on { background: var(--fg); color: var(--brand-fg); }
+
+  /* Login und Token-Seite (Login bekommt mit Ticket 05 den neuen Look). */
+  .login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--bg); position: relative; }
+  .login-card { width: 100%; max-width: 430px; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius-lg); padding: 42px 38px 30px; position: relative; overflow: hidden; }
+  .login-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--brand), color-mix(in oklab, var(--brand) 28%, transparent)); }
+  .login-head { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+  .login-badge { display: flex; align-items: center; justify-content: center; width: 54px; height: 54px; overflow: hidden; flex-shrink: 0; }
+  .login-badge img { width: 30px; height: 30px; object-fit: contain; display: block; }
+  .login-head-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+  .login-eyebrow { font-family: var(--font-mono); color: var(--fg-3); font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.18em; }
+  .login-mark { font-family: var(--font-display); font-weight: 600; font-size: 30px; letter-spacing: -0.025em; line-height: 1; color: var(--fg); }
+  .login-mark .dot { color: var(--fg-3); }
+  .login-tag { font-size: 13px; color: var(--fg-3); margin: 0 0 26px; line-height: 1.5; }
+  .login-err { display: flex; align-items: center; gap: 10px; background: color-mix(in oklab, var(--danger) 10%, transparent); border: 1px solid color-mix(in oklab, var(--danger) 30%, var(--line)); border-radius: 8px; padding: 10px 14px; color: var(--fg); font-size: 13px; line-height: 1.4; margin: 0 0 16px; }
+  .login-err::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); flex-shrink: 0; }
+  .login-field { display: flex; flex-direction: column; gap: 6px; }
+  .login-label { font-family: var(--font-mono); color: var(--fg-3); font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.14em; padding-left: 2px; }
+  .login-input { width: 100%; padding: 12px 14px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--fg); font-size: 14px; font-family: var(--font-body); border-radius: var(--radius-sm); transition: border-color 0.15s, box-shadow 0.15s, background 0.15s; }
+  .login-input::placeholder { color: var(--fg-4); }
+  .login-input:focus { border-color: var(--fg); background: var(--surface); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08); }
+  .login-input.code { font-family: var(--font-mono); letter-spacing: 0.5em; text-align: center; font-size: 22px; padding: 14px; font-weight: 600; }
+  .login-input.code::placeholder { letter-spacing: 0.3em; font-weight: 400; font-size: 14px; }
+  .otp { display: flex; align-items: center; gap: 10px; }
+  .otp-group { display: flex; gap: 8px; flex: 1; }
+  .otp-sep { width: 11px; height: 2px; border-radius: 2px; background: var(--line-strong); flex-shrink: 0; }
+  .otp-box { flex: 1; min-width: 0; width: 100%; height: 54px; display: flex; align-items: center; justify-content: center; position: relative; text-align: center; font-family: var(--font-mono); font-size: 22px; font-weight: 600; color: var(--fg); background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: var(--radius-sm); caret-color: var(--brand); user-select: none; transition: border-color 0.15s, box-shadow 0.15s, background 0.15s, transform 0.12s; }
+  .otp-box:hover { border-color: var(--fg-3); }
+  .otp-box.filled { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.28); }
+  .otp-box.active, .otp-box:focus { outline: none; border-color: var(--fg); background: rgba(255, 255, 255, 0.08); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08); transform: translateY(-1px); }
+  .otp-caret { display: inline-block; width: 2px; height: 24px; background: var(--brand); border-radius: 1px; animation: otp-blink 1s steps(2, start) infinite; }
+  @keyframes otp-blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .otp-caret { animation: none; } }
+  .login-submit { width: 100%; justify-content: center; padding: 13px 16px; margin-top: 6px; font-size: 14px; font-weight: 600; letter-spacing: 0.01em; font-family: var(--font-body); }
+  .login-foot { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .login-foot-text { font-family: var(--font-mono); color: var(--fg-4); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; }
+  .login-back { position: absolute; top: 18px; left: 18px; display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-3); text-decoration: none; padding: 7px 11px; border-radius: var(--radius-sm); border: 1px solid transparent; transition: color 0.15s, background 0.15s, border-color 0.15s; z-index: 2; }
+  .login-back:hover { color: var(--fg); background: var(--surface-2); border-color: var(--line); }
+  .login-back svg { width: 13px; height: 13px; }
+  @media (max-width: 520px) { .login-card { padding: 32px 24px 26px; } .login-mark { font-size: 26px; } .login-badge { width: 44px; height: 44px; } .login-badge img { width: 24px; height: 24px; } }
+}

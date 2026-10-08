@@ -239,7 +239,7 @@ export default async function BrainPage({
                           <div
                             style={{
                               height: `${Math.max((w.count / max) * 100, w.count > 0 ? 4 : 2)}%`,
-                              background: w.count > 0 ? "var(--accent)" : "var(--line)",
+                              background: w.count > 0 ? "var(--brand)" : "var(--line)",
                               borderRadius: "3px 3px 0 0",
                             }}
                           />
@@ -272,7 +272,7 @@ export default async function BrainPage({
                               style={{
                                 width: `${(t.count / max) * 100}%`,
                                 height: "100%",
-                                background: "var(--accent)",
+                                background: "var(--brand)",
                                 borderRadius: 4,
                               }}
                             />

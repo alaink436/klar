@@ -6,8 +6,10 @@
 // The other actions redirect back to /admin/brain (JSON with ?json=1). Admin
 // check via lib/adminGuard, like every admin route.
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
-import { STYLE, FONTS_LINK, THEME_INIT_SCRIPT, esc } from "@/app/admin/_shared";
+import { FONTS_LINK, THEME_INIT_SCRIPT, esc } from "@/app/admin/_shared";
 import { requireAdminRoute } from "@/lib/adminGuard";
 import {
   createToken,
@@ -27,11 +29,23 @@ function backWith(req: NextRequest, params: Record<string, string>): Response {
   return NextResponse.redirect(url, 303);
 }
 
+// This page renders its own HTML, outside the admin layout, so it inlines the
+// design file itself (shipped with the function, see next.config.ts). Read on
+// each call: the token is already minted at this point, and a missing file
+// must cost the styling, not the one chance to copy the token.
+function adminCss(): string {
+  try {
+    return readFileSync(join(process.cwd(), "src/app/admin/admin.css"), "utf8");
+  } catch {
+    return "";
+  }
+}
+
 function tokenShownOncePage(raw: string, label: string, scopes: string[]): Response {
   const body = `<!doctype html><html lang="de" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Token erstellt · Klar Control</title>
 <script>${THEME_INIT_SCRIPT}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="${FONTS_LINK}" rel="stylesheet"><style>${STYLE}</style></head><body>
+<link href="${FONTS_LINK}" rel="stylesheet"><style>:root{--font-geist-sans:"Geist";--font-geist-mono:"Geist Mono"}${adminCss()}</style></head><body>
 <div class="login">
   <div class="login-card" style="max-width:560px">
     <div class="login-head">

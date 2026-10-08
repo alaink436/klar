@@ -15,8 +15,11 @@
 //      Supabase-Schluessel je App fuer die Nutzerzahlen, und KLAR_INBOX_*
 //      fuer den Feed).
 
+import { ArrowRight, LayoutDashboard } from "lucide-react";
 import { AdminTopbar } from "../AdminTopbar";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { TextureCard, TextureCardHeader, TextureCardTitle } from "@/components/ui/texture-card";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Arbeitsliste, type Aufgabe } from "./Arbeitsliste";
 import { Projektliste } from "./Projektliste";
 import { AppKacheln } from "./AppKacheln";
@@ -135,24 +138,27 @@ export default async function OverviewPage({
       <div className="content">
         {sp.msg ? <div className="flash">{sp.msg}</div> : null}
 
-        <h1>Übersicht</h1>
-        <Card className="mb-4 gap-0 p-0">
-          <CardHeader className="px-6 pb-3 pt-5">
-            <CardTitle>Was liegt an</CardTitle>
-          </CardHeader>
+        <PageHeader eyebrow="Klar Control" icon={<LayoutDashboard />} title="Übersicht" />
+        <TextureCard className="mb-5">
+          <TextureCardHeader>
+            <TextureCardTitle>Was liegt an</TextureCardTitle>
+          </TextureCardHeader>
           <Arbeitsliste aufgaben={aufgaben} />
-        </Card>
+        </TextureCard>
 
         {projekte.length ? (
-          <Card className="mb-5 gap-0 p-0">
-            <CardHeader className="flex-row items-baseline justify-between px-6 pb-3 pt-5">
-              <CardTitle>Woran ich gerade arbeite</CardTitle>
-              <a href="/admin/brain" className="applink text-[11.5px]">
-                AI-Brain öffnen →
-              </a>
-            </CardHeader>
+          <TextureCard className="mb-8">
+            <TextureCardHeader>
+              <TextureCardTitle>Woran ich gerade arbeite</TextureCardTitle>
+              <Button asChild variant="pill-dark" size="sm" className="h-7 px-3 text-[12px]">
+                <a href="/admin/brain">
+                  AI-Brain öffnen
+                  <ArrowRight />
+                </a>
+              </Button>
+            </TextureCardHeader>
             <Projektliste projekte={projekte} />
-          </Card>
+          </TextureCard>
         ) : null}
 
         <AppKacheln />
