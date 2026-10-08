@@ -8,30 +8,74 @@
 //   - invite (?invite=, no device cookie) -> name + code, no admin-key
 //   - new device -> admin-key + name + code
 //   - known device -> code only
+//
+// Look (redesign 2026-10-08, ticket 05): the existing Klar symbol large on top,
+// unchanged, then a calm form in a texture card. Styles: the "Login" section at
+// the end of admin/admin.css.
 
 import { headers } from "next/headers";
+import { ArrowRight, KeyRound } from "lucide-react";
 import { esc } from "../_shared";
 import { adminConfig, readAdminSession } from "../../../lib/adminSession";
 import { fetchInvite } from "../../../lib/adminSettings";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { GridPattern } from "@/components/ui/grid-pattern";
+import { TextureCard } from "@/components/ui/texture-card";
 import OtpField from "./OtpField";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-function Chrome({ children }: { children: React.ReactNode }) {
+// Login has no AdminShell, so it draws the grid and glow itself.
+function Chrome({
+  eyebrow,
+  title,
+  tag,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  tag: string;
+  children: React.ReactNode;
+}) {
   return (
     <>
       <title>Anmeldung · Klar Control</title>
       <meta name="robots" content="noindex" />
       <link rel="icon" type="image/png" href="/logo/klar-192.png" />
-      {children}
+      <div className="klar-login">
+        <div className="klar-hintergrund" aria-hidden="true">
+          <GridPattern width={56} height={56} />
+        </div>
+        <BackLink />
+        <main className="klar-login-spalte">
+          <div className="klar-login-symbol">
+            <img src="/logo/klar-symbol.png" alt="Klar" width={500} height={500} />
+          </div>
+          <div className="klar-login-kopf">
+            <span className="klar-marke pl-[3px]">
+              <span
+                aria-hidden="true"
+                className="flex size-4 items-center justify-center rounded-full bg-[linear-gradient(180deg,#fff,#cfcfcf)] text-[#0a0a0a] [&_svg]:size-2.5"
+              >
+                <KeyRound />
+              </span>
+              {eyebrow}
+            </span>
+            <h1>{title}</h1>
+            <p>{tag}</p>
+          </div>
+          {children}
+        </main>
+      </div>
     </>
   );
 }
 
 function BackLink() {
   return (
-    <a className="login-back" href="/" title="Zurück zu getklar.org">
+    <a className="klar-pille klar-pille-dunkel klar-login-zurueck" href="/" title="Zurück zu getklar.org">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
       getklar.org
     </a>
@@ -46,31 +90,22 @@ function SetupHint() {
     config.deviceSecret ? "" : "KLAR_DEVICE_SECRET",
   ].filter(Boolean);
   return (
-    <Chrome>
-      <div className="login">
-        <BackLink />
-        <div className="login-card">
-          <div className="login-head">
-            <div className="login-badge"><img src="/logo/klar-symbol.png" alt="Klar" /></div>
-            <div className="login-head-text">
-              <span className="login-eyebrow">Klar Control</span>
-              <span className="login-mark">Setup<span className="dot">.</span></span>
-            </div>
-          </div>
-          <p className="login-tag">Bevor sich jemand anmelden kann, müssen ein paar Server-Variablen in Vercel gesetzt werden.</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-            {missing.map((m) => (
-              <code key={m} style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, background: "var(--surface-2)", border: "1px solid var(--line)", padding: "8px 12px", borderRadius: 6, color: "var(--fg)", display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "var(--warning)" }} />{m}
-              </code>
-            ))}
-          </div>
-          <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--fg-3)", margin: 0, lineHeight: 1.5 }}>
-            Anleitung: <code style={{ fontFamily: "var(--font-mono)", fontSize: 12, background: "var(--surface-2)", padding: "1px 6px", borderRadius: 4 }}>SECURITY-SETUP.md</code> im Klar-Repo.
-          </p>
-          <div className="login-foot"><span className="login-foot-text">Intern · getklar.org</span></div>
+    <Chrome
+      eyebrow="Klar Control"
+      title="Setup"
+      tag="Bevor sich jemand anmelden kann, müssen ein paar Server-Variablen in Vercel gesetzt werden."
+    >
+      <TextureCard className="klar-login-karte">
+        <div className="flex flex-wrap gap-2">
+          {missing.map((m) => (
+            <Badge key={m} tone="warn" className="[font-family:var(--font-mono)]">{m}</Badge>
+          ))}
         </div>
-      </div>
+        <p className="mt-4 mb-0 text-[13px] leading-normal text-fg-3">
+          Anleitung: <code className="[font-family:var(--font-mono)] text-fg-2">SECURITY-SETUP.md</code> im Klar-Repo.
+        </p>
+      </TextureCard>
+      <p className="klar-login-fuss"><span>Intern · getklar.org</span></p>
     </Chrome>
   );
 }
@@ -122,45 +157,37 @@ export default async function LoginPage({
       : "TOTP läuft alle 30 Sekunden";
 
   return (
-    <Chrome>
-      <div className="login">
-        <BackLink />
-        <div className="login-card">
-          <div className="login-head">
-            <div className="login-badge"><img src="/logo/klar-symbol.png" alt="Klar" /></div>
-            <div className="login-head-text">
-              <span className="login-eyebrow">{eyebrow}</span>
-              <span className="login-mark">{mark}<span className="dot">.</span></span>
+    <Chrome eyebrow={eyebrow} title={mark} tag={tag}>
+      <TextureCard className="klar-login-karte">
+        {err ? <div className="klar-login-fehler" role="alert">{err}</div> : null}
+        <form method="POST" action="/admin/login/submit" className="klar-login-form" autoComplete="off">
+          {hasInvite ? <input type="hidden" name="invite" value={esc(inviteToken)} /> : null}
+          {showKeyInput ? (
+            <div className="klar-login-feld">
+              <label className="klar-login-label" htmlFor="key-input">Admin-Key</label>
+              <input className="klar-login-eingabe" id="key-input" name="key" type="password" placeholder="••••••••" autoComplete="off" required />
             </div>
-          </div>
-          <p className="login-tag">{tag}</p>
-          {err ? <div className="login-err" role="alert">{err}</div> : null}
-          <form method="POST" action="/admin/login/submit" style={{ display: "flex", flexDirection: "column", gap: 14 }} autoComplete="off">
-            {hasInvite ? <input type="hidden" name="invite" value={esc(inviteToken)} /> : null}
-            {showKeyInput ? (
-              <div className="login-field">
-                <label className="login-label" htmlFor="key-input">Admin-Key</label>
-                <input className="login-input" id="key-input" name="key" type="password" placeholder="••••••••" autoComplete="off" required />
-              </div>
-            ) : null}
-            {showNameInput ? (
-              <div className="login-field">
-                <label className="login-label" htmlFor="name-input">Gerätename</label>
-                <input className="login-input" id="name-input" name="name" type="text" placeholder="z.B. MacBook, Büro-PC" autoComplete="off" maxLength={40} required />
-              </div>
-            ) : null}
-            <div className="login-field">
-              <label className="login-label">Authenticator-Code</label>
-              <OtpField />
+          ) : null}
+          {showNameInput ? (
+            <div className="klar-login-feld">
+              <label className="klar-login-label" htmlFor="name-input">Gerätename</label>
+              <input className="klar-login-eingabe" id="name-input" name="name" type="text" placeholder="z.B. MacBook, Büro-PC" autoComplete="off" maxLength={40} required />
             </div>
-            <button className="btn pop login-submit" type="submit">Anmelden</button>
-          </form>
-          <div className="login-foot">
-            <span className="login-foot-text">{foot}</span>
-            <span className="login-foot-text" style={{ opacity: 0.7 }}>getklar.org</span>
+          ) : null}
+          <div className="klar-login-feld">
+            <label className="klar-login-label">Authenticator-Code</label>
+            <OtpField />
           </div>
-        </div>
-      </div>
+          <Button variant="pill" type="submit" className="mt-1 h-11 w-full text-sm">
+            Anmelden
+            <ArrowRight />
+          </Button>
+        </form>
+      </TextureCard>
+      <p className="klar-login-fuss">
+        <span>{foot}</span>
+        <span>getklar.org</span>
+      </p>
     </Chrome>
   );
 }
