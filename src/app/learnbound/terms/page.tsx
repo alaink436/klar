@@ -1,4 +1,4 @@
-// Terms of Use for Focus Crew (com.podifyapp.app).
+// Terms of Use for Learnbound (com.podifyapp.app; the bundle id is inherited from Podify).
 //
 // Linked from App Store Connect, onboarding (terms_version 2026-10-01 is stored on accept),
 // Settings and the paywall. The parts Apple's review checks for an app with user-generated
@@ -11,20 +11,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Focus Crew Terms of Use · Klar",
-  description: "The rules for using Focus Crew: age, account, study rooms, postcards and community rules, Pro, and liability.",
+  title: "Learnbound Terms of Use · Klar",
+  description: "The rules for using Learnbound: age, account, the AR box, study rooms, nudges, postcards and community rules, Pro, and liability.",
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "1 October 2026";
-const CONTACT = "feedback+focuscrew@reply.getklar.org";
+const AS_OF = "8 October 2026";
+const CONTACT = "feedback+learnbound@reply.getklar.org";
 
-export default function FocusCrewTermsPage() {
+export default function LearnboundTermsPage() {
   return (
     <main className="min-h-screen relative z-10 px-4 sm:px-8 py-16 sm:py-24" style={{ color: "var(--fg)" }}>
       <article className="max-w-3xl mx-auto" style={{ fontFamily: "var(--font-body), system-ui, sans-serif" }}>
         <div className="label mb-3" style={{ color: "var(--fg-3)" }}>
-          Focus Crew · Terms · as of {AS_OF}
+          Learnbound · Terms · as of {AS_OF}
         </div>
 
         <h1
@@ -36,7 +36,7 @@ export default function FocusCrewTermsPage() {
 
         <p className="t-body-lg" style={{ color: "var(--fg-2)", marginBottom: 48 }}>
           These terms apply between you and Alain Kessler, a sole proprietorship registered in Switzerland operating
-          under the brand <i>Klar</i>, for the Focus Crew app. By creating an account you accept them.
+          under the brand <i>Klar</i>, for the Learnbound app. By creating an account you accept them.
         </p>
 
         <Section n="01" title="Minimum age">
@@ -63,13 +63,18 @@ export default function FocusCrewTermsPage() {
             empty. They are marked &ldquo;Regular&rdquo; with a small house badge, are not real users, and are never counted in
             room totals, leaderboards or statistics.
           </p>
+          <p>
+            While you study, the people in your room and your friends see whether your phone is in the box, whether you are
+            on a break, or whether you are on your phone, and they can nudge you to put it back.
+          </p>
         </Section>
 
         <Section n="04" title="Community rules and moderation">
           <p>
             There is no tolerance for objectionable content or abusive behaviour. Do not post or use as a display name
             anything that is hateful, harassing, sexual, violent, threatening, illegal, spam, or that shares someone&apos;s
-            personal information. Do not impersonate others.
+            personal information. Do not impersonate others. Nudges are for friendly encouragement; do not use them to
+            harass anyone. You can turn nudges off in the app&apos;s settings.
           </p>
           <p>
             You can report any postcard or user and block any user in the app. We review reports and act within 24 hours,
@@ -87,24 +92,30 @@ export default function FocusCrewTermsPage() {
           </p>
         </Section>
 
-        <Section n="06" title="Focus Crew Pro">
+        <Section n="06" title="Learnbound Pro">
           <p>
-            Pro unlocks the app lock, the Pro rooms, the premium season track and more acorns, as described in the app. It is
-            offered as a yearly subscription or as a one-time lifetime purchase, at the prices shown in the app before you buy.
+            Pro unlocks the app lock, unlimited views of room statistics and the global leaderboard, the Pro rooms, the
+            premium season track and more acorns, as described in the app. The AR box is free. Pro is offered as a monthly or
+            yearly subscription or as a one-time lifetime purchase, at the prices shown in the app before you buy.
             Payment is charged to your Apple ID. A subscription renews automatically unless you turn it off at least 24 hours
             before the end of the current period; you manage and cancel it in your Apple ID settings. Refunds are handled by
             Apple under its terms.
           </p>
           <p>
-            Acorns, items and season rewards are earned by studying. They cannot be bought, have no money value, cannot be
+            Acorns, items and season rewards are earned by verified study time. They cannot be bought, have no money value, cannot be
             exchanged or transferred, and end with your account.
           </p>
         </Section>
 
-        <Section n="07" title="The app lock">
+        <Section n="07" title="The app lock and the AR box">
           <p>
             The lock uses Apple&apos;s Screen Time and only works while Apple allows it. It is a focus aid, not a security or
             parental-control tool. You can end it in the app at any time, including an emergency unlock.
+          </p>
+          <p>
+            Verified study time is measured by the app on your phone, from the camera while you place the box and from the
+            motion sensors while the phone lies in it. It is a focus aid too: it can be wrong, and it is not proof of
+            anything outside the app.
           </p>
         </Section>
 
@@ -137,8 +148,8 @@ export default function FocusCrewTermsPage() {
 
         <p style={{ fontSize: 13, color: "var(--fg-3)", fontFamily: "var(--font-mono), monospace", letterSpacing: "0.05em" }}>
           As of {AS_OF} · Alain Kessler (CH sole proprietorship) · {CONTACT} ·{" "}
-          <Link href="/focuscrew" className="underline">Focus Crew</Link> ·{" "}
-          <Link href="/focuscrew/privacy" className="underline">Privacy</Link>
+          <Link href="/learnbound" className="underline">Learnbound</Link> ·{" "}
+          <Link href="/learnbound/privacy" className="underline">Privacy</Link>
         </p>
       </article>
     </main>

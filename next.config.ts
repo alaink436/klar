@@ -83,6 +83,14 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**.supabase.co" },
     ],
   },
+  // Focus Crew was renamed to Learnbound on 2026-10-08. Old links, including
+  // the legal pages in App Store Connect, keep working.
+  async redirects() {
+    return [
+      { source: "/focuscrew", destination: "/learnbound", permanent: true },
+      { source: "/focuscrew/:path*", destination: "/learnbound/:path*", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

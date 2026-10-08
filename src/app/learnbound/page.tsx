@@ -1,24 +1,24 @@
-// Focus Crew — app home page: /focuscrew
+// Learnbound app home page: /learnbound (the app was called Focus Crew until 8 October 2026)
 //
 // The app's website while it lives under getklar.org, and the fallback for its
-// universal links: every /focuscrew/* link opens the installed app (see
+// universal links: every /learnbound/* link opens the installed app (see
 // .well-known/apple-app-site-association); without the app it lands here.
-// Claims follow the build (AI-Brain Projects/Study-Buddies-App/SPEC-v1.md).
+// Claims follow the build (AI-Brain Projects/Pod/specs/learnbound-umbau/spec.md).
 
 import type { Metadata } from "next";
 import Image from "next/image";
 
-const LINE = "study live with real people. pick a room, set a timer, and your chibi sits down next to everyone else who is focusing right now.";
+const LINE = "put your phone in a box on your desk. only the time it stays there counts as verified study time.";
 
 export const metadata: Metadata = {
-  title: "Focus Crew — study together, live",
+  title: "Learnbound · put your phone in the box",
   description: LINE,
   robots: { index: true, follow: true },
-  openGraph: { title: "Focus Crew — study together, live", description: LINE, images: ["/focuscrew/icon.webp"] },
+  openGraph: { title: "Learnbound · put your phone in the box", description: LINE, images: ["/learnbound/icon.webp"] },
 };
 
 const APP_STORE_URL = "https://apps.apple.com/app/id6778560113";
-const CONTACT = "feedback+focuscrew@reply.getklar.org";
+const CONTACT = "feedback+learnbound@reply.getklar.org";
 
 const GROUND = "#1A1410";
 const INK = "#FFF6EC";
@@ -27,22 +27,22 @@ const SURFACE = "#2A2019";
 const ACCENT = "#F4B860";
 
 const FEATURES = [
-  ["study rooms", "café, library, beach and a night train. see who is focusing right now and how long they have been at it."],
-  ["your chibi", "hairstyles, outfits, accessories and eight skin tones. it sits in the room while you study."],
-  ["focus timer", "pomodoro, timer or stopwatch. with pro, the apps you pick stay locked until the session ends."],
-  ["exam planner", "subjects, exams and study phases with a countdown, plus stats for every day and week."],
-  ["friends and seasons", "add friends by code, cheer postcards, climb the weekly leaderboard and the season pass."],
+  ["the box", "point your camera at your desk, set a box and put your phone in. the camera only looks while you place it and never records."],
+  ["lift it, and it shows", "outside a break, picking up the phone starts an interruption. chill, focused or exam: you choose how strict it is."],
+  ["app lock", "with pro, the apps you pick stay locked while you study."],
+  ["exam planner", "every exam with a countdown and a minute goal. mock exams run in one block, like the real thing."],
+  ["study rooms, if you like", "sit down in a cozy room with others. they see when you are on your phone, and friends can nudge you back."],
 ];
 
-export default function FocusCrewHomePage() {
+export default function LearnboundHomePage() {
   return (
     <main style={{ minHeight: "100vh", position: "relative", zIndex: 10, background: GROUND, color: INK, fontFamily: "system-ui, sans-serif" }}>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "64px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 40 }}>
-          <Image src="/focuscrew/icon.webp" alt="Focus Crew icon" width={72} height={72} priority style={{ borderRadius: 18 }} />
+          <Image src="/learnbound/icon.webp" alt="Learnbound icon" width={72} height={72} priority style={{ borderRadius: 18 }} />
           <div>
-            <h1 style={{ fontSize: 30, fontWeight: 800, margin: 0 }}>Focus Crew</h1>
-            <p style={{ color: MUTED, margin: 0 }}>study together, live</p>
+            <h1 style={{ fontSize: 30, fontWeight: 800, margin: 0 }}>Learnbound</h1>
+            <p style={{ color: MUTED, margin: 0 }}>put your phone in the box</p>
           </div>
         </div>
 
@@ -65,7 +65,7 @@ export default function FocusCrewHomePage() {
         </div>
 
         <p style={{ fontSize: 14, lineHeight: 1.6, color: MUTED }}>
-          sign in with apple, no phone number. accounts from 13. pro: yearly or lifetime.
+          sign in with apple, no phone number. accounts from 13. the box is free. pro: monthly, yearly or lifetime.
           <br />
           questions: <a href={`mailto:${CONTACT}`} style={{ color: INK }}>{CONTACT}</a>
         </p>
