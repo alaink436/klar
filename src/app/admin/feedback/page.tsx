@@ -6,11 +6,16 @@
 // `klar_app_feedback` ab (lib/feedbackStore). Hier wird gelesen und abgehakt.
 // Geantwortet wird aus dem eigenen Mailprogramm, damit die Antwort vom
 // Support-Postfach der App kommt und nicht von einer Klar-Adresse.
+//
+// Seit dem Redesign (2026-10-08, Ticket 02) aus den gemeinsamen Bausteinen:
+// Seitenkopf, TextureCard, Filter als `.klar-segment`, Pillen-Knoepfe, Stand
+// einer Meldung als gedaempfter Punkt.
 
-import { Mail } from "lucide-react";
+import { Check, Mail, MessageCircle } from "lucide-react";
 import { requireAdminPage } from "../../../lib/adminGuard";
 import { FEEDBACK_APPS, feedbackAppName, listFeedback, type AppFeedback } from "@/lib/feedbackStore";
-import { Card } from "@/components/ui/card";
+import { TextureCard } from "@/components/ui/texture-card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { inZone, tagInZone } from "@/lib/zeit";
@@ -39,17 +44,25 @@ const adresse = (f: { erledigt: boolean; app: string | null; id?: string }) => {
   return q ? `/admin/feedback?${q}` : "/admin/feedback";
 };
 
-// Farbe als Inline-Stil, nicht als Klasse: `_shared.ts` setzt `a{color:inherit}`
-// ungeschichtet, und das schlaegt jede text-*-Klasse auf einem Link.
+// Ein Filter im `.klar-segment`: das Aussehen kommt aus admin.css, aktiv
+// heisst aria-current.
 function Pille({ href, aktiv, children }: { href: string; aktiv: boolean; children: React.ReactNode }) {
   return (
-    <a
-      href={href}
-      className={cn("rounded-[var(--radius-sm)] px-2.5 py-1 text-[12px]", aktiv ? "bg-fg" : "hover:bg-surface-2")}
-      style={{ color: aktiv ? "var(--brand-fg)" : "var(--fg-3)" }}
-    >
+    <a href={href} aria-current={aktiv ? "page" : undefined}>
       {children}
     </a>
+  );
+}
+
+/** Kurze Meldung in einer Karte; ihr Ton steckt nur im Punkt. */
+function Meldung({ ton, children }: { ton?: string; children: React.ReactNode }) {
+  return (
+    <TextureCard className="mb-4 flex items-start gap-3 px-5 py-4 text-[13px] text-fg-2">
+      {ton ? (
+        <span aria-hidden="true" className="klar-punkt mt-[7px]" style={{ "--ton": ton } as React.CSSProperties} />
+      ) : null}
+      <div className="min-w-0">{children}</div>
+    </TextureCard>
   );
 }
 
@@ -75,71 +88,58 @@ export default async function FeedbackPage({
       <title>Feedback · Klar Studios · Klar Control</title>
       <AdminTopbar titel="Feedback" bereich="Klar Studios" />
       <div className="content">
-        <div className="mb-6">
-          <div className="mb-2 [font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.24em] text-fg-4">
-            Klar Studios · Support-Postfächer der Apps
-          </div>
-          <h1 className="m-0 [font-family:var(--font-display)] text-[clamp(36px,5vw,58px)] font-normal leading-[0.92] tracking-[0.015em] text-fg">
-            Feedback
-          </h1>
-          <p className="mt-3 max-w-[64ch] text-[13px] leading-relaxed text-fg-3">
-            Vorschläge, Beschwerden und Fragen, die Nutzer an die Support-Adressen der Apps schreiben.
-            Antworten geht über das Mailprogramm, damit die Antwort vom Postfach der App kommt.
-          </p>
-        </div>
+        <PageHeader eyebrow="Klar Studios · Support-Postfächer der Apps" icon={<MessageCircle />} title="Feedback">
+          Vorschläge, Beschwerden und Fragen, die Nutzer an die Support-Adressen der Apps schreiben.
+          Antworten geht über das Mailprogramm, damit die Antwort vom Postfach der App kommt.
+        </PageHeader>
 
         {liste === null ? (
-          <Card className="mb-4 border-[var(--danger)]/40 p-4 text-[13px]">
-            <b>Feedback nicht lesbar.</b> Fehlt <code>KLAR_INBOX_SERVICE_KEY</code>, oder ist Migration{" "}
+          <Meldung ton="var(--danger)">
+            <b className="text-fg">Feedback nicht lesbar.</b> Fehlt <code>KLAR_INBOX_SERVICE_KEY</code>, oder ist Migration{" "}
             <code>0040_app_feedback</code> noch nicht eingespielt?
-          </Card>
+          </Meldung>
         ) : null}
 
         {msg ? (
-          <Card
-            className={cn(
-              "mb-4 p-4 text-[13px]",
-              stand === "fehler" ? "border-[var(--danger)]/40" : stand === "ok" ? "border-emerald-500/40" : "",
-            )}
-          >
-            {msg}
-          </Card>
+          <Meldung ton={stand === "fehler" ? "var(--danger)" : stand === "ok" ? "var(--success)" : undefined}>{msg}</Meldung>
         ) : null}
 
         <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
-          <Card className="self-start overflow-hidden p-0">
-            <div className="flex gap-1 border-b border-line px-3 py-2">
-              <Pille href={adresse({ erledigt: false, app })} aktiv={!erledigt}>Offen</Pille>
-              <Pille href={adresse({ erledigt: true, app })} aktiv={erledigt}>Erledigt</Pille>
-            </div>
-            <div className="flex flex-wrap gap-1 border-b border-line px-3 py-2">
-              <Pille href={adresse({ erledigt, app: null })} aktiv={!app}>Alle Apps</Pille>
-              {FEEDBACK_APPS.map((a) => (
-                <Pille key={a.slug} href={adresse({ erledigt, app: a.slug })} aktiv={app === a.slug}>
-                  {a.name}
-                </Pille>
-              ))}
+          <TextureCard className="self-start">
+            <div className="flex flex-col items-start gap-2 border-b px-4 py-3.5">
+              <div className="klar-segment">
+                <Pille href={adresse({ erledigt: false, app })} aktiv={!erledigt}>Offen</Pille>
+                <Pille href={adresse({ erledigt: true, app })} aktiv={erledigt}>Erledigt</Pille>
+              </div>
+              <div className="klar-segment">
+                <Pille href={adresse({ erledigt, app: null })} aktiv={!app}>Alle Apps</Pille>
+                {FEEDBACK_APPS.map((a) => (
+                  <Pille key={a.slug} href={adresse({ erledigt, app: a.slug })} aktiv={app === a.slug}>
+                    {a.name}
+                  </Pille>
+                ))}
+              </div>
             </div>
             {eintraege.length === 0 ? (
-              <p className="px-4 py-8 text-center text-[12.5px] text-fg-3">
+              <p className="m-0 px-4 py-8 text-center text-[12.5px] text-fg-3">
                 {erledigt ? "Nichts erledigt." : "Kein offenes Feedback."}
               </p>
             ) : (
               <ul className="m-0 list-none p-0">
                 {eintraege.map((e) => (
-                  <li key={e.id}>
+                  <li key={e.id} className="border-t first:border-t-0">
                     <a
                       href={adresse({ erledigt, app, id: e.id })}
                       className={cn(
-                        "block border-l-2 px-3.5 py-3 hover:bg-surface-2",
-                        e.id === gewaehlt?.id ? "border-l-fg bg-surface-2" : "border-l-transparent",
+                        "block px-4 py-3 transition-colors hover:bg-white/[.03]",
+                        e.id === gewaehlt?.id && "bg-white/[.045] shadow-[inset_2px_0_0_0_var(--fg)] hover:bg-white/[.045]",
                       )}
                     >
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-[13px] font-semibold text-fg">
+                        <span className="truncate text-[13px] font-medium text-fg">
                           {e.contact_name || e.contact_email}
                         </span>
-                        <span className="shrink-0 text-[11.5px] text-fg-4">{wann(e.sent_at ?? e.created_at)}</span>
+                        <span className="shrink-0 text-[11px] text-fg-4 [font-family:var(--font-mono)]">{wann(e.sent_at ?? e.created_at)}</span>
                       </div>
                       <div className="mt-0.5 truncate text-[12.5px] text-fg-2">{e.subject || "Ohne Betreff"}</div>
                       <div className="mt-0.5 truncate text-[12px] text-fg-4">
@@ -150,15 +150,15 @@ export default async function FeedbackPage({
                 ))}
               </ul>
             )}
-          </Card>
+          </TextureCard>
 
-          <Card className="min-w-0 self-start p-5">
+          <TextureCard className="min-w-0 self-start p-6">
             {gewaehlt ? (
               <Eintrag e={gewaehlt} erledigt={erledigt} app={app} />
             ) : (
-              <p className="py-10 text-center text-[13px] text-fg-3">Links eine Mail auswählen.</p>
+              <p className="m-0 py-10 text-center text-[13px] text-fg-3">Links eine Mail auswählen.</p>
             )}
-          </Card>
+          </TextureCard>
         </div>
       </div>
     </>
@@ -169,9 +169,11 @@ function Eintrag({ e, erledigt, app }: { e: AppFeedback; erledigt: boolean; app:
   const antwort = `mailto:${e.contact_email}?subject=${encodeURIComponent(`Re: ${e.subject ?? ""}`)}`;
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line pb-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b pb-4">
         <div className="min-w-0">
-          <h2 className="m-0 text-[18px] font-semibold leading-tight text-fg">{e.subject || "Ohne Betreff"}</h2>
+          <h2 className="m-0 block text-[18px] font-medium normal-case leading-tight tracking-[-0.015em] text-fg [font-family:var(--font-body)] after:hidden">
+            {e.subject || "Ohne Betreff"}
+          </h2>
           <p className="mt-1.5 text-[12.5px] text-fg-3">
             {e.contact_name ? `${e.contact_name} · ` : ""}
             {e.contact_email} · {feedbackAppName(e.app)}
@@ -179,7 +181,7 @@ function Eintrag({ e, erledigt, app }: { e: AppFeedback; erledigt: boolean; app:
           </p>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="pill-dark" size="sm">
             <a href={antwort}>
               <Mail />
               Antworten
@@ -190,7 +192,8 @@ function Eintrag({ e, erledigt, app }: { e: AppFeedback; erledigt: boolean; app:
             <input type="hidden" name="erledigt" value={erledigt ? "0" : "1"} />
             <input type="hidden" name="ordner" value={erledigt ? "erledigt" : ""} />
             <input type="hidden" name="app" value={app ?? ""} />
-            <Button type="submit" size="sm">
+            <Button type="submit" variant="pill" size="sm">
+              {erledigt ? null : <Check />}
               {erledigt ? "Wieder öffnen" : "Erledigt"}
             </Button>
           </form>

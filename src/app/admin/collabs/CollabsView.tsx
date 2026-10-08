@@ -13,10 +13,20 @@
 // (POST /admin/collab/stage). Die aus den Nachrichten abgeleitete Spalte sagt
 // nur, wessen Zug es ist; wie weit die Zusammenarbeit gediehen ist, weiss die
 // Tabelle nicht und kann sie auch nicht raten.
+//
+// Seit dem Redesign (2026-10-08, Ticket 02) aus den gemeinsamen Bausteinen:
+// TextureCard statt Card, Pillen statt Rahmenknoepfen, Felder als `.klar-feld`,
+// Stand als gedaempfter Punkt. Auf dem Handy stapelt jede Tabellenzeile.
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Card } from "@/components/ui/card";
+import { ArrowRight, Check, Plus } from "lucide-react";
+import {
+  TextureCard,
+  TextureCardDescription,
+  TextureCardHeader,
+  TextureCardTitle,
+} from "@/components/ui/texture-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -90,18 +100,20 @@ const CHANNELS: { value: string; label: string }[] = [
 /** Farbpunkt je Stufe. Grau → blau → indigo → gelb → grün, Rot als einziger
  *  Ausgang: die Spalte soll sich von oben nach unten überfliegen lassen, ohne
  *  dass man die Wörter liest. Steht neben der Auswahl und nicht als zweites
- *  Etikett darüber — die Auswahl sagt den Namen bereits. */
-const STAGE_DOT: Record<CollabStage, string> = {
-  kontakt: "bg-gray-400",
-  gespraech: "bg-sky-500",
-  zugesagt: "bg-indigo-500",
-  material: "bg-amber-500",
-  live: "bg-emerald-500",
-  abgesagt: "bg-red-500",
+ *  Etikett darüber: die Auswahl sagt den Namen bereits.
+ *  Seit dem Redesign die gedaempften Status-Farben aus admin.css statt der
+ *  Tailwind-Palette. */
+const STAGE_TON: Record<CollabStage, string> = {
+  kontakt: "var(--fg-4)",
+  gespraech: "var(--info)",
+  zugesagt: "var(--indigo)",
+  material: "var(--warning)",
+  live: "var(--success)",
+  abgesagt: "var(--danger)",
 };
+const ton = (v: string) => ({ "--ton": v }) as React.CSSProperties;
 
-const inputCls =
-  "w-full px-3 py-2 text-sm bg-bg text-fg border border-line-strong rounded-[var(--radius-sm)] focus:border-fg focus:outline-none";
+const inputCls = "klar-feld";
 const labelCls =
   "[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.1em] text-fg-3";
 
@@ -117,9 +129,16 @@ function CopyAddress({ address }: { address: string }) {
         });
       }}
       title="Adresse kopieren"
-      className="[font-family:var(--font-mono)] text-[12px] px-2.5 py-1 border border-line-strong rounded-[var(--radius-sm)] bg-surface text-fg hover:bg-surface-2 transition-colors"
+      className="klar-pille klar-pille-dunkel h-7 px-3 text-[12px] [font-family:var(--font-mono)]"
     >
-      {copied ? "✓ kopiert" : address}
+      {copied ? (
+        <>
+          <Check className="size-3.5" />
+          kopiert
+        </>
+      ) : (
+        address
+      )}
     </button>
   );
 }
@@ -136,15 +155,18 @@ function ManualEntryForm({ apps }: { apps: CollabAppOption[] }) {
   const isEmail = channel === "email";
 
   return (
-    <Card className="p-0 overflow-hidden mb-6">
+    <TextureCard className="mb-6">
       <details open={open} onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
-        <summary className="cursor-pointer px-5 py-3.5 font-semibold text-[13px] text-fg-2 select-none marker:content-none">
-          + Gespräch von Hand eintragen
+        <summary className="flex cursor-pointer select-none items-center gap-3 px-6 py-4 text-[14px] font-medium text-fg transition-colors hover:bg-white/[.025] [&::-webkit-details-marker]:hidden">
+          <span className="klar-kachel size-8">
+            <Plus className="size-3.5" />
+          </span>
+          Gespräch von Hand eintragen
         </summary>
         <form
           method="POST"
           action="/admin/collab/manual"
-          className="px-5 pb-5 grid grid-cols-1 md:grid-cols-3 gap-3.5"
+          className="px-6 pb-6 pt-1 grid grid-cols-1 md:grid-cols-3 gap-3.5"
         >
           <p className="md:col-span-3 text-fg-3 text-[12px] -mt-1">
             Für Influencer, die du selbst angeschrieben hast, und für Antworten, die woanders
@@ -262,7 +284,7 @@ function ManualEntryForm({ apps }: { apps: CollabAppOption[] }) {
               onChange={(e) => setStage(e.target.value as CollabStage | "")}
               className={inputCls}
             >
-              <option value="">— nicht ändern</option>
+              <option value="">nicht ändern</option>
               {COLLAB_STAGES.map((s) => (
                 <option key={s} value={s}>{COLLAB_STAGE_LABELS[s]}</option>
               ))}
@@ -287,14 +309,14 @@ function ManualEntryForm({ apps }: { apps: CollabAppOption[] }) {
           </label>
 
           <div className="md:col-span-3 flex items-center gap-3 flex-wrap">
-            <Button type="submit" variant="outline">Eintrag speichern</Button>
+            <Button type="submit" variant="pill">Eintrag speichern</Button>
             <span className="text-fg-4 text-[11px]">
               Mehrere Nachrichten mit demselben Handle und derselben App landen im selben Thread.
             </span>
           </div>
         </form>
       </details>
-    </Card>
+    </TextureCard>
   );
 }
 
@@ -316,10 +338,8 @@ function StageCell({ row }: { row: CollabThreadRow }) {
       <div className="flex items-center gap-2">
         <span
           aria-hidden="true"
-          className={cn(
-            "shrink-0 w-2 h-2 rounded-full",
-            stage ? STAGE_DOT[stage] : "bg-transparent ring-1 ring-line-strong",
-          )}
+          className={cn("klar-punkt", !stage && "bg-transparent shadow-[inset_0_0_0_1px_var(--fg-4)]")}
+          style={stage ? ton(STAGE_TON[stage]) : undefined}
         />
         <select
           name="stage"
@@ -330,13 +350,10 @@ function StageCell({ row }: { row: CollabThreadRow }) {
             e.currentTarget.form?.requestSubmit();
           }}
           aria-label="Stand des Gesprächs"
-          className={cn(
-            "w-full px-2 py-1.5 text-[12.5px] bg-bg text-fg border rounded-[var(--radius-sm)] focus:border-fg focus:outline-none",
-            stage ? "border-line-strong" : "border-dashed border-line-strong text-fg-3",
-          )}
+          className={cn("klar-feld px-2 py-1.5 text-[12.5px]", !stage && "border-dashed text-fg-3")}
         >
           <option value="" disabled>
-            — Stand setzen
+            Stand setzen
           </option>
           {COLLAB_STAGES.map((s) => (
             <option key={s} value={s}>{COLLAB_STAGE_LABELS[s]}</option>
@@ -360,9 +377,9 @@ function StageCell({ row }: { row: CollabThreadRow }) {
             maxLength={COLLAB_NOTE_MAX}
             defaultValue={row.stageNote}
             placeholder="Was ist abgemacht, worauf wartest du?"
-            className="w-full px-2 py-1.5 text-[12px] bg-bg text-fg border border-line-strong rounded-[var(--radius-sm)] focus:border-fg focus:outline-none resize-y"
+            className="klar-feld px-2 py-1.5 text-[12px]"
           />
-          <Button type="submit" variant="outline" className="self-start">
+          <Button type="submit" variant="pill-dark" size="sm" className="h-7 self-start px-3 text-[12px]">
             Notiz speichern
           </Button>
         </div>
@@ -406,27 +423,19 @@ function StageFilter({
     ...COLLAB_STAGES.filter((s) => (counts[s] ?? 0) > 0).map((s) => ({
       value: s as string,
       label: `${COLLAB_STAGE_LABELS[s]} (${counts[s]})`,
-      dot: STAGE_DOT[s],
+      dot: STAGE_TON[s],
     })),
   ];
   return (
-    <div className="flex flex-wrap gap-2 px-5 py-3 border-b border-line">
-      {chips.map((c) => (
-        <button
-          key={c.value}
-          type="button"
-          onClick={() => onPick(c.value)}
-          className={cn(
-            "inline-flex items-center gap-1.5 px-2.5 py-1 text-[11.5px] border rounded-[var(--radius-sm)] transition-colors",
-            active === c.value
-              ? "border-fg bg-surface-2 text-fg font-semibold"
-              : "border-line-strong bg-surface text-fg-3 hover:text-fg",
-          )}
-        >
-          {c.dot && <span aria-hidden="true" className={cn("w-2 h-2 rounded-full", c.dot)} />}
-          {c.label}
-        </button>
-      ))}
+    <div className="border-t px-6 py-3">
+      <div className="klar-segment">
+        {chips.map((c) => (
+          <button key={c.value} type="button" aria-pressed={active === c.value} onClick={() => onPick(c.value)}>
+            {c.dot && <span aria-hidden="true" className="klar-punkt" style={ton(c.dot)} />}
+            {c.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -464,30 +473,26 @@ export default function CollabsView({
 
   return (
     <>
-      {msg && (
-        <div className="mb-4 px-4 py-2.5 border border-line-strong rounded-[var(--radius-sm)] bg-surface-2 text-fg-2 text-[12.5px]">
-          {msg}
-        </div>
-      )}
+      {msg && <TextureCard className="mb-4 px-5 py-3.5 text-[12.5px] text-fg-2">{msg}</TextureCard>}
 
       <ManualEntryForm apps={apps} />
 
       {/* Bio-Adressen: eine pro App, klick = kopieren (für TikTok/IG-Bios). */}
-      <Card className="p-5 mb-6">
-        <div className="font-bold text-[14px] text-fg mb-1">Öffentliche Collab-Adressen</div>
-        <p className="text-fg-3 text-[12px] mb-4">
+      <TextureCard className="mb-6 p-6">
+        <TextureCardTitle className="mb-1">Öffentliche Collab-Adressen</TextureCardTitle>
+        <TextureCardDescription className="mb-4 text-[12.5px]">
           Diese Adressen gehören in die TikTok/IG-Bios. Eingehende Mails landen automatisch hier
           und in der Inbox unter „Collabs&#8220;. Klick auf eine Adresse kopiert sie.
-        </p>
+        </TextureCardDescription>
         {aliases.some((a) => a.general) && (
-          <div className="mb-4 p-3 border border-line-strong rounded-[var(--radius-sm)] bg-surface-2 flex items-center gap-3 flex-wrap">
+          <div className="klar-einschub mb-4 flex flex-wrap items-center gap-3 p-3">
             <span className="[font-family:var(--font-mono)] text-[10px] font-semibold uppercase tracking-[0.1em] text-fg">
               Allgemein — alle Apps
             </span>
             <CopyAddress address={aliases.find((a) => a.general)!.address} />
             <span className="text-fg-4 text-[11px]">
               Eine Adresse für jede Bio. Nennt die Mail eine App (z.B. „MyLoo&#8220;), wird sie
-              ihr automatisch zugeordnet — sonst läuft sie unter „Klar&#8220; auf.
+              ihr automatisch zugeordnet, sonst läuft sie unter „Klar&#8220; auf.
             </span>
           </div>
         )}
@@ -501,23 +506,26 @@ export default function CollabsView({
             </div>
           ))}
         </div>
-      </Card>
+      </TextureCard>
 
       {/* Eingegangene Anfragen + von Hand erfasste Gespräche */}
-      <Card className="p-0 overflow-hidden">
-        <div className="px-5 py-3.5 flex items-center justify-between gap-3 border-b border-line">
-          <span className="font-bold text-[14px] text-fg">
+      <TextureCard>
+        <TextureCardHeader>
+          <TextureCardTitle>
             Collab-Gespräche{" "}
-            <span className="text-fg-4 font-normal text-[11px] ml-1">
+            <span className="ml-1 text-[12px] font-normal text-fg-3">
               {threads.length} Thread{threads.length === 1 ? "" : "s"}
               {open > 0 ? ` · ${open} unbeantwortet` : ""}
               {waiting > 0 ? ` · ${waiting} ohne Antwort` : ""}
             </span>
-          </span>
-          <Link href="/admin/inbox?f=collab" className="applink text-[12px]">
-            In der Inbox öffnen →
-          </Link>
-        </div>
+          </TextureCardTitle>
+          <Button asChild variant="pill-dark" size="sm" className="h-7 px-3 text-[12px]">
+            <Link href="/admin/inbox?f=collab">
+              In der Inbox öffnen
+              <ArrowRight />
+            </Link>
+          </Button>
+        </TextureCardHeader>
 
         {threads.length > 0 && (
           <StageFilter
@@ -529,16 +537,19 @@ export default function CollabsView({
         )}
 
         {threads.length === 0 ? (
-          <div className="text-fg-4 italic text-[12px] py-8 text-center">
+          <div className="border-t px-6 py-8 text-center text-[12.5px] text-fg-3">
             Noch nichts hier. Sobald jemand an eine der Bio-Adressen schreibt, taucht der Thread
             auf, oder du trägst ein Gespräch oben von Hand ein.
           </div>
         ) : shown.length === 0 ? (
-          <div className="text-fg-4 italic text-[12px] py-8 text-center">
+          <div className="border-t px-6 py-8 text-center text-[12.5px] text-fg-3">
             In diesem Stand steht gerade nichts.
           </div>
         ) : (
-          <Table>
+          // Die Karte traegt Kante und Grund, die Tabelle darin steht ohne
+          // eigenen Rahmen. Unter md stapelt jede Zeile: wer und wann oben,
+          // App und Zug darunter, dann Nachricht, Stand und der Knopf.
+          <Table className="rounded-none border-0 border-t bg-transparent [&_th]:bg-transparent max-md:block max-md:[&_tbody]:block max-md:[&_thead]:hidden max-md:[&_tr]:flex max-md:[&_tr]:flex-wrap max-md:[&_tr]:items-center max-md:[&_tr]:gap-x-2.5 max-md:[&_tr]:gap-y-2 max-md:[&_tr]:border-b max-md:[&_tr]:px-5 max-md:[&_tr]:py-4 max-md:[&_tr:last-child]:border-b-0 max-md:[&_td]:border-0 max-md:[&_td]:p-0">
             <TableHeader>
               <TableRow>
                 <TableHead>Wann</TableHead>
@@ -553,8 +564,8 @@ export default function CollabsView({
             <TableBody>
               {shown.map((t) => (
                 <TableRow key={t.inboxHref}>
-                  <TableCell className="text-fg-4 text-[11px] whitespace-nowrap align-top">{t.whenRel}</TableCell>
-                  <TableCell className="align-top">
+                  <TableCell className="text-fg-4 text-[11px] whitespace-nowrap align-top max-md:order-2 max-md:w-16 max-md:self-start max-md:text-right">{t.whenRel}</TableCell>
+                  <TableCell className="align-top max-md:order-1 max-md:basis-[calc(100%-5rem)]">
                     <div className="text-[13px] text-fg">
                       {t.contactName || t.contactHandle || t.contactEmail.split("@")[0]}
                     </div>
@@ -566,39 +577,42 @@ export default function CollabsView({
                       {t.manualOnly ? " · von Hand erfasst" : ""}
                     </div>
                   </TableCell>
-                  <TableCell className="align-top"><Badge tone="neutral">{t.appName}</Badge></TableCell>
-                  <TableCell className="max-w-[280px] align-top">
+                  <TableCell className="align-top max-md:order-3"><Badge tone="neutral">{t.appName}</Badge></TableCell>
+                  <TableCell className="max-w-[280px] align-top max-md:order-5 max-md:w-full max-md:max-w-none">
                     {t.lastSubject && (
                       <div className="text-[12px] font-semibold text-fg-2 truncate">{t.lastSubject}</div>
                     )}
                     <div className="text-[12px] text-fg-3 truncate">{t.lastSnippet || "—"}</div>
                   </TableCell>
-                  <TableCell className="align-top">
+                  <TableCell className="align-top max-md:order-4 max-md:flex max-md:items-center max-md:gap-2">
                     {t.status === "open" ? (
                       <Badge tone="warn">offen</Badge>
                     ) : t.status === "waiting" ? (
-                      <Badge tone="neutral">angeschrieben</Badge>
+                      <Badge tone="neutral" dot>angeschrieben</Badge>
                     ) : (
                       <Badge tone="ok">beantwortet</Badge>
                     )}
-                    <div className="text-fg-4 text-[10px] mt-0.5">
+                    <div className="text-fg-4 text-[10px] mt-1 max-md:mt-0">
                       {t.inboundCount} eingehend
                     </div>
                   </TableCell>
-                  <TableCell className="align-top">
+                  <TableCell className="align-top max-md:order-6 max-md:w-full">
                     <StageCell row={t} />
                   </TableCell>
-                  <TableCell className="whitespace-nowrap align-top">
-                    <Link href={t.inboxHref} className="applink text-[12px]">
-                      {t.channel === "email" ? "Antworten →" : "Thread öffnen →"}
-                    </Link>
+                  <TableCell className="whitespace-nowrap align-top max-md:order-7">
+                    <Button asChild variant="pill-dark" size="sm" className="h-7 px-3 text-[12px]">
+                      <Link href={t.inboxHref}>
+                        {t.channel === "email" ? "Antworten" : "Thread öffnen"}
+                        <ArrowRight />
+                      </Link>
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
-      </Card>
+      </TextureCard>
     </>
   );
 }
@@ -653,16 +667,16 @@ function ZweiteAdresse({ row }: { row: CollabThreadRow }) {
         defaultValue={row.zweiteEmail}
         placeholder="zweite Adresse oder Weg"
         aria-label={`Zweite Adresse für ${row.contactEmail}`}
-        className="w-full px-2 py-1.5 text-[12px] bg-bg text-fg border border-line-strong rounded-[var(--radius-sm)] focus:border-fg focus:outline-none"
+        className="klar-feld px-2 py-1.5 text-[12px]"
       />
       <input
         name="quelle"
         defaultValue={row.zweiteEmailQuelle}
         placeholder="woher? Impressum, Linktree, DM"
         aria-label={`Woher die zweite Adresse für ${row.contactEmail} stammt`}
-        className="w-full px-2 py-1 text-[11px] bg-bg text-fg-2 border border-line rounded-[var(--radius-sm)] focus:border-fg focus:outline-none"
+        className="klar-feld px-2 py-1 text-[11px] text-fg-2"
       />
-      <Button type="submit" variant="outline" className="self-start">
+      <Button type="submit" variant="pill-dark" size="sm" className="h-7 self-start px-3 text-[12px]">
         {row.zweiteEmail ? "Adresse ändern" : "Adresse merken"}
       </Button>
     </form>

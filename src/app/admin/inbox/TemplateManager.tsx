@@ -4,8 +4,16 @@
 // edit the canned replies without leaving the mailbox. Reply CRUD goes against
 // /admin/reply-templates/api (JSON); every change is handed back to MailClient
 // (onMapChange), so the composer dropdown reflects edits instantly (no reload).
+//
+// Since the 2026-10-08 redesign (ticket 02): every template is a TextureCard,
+// buttons are pills (white for saving, dark for the rest), the languages sit
+// in a `.klar-segment`, fields are `.klar-feld`.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
+import { TextureCard } from "@/components/ui/texture-card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { ReplyLang, ReplyTemplate } from "@/lib/replyTemplates";
 
 const LANGS: ReplyLang[] = ["de", "en", "es", "it", "fr"];
@@ -42,28 +50,23 @@ function rebuild(rows: Row[], base: MapT): MapT {
   return m;
 }
 
-const card: React.CSSProperties = {
-  border: "1px solid var(--line)",
-  borderRadius: "var(--radius-sm)",
-  background: "var(--surface)",
-  padding: "13px 15px",
-  display: "flex",
-  flexDirection: "column",
-  gap: 9,
-};
-const lbl: React.CSSProperties = {
-  fontSize: 10.5,
-  fontWeight: 700,
-  letterSpacing: "0.04em",
-  textTransform: "uppercase",
-  color: "var(--fg-3)",
-  fontFamily: "var(--font-mono)",
-};
+const CARD = "flex shrink-0 flex-col gap-[9px] p-4";
+const BTN = "h-7 px-3 text-[12px]";
+
+/** Status-Zeile: Ton nur im Punkt. */
+function Meldung({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-2 text-[12.5px] text-fg-2">
+      <span className="klar-punkt" style={{ "--ton": "var(--danger)" } as React.CSSProperties} />
+      {children}
+    </span>
+  );
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <span style={lbl}>{label}</span>
+    <label className="flex flex-col gap-1">
+      <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-fg-3 [font-family:var(--font-mono)]">{label}</span>
       {children}
     </label>
   );
@@ -97,22 +100,18 @@ function TemplateCard({
     label !== row.label || subject !== row.subject || body !== row.body || sort !== row.sort_order;
 
   return (
-    <div style={card}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: 5, padding: "1px 7px" }}>
-          {row.template_key}
-        </span>
+    <TextureCard className={CARD}>
+      <div className="flex items-center gap-2">
+        <Badge className="[font-family:var(--font-mono)] text-[11px]">{row.template_key}</Badge>
         <input
-          className="kr-input"
-          style={{ flex: 1, padding: "6px 9px", fontSize: 13, fontWeight: 600 }}
+          className="klar-feld flex-1 px-[9px] py-1.5 font-semibold"
           value={label}
           maxLength={120}
           placeholder="Label"
           onChange={(e) => setLabel(e.target.value)}
         />
         <input
-          className="kr-input"
-          style={{ width: 56, padding: "6px 8px", fontSize: 12, fontFamily: "var(--font-mono)", textAlign: "center" }}
+          className="klar-feld w-14 px-2 py-1.5 text-center text-[12px] [font-family:var(--font-mono)]"
           type="number"
           min={0}
           max={999}
@@ -122,15 +121,16 @@ function TemplateCard({
         />
       </div>
       <Field label="Subject">
-        <input className="kr-input" style={{ padding: "7px 10px", fontSize: 13 }} value={subject} maxLength={200} onChange={(e) => setSubject(e.target.value)} />
+        <input className="klar-feld px-2.5 py-[7px]" value={subject} maxLength={200} onChange={(e) => setSubject(e.target.value)} />
       </Field>
       <Field label="Body · {{name}} / {{handle}}">
-        <textarea className="kr-input" style={{ padding: "9px 11px", fontSize: 13, minHeight: 130, resize: "vertical" }} rows={7} value={body} maxLength={10000} onChange={(e) => setBody(e.target.value)} />
+        <textarea className="klar-feld min-h-[130px] px-[11px] py-[9px]" rows={7} value={body} maxLength={10000} onChange={(e) => setBody(e.target.value)} />
       </Field>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <button
-          className="retro-send"
-          style={{ padding: "7px 16px", fontSize: 12.5 }}
+      <div className="flex items-center gap-2">
+        <Button
+          variant="pill"
+          size="sm"
+          className="h-8 px-4 text-[12.5px]"
           disabled={!dirty || busy}
           onClick={async () => {
             setBusy(true);
@@ -139,30 +139,31 @@ function TemplateCard({
           }}
         >
           {busy ? "Speichere…" : dirty ? "Speichern" : "Gespeichert"}
-        </button>
-        <span style={{ marginLeft: "auto" }} />
+        </Button>
+        <span className="ml-auto" />
         {!armed ? (
-          <button className="kr-mini" style={{ color: "var(--danger)", borderColor: "var(--danger)" }} onClick={() => setArmed(true)}>
+          <Button variant="pill-dark" size="sm" className={`${BTN} text-danger`} onClick={() => setArmed(true)}>
             Löschen
-          </button>
+          </Button>
         ) : (
           <>
-            <span className="muted" style={{ fontSize: 11.5 }}>Sicher?</span>
-            <button
-              className="kr-mini"
-              style={{ color: "var(--danger)", borderColor: "var(--danger)" }}
+            <span className="text-[11.5px] text-fg-3">Sicher?</span>
+            <Button
+              variant="pill-dark"
+              size="sm"
+              className={`${BTN} text-danger`}
               onClick={async () => {
                 setBusy(true);
                 await onDelete();
               }}
             >
               Ja
-            </button>
-            <button className="kr-mini" onClick={() => setArmed(false)}>Abbrechen</button>
+            </Button>
+            <Button variant="pill-dark" size="sm" className={BTN} onClick={() => setArmed(false)}>Abbrechen</Button>
           </>
         )}
       </div>
-    </div>
+    </TextureCard>
   );
 }
 
@@ -180,33 +181,35 @@ function AddCard({ lang, onAdd }: { lang: ReplyLang; onAdd: (r: { template_key: 
 
   if (!open) {
     return (
-      <button className="kr-mini" style={{ alignSelf: "flex-start", padding: "8px 14px" }} onClick={() => setOpen(true)}>
-        + Neue Vorlage ({LANG_NAME[lang]})
-      </button>
+      <Button variant="pill-dark" size="sm" className="shrink-0 self-start" onClick={() => setOpen(true)}>
+        <Plus />
+        Neue Vorlage ({LANG_NAME[lang]})
+      </Button>
     );
   }
 
   return (
-    <div style={{ ...card, borderStyle: "dashed" }}>
-      <div style={{ display: "flex", gap: 8 }}>
+    <TextureCard className={CARD}>
+      <div className="flex gap-2">
         <Field label="Key">
-          <input className="kr-input" style={{ width: 150, padding: "6px 9px", fontSize: 12, fontFamily: "var(--font-mono)" }} value={key} maxLength={40} placeholder="z.B. preise" onChange={(e) => setKey(e.target.value)} aria-invalid={key.length > 0 && !keyOk} />
+          <input className="klar-feld w-[150px] px-[9px] py-1.5 text-[12px] [font-family:var(--font-mono)]" value={key} maxLength={40} placeholder="z.B. preise" onChange={(e) => setKey(e.target.value)} aria-invalid={key.length > 0 && !keyOk} />
         </Field>
         <Field label="Label">
-          <input className="kr-input" style={{ padding: "6px 9px", fontSize: 13 }} value={label} maxLength={120} onChange={(e) => setLabel(e.target.value)} />
+          <input className="klar-feld px-[9px] py-1.5" value={label} maxLength={120} onChange={(e) => setLabel(e.target.value)} />
         </Field>
       </div>
       <Field label="Subject">
-        <input className="kr-input" style={{ padding: "7px 10px", fontSize: 13 }} value={subject} maxLength={200} onChange={(e) => setSubject(e.target.value)} />
+        <input className="klar-feld px-2.5 py-[7px]" value={subject} maxLength={200} onChange={(e) => setSubject(e.target.value)} />
       </Field>
       <Field label="Body · {{name}} / {{handle}}">
-        <textarea className="kr-input" style={{ padding: "9px 11px", fontSize: 13, minHeight: 110, resize: "vertical" }} rows={6} value={body} maxLength={10000} onChange={(e) => setBody(e.target.value)} />
+        <textarea className="klar-feld min-h-[110px] px-[11px] py-[9px]" rows={6} value={body} maxLength={10000} onChange={(e) => setBody(e.target.value)} />
       </Field>
-      {err && <span style={{ fontSize: 12, color: "var(--danger)" }}>{err}</span>}
-      <div style={{ display: "flex", gap: 8 }}>
-        <button
-          className="retro-send"
-          style={{ padding: "7px 16px", fontSize: 12.5 }}
+      {err && <Meldung>{err}</Meldung>}
+      <div className="flex gap-2">
+        <Button
+          variant="pill"
+          size="sm"
+          className="h-8 px-4 text-[12.5px]"
           disabled={!valid || busy}
           onClick={async () => {
             setBusy(true);
@@ -222,10 +225,10 @@ function AddCard({ lang, onAdd }: { lang: ReplyLang; onAdd: (r: { template_key: 
           }}
         >
           {busy ? "Lege an…" : "Anlegen"}
-        </button>
-        <button className="kr-mini" onClick={() => setOpen(false)}>Abbrechen</button>
+        </Button>
+        <Button variant="pill-dark" size="sm" className={BTN} onClick={() => setOpen(false)}>Abbrechen</Button>
       </div>
-    </div>
+    </TextureCard>
   );
 }
 
@@ -315,34 +318,31 @@ export default function TemplateManager({
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "18px 22px 14px", borderBottom: "1px solid var(--line)" }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--fg)" }}>Vorlagen</div>
-          <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>Änderungen wirken sofort im Composer.</div>
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-2.5 border-b px-[22px] pb-3.5 pt-5">
+        <div className="flex-1">
+          <div className="klar-verlauf w-fit text-[22px] font-medium leading-tight tracking-[-0.02em]">Vorlagen</div>
+          <div className="mt-0.5 text-[12px] text-fg-3">Änderungen wirken sofort im Composer.</div>
         </div>
-        <button className="kr-mini" onClick={onClose}>Schließen</button>
+        <Button variant="pill-dark" size="sm" className={BTN} onClick={onClose}>Schließen</Button>
       </div>
 
-      <div style={{ display: "flex", gap: 6, padding: "12px 22px", borderBottom: "1px solid var(--line)", flexWrap: "wrap" }}>
-        {LANGS.map((l) => (
-          <button
-            key={l}
-            className="kr-mini"
-            onClick={() => setActive(l)}
-            style={active === l ? { background: "var(--fg)", color: "var(--bg)", borderColor: "var(--fg)", fontWeight: 600 } : undefined}
-          >
-            {LANG_NAME[l]}
-            <span style={{ marginLeft: 6, opacity: 0.6, fontSize: 10.5 }}>{(rows ?? []).filter((r) => r.language === l).length}</span>
-          </button>
-        ))}
+      <div className="border-b px-[22px] py-3">
+        <div className="klar-segment">
+          {LANGS.map((l) => (
+            <button key={l} type="button" aria-pressed={active === l} onClick={() => setActive(l)}>
+              {LANG_NAME[l]}
+              <span className="text-[10.5px] text-fg-4 [font-family:var(--font-mono)]">{(rows ?? []).filter((r) => r.language === l).length}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-[22px] py-4">
         {loadErr ? (
-          <div style={{ color: "var(--danger)", fontSize: 13 }}>{loadErr}</div>
+          <Meldung>{loadErr}</Meldung>
         ) : rows === null ? (
-          <div className="muted" style={{ fontSize: 13 }}>lädt…</div>
+          <div className="text-[13px] text-fg-3">lädt…</div>
         ) : (
           <>
             {shown.map((r) => (
@@ -353,7 +353,7 @@ export default function TemplateManager({
                 onDelete={() => deleteRow(r.id)}
               />
             ))}
-            {shown.length === 0 && <div className="muted" style={{ fontSize: 13 }}>Keine Vorlagen in {LANG_NAME[active]}.</div>}
+            {shown.length === 0 && <div className="text-[13px] text-fg-3">Keine Vorlagen in {LANG_NAME[active]}.</div>}
             <AddCard
               lang={active}
               onAdd={(r) => saveRow(active, r.template_key, { label: r.label, subject: r.subject, body: r.body, sort_order: r.sort_order })}

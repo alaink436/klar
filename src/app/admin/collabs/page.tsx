@@ -5,6 +5,8 @@
 // Geantwortet wird in der Inbox; jede Zeile deep-linkt dorthin.
 
 import { headers } from "next/headers";
+import { MessageSquareDot } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import { requireAdminPage } from "../../../lib/adminGuard";
 import { readCookie } from "../../../lib/adminSession";
 import { buildCollabView } from "@/lib/collabView";
@@ -36,7 +38,7 @@ export default async function CollabsPage({
       <title>Collabs · Klar Control</title>
       <AdminTopbar titel={t.navCollabs} />
       <div className="content">
-        <h1>{t.navCollabs}</h1>
+        <PageHeader eyebrow="Klar Studios" icon={<MessageSquareDot />} title={t.navCollabs} />
         <CollabsView
           aliases={view.aliases}
           threads={view.threads}
