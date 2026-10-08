@@ -152,7 +152,7 @@ const STATUSES = ["warmup", "active", "paused"] as const;
 const PLATFORM_LABEL: Record<string, string> = { tiktok: "TikTok", instagram: "Instagram", youtube: "YouTube", x: "X" };
 
 const selectCls =
-  "h-9 w-full rounded-md border border-line bg-surface px-3 text-[13px] text-fg focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--accent)_40%,transparent)]";
+  "h-9 w-full rounded-md border border-line bg-surface px-3 text-[13px] text-fg focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--brand)_40%,transparent)]";
 
 export default function AccountsManager({
   rows,

@@ -8,6 +8,7 @@
 // Kopf steckt, und alles darunter die Frage aufwirft, ob es brachliegt.
 
 import type { BrainProject } from "@/lib/brainReader";
+import { Badge } from "@/components/ui/badge";
 
 function tagesgruppe(d: number | null): string {
   if (d === null) return "Ohne Datum";
@@ -46,11 +47,11 @@ export function Projektliste({ projekte }: { projekte: BrainProject[] }) {
         return (
           <div key={p.name}>
             {ersterDerGruppe ? (
-              <div className="flex items-center gap-2 border-t border-[var(--line)] bg-[var(--surface-2)] px-6 py-2.5">
-                <span className="[font-family:var(--font-mono)] text-[9.5px] font-semibold uppercase tracking-[0.14em] text-[var(--fg-3)]">
+              <div className="flex items-center gap-2 border-t border-[var(--line)] bg-white/[.018] px-6 py-2">
+                <span className="[font-family:var(--font-mono)] text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--fg-3)]">
                   {g}
                 </span>
-                <span className="[font-family:var(--font-mono)] text-[9.5px] text-[var(--fg-4)]">
+                <span className="[font-family:var(--font-mono)] text-[10px] text-[var(--fg-4)]">
                   {proGruppe.get(g) ?? 0}
                 </span>
               </div>
@@ -62,21 +63,17 @@ export function Projektliste({ projekte }: { projekte: BrainProject[] }) {
               }`}
             >
               <span className="min-w-0 flex-1">
-                <span className="flex items-baseline gap-2.5">
-                  <span className="text-[13.5px] font-semibold text-[var(--fg)]">{p.name}</span>
-                  <span className="[font-family:var(--font-mono)] text-[10.5px] text-[var(--fg-4)]">
+                <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                  <span className="text-[14px] font-medium text-[var(--fg)]">{p.name}</span>
+                  <span className="[font-family:var(--font-mono)] text-[11px] text-[var(--fg-4)]">
                     {wann(p.daysAgo)}
                   </span>
-                  {blockiert ? (
-                    <span className="[font-family:var(--font-mono)] text-[9.5px] font-bold uppercase tracking-[0.1em] text-[var(--danger)]">
-                      blockiert
-                    </span>
-                  ) : null}
+                  {blockiert ? <Badge tone="danger">blockiert</Badge> : null}
                 </span>
-                <span className="mt-0.5 block truncate text-[11.5px] text-[var(--fg-3)]">{p.phase}</span>
+                <span className="mt-0.5 block truncate text-[12.5px] text-[var(--fg-3)]">{p.phase}</span>
                 {alsNaechstes ? (
-                  <span className="mt-1 block truncate text-[11.5px] text-[var(--fg-2)]">
-                    <span className="mr-1.5 [font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[var(--fg-4)]">
+                  <span className="mt-1 block truncate text-[12.5px] text-[var(--fg-2)]">
+                    <span className="mr-1.5 [font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.12em] text-[var(--fg-4)]">
                       als nächstes
                     </span>
                     {alsNaechstes}
@@ -84,10 +81,10 @@ export function Projektliste({ projekte }: { projekte: BrainProject[] }) {
                 ) : null}
               </span>
               <span className="shrink-0 text-right">
-                <span className="block [font-family:var(--font-mono)] text-[15px] font-bold tabular-nums text-[var(--fg)]">
+                <span className="block [font-family:var(--font-mono)] text-[17px] font-medium tabular-nums text-[var(--fg)]">
                   {p.next.length}
                 </span>
-                <span className="[font-family:var(--font-mono)] text-[9.5px] uppercase tracking-[0.1em] text-[var(--fg-4)]">
+                <span className="[font-family:var(--font-mono)] text-[10px] uppercase tracking-[0.12em] text-[var(--fg-4)]">
                   offen
                 </span>
               </span>

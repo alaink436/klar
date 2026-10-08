@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-/* Tremor charts use Tailwind's `dark:` variant. The admin toggles theme via
-   [data-theme="dark"] (not the .dark class / prefers-color-scheme), and no
-   other code uses `dark:`, so we point the variant at the admin attribute. */
+/* Tremor charts use Tailwind's `dark:` variant. The admin sets
+   [data-theme="dark"] (it is dark only), and no other code uses `dark:`, so we
+   point the variant at the admin attribute. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
@@ -37,8 +37,7 @@
 
   /* Rueckfall fuer alles ausserhalb /admin. Die Marketing-Seiten sind dunkel,
      also zeigen die shadcn-Namen hier auf die dunklen Marketing-Tokens. Im
-     Admin ueberschreibt der STYLE-Block aus `_shared.ts` diese Zeilen mit den
-     Admin-Tokens, die hell und dunkel selbst umschalten. */
+     Admin ueberschreibt `admin/admin.css` diese Zeilen mit den Admin-Tokens. */
   --background: var(--bg);
   --foreground: var(--fg);
   --card: var(--bg-2);
@@ -70,19 +69,19 @@
   --color-line-strong: var(--line-strong);
   --color-silver: var(--silver);
 
-  /* Admin-token bridge — exposes the /admin design tokens (defined in the
-     inlined STYLE block of _shared.ts, scoped per admin page) as Tailwind
-     colour utilities, so the shadcn/ui components in src/components/ui/* render
-     in the admin theme (bg-surface / text-fg-3 / border-line / bg-accent …)
-     instead of a generic shadcn look. Inlined (var() passthrough) so each
-     utility resolves per context: light/dark admin theme, or marketing pages.
+  /* Admin-token bridge: exposes the /admin design tokens (defined in
+     admin/admin.css) as Tailwind colour utilities, so the shadcn/ui components
+     in src/components/ui/* render in the admin look (bg-surface / text-fg-3 /
+     border-line / bg-brand ...) instead of a generic shadcn look. Inlined
+     (var() passthrough) so each utility resolves per context: admin or
+     marketing pages.
      Radius is applied via arbitrary values (rounded-[var(--radius)]) to avoid
      clobbering Tailwind's own --radius-* scale. */
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
-  --color-accent: var(--accent);
-  --color-accent-fg: var(--accent-fg);
+  --color-brand: var(--brand);
+  --color-brand-fg: var(--brand-fg);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
@@ -101,9 +100,10 @@
      shadcn-Namen (bg-background, text-muted-foreground), weil jede Komponente,
      die frisch aus einer Registry kommt, in diesen schreibt. Ohne sie kennt
      Tailwind die Klasse nicht und das Element rendert farblos.
-     Die WERTE liegen nicht hier, sondern im STYLE-Block von `_shared.ts`, wo
-     sie auf die Admin-Tokens zeigen. Dadurch folgen sie hell und dunkel von
-     selbst, und eine neu geholte Komponente steht sofort im Klar-Look da. */
+     Die WERTE liegen nicht hier, sondern in `admin/admin.css`, wo sie auf die
+     Admin-Tokens zeigen. Eine neu geholte Komponente steht so sofort im
+     Klar-Look da. --accent ist dort shadcns Hover-Flaeche, die Klar-Primaerfarbe
+     heisst --brand. */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -116,6 +116,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);

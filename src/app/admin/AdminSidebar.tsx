@@ -47,6 +47,9 @@ import { setNavPrefs } from "./nav-action";
 import { orderedAll, orderedSection, type NavItemDef, type NavPrefs } from "./_nav";
 import { tAdmin, type AdminLang } from "./_i18n";
 
+// Gruppentitel in der Schiene: klein, Mono, leise.
+const GRUPPE = "[font-family:var(--font-mono)] text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--fg-4)]";
+
 export default function AdminSidebar({
   active,
   lang,
@@ -97,7 +100,7 @@ export default function AdminSidebar({
             isActive={isActive}
             tooltip={t[item.labelKey] as string}
             // Die Linie oben zeigt, wo der gezogene Eintrag landen wuerde.
-            className={isOver ? "shadow-[inset_0_2px_0_0_var(--sidebar-foreground)]" : undefined}
+            className={isOver ? "rounded-full shadow-[inset_0_2px_0_0_var(--sidebar-foreground)]" : "rounded-full"}
           >
             <Link
               href={item.href}
@@ -155,10 +158,10 @@ export default function AdminSidebar({
                   <img src="/logo/klar-symbol.png" alt="" width={32} height={32} className="size-full object-contain" />
                 </span>
                 <span className="grid flex-1 leading-tight">
-                  <span className="truncate font-[family-name:var(--font-display)] text-[20px] font-extrabold tracking-[-0.02em] text-[var(--fg)]">
+                  <span className="klar-verlauf truncate text-[18px] font-semibold tracking-[-0.03em]">
                     Klar
                   </span>
-                  <span className="truncate font-[family-name:var(--font-mono)] text-[9.5px] font-semibold uppercase tracking-[0.22em] text-[var(--fg-4)]">
+                  <span className="truncate font-[family-name:var(--font-mono)] text-[9.5px] font-medium uppercase tracking-[0.22em] text-[var(--fg-4)]">
                     Control
                   </span>
                 </span>
@@ -170,7 +173,7 @@ export default function AdminSidebar({
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>{t.sectionStudio}</SidebarGroupLabel>
+          <SidebarGroupLabel className={GRUPPE}>{t.sectionStudio}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {studio.map((item) => navRow(item))}
@@ -182,7 +185,7 @@ export default function AdminSidebar({
             einem eigenen Menue. */}
         {studios.length > 0 ? (
           <SidebarGroup>
-            <SidebarGroupLabel>{t.sectionStudios}</SidebarGroupLabel>
+            <SidebarGroupLabel className={GRUPPE}>{t.sectionStudios}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {studios.map((item) =>
@@ -190,7 +193,7 @@ export default function AdminSidebar({
                     item,
                     item.id === "collabs" && collabOpen > 0 ? (
                       <SidebarMenuBadge
-                        className="bg-[var(--danger)] text-white"
+                        className="top-1.5 rounded-full bg-[color-mix(in_oklab,var(--danger)_18%,transparent)] [font-family:var(--font-mono)] text-[11px] text-[var(--danger)]"
                         aria-label={t.collabOpenAria(collabOpen)}
                       >
                         {collabOpen}
@@ -209,7 +212,7 @@ export default function AdminSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <AnimateIcon animateOnHover>
-              <SidebarMenuButton asChild isActive={active === "settings"} tooltip={t.navSettings}>
+              <SidebarMenuButton asChild isActive={active === "settings"} tooltip={t.navSettings} className="rounded-full">
                 <Link href="/admin/settings">
                   <Einstellungen size={16} />
                   <span>{t.navSettings}</span>
@@ -227,7 +230,7 @@ export default function AdminSidebar({
               <SidebarMenuButton
                 asChild
                 tooltip={t.navLogout}
-                className="text-[var(--fg-4)] hover:bg-transparent hover:text-[var(--danger)]"
+                className="rounded-full text-[var(--fg-4)] hover:bg-transparent hover:text-[var(--danger)]"
               >
                 <a href="/admin/logout">
                   <Abmelden size={16} />

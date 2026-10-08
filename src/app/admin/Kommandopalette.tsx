@@ -29,16 +29,9 @@ import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { navIcon } from "./nav-icons";
 import { NAV_ITEMS, orderedAll, type NavPrefs } from "./_nav";
 import { tAdmin, type AdminLang } from "./_i18n";
-import { Sun } from "@/components/animate-ui/icons/sun";
 import { LogOut } from "@/components/animate-ui/icons/log-out";
 import { PanelLeft } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
-
-declare global {
-  interface Window {
-    klarToggleTheme?: () => void;
-  }
-}
 
 /** Wer die Palette oeffnen will, ohne sie zu importieren, feuert dieses Ereignis. */
 export const PALETTE_EREIGNIS = "klar:palette";
@@ -137,15 +130,6 @@ export function Kommandopalette({
 
         <CommandSeparator />
         <CommandGroup heading="Aktionen">
-          <AnimateIcon animateOnHover>
-            <CommandItem
-              value="Thema wechseln hell dunkel theme"
-              onSelect={() => dann(() => window.klarToggleTheme?.())}
-            >
-              <Sun size={16} />
-              <span>Zwischen hell und dunkel wechseln</span>
-            </CommandItem>
-          </AnimateIcon>
           <CommandItem value="Schiene einklappen ausklappen sidebar" onSelect={() => dann(toggleSidebar)}>
             <PanelLeft className="size-4" />
             <span>Schiene ein- oder ausklappen</span>

@@ -1,30 +1,18 @@
-// Die Leiste ueber dem Seiteninhalt: wo bin ich, und die zwei Schalter, die
-// ueberall gleich sind.
+// Die Leiste ueber dem Seiteninhalt: wo bin ich, und der Weg zur Palette.
 //
 // Bis 2026-08-25 baute jede der 21 Admin-Seiten diese Leiste selbst als
 // HTML-Zeichenkette zusammen und schrieb sie per dangerouslySetInnerHTML in die
 // Seite. Zweiundzwanzig Stellen fuer eine Leiste. Hier steht sie einmal.
 //
-// Der Umschalter fuer hell/dunkel ruft weiterhin `klarToggleTheme()`, das
-// Skript aus `_shared.ts`, das im Layout einmal geladen wird. Das ist Absicht:
-// die Umschaltung muss VOR dem ersten Bild greifen, sonst blitzt die falsche
-// Helligkeit auf, und dafuer ist ein Inline-Skript im Kopf der richtige Ort.
-// Neu ist nur, dass der Knopf ein echtes Element mit bewegten Symbolen ist.
+// Seit 2026-10-08 ist Klar Control nur noch dunkel; der Umschalter fuer hell
+// und dunkel, der hier stand, ist weg.
 
 "use client";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { AnimateIcon } from "@/components/animate-ui/icons/icon";
-import { Sun } from "@/components/animate-ui/icons/sun";
-import { Moon } from "@/components/animate-ui/icons/moon";
+import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { paletteOeffnen } from "./Kommandopalette";
-
-declare global {
-  interface Window {
-    klarToggleTheme?: () => void;
-  }
-}
 
 export function AdminTopbar({
   titel,
@@ -40,48 +28,25 @@ export function AdminTopbar({
 }) {
   return (
     <div className="topbar">
-      <SidebarTrigger className="-ml-1 size-8" />
+      <SidebarTrigger className="-ml-1 size-8 rounded-full" />
       <span className="crumb">
         <b>{titel}</b>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
           <path d="m9 18 6-6-6-6" />
         </svg>
-        <span>{bereich}</span>
+        <span className="truncate">{bereich}</span>
       </span>
       {/* Der Weg zur Palette muss sichtbar sein. Ein Kuerzel, das nirgends
           steht, kennt nur, wer es gebaut hat. Deshalb ein benannter Knopf und
           nicht nur ein Symbol, mit dem Kuerzel als Beschriftung daneben. */}
-      <button
-        type="button"
-        onClick={paletteOeffnen}
-        className="ml-auto flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface)] py-1.5 pl-2.5 pr-2 text-[12px] text-[var(--fg-3)] transition-colors hover:border-[var(--line-strong)] hover:text-[var(--fg)]"
-      >
-        <Search className="size-3.5" />
+      <Button variant="pill" size="sm" onClick={paletteOeffnen} className="h-8 shrink-0 pl-3 pr-1.5">
+        <Search />
         <span>Springen</span>
-        <kbd className="ml-1 rounded-[4px] border border-[var(--line)] bg-[var(--surface-2)] px-1.5 py-0.5 [font-family:var(--font-mono)] text-[9.5px] text-[var(--fg-4)]">
+        <kbd className="rounded-full bg-black/10 px-1.5 py-0.5 [font-family:var(--font-mono)] text-[10px] font-medium text-black/60">
           Strg K
         </kbd>
-      </button>
+      </Button>
       {rechts}
-          <AnimateIcon animateOnHover>
-            <button
-              type="button"
-              className="tbtn"
-              aria-label="Zwischen hell und dunkel wechseln"
-              onClick={() => window.klarToggleTheme?.()}
-            >
-              {/* Beide Symbole stehen im DOM; welches sichtbar ist, entscheidet
-                  das CSS zu `.tbtn .sun-icon` / `.moon-icon` in `_shared.ts`
-                  anhand von data-theme. So bleibt der Knopf beim ersten Bild
-                  richtig, ohne auf React zu warten. */}
-              <span className="sun-icon">
-                <Sun size={15} />
-              </span>
-              <span className="moon-icon">
-                <Moon size={15} />
-              </span>
-            </button>
-          </AnimateIcon>
     </div>
   );
 }

@@ -46,7 +46,7 @@ function Pille({ href, aktiv, children }: { href: string; aktiv: boolean; childr
     <a
       href={href}
       className={cn("rounded-[var(--radius-sm)] px-2.5 py-1 text-[12px]", aktiv ? "bg-fg" : "hover:bg-surface-2")}
-      style={{ color: aktiv ? "var(--accent-fg)" : "var(--fg-3)" }}
+      style={{ color: aktiv ? "var(--brand-fg)" : "var(--fg-3)" }}
     >
       {children}
     </a>
