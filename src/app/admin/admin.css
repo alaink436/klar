@@ -67,22 +67,24 @@
   --radius-lg: 20px;
 
   /* Kanten nach dem Texture-Card-Prinzip: dunkle Linie aussen, helle innen,
-     die nach unten auslaeuft, dazu ein Hauch Glanz oben. */
+     die nach unten auslaeuft, dazu Glanz oben und ein Glanzstreifen auf der
+     Oberkante. */
   --edge-outer: rgba(0, 0, 0, 0.85);
-  --edge-top: rgba(255, 255, 255, 0.13);
-  --edge-mid: rgba(255, 255, 255, 0.05);
-  --edge-bottom: rgba(255, 255, 255, 0.025);
+  --edge-top: rgba(255, 255, 255, 0.26);
+  --edge-mid: rgba(255, 255, 255, 0.07);
+  --edge-bottom: rgba(255, 255, 255, 0.03);
   --card-top: #151515;
   --card-bottom: #0e0e0e;
-  --gloss: rgba(255, 255, 255, 0.045);
+  --gloss: rgba(255, 255, 255, 0.07);
+  --gloss-line: rgba(255, 255, 255, 0.7);
 
   /* Hintergrund: Raster und Lichtschein, beide statisch */
   --grid-line: rgba(255, 255, 255, 0.055);
-  --glow: rgba(255, 255, 255, 0.11);
+  --glow: rgba(255, 255, 255, 0.17);
 
   /* Ueberschrift mit Verlauf */
   --heading-from: #ffffff;
-  --heading-to: #808080;
+  --heading-to: #8e8e8e;
 
   /* ── Bruecke zu den Library-Komponenten ──
      shadcn-Namen zeigen auf die Klar-Tokens, damit alles aus einer Registry
@@ -160,7 +162,7 @@
        und das Wort steht nur im weissen Anfang. */
     width: fit-content;
     max-width: 100%;
-    background: linear-gradient(172deg, var(--heading-from) 30%, var(--heading-to) 100%);
+    background: linear-gradient(172deg, var(--heading-from) 8%, var(--heading-to) 92%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -222,7 +224,7 @@
   [data-slot="sidebar-container"] { border-color: var(--line); }
   [data-slot="sidebar-menu-button"][data-active="true"] {
     background-image: linear-gradient(180deg, #1c1c1c, #131313);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 0 1px var(--edge-outer);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 0 1px var(--edge-outer);
   }
 
   /* Hintergrund: feines Raster (Magic UI Grid Pattern) mit Lichtschein oben.
@@ -230,14 +232,14 @@
      z-index -1 in der isolierten Inhaltsflaeche (AdminShell): ueber deren
      Grund, unter jedem Seiteninhalt, auch dem ohne eigene Positionierung. */
   .klar-hintergrund {
-    position: absolute; inset: 0 0 auto 0; height: 760px; z-index: -1;
+    position: absolute; inset: 0 0 auto 0; height: 900px; z-index: -1;
     pointer-events: none; overflow: hidden;
-    -webkit-mask-image: radial-gradient(ellipse 75% 85% at 50% 0%, #000 35%, transparent 100%);
-    mask-image: radial-gradient(ellipse 75% 85% at 50% 0%, #000 35%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 90% at 50% 0%, #000 40%, transparent 100%);
+    mask-image: radial-gradient(ellipse 80% 90% at 50% 0%, #000 40%, transparent 100%);
   }
   .klar-hintergrund::after {
     content: ""; position: absolute; inset: 0;
-    background: radial-gradient(ellipse 50% 360px at 50% 40px, var(--glow), transparent 75%);
+    background: radial-gradient(ellipse 62% 480px at 50% 20px, var(--glow), transparent 78%);
   }
 
   /* Karte nach dem Prinzip der cult-ui Texture Card: dunkle Linie aussen
@@ -249,7 +251,7 @@
     overflow: hidden;
     border-radius: var(--radius);
     background:
-      radial-gradient(120% 70px at 50% 0, var(--gloss), transparent),
+      radial-gradient(120% 90px at 50% 0, var(--gloss), transparent),
       linear-gradient(180deg, var(--card-top), var(--card-bottom));
     box-shadow: 0 0 0 1px var(--edge-outer), 0 24px 48px -28px rgba(0, 0, 0, 0.9);
   }
@@ -264,12 +266,19 @@
     transition: opacity 0.2s ease;
   }
   .klar-karte:hover::before { opacity: 1; }
+  /* Glanzstreifen: ein feiner heller Strich mitten auf der Oberkante. */
+  .klar-karte::after {
+    content: ""; position: absolute; top: 0; left: 12%; right: 12%; height: 1px; z-index: 3;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--gloss-line) 50%, transparent);
+    box-shadow: 0 1px 10px rgba(255, 255, 255, 0.1);
+  }
   /* Doppelte Trennlinie im selben Prinzip: dunkel oben, hell darunter. */
   .klar-trenner { height: 2px; border-top: 1px solid rgba(0, 0, 0, 0.75); border-bottom: 1px solid rgba(255, 255, 255, 0.045); }
 
   /* Ueberschrift mit Verlauf, fuer alles ausser h1 (das hat ihn als Basis). */
   .klar-verlauf {
-    background: linear-gradient(172deg, var(--heading-from) 30%, var(--heading-to) 100%);
+    background: linear-gradient(172deg, var(--heading-from) 8%, var(--heading-to) 92%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -291,7 +300,7 @@
   .klar-pille-dunkel {
     color: var(--fg);
     background: linear-gradient(180deg, #1d1d1d, #131313);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 0 0 1px var(--edge-outer);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.13), inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 0 0 1px var(--edge-outer);
   }
   .klar-pille-dunkel:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 0 0 1px rgba(255, 255, 255, 0.11), 0 0 0 1px var(--edge-outer); }
 
@@ -302,7 +311,7 @@
     font-size: 11.5px; font-weight: 500; line-height: 1; white-space: nowrap;
     color: var(--fg-2);
     background: linear-gradient(180deg, #1a1a1a, #121212);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 0 0 1px var(--edge-outer);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 0 0 1px var(--edge-outer);
   }
   .klar-marke svg { width: 12px; height: 12px; flex-shrink: 0; }
   .klar-punkt { width: 6px; height: 6px; border-radius: 999px; flex-shrink: 0; background: var(--ton, var(--fg-4)); }
@@ -312,7 +321,7 @@
     display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
     overflow: hidden; border-radius: 10px; color: var(--fg-2);
     background: linear-gradient(180deg, #1c1c1c, #121212);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 0 1px var(--edge-outer);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 0 1px var(--edge-outer);
   }
 
   /* Fortschritt als feine Leiste */
