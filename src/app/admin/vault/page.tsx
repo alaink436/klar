@@ -13,8 +13,12 @@ import { requireAdminPage } from "../../../lib/adminGuard";
 import { readCookie } from "../../../lib/adminSession";
 import { datumInZone } from "@/lib/zeit";
 import { listSecrets, vaultReady } from "../../../lib/vault";
-import { Card } from "@/components/ui/card";
+import { ArrowRight, LockKeyhole } from "lucide-react";
+import { TextureCard } from "@/components/ui/texture-card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
+import { PageHeader } from "@/components/ui/page-header";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import VaultManager, { type VaultRow } from "./VaultManager";
 
@@ -26,6 +30,17 @@ function originFromHeaders(h: Headers): string {
   const proto = h.get("x-forwarded-proto") ?? "https";
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "getklar.org";
   return `${proto}://${host}`;
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <div className="[font-family:var(--font-mono)] text-[10.5px] font-medium uppercase tracking-[0.14em] text-fg-3">{label}</div>
+      <div className="klar-verlauf mt-2.5 text-[40px] font-medium leading-none tracking-[-0.035em] [font-variant-numeric:tabular-nums]">
+        <NumberTicker value={value} />
+      </div>
+    </div>
+  );
 }
 
 export default async function VaultPage({
@@ -63,54 +78,36 @@ export default async function VaultPage({
       <title>Vault · Klar Control</title>
       <AdminTopbar titel={t.vaultTitle} />
       <div className="content">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1>{t.vaultTitle}</h1>
-          <Link
-            href="/admin/vault/tiktok"
-            className="text-[13px] font-semibold text-fg-2 hover:text-fg border border-line-strong rounded-[var(--radius-sm)] px-3 py-1.5 no-underline"
-          >
-            {lang === "en" ? "TikTok channels →" : "TikTok-Kanäle →"}
-          </Link>
+        <div className="flex flex-wrap items-start justify-between gap-x-6">
+          <PageHeader eyebrow="Klar Control" icon={<LockKeyhole />} title={t.vaultTitle} />
+          <Button asChild variant="pill-dark" size="sm" className="mb-8 h-8 px-3.5 text-[12.5px]">
+            <Link href="/admin/vault/tiktok">
+              {lang === "en" ? "TikTok channels" : "TikTok-Kanäle"}
+              <ArrowRight />
+            </Link>
+          </Button>
         </div>
 
         {!ready && (
-          <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--warning) 35%,var(--line))", color: "var(--warning)" }}>
+          <Notice tone="warn">
             {t.vaultInactiveA}
             <code>VAULT_MASTER_KEY</code>
             {t.vaultInactiveB}
-          </div>
+          </Notice>
         )}
-        {sp.err && (
-          <div className="flash" style={{ borderColor: "color-mix(in oklab,var(--danger) 35%,var(--line))", color: "var(--danger)" }}>
-            {flashText(sp.err, lang)}
-          </div>
-        )}
-        {sp.msg && <div className="flash">{flashText(sp.msg, lang)}</div>}
+        {sp.err && <Notice tone="danger">{flashText(sp.err, lang)}</Notice>}
+        {sp.msg && <Notice tone="ok">{flashText(sp.msg, lang)}</Notice>}
 
-        {/* Stat hero — key count + status. */}
-        <Card className="mb-6 flex flex-wrap items-center justify-between gap-6 px-6 py-5">
-          <div className="flex items-end gap-8">
-            <div>
-              <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">
-                {t.statStored}
-              </div>
-              <div className="[font-family:var(--font-display)] font-extrabold text-[42px] leading-none tracking-[-0.03em] text-fg mt-2 [font-variant-numeric:tabular-nums]">
-                <NumberTicker value={rows.length} />
-              </div>
-            </div>
-            <div>
-              <div className="[font-family:var(--font-mono)] text-[10.5px] font-semibold uppercase tracking-[0.12em] text-fg-3">
-                {t.statActive}
-              </div>
-              <div className="[font-family:var(--font-display)] font-extrabold text-[42px] leading-none tracking-[-0.03em] text-fg mt-2 [font-variant-numeric:tabular-nums]">
-                <NumberTicker value={active} />
-              </div>
-            </div>
+        {/* Zwei Zahlen und der Zustand des Vaults. */}
+        <TextureCard className="mb-8 flex flex-wrap items-center justify-between gap-6 px-6 py-5">
+          <div className="flex items-end gap-10">
+            <Stat label={t.statStored} value={rows.length} />
+            <Stat label={t.statActive} value={active} />
           </div>
           <Badge tone={ready ? "ok" : "warn"} dot>
             {ready ? t.badgeActive : t.badgeInactive}
           </Badge>
-        </Card>
+        </TextureCard>
 
         <VaultManager rows={rows} lang={lang} />
       </div>

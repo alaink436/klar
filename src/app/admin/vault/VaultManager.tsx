@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TextureCard, TextureCardHeader, TextureCardTitle } from "@/components/ui/texture-card";
 import {
   Dialog,
   DialogClose,
@@ -135,6 +136,11 @@ const CATEGORY_EXAMPLES: Record<string, CategoryExample> = {
   Infrastruktur: { label: "Vercel Token", provider: "vercel", baseUrl: "https://api.vercel.com", baseUrlFill: "https://api.vercel.com", key: { de: "Bearer-Token …", en: "Bearer token …" } },
   Sonstiges: DEFAULT_EXAMPLE,
 };
+
+// Ab lg stehen Proxy-URL und Zuletzt in eigenen Spalten. Darunter (Handy)
+// waeren vier Spalten zu eng; dort steht Zuletzt als Zeile unter dem Namen,
+// die Proxy-URL kopiert das Menue.
+const BREIT = "hidden lg:table-cell";
 
 function exampleFor(category: string): CategoryExample {
   return CATEGORY_EXAMPLES[category.trim()] ?? DEFAULT_EXAMPLE;
@@ -649,23 +655,27 @@ export default function VaultManager({ rows, lang }: { rows: VaultRow[]; lang: A
     return (
       <TableRow key={r.id}>
         <TableCell>
-          <div className="font-semibold text-fg">{r.label}</div>
-          <div className="text-[11px] text-fg-4 [font-family:var(--font-mono)]">
+          <div className="font-medium text-fg">{r.label}</div>
+          <div className="break-all text-[11px] text-fg-4 [font-family:var(--font-mono)]">
             {r.provider}
             {r.baseUrl ? ` · ${r.baseUrl}` : ""}
           </div>
+          <div className="mt-1 text-[11px] text-fg-3 lg:hidden">
+            {t.colLastUsed} {r.lastUsed}
+            {r.proxy ? "" : ` · ${t.storeOnly}`}
+          </div>
         </TableCell>
-        <TableCell>
+        <TableCell className={BREIT}>
           {r.proxy ? (
             <code className="[font-family:var(--font-mono)] text-[11px] text-fg-3 break-all">{r.proxy}…</code>
           ) : (
             <span className="text-[11px] text-fg-4">{t.storeOnly}</span>
           )}
         </TableCell>
-        <TableCell className="text-right text-fg-3">{r.lastUsed}</TableCell>
+        <TableCell className={`${BREIT} text-right text-fg-3`}>{r.lastUsed}</TableCell>
         <TableCell className="text-right">
           <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => openReveal(r)}>
+            <Button variant="pill-dark" size="sm" onClick={() => openReveal(r)}>
               <Eye /> {t.showKey}
             </Button>
             {/* modal={false}: a modal dropdown locks body pointer-events while
@@ -675,7 +685,7 @@ export default function VaultManager({ rows, lang }: { rows: VaultRow[]; lang: A
                 Non-modal here avoids that; the dialogs are modal themselves. */}
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label={t.moreActions}>
+                <Button variant="pill-dark" size="icon" aria-label={t.moreActions}>
                   <MoreHorizontal />
                 </Button>
               </DropdownMenuTrigger>
@@ -720,12 +730,12 @@ export default function VaultManager({ rows, lang }: { rows: VaultRow[]; lang: A
             aria-label={t.searchAria}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="pl-9"
+            className="h-9 rounded-full py-0 pl-9 text-[13px]"
           />
         </div>
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="pop">
+            <Button variant="pill">
               <Plus /> {t.addKey}
             </Button>
           </DialogTrigger>
@@ -739,11 +749,11 @@ export default function VaultManager({ rows, lang }: { rows: VaultRow[]; lang: A
               <KeyFields includeMeta lang={lang} />
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button type="button" variant="ghost">
+                  <Button type="button" variant="pill-dark">
                     {t.cancel}
                   </Button>
                 </DialogClose>
-                <Button type="submit">{t.addSubmit}</Button>
+                <Button type="submit" variant="pill">{t.addSubmit}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -751,40 +761,45 @@ export default function VaultManager({ rows, lang }: { rows: VaultRow[]; lang: A
       </div>
 
       {rows.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 text-center px-6 py-10 border border-dashed border-line-strong rounded-[var(--radius)] bg-surface text-fg-3">
-          <KeyRound className="size-7 text-fg-4 mb-0.5" strokeWidth={1.5} />
-          <div className="[font-family:var(--font-body)] font-semibold text-sm text-fg-2">{t.emptyTitle}</div>
+        <TextureCard className="flex flex-col items-center justify-center gap-2 text-center px-6 py-10 text-fg-3">
+          <span className="klar-kachel size-10 mb-1">
+            <KeyRound className="size-4" />
+          </span>
+          <div className="text-sm font-medium text-fg">{t.emptyTitle}</div>
           <div className="text-[13px] text-fg-3 max-w-[42ch] leading-relaxed">{t.emptyBody}</div>
-        </div>
+        </TextureCard>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 text-center px-6 py-10 border border-dashed border-line-strong rounded-[var(--radius)] bg-surface text-fg-3">
-          <Search className="size-7 text-fg-4 mb-0.5" strokeWidth={1.5} />
-          <div className="[font-family:var(--font-body)] font-semibold text-sm text-fg-2">{t.noHits(query.trim())}</div>
+        <TextureCard className="flex flex-col items-center justify-center gap-2 text-center px-6 py-10 text-fg-3">
+          <span className="klar-kachel size-10 mb-1">
+            <Search className="size-4" />
+          </span>
+          <div className="text-sm font-medium text-fg">{t.noHits(query.trim())}</div>
           <button type="button" onClick={() => setQuery("")} className="text-[13px] text-fg-3 underline underline-offset-2 hover:text-fg">
             {t.resetSearch}
           </button>
-        </div>
+        </TextureCard>
       ) : (
         groupByCategory(filtered, lang).map(({ category, rows: catRows }) => (
-          <section key={category} className="mb-7 last:mb-0">
-            <div className="flex items-baseline gap-2 mb-2">
-              <h2 className="[font-family:var(--font-mono)] text-[11px] font-semibold uppercase tracking-[0.12em] text-fg-2">
+          // Je Kategorie eine Karte; die Tabelle darin steht ohne eigenen Rahmen.
+          <TextureCard key={category} className="mb-4 last:mb-0">
+            <TextureCardHeader className="pb-1">
+              <TextureCardTitle>
                 {category}
-              </h2>
-              <span className="text-[11px] text-fg-4">{catRows.length}</span>
-            </div>
-            <Table>
+                <span className="ml-2.5 [font-family:var(--font-mono)] text-[11.5px] font-normal text-fg-4">{catRows.length}</span>
+              </TextureCardTitle>
+            </TextureCardHeader>
+            <Table className="rounded-none border-0 bg-transparent [&_th]:bg-transparent lg:[&_td]:align-middle">
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t.colKey}</TableHead>
-                  <TableHead>{t.colProxy}</TableHead>
-                  <TableHead className="text-right">{t.colLastUsed}</TableHead>
+                  <TableHead className="lg:w-[30%]">{t.colKey}</TableHead>
+                  <TableHead className={BREIT}>{t.colProxy}</TableHead>
+                  <TableHead className={`${BREIT} text-right`}>{t.colLastUsed}</TableHead>
                   <TableHead className="w-px" />
                 </TableRow>
               </TableHeader>
               <TableBody>{catRows.map(renderRow)}</TableBody>
             </Table>
-          </section>
+          </TextureCard>
         ))
       )}
 
@@ -808,11 +823,11 @@ export default function VaultManager({ rows, lang }: { rows: VaultRow[]; lang: A
             />
             <DialogFooter>
               <DialogClose asChild>
-                <Button type="button" variant="ghost">
+                <Button type="button" variant="pill-dark">
                   {t.cancel}
                 </Button>
               </DialogClose>
-              <Button type="submit">{t.rotateSubmit}</Button>
+              <Button type="submit" variant="pill">{t.rotateSubmit}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -840,11 +855,11 @@ export default function VaultManager({ rows, lang }: { rows: VaultRow[]; lang: A
               />
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button type="button" variant="ghost">
+                  <Button type="button" variant="pill-dark">
                     {t.cancel}
                   </Button>
                 </DialogClose>
-                <Button type="submit">{t.editSubmit}</Button>
+                <Button type="submit" variant="pill">{t.editSubmit}</Button>
               </DialogFooter>
             </form>
           )}
@@ -864,17 +879,18 @@ export default function VaultManager({ rows, lang }: { rows: VaultRow[]; lang: A
             <p className="text-danger text-sm">{reveal.error}</p>
           ) : (
             <>
-              <code className="block [font-family:var(--font-mono)] text-[13px] bg-surface-2 border border-line-strong rounded-[var(--radius-sm)] px-4 py-3.5 text-fg break-all leading-relaxed">
+              <code className="block [font-family:var(--font-mono)] text-[13px] bg-black/40 border border-line rounded-[var(--radius-sm)] px-4 py-3.5 text-fg break-all leading-relaxed">
                 {reveal.key}
               </code>
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button type="button" variant="ghost">
+                  <Button type="button" variant="pill-dark">
                     {t.close}
                   </Button>
                 </DialogClose>
                 <Button
                   type="button"
+                  variant="pill"
                   onClick={() => {
                     if (reveal.key) {
                       navigator.clipboard.writeText(reveal.key).then(
@@ -907,7 +923,7 @@ export default function VaultManager({ rows, lang }: { rows: VaultRow[]; lang: A
             <input type="hidden" name="id" value={deleteRow?.id ?? ""} />
             <AlertDialogFooter>
               <AlertDialogCancel asChild>
-                <Button type="button" variant="ghost">
+                <Button type="button" variant="pill-dark">
                   {t.cancel}
                 </Button>
               </AlertDialogCancel>
@@ -917,7 +933,7 @@ export default function VaultManager({ rows, lang }: { rows: VaultRow[]; lang: A
                   The delete silently did nothing while the UI looked fine.
                   The rotate dialog above submits with a plain button for the
                   same reason; only Cancel belongs in AlertDialogCancel. */}
-              <Button type="submit" variant="danger">
+              <Button type="submit" variant="pill-dark" className="text-danger">
                 {t.deleteSubmit}
               </Button>
             </AlertDialogFooter>

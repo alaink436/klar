@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
+import { TextureCard, TextureCardTitle, TextureSeparator } from "@/components/ui/texture-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
@@ -83,8 +83,14 @@ type Confirm =
 
 const selectCls =
   "w-full px-3.5 py-2.5 text-sm [font-family:var(--font-body)] text-fg bg-bg border border-line-strong rounded-[var(--radius-sm)] cursor-pointer focus:border-fg focus:outline-none focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--fg)_12%,transparent)]";
+// Kaestchen als dunkle Pille; angehakt wird die innere Kante hell. Per
+// Schatten, weil die globale Randfarbe jede Tailwind-Randfarbe schlaegt.
 const chipCls =
-  "inline-flex items-center gap-2 px-3 py-1.5 border border-line rounded-full bg-surface-2 text-[12.5px] text-fg-2 cursor-pointer transition-colors hover:border-line-strong has-[:checked]:border-fg has-[:checked]:text-fg";
+  "klar-pille klar-pille-dunkel h-8 gap-2 px-3 text-[12.5px] font-normal text-fg-2 has-[:checked]:text-fg has-[:checked]:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45),0_0_0_1px_var(--edge-outer)]";
+
+// Ab lg stehen die Angaben einer Zeile in eigenen Spalten. Darunter (Handy)
+// waeren fuenf Spalten zu eng; dort stehen sie als Zeilen unter dem Namen.
+const BREIT = "hidden lg:table-cell";
 
 // One section card: header (icon + title + count + description) and a primary
 // action on the right, table/empty below.
@@ -104,30 +110,30 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <Card>
-      <div className="flex flex-wrap items-start justify-between gap-4 p-6 pb-4">
-        <div className="flex flex-col gap-1.5 min-w-0">
-          <div className="flex items-center gap-2 [font-family:var(--font-display)] font-bold text-[16px] tracking-[-0.01em] text-fg">
-            <span className="text-fg-3">{icon}</span>
-            {title}
-            <Badge>{count}</Badge>
+    <TextureCard>
+      <div className="flex flex-wrap items-start justify-between gap-4 px-6 pb-5 pt-6">
+        <div className="flex min-w-0 items-start gap-3.5">
+          <span className="klar-kachel size-9">{icon}</span>
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <TextureCardTitle className="flex items-center gap-2.5">
+              {title}
+              <Badge>{count}</Badge>
+            </TextureCardTitle>
+            <p className="m-0 max-w-[64ch] text-[13px] leading-relaxed text-fg-3">{desc}</p>
           </div>
-          <p className="text-[13px] leading-relaxed text-fg-3 max-w-[64ch]">
-            {desc}
-          </p>
         </div>
         <div className="shrink-0">{action}</div>
       </div>
-      <div className="px-6 pb-6">{children}</div>
-    </Card>
+      {children}
+    </TextureCard>
   );
 }
 
 function EmptyState({ icon, title, sub }: { icon: ReactNode; title: string; sub: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 text-center px-6 py-9 border border-dashed border-line-strong rounded-[var(--radius)] bg-surface-2/40 text-fg-3">
-      <span className="text-fg-4">{icon}</span>
-      <div className="[font-family:var(--font-body)] font-semibold text-sm text-fg-2">{title}</div>
+    <div className="flex flex-col items-center justify-center gap-2 border-t border-line px-6 py-9 text-center text-fg-3">
+      <span className="klar-kachel mb-1 size-10">{icon}</span>
+      <div className="text-sm font-medium text-fg">{title}</div>
       <div className="text-[13px] max-w-[44ch] leading-relaxed">{sub}</div>
     </div>
   );
@@ -249,36 +255,36 @@ export default function BrainAccessManager({
   return (
     <div className="flex flex-col gap-6">
       {/* ── Agent verbinden — zwei Prompts (Vault vs. Learnings/RAG) ── */}
-      <Card className="p-6">
-        <div className="flex flex-col gap-1.5 mb-4 min-w-0">
-          <div className="flex items-center gap-2 [font-family:var(--font-display)] font-bold text-[16px] tracking-[-0.01em] text-fg">
-            <span className="text-fg-3">
-              <MonitorSmartphone className="size-4" />
-            </span>
-            Agent verbinden — zwei Prompts
+      <TextureCard>
+        <div className="flex min-w-0 items-start gap-3.5 px-6 pb-5 pt-6">
+          <span className="klar-kachel size-9">
+            <MonitorSmartphone className="size-4" />
+          </span>
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <TextureCardTitle>Agent verbinden: zwei Prompts</TextureCardTitle>
+            <p className="m-0 max-w-[64ch] text-[13px] leading-relaxed text-fg-3">
+              Enthalten keinen Token, den legst du separat ab.
+            </p>
           </div>
-          <p className="text-[13px] leading-relaxed text-fg-3 max-w-[64ch]">
-            Enthalten keinen Token, den legst du separat ab.
-          </p>
         </div>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col">
           {PROMPTS.map((p) => (
             <div
               key={p.key}
-              className="flex flex-wrap items-start justify-between gap-3 rounded-[var(--radius-sm)] border border-line bg-surface-2/40 p-4"
+              className="flex flex-wrap items-start justify-between gap-3 border-t border-line px-6 py-4"
             >
               <div className="flex flex-col gap-1 min-w-0">
-                <div className="flex items-center gap-2 font-semibold text-fg">
+                <div className="flex flex-wrap items-center gap-2 font-medium text-fg">
                   {p.title}
                   <Badge tone={p.badgeTone}>{p.badge}</Badge>
                 </div>
                 <p className="text-[13px] leading-relaxed text-fg-3 max-w-[60ch]">{p.desc}</p>
               </div>
               <div className="shrink-0 flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPreviewKey(p.key)}>
+                <Button variant="pill-dark" size="sm" onClick={() => setPreviewKey(p.key)}>
                   Vorschau
                 </Button>
-                <Button variant="pop" size="sm" onClick={() => copyText(p.key, p.text)}>
+                <Button variant="pill" size="sm" onClick={() => copyText(p.key, p.text)}>
                   {copiedKey === p.key ? (
                     <>
                       <Check /> Kopiert
@@ -293,7 +299,7 @@ export default function BrainAccessManager({
             </div>
           ))}
         </div>
-      </Card>
+      </TextureCard>
 
       {/* Agent-Prompt — Vorschau */}
       <Dialog open={previewKey !== null} onOpenChange={(o) => { if (!o) setPreviewKey(null); }}>
@@ -305,16 +311,16 @@ export default function BrainAccessManager({
               {activePrompt?.key === "vault" ? " und die Live-Secrets" : ""}.
             </DialogDescription>
           </DialogHeader>
-          <pre className="max-h-[60vh] overflow-auto rounded-[var(--radius-sm)] border border-line-strong bg-surface-2 p-4 text-[12px] leading-relaxed [font-family:var(--font-mono)] text-fg-2 whitespace-pre-wrap break-words">
+          <pre className="max-h-[60vh] overflow-auto rounded-[var(--radius-sm)] border border-line bg-black/40 p-4 text-[12px] leading-relaxed [font-family:var(--font-mono)] text-fg-2 whitespace-pre-wrap break-words">
             {activePrompt?.text ?? ""}
           </pre>
           <DialogFooter>
             <DialogClose asChild>
-              <Button type="button" variant="ghost">
+              <Button type="button" variant="pill-dark">
                 Schließen
               </Button>
             </DialogClose>
-            <Button type="button" onClick={() => activePrompt && copyText("preview", activePrompt.text)}>
+            <Button type="button" variant="pill" onClick={() => activePrompt && copyText("preview", activePrompt.text)}>
               {copiedKey === "preview" ? (
                 <>
                   <Check /> Kopiert
@@ -338,7 +344,7 @@ export default function BrainAccessManager({
         action={
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="pop">
+              <Button variant="pill">
                 <Plus /> Token erzeugen
               </Button>
             </DialogTrigger>
@@ -412,11 +418,11 @@ export default function BrainAccessManager({
                 )}
                 <DialogFooter>
                   <DialogClose asChild>
-                    <Button type="button" variant="ghost">
+                    <Button type="button" variant="pill-dark">
                       Abbrechen
                     </Button>
                   </DialogClose>
-                  <Button type="submit">Token erzeugen</Button>
+                  <Button type="submit" variant="pill">Token erzeugen</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -430,24 +436,21 @@ export default function BrainAccessManager({
             sub="Erzeuge einen Token, damit ein Remote-Agent (Claude Code auf einem anderen Gerät) das Brain laden oder den Vault nutzen kann."
           />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Token</TableHead>
-                <TableHead>Scopes</TableHead>
-                <TableHead className="text-right">Zuletzt</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-px" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tokens.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell>
-                    <div className="font-semibold text-fg">{t.label}</div>
-                    <div className="text-[11px] text-fg-4 [font-family:var(--font-mono)]">{t.prefix}…</div>
-                  </TableCell>
-                  <TableCell>
+          <>
+            <TextureSeparator />
+            <Table className="rounded-none border-0 bg-transparent [&_th]:bg-transparent lg:[&_td]:align-middle">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Token</TableHead>
+                  <TableHead className={BREIT}>Scopes</TableHead>
+                  <TableHead className={`${BREIT} text-right`}>Zuletzt</TableHead>
+                  <TableHead className={BREIT}>Status</TableHead>
+                  <TableHead className={`${BREIT} w-px`} />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tokens.map((t) => {
+                  const scopes = (
                     <div className="flex flex-wrap gap-1.5">
                       {t.scopes.map((s) => (
                         <Badge key={s} tone={s === "vault:use" ? "warn" : "info"}>
@@ -467,24 +470,21 @@ export default function BrainAccessManager({
                         </div>
                       )}
                     </div>
-                  </TableCell>
-                  <TableCell className="text-right text-fg-3">{t.lastUsed}</TableCell>
-                  <TableCell>
-                    {t.revoked ? (
-                      <Badge tone="danger" dot>
-                        entzogen
-                      </Badge>
-                    ) : (
-                      <Badge tone="ok" dot>
-                        aktiv
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  );
+                  const status = t.revoked ? (
+                    <Badge tone="danger" dot>
+                      entzogen
+                    </Badge>
+                  ) : (
+                    <Badge tone="ok" dot>
+                      aktiv
+                    </Badge>
+                  );
+                  const aktionen = (
+                    <>
                       {!t.revoked && t.scopes.includes("vault:use") && (
                         <Button
-                          variant="outline"
+                          variant="pill-dark"
                           size="sm"
                           onClick={() => openRelease(t)}
                         >
@@ -492,19 +492,42 @@ export default function BrainAccessManager({
                         </Button>
                       )}
                       {!t.revoked && (
-                        <Button variant="outline" size="sm" onClick={() => openConfirm({ kind: "token-revoke", id: t.id, label: t.label })}>
+                        <Button variant="pill-dark" size="sm" onClick={() => openConfirm({ kind: "token-revoke", id: t.id, label: t.label })}>
                           <Ban /> Widerrufen
                         </Button>
                       )}
-                      <Button variant="ghost" size="sm" onClick={() => openConfirm({ kind: "token-delete", id: t.id, label: t.label, active: !t.revoked })}>
+                      <Button variant="pill-dark" size="sm" className="text-fg-3" onClick={() => openConfirm({ kind: "token-delete", id: t.id, label: t.label, active: !t.revoked })}>
                         <Trash2 /> Löschen
                       </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    </>
+                  );
+                  return (
+                    <TableRow key={t.id}>
+                      <TableCell>
+                        <div className="font-medium text-fg">{t.label}</div>
+                        <div className="text-[11px] text-fg-4 [font-family:var(--font-mono)]">{t.prefix}…</div>
+                        {/* Unter lg dieselben Angaben als Zeilen unter dem Token. */}
+                        <div className="mt-2.5 flex flex-col gap-2.5 lg:hidden">
+                          {scopes}
+                          <div className="flex items-center gap-3 text-[12px] text-fg-3">
+                            {status}
+                            {t.lastUsed}
+                          </div>
+                          <div className="flex flex-wrap gap-2">{aktionen}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell className={BREIT}>{scopes}</TableCell>
+                      <TableCell className={`${BREIT} text-right text-fg-3`}>{t.lastUsed}</TableCell>
+                      <TableCell className={BREIT}>{status}</TableCell>
+                      <TableCell className={`${BREIT} text-right`}>
+                        <div className="flex items-center justify-end gap-2">{aktionen}</div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </>
         )}
       </Section>
 
@@ -517,7 +540,7 @@ export default function BrainAccessManager({
         action={
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="pop">
+              <Button variant="pill">
                 <UserPlus /> Mitglied einladen
               </Button>
             </DialogTrigger>
@@ -555,11 +578,11 @@ export default function BrainAccessManager({
                 </div>
                 <DialogFooter>
                   <DialogClose asChild>
-                    <Button type="button" variant="ghost">
+                    <Button type="button" variant="pill-dark">
                       Abbrechen
                     </Button>
                   </DialogClose>
-                  <Button type="submit">
+                  <Button type="submit" variant="pill">
                     <Mail /> Zugang erstellen
                   </Button>
                 </DialogFooter>
@@ -575,55 +598,65 @@ export default function BrainAccessManager({
             sub="Lade jemanden per Email ein, das AI-Brain unter /brain zu lesen — mit vollem Zugriff oder auf bestimmte Bereiche beschränkt."
           />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Mitglied</TableHead>
-                <TableHead>Clearance</TableHead>
-                <TableHead className="text-right">Zuletzt</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-px" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {members.map((m) => (
-                <TableRow key={m.email}>
-                  <TableCell>
-                    <div className="font-semibold text-fg">{m.email}</div>
-                    <div className="text-[11px] text-fg-4">{m.scope}</div>
-                  </TableCell>
-                  <TableCell>
-                    {m.clearance === "full" ? (
+          <>
+            <TextureSeparator />
+            <Table className="rounded-none border-0 bg-transparent [&_th]:bg-transparent lg:[&_td]:align-middle">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mitglied</TableHead>
+                  <TableHead className={BREIT}>Clearance</TableHead>
+                  <TableHead className={`${BREIT} text-right`}>Zuletzt</TableHead>
+                  <TableHead className={BREIT}>Status</TableHead>
+                  <TableHead className={`${BREIT} w-px`} />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {members.map((m) => {
+                  const clearance =
+                    m.clearance === "full" ? (
                       <Badge tone="info">
                         <ShieldCheck className="size-3" /> voll
                       </Badge>
                     ) : (
                       <Badge>{m.folders.length} Bereiche</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right text-fg-3">{m.lastSeen}</TableCell>
-                  <TableCell>
-                    {m.revoked ? (
-                      <Badge tone="danger" dot>
-                        entzogen
-                      </Badge>
-                    ) : (
-                      <Badge tone="ok" dot>
-                        aktiv
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {!m.revoked && (
-                      <Button variant="outline" size="sm" onClick={() => openConfirm({ kind: "member", email: m.email })}>
-                        <Ban /> Entziehen
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    );
+                  const status = m.revoked ? (
+                    <Badge tone="danger" dot>
+                      entzogen
+                    </Badge>
+                  ) : (
+                    <Badge tone="ok" dot>
+                      aktiv
+                    </Badge>
+                  );
+                  const entziehen = !m.revoked && (
+                    <Button variant="pill-dark" size="sm" onClick={() => openConfirm({ kind: "member", email: m.email })}>
+                      <Ban /> Entziehen
+                    </Button>
+                  );
+                  return (
+                    <TableRow key={m.email}>
+                      <TableCell>
+                        <div className="font-medium text-fg">{m.email}</div>
+                        <div className="text-[11px] text-fg-4">{m.scope}</div>
+                        {/* Unter lg dieselben Angaben als Zeilen unter der Adresse. */}
+                        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px] text-fg-3 lg:hidden">
+                          {clearance}
+                          {status}
+                          {m.lastSeen}
+                          {entziehen ? <div className="w-full">{entziehen}</div> : null}
+                        </div>
+                      </TableCell>
+                      <TableCell className={BREIT}>{clearance}</TableCell>
+                      <TableCell className={`${BREIT} text-right text-fg-3`}>{m.lastSeen}</TableCell>
+                      <TableCell className={BREIT}>{status}</TableCell>
+                      <TableCell className={`${BREIT} text-right`}>{entziehen}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </>
         )}
       </Section>
 
@@ -656,7 +689,7 @@ export default function BrainAccessManager({
                   <div className="flex items-center gap-2">
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="pill-dark"
                       size="sm"
                       onClick={() =>
                         setRelease((r) => (r ? { ...r, picked: secrets.map((x) => x.id) } : r))
@@ -666,7 +699,7 @@ export default function BrainAccessManager({
                     </Button>
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="pill-dark"
                       size="sm"
                       onClick={() => setRelease((r) => (r ? { ...r, picked: [] } : r))}
                     >
@@ -735,11 +768,11 @@ export default function BrainAccessManager({
             </p>
             <DialogFooter>
               <DialogClose asChild>
-                <Button type="button" variant="ghost">
+                <Button type="button" variant="pill-dark">
                   Abbrechen
                 </Button>
               </DialogClose>
-              <Button type="submit">Freigabe speichern</Button>
+              <Button type="submit" variant="pill">Freigabe speichern</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -775,10 +808,10 @@ export default function BrainAccessManager({
               <input type="hidden" name="email" value={confirm.email} />
               <AlertDialogFooter>
                 <AlertDialogCancel asChild>
-                  <Button type="button" variant="ghost">Abbrechen</Button>
+                  <Button type="button" variant="pill-dark">Abbrechen</Button>
                 </AlertDialogCancel>
                 <AlertDialogAction asChild>
-                  <Button type="submit" variant="danger">Entziehen</Button>
+                  <Button type="submit" variant="pill-dark" className="text-danger">Entziehen</Button>
                 </AlertDialogAction>
               </AlertDialogFooter>
             </form>
@@ -786,9 +819,9 @@ export default function BrainAccessManager({
             // Token revoke/delete: async fetch + soft-refresh, dialog closes on success.
             <AlertDialogFooter>
               <AlertDialogCancel asChild>
-                <Button type="button" variant="ghost" disabled={busy}>Abbrechen</Button>
+                <Button type="button" variant="pill-dark" disabled={busy}>Abbrechen</Button>
               </AlertDialogCancel>
-              <Button type="button" variant="danger" disabled={busy} onClick={runTokenConfirm}>
+              <Button type="button" variant="pill-dark" className="text-danger" disabled={busy} onClick={runTokenConfirm}>
                 {busy
                   ? "…"
                   : confirm?.kind === "token-revoke"

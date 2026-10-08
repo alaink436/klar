@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 // so colours resolve via the bridged tokens. Since the 2026-10-08 redesign the
 // overlay only darkens (no frosted glass) and the dialog is a `.klar-karte`
 // (edges and gloss, see admin/admin.css).
+// The title is an h2 (Radix), so it resets what the admin base rule for h2
+// sets (mono caps, rule line, top margin).
 export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
@@ -74,7 +76,7 @@ export function DialogTitle({ className, ...props }: React.ComponentProps<typeof
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("[font-family:var(--font-display)] font-bold text-xl tracking-[-0.015em] text-fg", className)}
+      className={cn("m-0 block [font-family:var(--font-body)] text-[19px] font-medium normal-case leading-snug tracking-[-0.015em] text-fg after:hidden", className)}
       {...props}
     />
   );

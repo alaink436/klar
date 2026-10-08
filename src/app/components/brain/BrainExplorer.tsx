@@ -83,6 +83,8 @@ function preprocess(src: string): string {
 // (--bg-2 …) when the admin STYLE tokens (--surface …) aren't present, so it
 // looks right in both /admin/brain and the public /brain viewer. The teal
 // --bx-accent keeps the brain's own identity regardless of host theme.
+// `klar-karte` on the panes only has CSS inside Klar Control (admin.css), where
+// `.klar-brain` also restyles the rest; /brain does not load that file.
 const BX_CSS = `
 .bx{--bx-accent:#74D6C4;--bx-surface:var(--surface,var(--bg-2,#111));--bx-surface-2:var(--surface-2,var(--bg-2,#181818));--bx-radius:var(--radius,12px);display:flex;flex-direction:column;height:100%;min-height:0}
 .bx-grid{display:grid;grid-template-columns:1fr;gap:14px;flex:1;min-height:0}
@@ -377,7 +379,7 @@ export default function BrainExplorer({
 
       <div className="bx-grid" data-mobile={mobilePane}>
         {/* left: search + tree */}
-        <div className="bx-pane" data-pane="files">
+        <div className="bx-pane klar-karte" data-pane="files">
           <div className="bx-pane-head">Vault<span className="bx-count">{counts.nodes}</span></div>
           <button className="bx-cmdk-btn" onClick={() => setCmdOpen(true)}>
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
@@ -388,7 +390,7 @@ export default function BrainExplorer({
         </div>
 
         {/* centre: graph or note */}
-        <div className="bx-pane" data-pane="main">
+        <div className="bx-pane klar-karte" data-pane="main">
           <div className="bx-tabs">
             <button className={`bx-tab${openPath === null ? " on" : ""}`} onClick={() => setOpenPath(null)}>
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="5" cy="6" r="2" /><circle cx="19" cy="8" r="2" /><circle cx="12" cy="17" r="2" /><path d="M7 7l3.5 8.5M17 9.5L13 16" /></svg>
@@ -422,7 +424,7 @@ export default function BrainExplorer({
         </div>
 
         {/* right: linked notes */}
-        <div className="bx-pane" data-pane="links">
+        <div className="bx-pane klar-karte" data-pane="links">
           <div className="bx-pane-head">
             {openPath ? "Verknüpft" : "Verbindungen"}
             {openPath && <span className="bx-count">{connected.length}</span>}

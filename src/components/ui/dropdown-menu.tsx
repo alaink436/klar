@@ -4,7 +4,8 @@ import * as React from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { cn } from "@/lib/utils";
 
-// shadcn-style DropdownMenu on Radix, themed to the admin tokens.
+// shadcn-style DropdownMenu on Radix, themed to the admin tokens. The menu is
+// a `.klar-karte` since the 2026-10-08 redesign.
 export const DropdownMenu = DropdownMenuPrimitive.Root;
 export const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 
@@ -21,7 +22,7 @@ export function DropdownMenuContent({
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          "z-[130] min-w-[190px] bg-surface border border-line-strong rounded-[var(--radius)] shadow-[var(--shadow-lg)] p-1.5 [font-family:var(--font-body)]",
+          "z-[130] min-w-[190px] klar-karte rounded-[var(--radius-sm)] p-1.5 [font-family:var(--font-body)]",
           className,
         )}
         {...props}
