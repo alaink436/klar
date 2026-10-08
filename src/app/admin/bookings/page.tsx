@@ -3,7 +3,7 @@
 // Server component. Reads cal_bookings from the Klar Inbox Supabase
 // (anime-vault project, service-role key) — Cal.com writes there via webhook.
 // Renders summary cards + a table inside the Klar Control chrome (same
-// STYLE + same 2FA gate as the rest of /admin). Degrades to a setup
+// admin.css + same 2FA gate as the rest of /admin). Degrades to a setup
 // hint when the service key is missing.
 //
 // Env: KLAR_ADMIN_KEY, KLAR_DEVICE_SECRET, KLAR_TOTP_SECRET,

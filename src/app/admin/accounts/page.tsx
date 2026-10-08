@@ -16,6 +16,7 @@ import { getBlotatoAccounts } from "../../../lib/blotato";
 import { APPS } from "../../../lib/socialAccounts";
 import { AdminTopbar } from "../AdminTopbar";
 import { PageHeader } from "@/components/ui/page-header";
+import { Notice } from "@/components/ui/notice";
 import AccountsManager, { type AccountRow } from "./AccountsManager";
 
 export const dynamic = "force-dynamic";
@@ -78,15 +79,8 @@ export default async function AccountsPage({
       <AdminTopbar titel={t.navAccounts} />
       <div className="content">
         <PageHeader eyebrow="Klar Control" icon={<AtSign />} title={t.navAccounts} />
-        {sp.err && (
-          <div
-            className="flash"
-            style={{ borderColor: "color-mix(in oklab,var(--danger) 35%,var(--line))", color: "var(--danger)" }}
-          >
-            {flashText(sp.err, lang)}
-          </div>
-        )}
-        {sp.msg && <div className="flash">{flashText(sp.msg, lang)}</div>}
+        {sp.err && <Notice tone="danger">{flashText(sp.err, lang)}</Notice>}
+        {sp.msg && <Notice tone="ok">{flashText(sp.msg, lang)}</Notice>}
         <AccountsManager rows={rows} apps={apps} lang={lang} />
       </div>
     </>

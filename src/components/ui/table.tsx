@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 // shadcn-style Table primitives, themed to the admin tokens. Utility classes
-// override the global element styles (table/th/td) defined in _shared.ts STYLE.
+// override the element styles (table/th/td) in the base layer of admin/admin.css.
 export function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div className="w-full overflow-x-auto">

@@ -20,6 +20,7 @@ import { AdminTopbar } from "../AdminTopbar";
 import { TextureCard, TextureCardHeader, TextureCardTitle } from "@/components/ui/texture-card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { Notice } from "@/components/ui/notice";
 import { Arbeitsliste, type Aufgabe } from "./Arbeitsliste";
 import { Projektliste } from "./Projektliste";
 import { AppKacheln } from "./AppKacheln";
@@ -136,7 +137,7 @@ export default async function OverviewPage({
       <title>Übersicht · Klar Control</title>
       <AdminTopbar titel="Übersicht" />
       <div className="content">
-        {sp.msg ? <div className="flash">{sp.msg}</div> : null}
+        {sp.msg ? <Notice>{sp.msg}</Notice> : null}
 
         <PageHeader eyebrow="Klar Control" icon={<LayoutDashboard />} title="Übersicht" />
         <TextureCard className="mb-5">
