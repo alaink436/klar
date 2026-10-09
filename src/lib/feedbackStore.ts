@@ -29,6 +29,7 @@ export const FEEDBACK_APPS: { slug: string; name: string; suffixes: string[]; in
   { slug: "kelva", name: "Kelva", suffixes: ["kelva"], inboxes: ["kelvasupport@gmail.com"] },
   { slug: "animevault", name: "Anime Vault", suffixes: ["animevault"], inboxes: ["help.klar@gmail.com"] },
   { slug: "wavelength", name: "Basalt", suffixes: ["basalt"], inboxes: [] },
+  { slug: "learnbound", name: "Learnbound", suffixes: ["learnbound", "focuscrew"], inboxes: [] },
 ];
 
 export function feedbackAppName(slug: string | null): string {
