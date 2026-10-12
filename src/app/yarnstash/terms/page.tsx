@@ -6,9 +6,11 @@
 // unlimited stash, and there is NO free trial — neither RevenueCat product
 // carries one, so this page must never promise one.
 //
-// Deliberately absent: knit groups, feeds, moderation promises. The in-app
-// terms once promised a 24-hour moderation turnaround for features that do not
-// exist; this page describes only what the app actually does.
+// Deliberately absent: knit groups and feeds. The in-app terms once promised a
+// 24-hour moderation turnaround for features that did not exist; this page
+// describes only what the app actually does. Since October 2026 that includes
+// the Room and the portfolio (section 05), which do have an automatic photo
+// check, reporting and blocking, so their moderation is described there.
 //
 // Structure mirrors src/app/basalt/terms/page.tsx.
 
@@ -22,7 +24,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "13 August 2026";
+const AS_OF = "12 October 2026";
 const CONTACT = "support@getklar.org";
 
 export default function YarnstashTermsPage() {
@@ -93,7 +95,41 @@ export default function YarnstashTermsPage() {
           </p>
         </Section>
 
-        <Section n="05" title="Your content">
+        <Section n="05" title="The Room and your portfolio">
+          <p>
+            <b>The Room</b> is a shared space where every account appears as an
+            anonymous ball of yarn. Other members see its colour, where it sits,
+            whether a project timer is running and how big it has grown with
+            your crafting time. They never see your name, your email or your
+            projects.
+          </p>
+          <p>
+            <b>Your portfolio</b> holds photos of your finished pieces. Photos
+            you add to it can be seen by other members in the Room, together
+            with the finish date, the time spent and the craft, never the
+            project name. While your portfolio is visible, you grant us the
+            license to show those photos to other members; hiding your
+            portfolio in Settings or removing a photo ends that.
+          </p>
+          <p>
+            Only add photos of your own knitting or crochet. Nudity, sexual
+            content, violence, hateful symbols, other people&apos;s personal
+            data and recognisable children&apos;s faces are not allowed. We have
+            zero tolerance for objectionable content and for abusive members.
+            Every photo is checked automatically with the help of an AI model
+            before anyone else sees it.
+          </p>
+          <p>
+            You can report any photo and block any member from their portfolio.
+            A block works both ways: neither of you sees the other&apos;s ball
+            or portfolio anymore. We review reported photos within 24 hours and
+            remove them if they break these rules; a photo reported by two
+            different members is hidden until we have looked at it. Accounts
+            that repeatedly post such content are suspended.
+          </p>
+        </Section>
+
+        <Section n="06" title="Your content">
           <p>
             Your stash entries, photos, patterns and notes are yours. You grant
             us only the technical license needed to store them and show them
@@ -104,7 +140,7 @@ export default function YarnstashTermsPage() {
           </p>
         </Section>
 
-        <Section n="06" title="Fair use">
+        <Section n="07" title="Fair use">
           <p>
             Do not abuse the service: no attempts to circumvent the free limit
             or the scan rate limit, no reverse engineering of the service, no
@@ -113,7 +149,7 @@ export default function YarnstashTermsPage() {
           </p>
         </Section>
 
-        <Section n="07" title="Liability">
+        <Section n="08" title="Liability">
           <p>
             The app is provided with reasonable care, but without a guarantee of
             uninterrupted availability. To the extent permitted by law, we are
@@ -123,7 +159,7 @@ export default function YarnstashTermsPage() {
           </p>
         </Section>
 
-        <Section n="08" title="Changes and governing law">
+        <Section n="09" title="Changes and governing law">
           <p>
             We may update these terms as the app evolves; the current version is
             always available at this page, with the date shown below. Material
