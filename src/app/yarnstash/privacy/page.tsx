@@ -7,11 +7,15 @@
 // photos, row counts on projects, an AI label scanner (Premium) that sends one
 // photo per scan to Anthropic, local-only notifications, crash reporting on our
 // own server, and a one-time clipboard read for influencer attribution.
+// Since October 2026 (1.0.8) also the Room (every account is an anonymous yarn
+// ball in one shared 3D room) and the portfolio (a photo per finished project,
+// checked by Claude before other members see it). See section 04.
 //
 // Two things need saying out loud because a reviewer will look for them:
-//   - The camera has exactly two jobs: scanning a yarn label / yarn photo
-//     (image goes to our server and on to Anthropic for extraction, then is
-//     discarded) and reading an invite QR code (never leaves the device).
+//   - The camera has three jobs: scanning a yarn label / yarn photo (image
+//     goes to our server and on to Anthropic for extraction, then is
+//     discarded), a portfolio photo (stored, checked by Anthropic, shown to
+//     other members) and reading an invite QR code (never leaves the device).
 //   - Repeat and side counters live in device storage only; they never reach
 //     our servers at all.
 //
@@ -27,7 +31,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "23 September 2026";
+const AS_OF = "12 October 2026";
 const CONTACT = "support@getklar.org";
 
 export default function YarnstashPrivacyPage() {
@@ -47,8 +51,9 @@ export default function YarnstashPrivacyPage() {
 
         <p className="t-body-lg" style={{ color: "var(--fg-2)", marginBottom: 12 }}>
           My Yarn Stash is a row counter for knitting and crochet, with a place
-          to keep your yarn. It is a tool, not a social network. We do not show
-          ads, we do not track you across apps or websites, and we never sell
+          to keep your yarn, and a shared room where you see other makers as
+          anonymous balls of yarn. It is not a social network: there are no
+          names, no chat and no followers. We do not show ads, we do not track you across apps or websites, and we never sell
           your data.
         </p>
         <p className="t-body-lg" style={{ color: "var(--fg-3)", marginBottom: 48, fontSize: 14, lineHeight: 1.55 }}>
@@ -118,7 +123,7 @@ export default function YarnstashPrivacyPage() {
 
         <Section n="03" title="The camera and the label scanner">
           <p>
-            The camera has exactly two jobs, and you choose when to use it.
+            The camera has three jobs, and you choose when to use it.
           </p>
           <p>
             <b>Scanning a yarn label (Premium).</b> When you photograph a yarn
@@ -130,13 +135,56 @@ export default function YarnstashPrivacyPage() {
             in your stash. Scans are rate-limited on our server.
           </p>
           <p>
+            <b>A portfolio photo.</b> When you mark a project as finished, you
+            can add a photo of it to your portfolio. That photo is kept, see
+            the next section.
+          </p>
+          <p>
             <b>Reading an invite code.</b> The scanner that reads a friend&apos;s
             QR invite code runs entirely on your device. Nothing is recorded and
             no image leaves your phone.
           </p>
         </Section>
 
-        <Section n="04" title="What stays on your phone">
+        <Section n="04" title="The Room and your portfolio">
+          <p>
+            <b>The Room.</b> The Room is one shared 3D room in the app. Every
+            account appears there as a ball of yarn that grows with the time
+            you spend on your projects. Other members see only an anonymous
+            ball: a random identifier that is not your account ID, a colour, a
+            position in the room, your total crafting time, when you were last
+            in the app, and whether a project timer is running. They never see
+            your name, your email address, your projects or your stash. While
+            you have the Room open, the position of your ball is shared live
+            with the other members who are in the Room at the same time. To
+            measure crafting time, the app also counts the time between rows
+            you count while no timer runs.
+          </p>
+          <p>
+            <b>Your portfolio.</b> A photo you add to a finished project is
+            stored with your account. Other signed-in members can see it when
+            they tap your ball in the Room, together with the finish date, the
+            time you spent and whether it was knitted or crocheted. They never
+            see the project name or anything else about you. You can hide your
+            whole portfolio from others in Settings at any time, and remove a
+            single photo whenever you like.
+          </p>
+          <p>
+            <b>The automatic photo check.</b> Before anyone else can see a
+            portfolio photo, it is sent to Anthropic&apos;s Claude model, which
+            checks that it shows a craft project and no nudity, violence or
+            personal data. We store the result (approved or rejected, and the
+            reason). Until a photo is approved, only you can see it.
+          </p>
+          <p>
+            <b>Reports and blocks.</b> You can report a photo and block a
+            member. A report stores who reported what and why, so that we can
+            review it within 24 hours; the reported member never learns who
+            reported them. A block hides both of you from each other.
+          </p>
+        </Section>
+
+        <Section n="05" title="What stays on your phone">
           <p>
             <b>Repeat and side counters.</b> The rhythm of your pattern
             (&ldquo;increase every 6 rows&rdquo;) and any extra counters you run
@@ -155,21 +203,24 @@ export default function YarnstashPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="05" title="What we do not do">
+        <Section n="06" title="What we do not do">
           <p>
             No advertising and no ad networks. No cross-app or cross-site
             tracking, and no advertising identifier (IDFA). No location data, no
             access to your contacts or microphone. Photo library access happens
-            only when you actively pick a photo to attach. There is no feed and
-            no public profile. We do not sell or rent personal data to anyone.
+            only when you actively pick a photo to attach. There is no feed, no
+            chat and no public profile with your name; outside the Room nobody
+            sees anything of yours. We do not sell or rent personal data to
+            anyone.
           </p>
         </Section>
 
-        <Section n="06" title="Why we process this data">
+        <Section n="07" title="Why we process this data">
           <p>
             To provide the app and your account, to keep your stash, projects
             and row counts across devices, to run the label scanner when you ask
-            for it, to unlock and restore the paid features, and to fix crashes.
+            for it, to run the Room and show your portfolio to other members, to
+            keep the Room safe through the photo check, reports and blocks, to unlock and restore the paid features, and to fix crashes.
             Legal bases under the GDPR are the performance of our contract with
             you (Art. 6 para. 1 lit. b) and our legitimate interest in keeping
             the app working (Art. 6 para. 1 lit. f). The Swiss Data Protection
@@ -177,7 +228,7 @@ export default function YarnstashPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="07" title="Service providers">
+        <Section n="08" title="Service providers">
           <p>
             We use a small set of processors, each only to run the service:
           </p>
@@ -187,24 +238,25 @@ export default function YarnstashPrivacyPage() {
             <b>Supabase</b> for account authentication, database and photo
             storage, located in the European Union. <b>RevenueCat</b> for
             managing subscription entitlements. <b>Anthropic</b> for the label
-            scanner: it receives the single photo you scan and returns the
-            extracted text. These providers process data on our behalf under
+            scanner, where it receives the single photo you scan and returns
+            the extracted text, and for the portfolio photo check, where it
+            receives each portfolio photo and returns approved or rejected. These providers process data on our behalf under
             data processing agreements.
           </p>
         </Section>
 
-        <Section n="08" title="Where data is stored and how long">
+        <Section n="09" title="Where data is stored and how long">
           <p>
             Account data, your stash and your photos are stored on Supabase
             servers in the European Union. Crash reports are stored on our own
             server. We keep your data for as long as your account exists. You
             can delete your account at any time in the app under Settings; that
-            removes your account, your stash, your projects, your photos and
-            your counts.
+            removes your account, your stash, your projects, your photos, your
+            portfolio, your ball in the Room and your counts.
           </p>
         </Section>
 
-        <Section n="09" title="Your rights">
+        <Section n="10" title="Your rights">
           <p>
             You have the right to access, correct, delete and export your
             personal data, and to object to or restrict its processing. The
@@ -217,7 +269,7 @@ export default function YarnstashPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="10" title="Children">
+        <Section n="11" title="Children">
           <p>
             My Yarn Stash is intended for a general audience and is not directed
             to children. We do not knowingly collect personal data from children
@@ -226,7 +278,7 @@ export default function YarnstashPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="11" title="Changes to this policy">
+        <Section n="12" title="Changes to this policy">
           <p>
             We may update this policy as the app evolves. The current version is
             always available at this page, with the date shown below. Material
