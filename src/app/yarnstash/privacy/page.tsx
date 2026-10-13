@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "12 October 2026";
+const AS_OF = "13 October 2026";
 const CONTACT = "support@getklar.org";
 
 export default function YarnstashPrivacyPage() {
@@ -151,14 +151,34 @@ export default function YarnstashPrivacyPage() {
             <b>The Room.</b> The Room is one shared 3D room in the app. Every
             account appears there as a ball of yarn that grows with the time
             you spend on your projects. Other members see only an anonymous
-            ball: a random identifier that is not your account ID, a colour, a
-            position in the room, your total crafting time, when you were last
-            in the app, and whether a project timer is running. They never see
-            your name, your email address, your projects or your stash. While
+            ball: a random identifier that is not your account ID, a nickname
+            the app generates from a fixed list of words (such as &ldquo;Fluffy
+            Bumblebee&rdquo;; you can draw a new one, but never type one), a
+            colour, a position in the room, your total crafting time, when you
+            were last in the app, and whether a project timer is running and
+            since when. They never see your name, your email address, your
+            projects or your stash. While
             you have the Room open, the position of your ball is shared live
             with the other members who are in the Room at the same time. To
             measure crafting time, the app also counts the time between rows
             you count while no timer runs.
+          </p>
+          <p>
+            <b>Crafting statistics and the leaderboard.</b> Each time your
+            crafting time grows (a timer you stop, rows you count, or a time
+            you correct by hand), we store how many seconds were added and
+            when. From this we show you your own week and your streak, and we
+            show other members, when they tap your ball, your crafting time of
+            the last seven days, your longest session, your round and how many
+            projects you have finished. The weekly leaderboard lists the ten
+            members with the most crafting time in the last seven days, by
+            nickname only. Members you blocked, and members who blocked you,
+            never see each other there.
+          </p>
+          <p>
+            <b>Hearts and stars.</b> In the Room you can send another ball a
+            felt heart or star. It is passed live to the members who are in
+            the Room at that moment and is not stored.
           </p>
           <p>
             <b>Your portfolio.</b> A photo you add to a finished project is
@@ -252,7 +272,8 @@ export default function YarnstashPrivacyPage() {
             server. We keep your data for as long as your account exists. You
             can delete your account at any time in the app under Settings; that
             removes your account, your stash, your projects, your photos, your
-            portfolio, your ball in the Room and your counts.
+            portfolio, your ball in the Room, your crafting statistics and your
+            counts.
           </p>
         </Section>
 
