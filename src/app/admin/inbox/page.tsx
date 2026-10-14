@@ -46,6 +46,7 @@ interface Inquiry {
   brief?: string;
   source?: string;
   target_app?: string;
+  deal?: string;
 }
 
 const isTestInquiry = (r: Inquiry): boolean => {
@@ -63,6 +64,7 @@ function inquiryBody(r: Inquiry): string {
     if (r.audience) lines.push(`Reichweite: ${r.audience}`);
     if (r.platforms) lines.push(`Plattformen: ${r.platforms}`);
     if (r.target_app) lines.push(`Wunsch-App: ${r.target_app}`);
+    if (r.deal) lines.push(`Vergütung: ${r.deal === "cpm" ? "CPM" : "Provision"}`);
     if (r.why) lines.push("", r.why);
   } else {
     if (r.project) lines.push(`Projekt: ${r.project}`);
