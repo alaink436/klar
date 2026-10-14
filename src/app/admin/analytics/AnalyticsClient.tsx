@@ -15,8 +15,8 @@
 // gedaempft (`chartColorValue`). Zahlen und Verhalten unveraendert.
 
 import Link from "next/link";
-import type { CSSProperties } from "react";
-import { AreaChart } from "../tremor/components/AreaChart/AreaChart";
+import { useCallback, useState, type ComponentProps, type CSSProperties } from "react";
+import { AreaChart, type TooltipProps } from "../tremor/components/AreaChart/AreaChart";
 import { BarChart } from "../tremor/components/BarChart/BarChart";
 import { chartColorValue, type AvailableChartColorsKeys } from "../tremor/utils/chartColors";
 import { Kennzahlen } from "../Kennzahlen";
@@ -215,6 +215,45 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 /** Eine Karte um ein Diagramm, mit Luft fuer Achsen und Legende. */
 function ChartFrame({ children }: { children: React.ReactNode }) {
   return <TextureCard className="px-4 pb-4 pt-5 sm:px-6">{children}</TextureCard>;
+}
+
+/**
+ * Ein Verlauf ohne schwebendes Fenster. Das Tooltip-Fenster sass oben im Diagramm
+ * und lag beim Darueberfahren ueber Legende und Linien (Alain, 2026-10-14). Jetzt
+ * stehen Datum und Werte in einer festen Zeile unter dem Diagramm; ohne Maus zeigt
+ * sie den letzten Punkt.
+ */
+function Verlauf(props: ComponentProps<typeof AreaChart> & { valueFormatter: (v: number) => string }) {
+  const { data, index, categories, colors = [], valueFormatter } = props;
+  const [hover, setHover] = useState<TooltipProps | null>(null);
+  // Recharts ruft das waehrend seines eigenen Renderns auf, darum erst danach setzen.
+  const onTooltip = useCallback((t: TooltipProps) => {
+    queueMicrotask(() => setHover(t.active && t.payload?.length ? t : null));
+  }, []);
+
+  const last = data[data.length - 1];
+  const label = hover ? hover.label : String(last[index]);
+  const values = new Map<string, number>(
+    hover
+      ? hover.payload.map((p) => [String(p.category), Number(p.value)])
+      : categories.map((c) => [c, Number(last[c] ?? 0)]),
+  );
+
+  return (
+    <>
+      <AreaChart {...props} showTooltip={false} tooltipCallback={onTooltip} />
+      <div className="mt-3 flex min-h-6 flex-wrap items-center gap-x-4 gap-y-1 text-[12px]">
+        <span className="font-mono text-fg-4">{label}</span>
+        {categories.map((c, i) => (
+          <span key={c} className="inline-flex items-center gap-1.5">
+            <FarbPunkt color={colors[i] ?? "ink"} />
+            <span className="text-fg-3">{c}</span>
+            <span className="font-medium tabular-nums text-fg">{valueFormatter(values.get(c) ?? 0)}</span>
+          </span>
+        ))}
+      </div>
+    </>
+  );
 }
 
 /** Zwei Karten nebeneinander, auf dem Handy untereinander. */
@@ -698,7 +737,7 @@ function AppsChartSection({ chart }: { chart: AppsChartPayload }) {
       </div>
       <ChartFrame>
         {chart.categories.length > 0 && chart.data.length > 0 ? (
-          <AreaChart
+          <Verlauf
             data={chart.data}
             index="label"
             categories={chart.categories}
@@ -945,7 +984,7 @@ function LandingsView({ landings }: { landings: LandingsPayload }) {
       </div>
       <ChartFrame>
         {landings.categories.length > 0 && landings.data.length > 0 ? (
-          <AreaChart
+          <Verlauf
             data={landings.data}
             index="label"
             categories={landings.categories}
@@ -1021,7 +1060,7 @@ function SiteView({ site }: { site: SitePayload }) {
       <h2>Verlauf</h2>
       <ChartFrame>
         {site.series.length > 0 ? (
-          <AreaChart
+          <Verlauf
             data={site.series.map((d) => ({
               label: d.label,
               Sitzungen: d.sessions,
