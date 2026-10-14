@@ -11,7 +11,7 @@ import { requireAdminPage } from "../../../lib/adminGuard";
 import { USER_LIST_LIMIT, fetchCreators } from "../../../lib/creators";
 import { AdminTopbar } from "../AdminTopbar";
 import { Kennzahlen } from "../Kennzahlen";
-import { AppDialog, BestaetigenKnopf } from "./CreatorDialoge";
+import { AppAuswahl, AppDialog, BestaetigenKnopf } from "./CreatorDialoge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
@@ -145,20 +145,13 @@ export default async function CreatorsPage({
         <TextureCard className="mb-8 p-5">
           <form method="POST" action="/admin/creators/save" data-klar-leeren="ja" className="flex flex-wrap items-end gap-3">
             <input type="hidden" name="action" value="add" />
-            <label className="grid min-w-[160px] gap-1.5 text-[12px] text-fg-3">
+            <div className="grid min-w-[180px] gap-1.5 text-[12px] text-fg-3">
               App
-              <select
-                name="app"
-                defaultValue={filter ?? apps.find((a) => a.detourLink)?.slug}
-                className="h-9 rounded-md border bg-transparent px-2 text-[13px] text-fg"
-              >
-                {apps.map((a) => (
-                  <option key={a.slug} value={a.slug}>
-                    {a.detourLink ? a.name : `${a.name} (kein Detour)`}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <AppAuswahl
+                apps={apps.map((a) => ({ slug: a.slug, name: a.name, detour: !!a.detourLink }))}
+                wert={filter ?? apps.find((a) => a.detourLink)?.slug}
+              />
+            </div>
             <label className="grid min-w-[180px] flex-1 gap-1.5 text-[12px] text-fg-3">
               Name
               <Input name="name" placeholder="Tony Stark" required maxLength={80} />

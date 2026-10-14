@@ -1,7 +1,7 @@
 "use client";
 
-// Die Dialoge der Creators-Seite: Nachfrage vor dem Entfernen und das Formular
-// fuer eine App. Abgeschickt wird jeweils ein normales Formular an
+// Die Dialoge der Creators-Seite: Nachfrage vor dem Entfernen, das Formular
+// fuer eine App und die App-Auswahl beim neuen Creator. Abgeschickt wird jeweils ein normales Formular an
 // /admin/creators/save, das FormulareOhneSprung wie jedes andere abfaengt.
 //
 // Der Absende-Knopf ist ein gewoehnlicher Submit-Knopf, kein AlertDialogAction
@@ -10,6 +10,7 @@
 // wenn der Abfang es liest.
 
 import { useState } from "react";
+import { Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +34,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const klein = "h-8 px-3.5 text-[12.5px]";
 
@@ -179,5 +181,55 @@ export function AppDialog({ app }: { app?: AppWerte }) {
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Das App-Feld beim neuen Creator, statt des `<select>` mit der Systemliste.
+ * Der Wert geht wie vorher als `app` ins Formular, über ein verstecktes Feld.
+ */
+export function AppAuswahl({
+  apps,
+  wert,
+}: {
+  apps: { slug: string; name: string; detour: boolean }[];
+  wert?: string;
+}) {
+  const [gewaehlt, setGewaehlt] = useState(wert ?? apps[0]?.slug ?? "");
+  const app = apps.find((a) => a.slug === gewaehlt);
+  const punkt = (an: boolean) => (
+    <span
+      className="klar-punkt"
+      style={{ background: an ? "var(--success)" : "var(--warning)" }}
+      aria-hidden="true"
+    />
+  );
+  return (
+    <>
+      <input type="hidden" name="app" value={gewaehlt} />
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label="App wählen"
+            className="flex h-[46px] w-full min-w-[180px] items-center gap-2 rounded-[var(--radius-sm)] border border-line-strong bg-bg px-3.5 text-left text-sm text-fg [font-family:var(--font-body)] transition-[border-color,box-shadow] focus:border-fg focus:outline-none focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--fg)_12%,transparent)] data-[state=open]:border-fg"
+          >
+            {app ? punkt(app.detour) : null}
+            <span className="flex-1 truncate">{app?.name ?? "App wählen"}</span>
+            <ChevronDown className="size-4 text-fg-3" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-[var(--radix-dropdown-menu-trigger-width)]">
+          {apps.map((a) => (
+            <DropdownMenuItem key={a.slug} onSelect={() => setGewaehlt(a.slug)}>
+              {punkt(a.detour)}
+              <span className="flex-1 text-fg">{a.name}</span>
+              <span className="text-[11.5px] text-fg-4">{a.detour ? "Detour" : "kein Detour"}</span>
+              {a.slug === gewaehlt ? <Check className="text-fg" /> : <span className="size-3.5" aria-hidden="true" />}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   );
 }
