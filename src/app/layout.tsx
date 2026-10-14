@@ -38,13 +38,13 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Klar · App Studio",
+  title: "Klar Studios",
   description:
-    "An app studio from Switzerland. Pocketmate, Anime Vault, My Yarn Stash, Kelva, Basalt and Learnbound.",
+    "Apps by Klar Studios, made in Switzerland. Pocketmate, Anime Vault, My Yarn Stash, Kelva, Basalt and Learnbound.",
   metadataBase: new URL("https://getklar.org"),
   openGraph: {
-    title: "Klar · App Studio",
-    description: "An app studio from Switzerland and the apps it ships.",
+    title: "Klar Studios",
+    description: "Apps by Klar Studios, made in Switzerland.",
     type: "website",
   },
 };

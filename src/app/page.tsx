@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Inter_Tight } from "next/font/google";
 import { findKlarApp } from "@/lib/klarApps";
 import DissolveWord from "./components/home/DissolveWord";
+import BeamPill from "./components/home/BeamPill";
 import Film from "./components/home/Film";
 
 // getklar.org's front page: the apps, nothing else (Alain's call, 2026-10-01).
@@ -28,9 +29,9 @@ const grotesk = Inter_Tight({
 });
 
 export const metadata: Metadata = {
-  title: "Klar · App Studio",
+  title: "Klar Studios",
   description:
-    "Pocketmate, Anime Vault, My Yarn Stash, Kelva, Basalt and Learnbound. An app studio from Switzerland.",
+    "Pocketmate, Anime Vault, My Yarn Stash, Kelva, Basalt and Learnbound. Apps by Klar Studios, made in Switzerland.",
   alternates: { canonical: "/" },
 };
 
@@ -175,8 +176,8 @@ export default function Home() {
       <header className="fixed inset-x-0 top-0 z-30 px-3 pt-3 sm:px-5">
         <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between rounded-full border border-white/60 bg-white/45 pl-2.5 pr-5 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-xl backdrop-saturate-150 sm:pr-6">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo/klar-symbol.png" alt="" width={40} height={40} priority className="size-10 object-contain" />
-            <span className="text-[19px] font-semibold tracking-[-0.04em]">Klar</span>
+            <Image src="/logo/klar-symbol.png" alt="" width={40} height={40} className="size-10 object-contain" />
+            <span className="text-[19px] font-semibold tracking-[-0.04em]">Klar Studios</span>
           </Link>
           <nav className="flex gap-7 text-[13px] font-medium text-[var(--ink-2)]">
             <a href="#apps" className="transition hover:text-[var(--ink)]">Apps</a>
@@ -190,17 +191,19 @@ export default function Home() {
           <div className="home-grid absolute inset-0" aria-hidden="true" />
           <div className="home-glow absolute inset-0" aria-hidden="true" />
           <div className="relative px-5 pt-28 text-center sm:pt-32">
-            <p className="text-[13px] font-medium tracking-[-0.005em]">App Studio · Switzerland</p>
+            <p className="text-[13px] font-medium tracking-[-0.005em]">Made in Switzerland</p>
             <h1 className="mt-7 text-[clamp(76px,15.5vw,236px)] font-medium leading-[0.86] tracking-[-0.06em]">
               <span className="block">Klar</span>
-              <span className="block">App</span>
               <span className="block">
-                <DissolveWord>Studio.</DissolveWord>
+                <DissolveWord>Studios.</DissolveWord>
               </span>
             </h1>
             <p className="mx-auto mt-9 max-w-[32ch] text-[clamp(17px,1.5vw,21px)] font-medium leading-[1.3] tracking-[-0.02em]">
-              Klar is an app studio in Switzerland. These are the apps it ships.
+              Based in Switzerland. These are the apps Klar Studios ships.
             </p>
+            <div className="mt-10">
+              <BeamPill words={APPS.map((a) => a.name)} />
+            </div>
           </div>
           <div className="relative mx-auto mt-14 flex h-[clamp(210px,30vw,440px)] justify-center gap-[2vw] overflow-x-visible overflow-y-clip px-5 md:mt-20">
             {FAN.map((src, i) => (
@@ -245,7 +248,7 @@ export default function Home() {
       <footer className="overflow-hidden border-t">
         <div className="mx-auto max-w-[1400px] px-5 pt-14 sm:px-8 md:px-12">
           <div className="flex flex-col justify-between gap-4 text-[13px] font-medium text-[var(--ink-2)] sm:flex-row">
-            <span>App Studio · Switzerland</span>
+            <span>Klar Studios · Switzerland</span>
             <div className="flex flex-wrap gap-6">
               <Link href="/support" className="transition hover:text-[var(--ink)]">Support</Link>
               <a href={`mailto:${SUPPORT_EMAIL}`} className="transition hover:text-[var(--ink)]">{SUPPORT_EMAIL}</a>
@@ -254,7 +257,7 @@ export default function Home() {
           <p aria-hidden="true" className="mt-10 select-none text-[clamp(120px,30vw,460px)] font-semibold leading-[0.74] tracking-[-0.075em]">
             Klar
           </p>
-          <p className="py-6 text-[12px] text-[var(--ink-3)]">© 2026 Klar · Alain Kessler · Switzerland</p>
+          <p className="py-6 text-[12px] text-[var(--ink-3)]">© 2026 Klar Studios · Alain Kessler · Switzerland</p>
         </div>
       </footer>
     </div>
