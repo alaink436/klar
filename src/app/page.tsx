@@ -69,8 +69,8 @@ const DEALS = [
 ];
 const STEPS = [
   "Apply with the form, it takes a minute.",
-  "We match you with an app that fits your audience and send you the details.",
-  "You post, and get paid the way you picked.",
+  "We match you with an app that fits your audience. Every collaboration starts with a test period.",
+  "After the test period you post, and get paid the way you picked.",
 ];
 // The app keys klar_inquiries.target_app accepts (myloo = Pocketmate, wavelength = Basalt).
 const INQUIRY_SLUG: Record<string, string> = {
