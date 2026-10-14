@@ -1,17 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 
 // The dark glass capsule under the hero headline, after a Pinterest reference
 // Alain sent on 2026-10-14 ("+ Create | Brand Intelligence"): a cursor, and out
-// of the cursor a soft cone of light in which the app names type themselves.
+// of the cursor a soft cone of light in which the apps take turns: icon first,
+// then the name types itself.
 
 const TYPE_MS = 75;
 const ERASE_MS = 35;
 const HOLD_MS = 1700;
 
+type BeamApp = { name: string; icon: string };
+
 function useTyped(words: string[]) {
   const [text, setText] = useState(words[0]);
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -26,6 +31,7 @@ function useTyped(words: string[]) {
       if (erasing && len === 0) {
         erasing = false;
         word = (word + 1) % words.length;
+        setIndex(word);
         timer = window.setTimeout(step, 300);
       } else if (!erasing && len === words[word].length) {
         erasing = true;
@@ -38,11 +44,12 @@ function useTyped(words: string[]) {
     return () => window.clearTimeout(timer);
   }, [words]);
 
-  return text;
+  return { text, index };
 }
 
-export default function BeamPill({ words }: { words: string[] }) {
-  const text = useTyped(words);
+export default function BeamPill({ apps }: { apps: BeamApp[] }) {
+  const words = useMemo(() => apps.map((a) => a.name), [apps]);
+  const { text, index } = useTyped(words);
 
   return (
     <div className="relative mx-auto h-14 w-[min(100%,540px)] overflow-hidden rounded-full border border-white/10 bg-[rgba(14,14,16,0.88)] text-left shadow-[0_30px_60px_-28px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl sm:h-16">
@@ -62,7 +69,15 @@ export default function BeamPill({ words }: { words: string[] }) {
         </svg>
         <span className="ml-3.5 w-[76px] text-white sm:w-[84px]">Klar</span>
         <span aria-hidden="true" className="home-caret h-7 w-[1.5px] bg-white" />
-        <span aria-hidden="true" className="ml-2 whitespace-nowrap text-[#b9b9bf]">
+        <Image
+          key={index}
+          src={apps[index].icon}
+          alt=""
+          width={28}
+          height={28}
+          className="home-pop ml-3 size-6 shrink-0 rounded-[22.5%] shadow-[0_0_18px_rgba(255,255,255,0.35)] sm:size-7"
+        />
+        <span aria-hidden="true" className="ml-2.5 whitespace-nowrap text-[#e4e4e8]">
           {text}
         </span>
         <span className="sr-only">Apps by Klar: {words.join(", ")}</span>

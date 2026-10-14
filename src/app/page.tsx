@@ -202,7 +202,7 @@ export default function Home() {
               Based in Switzerland. These are the apps Klar Studios ships.
             </p>
             <div className="mt-10">
-              <BeamPill words={APPS.map((a) => a.name)} />
+              <BeamPill apps={APPS.map(({ name, icon }) => ({ name, icon }))} />
             </div>
           </div>
           <div className="relative mx-auto mt-14 flex h-[clamp(210px,30vw,440px)] justify-center gap-[2vw] overflow-x-visible overflow-y-clip px-5 md:mt-20">
