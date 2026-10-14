@@ -1,8 +1,8 @@
 // SERVER ONLY. Reads admin_settings + admin_notif_log, decides whether the
 // pending count crosses the configured batch_size, builds + sends one
-// Brevo digest mail, and stamps emailed_at on the rows it sent.
+// digest mail through Resend, and stamps emailed_at on the rows it sent.
 //
-// Called fire-and-forget from /api/inquiry (after inquiry_new is logged).
+// Called from /api/inquiry inside after(), once inquiry_new is logged.
 // Cheap-ish — when there's nothing to do it's one HTTP GET to PostgREST and
 // returns.
 //
@@ -18,16 +18,23 @@ import {
   markNotifsEmailed,
   type PendingNotif,
 } from "@/lib/adminSettings";
+import { Resend } from "resend";
+import { getForProxy } from "@/lib/vault";
 
-const BREVO_API_KEY = process.env.BREVO_API_KEY ?? "";
+// Same vault entry ("Resend API-Key") the inbound route uses. Until 2026-10-14
+// the digest went through Brevo, which went quiet with the outreach pipeline:
+// not one digest was ever stamped as sent.
+const RESEND_SECRET_ID = "3400552d-aed3-43fa-b1de-ff36632c789c";
 
 const APP_LABEL: Record<string, string> = {
   "yarn-stash": "Yarn-Stash",
   trubel: "Trubel",
-  myloo: "MyLoo",
+  myloo: "Pocketmate",
   wavelength: "Basalt",
   kelva: "Kelva",
   moto: "ThrottleUp",
+  "anime-vault": "Anime Vault",
+  learnbound: "Learnbound",
 };
 
 function buildDigestHtml(events: PendingNotif[]): { subject: string; html: string } {
@@ -81,35 +88,25 @@ async function sendDigest(args: {
   subject: string;
   html: string;
 }): Promise<boolean> {
-  if (!BREVO_API_KEY) {
-    console.warn("[notifFlusher] BREVO_API_KEY missing, digest skipped");
+  const resend = await getForProxy(RESEND_SECRET_ID);
+  if (!resend) {
+    console.warn('[notifFlusher] vault entry "Resend API-Key" unusable, digest skipped');
     return false;
   }
   try {
-    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": BREVO_API_KEY,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        sender: { name: "Klar Studio", email: "alain@getklar.org" },
-        to: [{ email: args.to }],
-        subject: args.subject,
-        htmlContent: args.html,
-        replyTo: { email: "alain@getklar.org", name: "Alain · Klar Studio" },
-        tags: ["admin-inbox-digest"],
-      }),
+    const { error } = await new Resend(resend.key).emails.send({
+      from: "Klar Postfach <postfach@getklar.org>",
+      to: args.to,
+      subject: args.subject,
+      html: args.html,
     });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      console.warn(`[notifFlusher] brevo ${res.status}: ${text.slice(0, 200)}`);
+    if (error) {
+      console.warn("[notifFlusher] resend", error);
       return false;
     }
     return true;
   } catch (e) {
-    console.warn("[notifFlusher] brevo threw", e);
+    console.warn("[notifFlusher] resend threw", e);
     return false;
   }
 }

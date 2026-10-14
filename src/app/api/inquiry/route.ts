@@ -20,6 +20,7 @@ import {
   isAllowedOrigin,
   rateLimit,
 } from "@/lib/apiGuards";
+import { after } from "next/server";
 import { getAdminSettings, logNotifEvent } from "@/lib/adminSettings";
 import { flushNotifsIfBatchReady } from "@/lib/notifFlusher";
 
@@ -153,17 +154,19 @@ export async function POST(req: Request): Promise<Response> {
     // Append a notification event when the inquiry trigger is on. The
     // batcher reads admin_notif_log and sends a digest when pending count
     // crosses settings.notification_batch_size (handled in Phase 2c).
+    // after(): the function stays alive until the digest is out. A bare
+    // fire-and-forget promise died with the response on Vercel.
     if (settings.notification_trigger_inquiry) {
-      // Log first, then attempt a flush. logNotifEvent is fire-and-forget
-      // (best-effort PostgREST POST). Flush is also fire-and-forget — it
-      // reads pending count, builds + sends digest if batch_size hit.
-      void logNotifEvent({
-        event_type: "inquiry_new",
-        app_slug: typeof row.target_app === "string" ? row.target_app : null,
-        handle: typeof row.handle === "string" ? row.handle : null,
-        inquiry_id: inquiryId,
-        payload: { type, email },
-      }).then(() => flushNotifsIfBatchReady());
+      after(async () => {
+        await logNotifEvent({
+          event_type: "inquiry_new",
+          app_slug: typeof row.target_app === "string" ? row.target_app : null,
+          handle: typeof row.handle === "string" ? row.handle : null,
+          inquiry_id: inquiryId,
+          payload: { type, email },
+        });
+        await flushNotifsIfBatchReady();
+      });
     }
 
     return json({ success: true });
