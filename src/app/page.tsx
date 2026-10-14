@@ -41,7 +41,7 @@ type App = {
   href: string;
   play?: string;
   soon: boolean;
-  film?: { wide: string; tall?: string; fit?: "contain" };
+  film?: { wide: string; tall?: string };
   shots: number;
 };
 
@@ -55,11 +55,11 @@ const film = (name: string) => `/home/films/${name}`;
 
 const APPS: App[] = [
   { id: "pocketmate", name: "Pocketmate", kind: "Couple widget", line: "A home-screen widget for two people who like each other.", ...fromRegistry("myloo"), film: { wide: film("pocketmate-tall") }, shots: 5 },
-  { id: "animevault", name: "Anime Vault", kind: "Tracker & list", line: "Talk about anime, keep your list and never miss an episode.", ...fromRegistry("anime-vault"), film: { wide: film("animevault-square"), fit: "contain" }, shots: 4 },
-  { id: "yarnstash", name: "My Yarn Stash", kind: "Row counter", line: "A row counter built for the moment your hands are full.", ...fromRegistry("yarn-stash"), shots: 4 },
+  { id: "animevault", name: "Anime Vault", kind: "Tracker & list", line: "Talk about anime, keep your list and never miss an episode.", ...fromRegistry("anime-vault"), film: { wide: film("animevault-wide"), tall: film("animevault-tall") }, shots: 4 },
+  { id: "yarnstash", name: "My Yarn Stash", kind: "Row counter", line: "A row counter built for the moment your hands are full.", ...fromRegistry("yarn-stash"), film: { wide: film("yarnstash-wide"), tall: film("yarnstash-tall") }, shots: 4 },
   { id: "kelva", name: "Kelva", kind: "Strength & cycle", line: "Your programme stays put. Kelva adjusts today's session to the week you are having.", ...fromRegistry("kelva"), film: { wide: film("kelva-wide"), tall: film("kelva-tall") }, shots: 6 },
   { id: "basalt", name: "Basalt", kind: "Weekly habits", line: "Write down what you want to follow through on, then tick it off on the home screen.", ...fromRegistry("wavelength"), film: { wide: film("basalt-wide") }, shots: 5 },
-  { id: "learnbound", name: "Learnbound", kind: "Put your phone in the box", line: "Set a box on your desk and put your phone in. Only the time it stays there counts as study time.", icon: "/learnbound/icon-v2.webp", href: "/learnbound", soon: true, shots: 0 },
+  { id: "learnbound", name: "Learnbound", kind: "Put your phone in the box", line: "Set a box on your desk and put your phone in. Only the time it stays there counts as study time.", icon: "/learnbound/icon-v2.webp", href: "/learnbound", soon: true, film: { wide: film("learnbound-wide"), tall: film("learnbound-tall") }, shots: 0 },
 ];
 
 // Creators (getklar.org is the page creators land on from TikTok, Alain 2026-10-14).
@@ -134,9 +134,8 @@ function AppSection({ app, index }: { app: App; index: number }) {
           <Film
             wide={app.film.wide}
             tall={app.film.tall}
-            fit={app.film.fit}
             label={`${app.name} film`}
-            className={`mt-6 aspect-[3/2] rounded-[24px] md:aspect-[21/9] md:rounded-[32px] ${app.film.fit === "contain" ? "bg-[#060608]" : "bg-[var(--hair)]"}`}
+            className="mt-6 aspect-[3/2] rounded-[24px] bg-[var(--hair)] md:aspect-[21/9] md:rounded-[32px]"
           />
         )}
 
