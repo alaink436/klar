@@ -1,153 +1,84 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Site, { SUPPORT_EMAIL } from "../components/home/Site";
+
+// Support in the light Klar Studios frame of the front page (2026-10-14); the
+// dark page that stood here still said "one-person studio".
 
 export const metadata: Metadata = {
-  title: "Support · Klar",
+  title: "Support · Klar Studios",
   description:
-    "Get help with a Klar app: Pocketmate, Anime Vault, My Yarn Stash, Kelva, Basalt, Focus Crew, Trubel or Promillo. One person behind it, real replies.",
+    "Get help with a Klar Studios app: Pocketmate, Anime Vault, My Yarn Stash, Kelva, Basalt, Focus Crew, Trubel or Promillo. Real replies from a human.",
 };
-
-const SUPPORT_EMAIL = "support@getklar.org";
 
 // Every app that can still be downloaded, as of the App Store on 2026-10-01.
 const APPS = [
-  { name: "Pocketmate", note: "widgets for couples" },
-  { name: "Anime Vault", note: "anime tracker & list" },
-  { name: "My Yarn Stash", note: "row counter" },
-  { name: "Kelva", note: "strength & cycle" },
-  { name: "Basalt", note: "weekly habits" },
-  { name: "Focus Crew", note: "study together, live" },
-  { name: "Trubel", note: "shared event photos" },
-  { name: "Promillo", note: "party games" },
+  { name: "Pocketmate", note: "Widgets for couples" },
+  { name: "Anime Vault", note: "Anime tracker & list" },
+  { name: "My Yarn Stash", note: "Row counter" },
+  { name: "Kelva", note: "Strength & cycle" },
+  { name: "Basalt", note: "Weekly habits" },
+  { name: "Focus Crew", note: "Study together, live" },
+  { name: "Trubel", note: "Shared event photos" },
+  { name: "Promillo", note: "Party games" },
 ];
 
 export default function Support() {
   return (
-    <>
-      <div className="bg-stage" aria-hidden="true">
-        <div
-          className="bg-layer bg-layer-1"
-          style={{ backgroundImage: "url('/bg/bg-1.webp')" }}
-        />
-        <div
-          className="bg-layer bg-layer-3"
-          style={{ backgroundImage: "url('/bg/bg-3.webp')" }}
-        />
-        <div className="bg-vignette" />
-      </div>
-
-      <main className="min-h-screen relative">
-        {/* NAV */}
-        <nav className="flex items-center justify-between px-4 sm:px-6 md:px-12 py-4 md:py-5 border-b border-[var(--line)] relative z-20 veil-dark">
-          <Link href="/" className="flex items-baseline gap-2 sm:gap-3">
-            <span className="display text-xl sm:text-2xl">klar</span>
-            <span className="label hidden sm:inline">support</span>
-          </Link>
-          <Link href="/" className="label hover:text-[var(--fg)] transition">
-            ← back
-          </Link>
-        </nav>
-
-        {/* HERO */}
-        <section className="veil-light px-4 sm:px-6 md:px-12 pt-14 sm:pt-20 md:pt-28 pb-12 sm:pb-16 relative z-10 border-b border-[var(--line)]">
-          <div className="flex items-baseline justify-between mb-6 sm:mb-10">
-            <p className="label">support // help.</p>
-            <p className="label">one person · real replies</p>
-          </div>
-
-          <h1 className="display text-[clamp(2.5rem,9vw,6rem)] leading-[0.95] text-[var(--fg)] -ml-1">
-            need a hand?
-          </h1>
-
-          <div className="grid grid-cols-12 gap-4 sm:gap-6 mt-8 sm:mt-12">
-            <div className="col-span-1 md:col-span-2 hidden md:flex justify-end pt-2">
-              <span className="label">↳</span>
-            </div>
-            <div className="col-span-12 md:col-span-8 max-w-2xl">
-              <p className="editorial t-editorial-lg text-[var(--fg-2)]">
-                klar is a one-person studio. that means{" "}
-                <span className="text-[var(--fg)]">
-                  a real human reads every message
-                </span>{" "}
-                and writes back, usually within a few days.
+    <Site>
+      <main>
+        <section className="relative overflow-hidden">
+          <div className="home-grid absolute inset-0" aria-hidden="true" />
+          <div className="home-glow absolute inset-0" aria-hidden="true" />
+          <div className="relative mx-auto max-w-[1280px] px-5 pb-20 pt-32 sm:px-8 md:px-12 md:pb-28 md:pt-40">
+            <p className="text-[13px] font-medium tracking-[-0.005em]">Support</p>
+            <h1 className="mt-6 text-[clamp(64px,11vw,176px)] font-medium leading-[0.88] tracking-[-0.06em]">
+              Need a hand?
+            </h1>
+            <div className="mt-12 grid gap-8 md:grid-cols-[1.2fr_1fr] md:items-end md:gap-16">
+              <p className="max-w-[28ch] text-[clamp(20px,2vw,28px)] leading-[1.25] tracking-[-0.02em]">
+                A real human reads every message and writes back, usually within a few days.
               </p>
-              <p className="t-body-lg text-[var(--fg-2)] mt-5 sm:mt-7 max-w-md">
-                Bug, billing question, account or data request for any of the
-                apps below. Send the app name and what happened, screenshots
-                help.
-              </p>
-
-              <a
-                href={`mailto:${SUPPORT_EMAIL}?subject=Klar%20Support`}
-                className="inline-block mt-7 brut-line label-fg px-5 py-3 hover:bg-[var(--fg)] hover:text-[var(--bg)] transition"
-              >
-                {SUPPORT_EMAIL} →
-              </a>
+              <div>
+                <p className="max-w-[40ch] text-[15px] leading-relaxed text-[var(--ink-2)]">
+                  Bug, billing question, account or data request for any of the apps below. Send the
+                  app name and what happened, screenshots help.
+                </p>
+                <a
+                  href={`mailto:${SUPPORT_EMAIL}?subject=Klar%20Support`}
+                  className="mt-6 inline-flex h-12 items-center rounded-full bg-[var(--ink)] px-6 text-[15px] font-medium tracking-[-0.01em] text-[var(--paper)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition hover:opacity-85"
+                >
+                  {SUPPORT_EMAIL}
+                </a>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* APPS */}
-        <section className="veil-mid px-4 sm:px-6 md:px-12 py-12 sm:py-16 relative z-10 border-b border-[var(--line)]">
-          <p className="label mb-6 sm:mb-8">apps we support</p>
-          <div className="border-t border-[var(--line-strong)]">
-            {APPS.map((app, i) => (
-              <div
-                key={app.name}
-                className="border-b border-[var(--line)] py-4 sm:py-5 grid grid-cols-12 gap-3 items-center"
-              >
-                <div className="col-span-1">
-                  <span className="label">
+        <section className="border-t">
+          <div className="mx-auto max-w-[1280px] px-5 py-16 sm:px-8 md:px-12 md:py-24">
+            <p className="text-[13px] font-medium text-[var(--ink-3)]">Apps we support</p>
+            <ul className="mt-6 border-t">
+              {APPS.map((app, i) => (
+                <li
+                  key={app.name}
+                  className="grid grid-cols-[2.5rem_1fr] items-baseline gap-x-4 gap-y-1 border-b py-5 sm:grid-cols-[4rem_1fr_1fr]"
+                >
+                  <span className="text-[13px] tabular-nums text-[var(--ink-3)]">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                </div>
-                <div className="col-span-5 sm:col-span-4">
-                  <span className="display text-lg sm:text-2xl">
-                    {app.name.toLowerCase()}
+                  <span className="text-[clamp(26px,3.4vw,44px)] font-medium leading-none tracking-[-0.04em]">
+                    {app.name}
                   </span>
-                </div>
-                <div className="col-span-6 sm:col-span-7">
-                  <p className="editorial text-sm sm:text-base text-[var(--fg-2)]">
-                    {app.note}
-                  </p>
-                </div>
-              </div>
-            ))}
+                  <span className="col-start-2 text-[15px] text-[var(--ink-2)] sm:col-start-3">{app.note}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-6 text-[13px] text-[var(--ink-3)]">
+              Response time: a few days, often sooner · operated by Alain Kessler, Switzerland
+            </p>
           </div>
-          <p className="label mt-6">
-            response time: a few days, often sooner · operated by Alain Kessler,
-            CH
-          </p>
         </section>
-
-        {/* FOOTER */}
-        <footer className="veil-dark px-4 sm:px-6 md:px-12 py-8 sm:py-10 relative z-10">
-          <div className="flex flex-col sm:flex-row justify-between gap-3">
-            <div className="flex items-baseline gap-3">
-              <span className="display text-2xl sm:text-3xl">klar</span>
-              <span className="label">support</span>
-            </div>
-            <div className="flex flex-wrap gap-4 sm:gap-6">
-              <Link href="/" className="label hover:text-[var(--fg)] transition">
-                home
-              </Link>
-              <Link
-                href="/log"
-                className="label hover:text-[var(--fg)] transition"
-              >
-                log
-              </Link>
-              <a
-                href={`mailto:${SUPPORT_EMAIL}`}
-                className="label hover:text-[var(--fg)] transition"
-              >
-                {SUPPORT_EMAIL}
-              </a>
-            </div>
-          </div>
-          <p className="label mt-6">© 2026 alain kessler · ch</p>
-        </footer>
       </main>
-    </>
+    </Site>
   );
 }
