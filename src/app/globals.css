@@ -650,5 +650,29 @@ html:has(.home), html:has(.home) body { background: #ededeb; }
   .home-phone-rise, .home-phone-bob { animation: none; }
 }
 
+/* Creators heading: words come into focus one by one, the last line is set in
+   frosted-glass letters (a light gradient through the glyphs, a bright edge, a
+   soft shadow underneath so they stand off the paper). */
+.home-blur-word {
+  display: inline-block;
+  filter: blur(16px);
+  opacity: 0;
+  transform: translateY(0.18em);
+  transition: filter 1s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 1s ease, transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+[data-in] .home-blur-word { filter: blur(0); opacity: 1; transform: none; }
+.home-glass-text {
+  display: inline-block;
+  color: transparent;
+  background: linear-gradient(176deg, rgb(255 255 255 / 0.96) 4%, rgb(150 156 172 / 0.92) 34%, rgb(238 240 246 / 0.97) 50%, rgb(118 124 140 / 0.94) 74%, rgb(196 200 212 / 0.95) 96%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-stroke: 1px rgb(255 255 255 / 0.85);
+  filter: drop-shadow(0 0 0.6px rgb(14 14 16 / 0.55)) drop-shadow(0 2px 2px rgb(14 14 16 / 0.18)) drop-shadow(0 18px 28px rgb(20 20 40 / 0.22));
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-blur-word { filter: none; opacity: 1; transform: none; transition: none; }
+}
+
 .home-rail { scrollbar-width: none; }
 .home-rail::-webkit-scrollbar { display: none; }
