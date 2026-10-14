@@ -44,6 +44,9 @@ export const NAV_ITEMS: NavItemDef[] = [
   { id: "accounts", labelKey: "navAccounts", icon: "lock", href: "/admin/accounts", section: "studios" },
   { id: "collabs", labelKey: "navCollabs", icon: "reply", href: "/admin/collabs", section: "studios" },
   { id: "analytics", labelKey: "navAnalytics", icon: "analytics", href: "/admin/analytics", section: "studios" },
+  // Creators (seit 2026-10-14): Affiliates mit ihrem Detour-Link und wie viele
+  // Nutzer ihnen in der App zugeordnet sind. Direkt unter Analytics (Alains Ansage).
+  { id: "creators", labelKey: "navCreators", icon: "creators", href: "/admin/creators", section: "studios" },
   // App-Nutzung aus PostHog (seit 2026-09-17): Starts, Screens, Versionen je
   // App. Eigener Punkt neben Analytics, weil Analytics die Landings und den
   // Umsatz zeigt und diese Seite das Verhalten IN den Apps.
@@ -82,16 +85,23 @@ export function parseNavPrefs(raw: string | null | undefined): NavPrefs {
 }
 
 /**
- * The items of one section in the admin's order. Items the admin never moved
- * keep their built-in position relative to each other, appended after the ones
- * that were explicitly ordered — so adding a new menu entry in code shows up
- * instead of silently disappearing behind a stale cookie.
+ * The items of one section in the admin's order. An item the admin never moved
+ * sits right behind its built-in predecessor in the same section, wherever the
+ * admin put that one; without such a predecessor it goes to the end. So a new
+ * menu entry added in code shows up where it was placed, instead of silently
+ * disappearing behind a stale cookie or landing at the bottom.
  */
 export function orderedSection(section: NavSection, prefs: NavPrefs, includeHidden = false): NavItemDef[] {
   const items = NAV_ITEMS.filter((i) => i.section === section && (includeHidden || !prefs.hidden.includes(i.id)));
-  const rank = (id: string) => {
+  const inSection = NAV_ITEMS.filter((i) => i.section === section);
+  const rank = (id: string): number => {
     const i = prefs.order.indexOf(id);
-    return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+    if (i !== -1) return i;
+    for (let k = inSection.findIndex((x) => x.id === id) - 1; k >= 0; k--) {
+      const j = prefs.order.indexOf(inSection[k].id);
+      if (j !== -1) return j + 0.5;
+    }
+    return Number.MAX_SAFE_INTEGER;
   };
   return [...items].sort((a, b) => rank(a.id) - rank(b.id) || NAV_ITEMS.indexOf(a) - NAV_ITEMS.indexOf(b));
 }
