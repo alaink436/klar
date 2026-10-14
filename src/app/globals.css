@@ -630,5 +630,25 @@ html:has(.home), html:has(.home) body { background: #ededeb; }
   .home-beam, .home-caret, .home-pop { animation: none; }
 }
 
+/* Hero phones: position, tilt and depth on the link, the rise and the float on
+   two inner layers, so the three transforms never overwrite each other. */
+.home-phone {
+  transform: translateY(var(--lift, 0px)) rotate(var(--rot)) scale(var(--z));
+  transform-origin: 50% 100%;
+  transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.home-phone:hover, .home-phone:focus-visible { --lift: -18px; }
+.home-phone-rise { animation: home-phone-rise 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.home-phone-bob { animation: home-phone-bob 6s ease-in-out infinite; }
+@keyframes home-phone-rise {
+  from { opacity: 0; transform: translateY(55%); }
+}
+@keyframes home-phone-bob {
+  50% { transform: translateY(-4%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-phone-rise, .home-phone-bob { animation: none; }
+}
+
 .home-rail { scrollbar-width: none; }
 .home-rail::-webkit-scrollbar { display: none; }

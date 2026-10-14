@@ -8,6 +8,7 @@ import BeamPill from "./components/home/BeamPill";
 import Film from "./components/home/Film";
 import Site from "./components/home/Site";
 import CreatorForm from "./components/home/CreatorForm";
+import HeroPhones from "./components/home/HeroPhones";
 
 // getklar.org's front page: the apps, nothing else (Alain's call, 2026-10-01).
 // Klar OS, which stood here before, moved to /os and is not linked from here.
@@ -81,16 +82,6 @@ const INQUIRY_SLUG: Record<string, string> = {
   basalt: "wavelength",
   learnbound: "learnbound",
 };
-
-// The hero's fan: one single (unpaired) store screenshot per app, Basalt in the middle.
-const FAN = [shot("yarnstash", 3), shot("kelva", 3), shot("basalt", 3), shot("pocketmate", 3), shot("animevault", 3)];
-const FAN_POSE = [
-  "translate-y-[18%] -rotate-[7deg]",
-  "translate-y-[7%] -rotate-[3.5deg]",
-  "",
-  "translate-y-[7%] rotate-[3.5deg]",
-  "translate-y-[18%] rotate-[7deg]",
-];
 
 function StoreButton({ app }: { app: App }) {
   if (app.soon) {
@@ -213,19 +204,7 @@ export default function Home() {
               <BeamPill apps={APPS.map(({ name, icon }) => ({ name, icon }))} />
             </div>
           </div>
-          <div className="relative mx-auto mt-14 flex h-[clamp(210px,30vw,440px)] justify-center gap-[2vw] overflow-x-visible overflow-y-clip px-5 md:mt-20">
-            {FAN.map((src, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={src}
-                src={src}
-                alt=""
-                width={660}
-                height={1434}
-                className={`h-auto w-[clamp(120px,15vw,215px)] shrink-0 self-start rounded-[16px] shadow-[0_30px_60px_-30px_rgba(0,0,0,0.45)] ${FAN_POSE[i]} ${i === 0 || i === 4 ? "hidden sm:block" : ""}`}
-              />
-            ))}
-          </div>
+          <HeroPhones apps={APPS.map(({ id, name, icon, play, soon }) => ({ id, name, icon, play, soon }))} />
         </section>
 
         <section id="creators" className="scroll-mt-20 border-t">
