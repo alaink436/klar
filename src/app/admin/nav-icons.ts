@@ -25,6 +25,7 @@ import { Clapperboard } from "@/components/animate-ui/icons/clapperboard";
 import { CalendarDays } from "@/components/animate-ui/icons/calendar-days";
 import { ChartColumn } from "@/components/animate-ui/icons/chart-column";
 import { Activity } from "@/components/animate-ui/icons/activity";
+import { Users } from "@/components/animate-ui/icons/users";
 import { CircuitBoard } from "@/components/animate-ui/icons/circuit-board";
 import { Clock } from "@/components/animate-ui/icons/clock";
 import { LockKeyhole } from "@/components/animate-ui/icons/lock-keyhole";
@@ -48,6 +49,7 @@ export const NAV_ICON: Record<string, NavIcon> = {
   calendar: CalendarDays, // Bookings
   analytics: ChartColumn,
   activity: Activity, // App-Nutzung, der Puls der Apps
+  creators: Users,
   brain: CircuitBoard, // Knoten und Kanten, wie der Graph selbst
   doc: Clock, // Chronik ist eine Zeitachse, kein Blatt
   key: LockKeyhole, // Vault
