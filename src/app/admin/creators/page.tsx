@@ -1,8 +1,9 @@
 // Klar Control · Creators.
 //
 // Server component, 2FA-gated wie der Rest von /admin. Oben die Apps, je mit
-// Marke, ob sie Detour hat; darunter das Formular fuer einen neuen Creator, die
-// Links (filterbar nach App) und die Nutzer, die ueber einen Link kamen.
+// Marke, ob sie Detour hat, und dem Link auf ihr Creator Kit; darunter das
+// Formular fuer einen neuen Creator, die Links (filterbar nach App) und die
+// Nutzer, die ueber einen Link kamen.
 // Geschrieben wird ueber /admin/creators/save, gelesen ueber src/lib/creators.ts.
 
 import Link from "next/link";
@@ -22,6 +23,17 @@ export const runtime = "nodejs";
 
 const mono = { fontFamily: "var(--font-mono)", fontSize: 12.5 } as const;
 const tabelle = "rounded-none border-0 bg-transparent [&_th]:bg-transparent";
+
+/** Creator Kit je App (Logo, Store-Screenshots, Film, About-Text) auf Google Drive,
+    angelegt 2026-10-14. Schluessel ist `klar_creator_apps.slug`. */
+const creatorKits: Record<string, string> = {
+  basalt: "https://drive.google.com/drive/folders/1RffgGteAJpQPj0xBxrWS4DNYX4v7HoT0",
+  pocketmate: "https://drive.google.com/drive/folders/10nMoWWWbrB9F3658ZcD66oyeez47G6xB", // Ordner heisst MyLoo
+  "anime-vault": "https://drive.google.com/drive/folders/11an26m-Vn1IuQhQqzxFVg1JwZowMuRlB",
+  "yarn-stash": "https://drive.google.com/drive/folders/1jjH_wvBEJ8zePYyYCEDAmcjtLfwhGMyG",
+  kelva: "https://drive.google.com/drive/folders/1YQCBUEelc-3KTc_btcDAuLF7GqpuTAhU",
+  learnbound: "https://drive.google.com/drive/folders/1KDBdQFVayleMSgpTqwJT75crxNjRhTtZ",
+};
 
 // Farbe als Inline-Stil: `a{color:inherit}` in _shared.ts schlaegt jede Tailwind-Textfarbe.
 function LinkZelle({ href }: { href: string }) {
@@ -100,6 +112,7 @@ export default async function CreatorsPage({
                   <th>App</th>
                   <th>Kurzlinks</th>
                   <th>Detour</th>
+                  <th>Creator Kit</th>
                   <th style={{ textAlign: "right" }}>Creators</th>
                   <th aria-label="Aktionen" />
                 </tr>
@@ -111,6 +124,20 @@ export default async function CreatorsPage({
                     <td style={mono}>getklar.org/{a.shortPath}/…</td>
                     <td>
                       <DetourMarke an={!!a.detourLink} />
+                    </td>
+                    <td>
+                      {creatorKits[a.slug] ? (
+                        <a
+                          href={creatorKits[a.slug]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-fg-2 underline decoration-white/25 underline-offset-4 transition-colors hover:text-fg hover:decoration-white/60"
+                        >
+                          Drive-Ordner
+                        </a>
+                      ) : (
+                        "–"
+                      )}
                     </td>
                     <td style={{ ...mono, textAlign: "right" }}>{a.creators}</td>
                     <td>
