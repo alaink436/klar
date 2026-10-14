@@ -11,11 +11,10 @@ type Props = {
   wide: string;
   tall?: string;
   label: string;
-  fit?: "cover" | "contain";
   className?: string;
 };
 
-export default function Film({ wide, tall, label, fit = "cover", className = "" }: Props) {
+export default function Film({ wide, tall, label, className = "" }: Props) {
   const [src, setSrc] = useState<string | null>(null);
   const video = useRef<HTMLVideoElement>(null);
 
@@ -44,7 +43,7 @@ export default function Film({ wide, tall, label, fit = "cover", className = "" 
         <video
           ref={video}
           key={src}
-          className={`h-full w-full ${fit === "contain" ? "object-contain" : "object-cover"}`}
+          className="h-full w-full object-cover"
           src={`${src}.mp4`}
           poster={`${src}.jpg`}
           muted

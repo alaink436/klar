@@ -41,7 +41,7 @@ type App = {
   href: string;
   play?: string;
   soon: boolean;
-  film?: { wide: string; tall?: string; fit?: "contain" };
+  film: { wide: string; tall?: string };
   shots: number;
 };
 
@@ -55,11 +55,11 @@ const film = (name: string) => `/home/films/${name}`;
 
 const APPS: App[] = [
   { id: "pocketmate", name: "Pocketmate", kind: "Couple widget", line: "A home-screen widget for two people who like each other.", ...fromRegistry("myloo"), film: { wide: film("pocketmate-tall") }, shots: 5 },
-  { id: "animevault", name: "Anime Vault", kind: "Tracker & list", line: "Talk about anime, keep your list and never miss an episode.", ...fromRegistry("anime-vault"), film: { wide: film("animevault-square"), fit: "contain" }, shots: 4 },
-  { id: "yarnstash", name: "My Yarn Stash", kind: "Row counter", line: "A row counter built for the moment your hands are full.", ...fromRegistry("yarn-stash"), shots: 4 },
+  { id: "animevault", name: "Anime Vault", kind: "Tracker & list", line: "Talk about anime, keep your list and never miss an episode.", ...fromRegistry("anime-vault"), film: { wide: film("animevault-wide"), tall: film("animevault-tall") }, shots: 4 },
+  { id: "yarnstash", name: "My Yarn Stash", kind: "Row counter", line: "A row counter built for the moment your hands are full.", ...fromRegistry("yarn-stash"), film: { wide: film("yarnstash-wide"), tall: film("yarnstash-tall") }, shots: 4 },
   { id: "kelva", name: "Kelva", kind: "Strength & cycle", line: "Your programme stays put. Kelva adjusts today's session to the week you are having.", ...fromRegistry("kelva"), film: { wide: film("kelva-wide"), tall: film("kelva-tall") }, shots: 6 },
   { id: "basalt", name: "Basalt", kind: "Weekly habits", line: "Write down what you want to follow through on, then tick it off on the home screen.", ...fromRegistry("wavelength"), film: { wide: film("basalt-wide") }, shots: 5 },
-  { id: "learnbound", name: "Learnbound", kind: "Put your phone in the box", line: "Set a box on your desk and put your phone in. Only the time it stays there counts as study time.", icon: "/learnbound/icon-v2.webp", href: "/learnbound", soon: true, shots: 0 },
+  { id: "learnbound", name: "Learnbound", kind: "Put your phone in the box", line: "Set a box on your desk and put your phone in. Only the time it stays there counts as study time.", icon: "/learnbound/icon-v2.webp", href: "/learnbound", soon: true, film: { wide: film("learnbound-wide"), tall: film("learnbound-tall") }, shots: 0 },
 ];
 
 // Creators (getklar.org is the page creators land on from TikTok, Alain 2026-10-14).
@@ -85,12 +85,14 @@ const INQUIRY_SLUG: Record<string, string> = {
   learnbound: "learnbound",
 };
 
-function StoreButton({ app }: { app: App }) {
+// `onFilm`: the buttons sit on the dark fade over the film (md and up), so the
+// App Store button turns white and the others go glassy-dark.
+function StoreButton({ app, onFilm = false }: { app: App; onFilm?: boolean }) {
   if (app.soon) {
     return (
       <Link
         href={app.href}
-        className="inline-flex h-12 items-center rounded-full border border-[var(--ink)] px-6 text-[15px] font-medium tracking-[-0.01em] transition hover:bg-[var(--ink)] hover:text-[var(--paper)]"
+        className={`inline-flex h-12 items-center rounded-full border px-6 text-[15px] font-medium tracking-[-0.01em] transition ${onFilm ? "border-white/70 text-white hover:bg-white hover:text-[var(--ink)]" : "border-[var(--ink)] hover:bg-[var(--ink)] hover:text-[var(--paper)]"}`}
       >
         Coming soon
       </Link>
@@ -102,7 +104,7 @@ function StoreButton({ app }: { app: App }) {
         href={app.href}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex h-12 items-center gap-2.5 rounded-full bg-[var(--ink)] px-6 text-[15px] font-medium tracking-[-0.01em] text-[var(--paper)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition hover:opacity-85"
+        className={`inline-flex h-12 items-center gap-2.5 rounded-full px-6 text-[15px] font-medium tracking-[-0.01em] transition hover:opacity-85 ${onFilm ? "bg-white text-[var(--ink)]" : "bg-[var(--ink)] text-[var(--paper)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"}`}
       >
         <AppleSvg size={15} />
         App Store
@@ -112,7 +114,7 @@ function StoreButton({ app }: { app: App }) {
           href={app.play}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex h-12 items-center gap-2.5 rounded-full border border-white/70 bg-white/50 px-6 text-[15px] font-medium tracking-[-0.01em] shadow-[0_8px_24px_-14px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl transition hover:bg-white/80"
+          className={`inline-flex h-12 items-center gap-2.5 rounded-full border px-6 text-[15px] font-medium tracking-[-0.01em] backdrop-blur-xl transition ${onFilm ? "border-white/40 bg-white/15 text-white hover:bg-white/25" : "border-white/70 bg-white/50 shadow-[0_8px_24px_-14px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.9)] hover:bg-white/80"}`}
         >
           <PlaySvg size={15} />
           Google Play
@@ -130,41 +132,49 @@ function AppSection({ app, index }: { app: App; index: number }) {
           {String(index + 1).padStart(2, "0")} · {app.kind} · {app.soon ? "Coming soon" : app.play ? "iPhone & Android" : "iPhone"}
         </p>
 
-        {app.film && (
+        {/* Logo, name, line and store buttons sit on the film (Alain: saves space),
+            over a dark fade so they read on bright films too. On phones the 3:2
+            film only has room for logo and name; line and buttons go below it. */}
+        <div className="relative mt-6">
           <Film
             wide={app.film.wide}
             tall={app.film.tall}
-            fit={app.film.fit}
             label={`${app.name} film`}
-            className={`mt-6 aspect-[3/2] rounded-[24px] md:aspect-[21/9] md:rounded-[32px] ${app.film.fit === "contain" ? "bg-[#060608]" : "bg-[var(--hair)]"}`}
+            className="aspect-[3/2] rounded-[24px] bg-[var(--hair)] md:aspect-[21/9] md:rounded-[32px]"
           />
-        )}
-
-        <div className="mt-12 grid gap-8 md:mt-16 md:grid-cols-[1.2fr_1fr] md:items-end md:gap-16">
-          <div>
-            <Image
-              src={app.icon}
-              alt={`${app.name} icon`}
-              width={96}
-              height={96}
-              className="rounded-[22.5%] shadow-[0_18px_40px_-16px_rgba(0,0,0,0.35)]"
-            />
-            <h2 className="mt-7 text-[clamp(56px,8.5vw,136px)] font-medium leading-[0.88] tracking-[-0.055em]">
-              {app.name}
-            </h2>
-          </div>
-          <div className="md:pb-2">
-            <p className="max-w-[34ch] text-[clamp(18px,1.6vw,23px)] leading-[1.3] tracking-[-0.015em] text-[var(--ink-2)]">
-              {app.line}
-            </p>
-            <div className="mt-8">
-              <StoreButton app={app} />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 rounded-b-[24px] bg-gradient-to-t from-black/70 via-black/25 to-transparent px-5 pb-5 pt-20 md:rounded-b-[32px] md:from-black/75 md:via-black/30 md:px-10 md:pb-10 md:pt-44">
+            <div className="flex items-end justify-between gap-10">
+              <div className="text-white">
+                <Image
+                  src={app.icon}
+                  alt={`${app.name} icon`}
+                  width={72}
+                  height={72}
+                  className="size-11 rounded-[22.5%] shadow-[0_12px_30px_-10px_rgba(0,0,0,0.5)] md:size-[72px]"
+                />
+                <h2 className="mt-3 text-[clamp(34px,6.4vw,104px)] font-medium leading-[0.9] tracking-[-0.05em] md:mt-5">
+                  {app.name}
+                </h2>
+                <p className="mt-4 hidden max-w-[40ch] text-[clamp(16px,1.35vw,20px)] leading-[1.3] tracking-[-0.01em] text-white/85 md:block">
+                  {app.line}
+                </p>
+              </div>
+              <div className="pointer-events-auto hidden shrink-0 md:block">
+                <StoreButton app={app} onFilm />
+              </div>
             </div>
           </div>
         </div>
 
+        <div className="mt-6 md:hidden">
+          <p className="text-[18px] leading-[1.3] tracking-[-0.015em] text-[var(--ink-2)]">{app.line}</p>
+          <div className="mt-6">
+            <StoreButton app={app} />
+          </div>
+        </div>
+
         {app.shots > 0 && (
-          <div className="home-rail -mx-5 mt-16 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 sm:-mx-8 sm:px-8 md:mx-0 md:mt-20 md:px-0">
+          <div className="home-rail -mx-5 mt-12 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 sm:-mx-8 sm:px-8 md:mx-0 md:mt-8 md:px-0">
             {Array.from({ length: app.shots }, (_, i) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
