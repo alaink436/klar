@@ -8,7 +8,7 @@ import { useState } from "react";
 // TikTok and Instagram only; no promo codes, creators earn through their own
 // link or CPM. Every choice is a chip, never a native select menu.
 
-type AppOption = { slug: string; name: string; icon: string };
+type AppOption = { slug: string; name: string; icon: string; recommended: boolean };
 type Mode = "email" | "dm";
 type State = "idle" | "sending" | "sent" | "error";
 
@@ -186,19 +186,20 @@ export default function CreatorForm({ apps, tiktok }: { apps: AppOption[]; tikto
           <div className="mt-5">
             <span className={label}>App you would post about</span>
             <div className="flex flex-wrap gap-2">
-              {[{ slug: "", name: "Any, you pick", icon: "" }, ...apps].map((a) => (
+              {[{ slug: "", name: "Any, you pick", icon: "", recommended: true }, ...apps].map((a) => (
                 <button
                   key={a.slug || "any"}
                   type="button"
                   aria-pressed={app === a.slug}
                   onClick={() => setApp(a.slug)}
-                  className={`inline-flex h-10 items-center gap-2 rounded-full border pr-4 text-[14px] font-medium transition ${a.icon ? "pl-2" : "pl-4"} ${app === a.slug ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]" : "border-[var(--hair)] bg-white/70 hover:border-[var(--ink-3)]"}`}
+                  className={`inline-flex h-10 items-center gap-2 rounded-full border pr-4 text-[14px] font-medium transition ${a.icon ? "pl-2" : "pl-4"} ${a.recommended ? "" : "opacity-55"} ${app === a.slug ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]" : "border-[var(--hair)] bg-white/70 hover:border-[var(--ink-3)]"}`}
                 >
                   {a.icon && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={a.icon} alt="" width={24} height={24} className="size-6 rounded-[22.5%]" />
                   )}
                   {a.name}
+                  {!a.recommended && <span className="text-[12px] font-normal opacity-80">· not recommended</span>}
                 </button>
               ))}
             </div>
