@@ -89,7 +89,13 @@ export async function POST(req: Request): Promise<Response> {
   if (!isEmail(email))
     return json({ success: false, error: "bad_email" }, 400);
 
+  // The id is ours, not the database's: anon may INSERT but not SELECT, so
+  // asking PostgREST to hand the row back (return=representation) fails RLS
+  // with 42501. That is how every form request since the notification log was
+  // added got lost as "store_failed" (found 2026-10-14, last row 2026-05-28).
+  const id = crypto.randomUUID();
   const row: Json = {
+    id,
     type,
     email,
     status: "new",
@@ -102,12 +108,15 @@ export async function POST(req: Request): Promise<Response> {
     row.audience = str(payload.audience, 200) || null;
     row.platforms = str(payload.platforms, 300) || null;
     row.why = str(payload.why, 8000) || null;
+    // How the creator wants to be paid (creator form on the front page).
+    const deal = str(payload.deal, 20);
+    if (deal === "commission" || deal === "cpm") row.deal = deal;
     // Influencer's app pre-selection (optional). Validated against the
     // DB check-constraint klar_inquiries_target_app_chk — invalid values
     // get dropped silently rather than failing the whole insert.
     const rawTarget = str(payload.target_app, 40);
     const VALID_APPS = new Set([
-      "trubel", "myloo", "wavelength", "yarn-stash", "kelva", "moto",
+      "trubel", "myloo", "wavelength", "yarn-stash", "kelva", "moto", "anime-vault", "learnbound",
     ]);
     if (VALID_APPS.has(rawTarget)) row.target_app = rawTarget;
   } else {
@@ -118,14 +127,13 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   try {
-    // We need the inserted row back to attach its id to the notification log.
     const res = await fetch(`${SUPABASE_URL}/rest/v1/klar_inquiries`, {
       method: "POST",
       headers: {
         apikey: ANON_KEY,
         Authorization: `Bearer ${ANON_KEY}`,
         "Content-Type": "application/json",
-        Prefer: "return=representation",
+        Prefer: "return=minimal",
       },
       body: JSON.stringify(row),
       cache: "no-store",
@@ -135,10 +143,7 @@ export async function POST(req: Request): Promise<Response> {
       console.error("klar_inquiries insert failed", res.status, await res.text());
       return json({ success: false, error: "store_failed" }, 502);
     }
-    const inserted = (await res.json().catch(() => [])) as Array<{
-      id?: string;
-    }>;
-    const inquiryId = Array.isArray(inserted) ? inserted[0]?.id ?? null : null;
+    const inquiryId = id;
 
     // Read admin settings once. Best-effort — getAdminSettings falls back to
     // defaults if the inbox project is unreachable, so a misconfig here

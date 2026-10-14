@@ -7,6 +7,7 @@ import DissolveWord from "./components/home/DissolveWord";
 import BeamPill from "./components/home/BeamPill";
 import Film from "./components/home/Film";
 import Site from "./components/home/Site";
+import CreatorForm from "./components/home/CreatorForm";
 
 // getklar.org's front page: the apps, nothing else (Alain's call, 2026-10-01).
 // Klar OS, which stood here before, moved to /os and is not linked from here.
@@ -59,6 +60,27 @@ const APPS: App[] = [
   { id: "basalt", name: "Basalt", kind: "Weekly habits", line: "Write down what you want to follow through on, then tick it off on the home screen.", ...fromRegistry("wavelength"), film: { wide: film("basalt-wide") }, shots: 5 },
   { id: "learnbound", name: "Learnbound", kind: "Put your phone in the box", line: "Set a box on your desk and put your phone in. Only the time it stays there counts as study time.", icon: "/learnbound/icon.webp", href: "/learnbound", soon: true, shots: 0 },
 ];
+
+// Creators (getklar.org is the page creators land on from TikTok, Alain 2026-10-14).
+// They choose how they are paid; no promo codes, earnings run through their own link.
+const DEALS = [
+  { title: "Commission", line: "Your own link. You earn a share of every subscription that comes through it." },
+  { title: "CPM", line: "A rate per thousand views on the videos you post about one of our apps." },
+];
+const STEPS = [
+  "Apply with the form, it takes a minute.",
+  "We match you with an app that fits your audience and send you the details.",
+  "You post, and get paid the way you picked.",
+];
+// The app keys klar_inquiries.target_app accepts (myloo = Pocketmate, wavelength = Basalt).
+const INQUIRY_SLUG: Record<string, string> = {
+  pocketmate: "myloo",
+  animevault: "anime-vault",
+  yarnstash: "yarn-stash",
+  kelva: "kelva",
+  basalt: "wavelength",
+  learnbound: "learnbound",
+};
 
 // The hero's fan: one single (unpaired) store screenshot per app, Basalt in the middle.
 const FAN = [shot("yarnstash", 3), shot("kelva", 3), shot("basalt", 3), shot("pocketmate", 3), shot("animevault", 3)];
@@ -203,6 +225,45 @@ export default function Home() {
                 className={`h-auto w-[clamp(120px,15vw,215px)] shrink-0 self-start rounded-[16px] shadow-[0_30px_60px_-30px_rgba(0,0,0,0.45)] ${FAN_POSE[i]} ${i === 0 || i === 4 ? "hidden sm:block" : ""}`}
               />
             ))}
+          </div>
+        </section>
+
+        <section id="creators" className="scroll-mt-20 border-t">
+          <div className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 md:px-12 md:py-32">
+            <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">For creators</p>
+            <h2 className="mt-6 text-[clamp(52px,8vw,128px)] font-medium leading-[0.9] tracking-[-0.055em]">
+              Post about our apps.
+              <br />
+              Get paid.
+            </h2>
+            <div className="mt-14 grid gap-12 md:grid-cols-[1fr_1.1fr] md:gap-16">
+              <div>
+                <p className="max-w-[34ch] text-[clamp(18px,1.6vw,23px)] leading-[1.3] tracking-[-0.015em] text-[var(--ink-2)]">
+                  You pick how you earn: a share of every subscription that comes through your own link, or a rate per
+                  thousand views.
+                </p>
+                <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                  {DEALS.map((d) => (
+                    <div
+                      key={d.title}
+                      className="rounded-[24px] border border-white/70 bg-white/50 p-6 shadow-[0_18px_40px_-26px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl"
+                    >
+                      <p className="text-[22px] font-medium tracking-[-0.03em]">{d.title}</p>
+                      <p className="mt-2 text-[14.5px] leading-relaxed text-[var(--ink-2)]">{d.line}</p>
+                    </div>
+                  ))}
+                </div>
+                <ol className="mt-10 space-y-5">
+                  {STEPS.map((step, i) => (
+                    <li key={step} className="grid grid-cols-[2.5rem_1fr] items-baseline">
+                      <span className="text-[13px] tabular-nums text-[var(--ink-3)]">{String(i + 1).padStart(2, "0")}</span>
+                      <span className="text-[17px] leading-snug tracking-[-0.01em]">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              <CreatorForm apps={APPS.map((a) => ({ slug: INQUIRY_SLUG[a.id], name: a.name }))} />
+            </div>
           </div>
         </section>
 
