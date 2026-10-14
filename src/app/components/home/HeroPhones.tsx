@@ -11,12 +11,12 @@ export type HeroPhoneApp = { id: string; name: string; icon: string; play?: stri
 
 // left %, top % (how far down the phone starts), depth (scale), tilt, float period in s
 const POSE = [
-  { left: 4, top: 16, z: 0.86, rot: -5, period: 6.2 },
-  { left: 19, top: 3, z: 1.0, rot: 3, period: 7.4 },
-  { left: 34, top: 20, z: 0.9, rot: -2, period: 5.6 },
-  { left: 50, top: 1, z: 1.06, rot: 4, period: 6.8 },
-  { left: 65, top: 14, z: 0.94, rot: -3, period: 7.9 },
-  { left: 80, top: 6, z: 0.88, rot: 5, period: 6.0 },
+  { left: 4, top: 24, z: 0.86, rot: -5, period: 6.2 },
+  { left: 19, top: 6, z: 1.0, rot: 3, period: 7.4 },
+  { left: 34, top: 25, z: 0.9, rot: -2, period: 5.6 },
+  { left: 50, top: 2, z: 1.06, rot: 4, period: 6.8 },
+  { left: 65, top: 17, z: 0.94, rot: -3, period: 7.9 },
+  { left: 80, top: 10, z: 0.88, rot: 5, period: 6.0 },
 ];
 
 function Screen({ app }: { app: HeroPhoneApp }) {
@@ -28,11 +28,12 @@ function Screen({ app }: { app: HeroPhoneApp }) {
       <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
       <div className="absolute left-1/2 top-[1.8%] h-[3.4%] w-[30%] -translate-x-1/2 rounded-full bg-black" />
 
-      <div className="relative flex h-full flex-col items-center px-[8%] pt-[32%] text-center text-white">
+      {/* Only the top half shows above the fold, so everything sits up there. */}
+      <div className="relative flex h-full flex-col items-center px-[11%] pt-[17cqw] text-center text-white">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={app.icon} alt="" className="w-[46%] rounded-[22.5%] shadow-[0_10px_30px_rgba(0,0,0,0.45)]" />
-        <p className="mt-[9cqw] text-[10cqw] font-semibold leading-none tracking-[-0.03em]">{app.name}</p>
-        <div className="mt-auto mb-[16%] flex w-full flex-col gap-[3cqw]">
+        <img src={app.icon} alt="" className="w-[38%] rounded-[22.5%] shadow-[0_10px_30px_rgba(0,0,0,0.45)]" />
+        <p className="mt-[6cqw] text-[9.5cqw] font-semibold leading-none tracking-[-0.03em]">{app.name}</p>
+        <div className="mt-[7cqw] flex w-full flex-col gap-[2.5cqw]">
           {app.soon ? (
             <span className="rounded-full border border-white/40 bg-white/15 py-[3.4cqw] text-[6.4cqw] font-medium backdrop-blur-md">
               Coming soon
@@ -59,9 +60,10 @@ function Screen({ app }: { app: HeroPhoneApp }) {
 
 export default function HeroPhones({ apps }: { apps: HeroPhoneApp[] }) {
   return (
-    // Clipped at the bottom only: the phones rise out of the fold, and the
-    // tallest one's float would otherwise be cut at the top.
-    <div className="relative mx-auto mt-14 h-[clamp(300px,36vw,520px)] max-w-[1180px] [clip-path:inset(-60%_-20%_0_-20%)] md:mt-20">
+    // Clipped at the bottom only, about halfway down the phones (Alain: "nur die
+    // Hälfte des Bildschirms"), like the screenshot fan before; the top stays open
+    // so the tallest phone's float is not cut.
+    <div className="relative mx-auto mt-14 h-[clamp(170px,17vw,250px)] max-w-[1180px] [clip-path:inset(-200%_-20%_0_-20%)] md:mt-20">
       {apps.map((app, i) => {
         const p = POSE[i % POSE.length];
         return (
