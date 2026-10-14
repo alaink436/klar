@@ -1,18 +1,17 @@
 // Klar Control · Creators.
 //
-// Server component, 2FA-gated wie der Rest von /admin. Zeigt je Creator den
-// Kurzlink (getklar.org/<app>/<handle>), den Detour-Link dahinter und wie viele
-// angemeldete Nutzer ihm in der App zugeordnet sind, darunter diese Nutzer
-// selbst. Anlegen und Entfernen gehen an /admin/creators/save. Die Daten
-// kommen aus src/lib/creators.ts.
+// Server component, 2FA-gated wie der Rest von /admin. Oben die Apps, je mit
+// Marke, ob sie Detour hat; darunter das Formular fuer einen neuen Creator, die
+// Links (filterbar nach App) und die Nutzer, die ueber einen Link kamen.
+// Geschrieben wird ueber /admin/creators/save, gelesen ueber src/lib/creators.ts.
 
+import Link from "next/link";
 import { Users } from "lucide-react";
 import { requireAdminPage } from "../../../lib/adminGuard";
-import { CREATOR_APPS, USER_LIST_LIMIT, fetchCreators } from "../../../lib/creators";
-import { getApps } from "../../../lib/adminApps";
+import { USER_LIST_LIMIT, fetchCreators } from "../../../lib/creators";
 import { AdminTopbar } from "../AdminTopbar";
 import { Kennzahlen } from "../Kennzahlen";
-import { EntfernenKnopf } from "./EntfernenKnopf";
+import { AppDialog, BestaetigenKnopf } from "./CreatorDialoge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
@@ -33,18 +32,28 @@ function LinkZelle({ href }: { href: string }) {
   );
 }
 
+function DetourMarke({ an }: { an: boolean }) {
+  return (
+    <span className="klar-marke">
+      <span className="klar-punkt" style={{ background: an ? "var(--success)" : "var(--warning)" }} aria-hidden="true" />
+      {an ? "Detour" : "kein Detour"}
+    </span>
+  );
+}
+
 export default async function CreatorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ msg?: string; err?: string }>;
+  searchParams: Promise<{ msg?: string; err?: string; app?: string }>;
 }) {
   await requireAdminPage();
   const sp = await searchParams;
-  const { creators, users, errors } = await fetchCreators();
-  const zugeordnet = creators.reduce((n, c) => n + c.referrals, 0);
+  const { apps, creators, users, errors } = await fetchCreators();
+  const filter = apps.some((a) => a.slug === sp.app) ? sp.app : undefined;
+  const sichtbar = filter ? creators.filter((c) => c.appSlug === filter) : creators;
+  const zugeordnet = creators.reduce((n, c) => n + (c.referrals ?? 0), 0);
   const pro = users.filter((u) => u.pro).length;
-  const verbunden = getApps();
-  const apps = CREATOR_APPS.map((c) => ({ slug: c.slug, name: verbunden.find((a) => a.slug === c.slug)?.name ?? c.slug }));
+  const mitCreators = apps.filter((a) => a.creators > 0);
 
   return (
     <>
@@ -53,12 +62,12 @@ export default async function CreatorsPage({
       <div className="content">
         <PageHeader eyebrow="Klar Control" icon={<Users />} title="Creators">
           Wer einen Link hat und wie viele Nutzer über ihn gekommen sind. Gezählt wird, wer sich nach dem Klick in der App
-          angemeldet hat.
+          angemeldet hat, und nur bei Apps mit Detour.
         </PageHeader>
 
         <Kennzahlen
           zahlen={[
-            { label: "Creators", wert: creators.length, zusatz: "mit eigenem Link" },
+            { label: "Creators", wert: creators.length, zusatz: `in ${mitCreators.length} von ${apps.length} Apps` },
             { label: "Zugeordnet", wert: zugeordnet, zusatz: "angemeldete Nutzer über einen Link" },
             {
               label: "Davon Pro",
@@ -77,24 +86,79 @@ export default async function CreatorsPage({
           </TextureCard>
         ))}
 
+        <div className="flex items-end justify-between gap-3">
+          <h2>Apps</h2>
+          <div className="mb-3">
+            <AppDialog />
+          </div>
+        </div>
+        <TextureCard className="mb-8">
+          <div style={{ overflowX: "auto" }}>
+            <table className={tabelle}>
+              <thead>
+                <tr>
+                  <th>App</th>
+                  <th>Kurzlinks</th>
+                  <th>Detour</th>
+                  <th style={{ textAlign: "right" }}>Creators</th>
+                  <th aria-label="Aktionen" />
+                </tr>
+              </thead>
+              <tbody>
+                {apps.map((a) => (
+                  <tr key={a.slug}>
+                    <td className="text-fg">{a.name}</td>
+                    <td style={mono}>getklar.org/{a.shortPath}/…</td>
+                    <td>
+                      <DetourMarke an={!!a.detourLink} />
+                    </td>
+                    <td style={{ ...mono, textAlign: "right" }}>{a.creators}</td>
+                    <td>
+                      <div className="flex justify-end gap-2">
+                        <AppDialog
+                          app={{
+                            slug: a.slug,
+                            name: a.name,
+                            shortPath: a.shortPath,
+                            detourLink: a.detourLink ?? "",
+                            storeUrl: a.storeUrl ?? "",
+                          }}
+                        />
+                        {a.creators === 0 ? (
+                          <BestaetigenKnopf
+                            label="Entfernen"
+                            titel={`${a.name} entfernen?`}
+                            text="Die App verschwindet aus dieser Liste, ihre Kurzlinks gibt es danach nicht mehr."
+                            felder={{ action: "app-remove", slug: a.slug }}
+                          />
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </TextureCard>
+
         <h2>Neuer Creator</h2>
         <TextureCard className="mb-8 p-5">
           <form method="POST" action="/admin/creators/save" data-klar-leeren="ja" className="flex flex-wrap items-end gap-3">
             <input type="hidden" name="action" value="add" />
-            {apps.length === 1 ? (
-              <input type="hidden" name="app" value={apps[0].slug} />
-            ) : (
-              <label className="grid gap-1.5 text-[12px] text-fg-3">
-                App
-                <select name="app" className="h-9 rounded-md border bg-transparent px-2 text-[13px] text-fg">
-                  {apps.map((a) => (
-                    <option key={a.slug} value={a.slug}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
+            <label className="grid min-w-[160px] gap-1.5 text-[12px] text-fg-3">
+              App
+              <select
+                name="app"
+                defaultValue={filter ?? apps.find((a) => a.detourLink)?.slug}
+                className="h-9 rounded-md border bg-transparent px-2 text-[13px] text-fg"
+              >
+                {apps.map((a) => (
+                  <option key={a.slug} value={a.slug}>
+                    {a.detourLink ? a.name : `${a.name} (kein Detour)`}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="grid min-w-[180px] flex-1 gap-1.5 text-[12px] text-fg-3">
               Name
               <Input name="name" placeholder="Tony Stark" required maxLength={80} />
@@ -109,8 +173,22 @@ export default async function CreatorsPage({
           </form>
         </TextureCard>
 
-        <h2>Links</h2>
-        {creators.length === 0 ? (
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2>Links</h2>
+          {mitCreators.length > 1 ? (
+            <div className="klar-segment mb-3" role="tablist" aria-label="App">
+              <Link href="/admin/creators" role="tab" aria-selected={!filter}>
+                Alle
+              </Link>
+              {mitCreators.map((a) => (
+                <Link key={a.slug} href={`/admin/creators?app=${a.slug}`} role="tab" aria-selected={filter === a.slug}>
+                  {a.name}
+                </Link>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        {sichtbar.length === 0 ? (
           <TextureCard className="mb-8 p-5 text-[13px] text-fg-3">Noch keine Creators.</TextureCard>
         ) : (
           <TextureCard className="mb-8">
@@ -126,24 +204,26 @@ export default async function CreatorsPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {creators.map((c) => (
+                  {sichtbar.map((c) => (
                     <tr key={`${c.appSlug}:${c.handle}`}>
                       <td>
                         <div className="text-fg">{c.name}</div>
                         <div className="text-[12px] text-fg-3" style={{ fontFamily: "var(--font-mono)" }}>
                           {c.appName} · {c.handle}
-                          {c.status !== "active" ? ` · ${c.status}` : ""}
                         </div>
                       </td>
                       <td>
                         <LinkZelle href={c.shortLink} />
                       </td>
-                      <td>
-                        <LinkZelle href={c.link} />
-                      </td>
-                      <td style={{ ...mono, textAlign: "right" }}>{c.referrals}</td>
+                      <td>{c.link ? <LinkZelle href={c.link} /> : <DetourMarke an={false} />}</td>
+                      <td style={{ ...mono, textAlign: "right" }}>{c.referrals ?? "–"}</td>
                       <td style={{ textAlign: "right" }}>
-                        <EntfernenKnopf app={c.appSlug} handle={c.handle} name={c.name} />
+                        <BestaetigenKnopf
+                          label="Entfernen"
+                          titel={`${c.name} entfernen?`}
+                          text="Sein Kurzlink geht danach nicht mehr. Wer schon über ihn gekommen ist, bleibt ihm zugeordnet."
+                          felder={{ action: "remove", app: c.appSlug, handle: c.handle }}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -164,6 +244,7 @@ export default async function CreatorsPage({
                   <tr>
                     <th>Nutzer</th>
                     <th>Creator</th>
+                    <th>App</th>
                     <th>Zugeordnet am</th>
                     <th style={{ textAlign: "right" }}>Pro</th>
                   </tr>
@@ -173,6 +254,7 @@ export default async function CreatorsPage({
                     <tr key={`${u.assignedAt}:${i}`}>
                       <td className="text-fg">{u.name}</td>
                       <td>{u.creator}</td>
+                      <td>{u.app}</td>
                       <td style={mono}>{new Date(u.assignedAt).toLocaleDateString("de-CH")}</td>
                       <td style={{ ...mono, textAlign: "right" }}>{u.pro ? "Pro" : "nein"}</td>
                     </tr>
