@@ -9,14 +9,15 @@ import { AppleSvg, PlaySvg } from "../StoreBadges";
 
 export type HeroPhoneApp = { id: string; name: string; icon: string; play?: string; soon: boolean };
 
-// left %, top % (how far down the phone starts), depth (scale), tilt, float period in s
+// left %, top % (how far down the phone starts), depth (scale), tilt, float period in s.
+// Phones show the first four only (Yarn Stash and Anime Vault come last), spread by `m`.
 const POSE = [
-  { left: 4, top: 14, z: 0.86, rot: -5, period: 6.2 },
-  { left: 19, top: 6, z: 1.0, rot: 3, period: 7.4 },
-  { left: 34, top: 15, z: 0.9, rot: -2, period: 5.6 },
-  { left: 50, top: 3, z: 1.06, rot: 4, period: 6.8 },
-  { left: 65, top: 11, z: 0.94, rot: -3, period: 7.9 },
-  { left: 80, top: 8, z: 0.88, rot: 5, period: 6.0 },
+  { left: 4, m: 2, top: 14, z: 0.86, rot: -5, period: 6.2 },
+  { left: 19, m: 25, top: 6, z: 1.0, rot: 3, period: 7.4 },
+  { left: 34, m: 48, top: 15, z: 0.9, rot: -2, period: 5.6 },
+  { left: 50, m: 71, top: 3, z: 1.06, rot: 4, period: 6.8 },
+  { left: 65, m: 0, top: 11, z: 0.94, rot: -3, period: 7.9 },
+  { left: 80, m: 0, top: 8, z: 0.88, rot: 5, period: 6.0 },
 ];
 
 function Screen({ app }: { app: HeroPhoneApp }) {
@@ -71,10 +72,11 @@ export default function HeroPhones({ apps }: { apps: HeroPhoneApp[] }) {
             key={app.id}
             href={`#${app.id}`}
             aria-label={`${app.name}: jump to the app`}
-            className={`home-phone group absolute w-[clamp(96px,13.5vw,196px)] ${i === 0 || i === 5 ? "hidden sm:block" : ""}`}
+            className={`home-phone group absolute left-[var(--lm)] w-[clamp(96px,13.5vw,196px)] sm:left-[var(--l)] ${i >= 4 ? "hidden sm:block" : ""}`}
             style={
               {
-                left: `${p.left}%`,
+                "--l": `${p.left}%`,
+                "--lm": `${p.m}%`,
                 top: `${p.top}%`,
                 zIndex: Math.round(p.z * 10),
                 "--rot": `${p.rot}deg`,

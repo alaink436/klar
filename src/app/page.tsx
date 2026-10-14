@@ -5,6 +5,7 @@ import { findKlarApp } from "@/lib/klarApps";
 import { AppleSvg, PlaySvg } from "./components/StoreBadges";
 import DissolveWord from "./components/home/DissolveWord";
 import BeamPill from "./components/home/BeamPill";
+import AppCarousel from "./components/home/AppCarousel";
 import Film from "./components/home/Film";
 import Site from "./components/home/Site";
 import CreatorForm from "./components/home/CreatorForm";
@@ -53,13 +54,14 @@ function fromRegistry(slug: string) {
 const shot = (id: string, n: number) => `/home/shots/${id}/${String(n).padStart(2, "0")}.webp`;
 const film = (name: string) => `/home/films/${name}`;
 
+// Order and the two not to promote: Alain, 2026-10-14.
 const APPS: App[] = [
-  { id: "pocketmate", name: "Pocketmate", kind: "Couple widget", line: "A home-screen widget for two people who like each other.", ...fromRegistry("myloo"), film: { wide: film("pocketmate-tall") }, shots: 5 },
-  { id: "animevault", name: "Anime Vault", kind: "Tracker & list", line: "Talk about anime, keep your list and never miss an episode.", ...fromRegistry("anime-vault"), film: { wide: film("animevault-wide"), tall: film("animevault-tall") }, shots: 4 },
-  { id: "yarnstash", name: "My Yarn Stash", kind: "Row counter", line: "A row counter built for the moment your hands are full.", ...fromRegistry("yarn-stash"), film: { wide: film("yarnstash-wide"), tall: film("yarnstash-tall") }, shots: 4 },
-  { id: "kelva", name: "Kelva", kind: "Strength & cycle", line: "Your programme stays put. Kelva adjusts today's session to the week you are having.", ...fromRegistry("kelva"), film: { wide: film("kelva-wide"), tall: film("kelva-tall") }, shots: 6 },
   { id: "basalt", name: "Basalt", kind: "Weekly habits", line: "Write down what you want to follow through on, then tick it off on the home screen.", ...fromRegistry("wavelength"), film: { wide: film("basalt-wide") }, shots: 5 },
+  { id: "kelva", name: "Kelva", kind: "Strength & cycle", line: "Your programme stays put. Kelva adjusts today's session to the week you are having.", ...fromRegistry("kelva"), film: { wide: film("kelva-wide"), tall: film("kelva-tall") }, shots: 6 },
+  { id: "pocketmate", name: "Pocketmate", kind: "Couple widget", line: "A home-screen widget for two people who like each other.", ...fromRegistry("myloo"), film: { wide: film("pocketmate-tall") }, shots: 5 },
   { id: "learnbound", name: "Learnbound", kind: "Put your phone in the box", line: "Set a box on your desk and put your phone in. Only the time it stays there counts as study time.", icon: "/learnbound/icon-v2.webp", href: "/learnbound", soon: true, film: { wide: film("learnbound-wide"), tall: film("learnbound-tall") }, shots: 0 },
+  { id: "yarnstash", name: "My Yarn Stash", kind: "Row counter", line: "A row counter built for the moment your hands are full.", ...fromRegistry("yarn-stash"), film: { wide: film("yarnstash-wide"), tall: film("yarnstash-tall") }, shots: 4 },
+  { id: "animevault", name: "Anime Vault", kind: "Tracker & list", line: "Talk about anime, keep your list and never miss an episode.", ...fromRegistry("anime-vault"), film: { wide: film("animevault-wide"), tall: film("animevault-tall") }, shots: 4 },
 ];
 
 // Creators (getklar.org is the page creators land on from TikTok, Alain 2026-10-14).
@@ -75,6 +77,8 @@ const STEPS = [
   "We match you with an app that fits your audience and start a paid test period: 7 days, $50.",
   "After the test period you post, and get paid the way you picked.",
 ];
+// Not to promote right now: still listed in the form, marked as not recommended.
+const NOT_RECOMMENDED = new Set(["yarnstash", "animevault"]);
 // The app keys klar_inquiries.target_app accepts (myloo = Pocketmate, wavelength = Basalt).
 const INQUIRY_SLUG: Record<string, string> = {
   pocketmate: "myloo",
@@ -124,73 +128,77 @@ function StoreButton({ app, onFilm = false }: { app: App; onFilm?: boolean }) {
   );
 }
 
-function AppSection({ app, index }: { app: App; index: number }) {
+// One app as a card in the carousel: film with logo, name, line and store
+// buttons on it (Alain: saves space), then the store screenshots, cut off like
+// the hero phones. The screenshots do not scroll on their own, so sideways
+// swipes always move the carousel.
+function AppCard({ app, index }: { app: App; index: number }) {
   return (
-    <section id={app.id} className="scroll-mt-4 border-t">
-      <div className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 md:px-12 md:py-32">
-        <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">
-          {String(index + 1).padStart(2, "0")} · {app.kind} · {app.soon ? "Coming soon" : app.play ? "iPhone & Android" : "iPhone"}
-        </p>
+    <article
+      id={app.id}
+      className="w-[86vw] max-w-[1100px] shrink-0 snap-center scroll-mt-24 rounded-[30px] border border-white/70 bg-white/45 p-3 shadow-[0_30px_60px_-40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl sm:p-4 md:rounded-[40px] md:p-5"
+    >
+      <p className="px-2 pt-1 text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">
+        {String(index + 1).padStart(2, "0")} · {app.kind} · {app.soon ? "Coming soon" : app.play ? "iPhone & Android" : "iPhone"}
+      </p>
 
-        {/* Logo, name, line and store buttons sit on the film (Alain: saves space),
-            over a dark fade so they read on bright films too. On phones the 3:2
-            film only has room for logo and name; line and buttons go below it. */}
-        <div className="relative mt-6">
-          <Film
-            wide={app.film.wide}
-            tall={app.film.tall}
-            label={`${app.name} film`}
-            className="aspect-[3/2] rounded-[24px] bg-[var(--hair)] md:aspect-[21/9] md:rounded-[32px]"
-          />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 rounded-b-[24px] bg-gradient-to-t from-black/70 via-black/25 to-transparent px-5 pb-5 pt-20 md:rounded-b-[32px] md:from-black/75 md:via-black/30 md:px-10 md:pb-10 md:pt-44">
-            <div className="flex items-end justify-between gap-10">
-              <div className="text-white">
-                <Image
-                  src={app.icon}
-                  alt={`${app.name} icon`}
-                  width={72}
-                  height={72}
-                  className="size-11 rounded-[22.5%] shadow-[0_12px_30px_-10px_rgba(0,0,0,0.5)] md:size-[72px]"
-                />
-                <h2 className="mt-3 text-[clamp(34px,6.4vw,104px)] font-medium leading-[0.9] tracking-[-0.05em] md:mt-5">
-                  {app.name}
-                </h2>
-                <p className="mt-4 hidden max-w-[40ch] text-[clamp(16px,1.35vw,20px)] leading-[1.3] tracking-[-0.01em] text-white/85 md:block">
-                  {app.line}
-                </p>
-              </div>
-              <div className="pointer-events-auto hidden shrink-0 md:block">
-                <StoreButton app={app} onFilm />
-              </div>
+      {/* Over a dark fade so the text reads on bright films too. On phones the
+          3:2 film only has room for logo and name; line and buttons go below. */}
+      <div className="relative mt-3">
+        <Film
+          wide={app.film.wide}
+          tall={app.film.tall}
+          label={`${app.name} film`}
+          className="aspect-[3/2] rounded-[22px] bg-[var(--hair)] md:aspect-[21/9] md:rounded-[28px]"
+        />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 rounded-b-[22px] bg-gradient-to-t from-black/70 via-black/25 to-transparent px-5 pb-5 pt-20 md:rounded-b-[28px] md:from-black/75 md:via-black/30 md:px-9 md:pb-8 md:pt-40">
+          <div className="flex items-end justify-between gap-10">
+            <div className="text-white">
+              <Image
+                src={app.icon}
+                alt={`${app.name} icon`}
+                width={64}
+                height={64}
+                className="size-11 rounded-[22.5%] shadow-[0_12px_30px_-10px_rgba(0,0,0,0.5)] md:size-16"
+              />
+              <h2 className="mt-3 text-[clamp(34px,5.6vw,88px)] font-medium leading-[0.9] tracking-[-0.05em] md:mt-4">
+                {app.name}
+              </h2>
+              <p className="mt-3 hidden max-w-[40ch] text-[clamp(15px,1.25vw,19px)] leading-[1.3] tracking-[-0.01em] text-white/85 md:block">
+                {app.line}
+              </p>
+            </div>
+            <div className="pointer-events-auto hidden shrink-0 md:block">
+              <StoreButton app={app} onFilm />
             </div>
           </div>
         </div>
-
-        <div className="mt-6 md:hidden">
-          <p className="text-[18px] leading-[1.3] tracking-[-0.015em] text-[var(--ink-2)]">{app.line}</p>
-          <div className="mt-6">
-            <StoreButton app={app} />
-          </div>
-        </div>
-
-        {app.shots > 0 && (
-          <div className="home-rail -mx-5 mt-12 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 sm:-mx-8 sm:px-8 md:mx-0 md:mt-8 md:px-0">
-            {Array.from({ length: app.shots }, (_, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={i}
-                src={shot(app.id, i + 1)}
-                alt={`${app.name} screenshot ${i + 1}`}
-                width={660}
-                height={1434}
-                loading="lazy"
-                className="h-auto w-[min(58vw,232px)] shrink-0 snap-start rounded-[18px] shadow-[0_24px_50px_-28px_rgba(0,0,0,0.35)]"
-              />
-            ))}
-          </div>
-        )}
       </div>
-    </section>
+
+      <div className="mt-5 px-2 md:hidden">
+        <p className="text-[17px] leading-[1.3] tracking-[-0.015em] text-[var(--ink-2)]">{app.line}</p>
+        <div className="mt-5">
+          <StoreButton app={app} />
+        </div>
+      </div>
+
+      {app.shots > 0 && (
+        <div className="mt-5 grid h-[clamp(170px,21vw,260px)] grid-cols-3 gap-2 overflow-hidden [mask-image:linear-gradient(to_bottom,#000_55%,transparent)] md:mt-4 md:grid-cols-5 md:gap-3">
+          {Array.from({ length: Math.min(app.shots, 5) }, (_, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={i}
+              src={shot(app.id, i + 1)}
+              alt={`${app.name} screenshot ${i + 1}`}
+              width={660}
+              height={1434}
+              loading="lazy"
+              className={`h-auto w-full rounded-[16px] ${i >= 3 ? "hidden md:block" : ""}`}
+            />
+          ))}
+        </div>
+      )}
+    </article>
   );
 }
 
@@ -257,7 +265,7 @@ export default function Home() {
                   the test period runs longer.
                 </p>
               </div>
-              <CreatorForm tiktok={TIKTOK} apps={APPS.map((a) => ({ slug: INQUIRY_SLUG[a.id], name: a.name, icon: a.icon }))} />
+              <CreatorForm tiktok={TIKTOK} apps={APPS.map((a) => ({ slug: INQUIRY_SLUG[a.id], name: a.name, icon: a.icon, recommended: !NOT_RECOMMENDED.has(a.id) }))} />
             </div>
           </div>
         </section>
@@ -282,9 +290,13 @@ export default function Home() {
           </ul>
         </nav>
 
-        {APPS.map((app, i) => (
-          <AppSection key={app.id} app={app} index={i} />
-        ))}
+        <section aria-label="The apps" className="pb-20 md:pb-28">
+          <AppCarousel>
+            {APPS.map((app, i) => (
+              <AppCard key={app.id} app={app} index={i} />
+            ))}
+          </AppCarousel>
+        </section>
       </main>
     </Site>
   );
