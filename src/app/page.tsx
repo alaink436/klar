@@ -71,7 +71,7 @@ const DEALS = [
 // Test period and DM account: Alain, 2026-10-14.
 const TIKTOK = "clairmentklarclear";
 const STEPS = [
-  "Apply with the form, or send us a DM on TikTok.",
+  "Apply by email with the form, or send us a DM on TikTok.",
   "We match you with an app that fits your audience and start a paid test period: 7 days, $50.",
   "After the test period you post, and get paid the way you picked.",
 ];
@@ -253,18 +253,11 @@ export default function Home() {
                   ))}
                 </ol>
                 <p className="mt-8 max-w-[44ch] border-l-2 border-[var(--ink)] pl-4 text-[14.5px] leading-relaxed text-[var(--ink-2)]">
-                  The test period needs an account that is already warmed up. Starting on a new account, it runs longer.
+                  You need at least 1,000 followers and an account that is already warmed up. Starting on a new account,
+                  the test period runs longer.
                 </p>
-                <a
-                  href={`https://www.tiktok.com/@${TIKTOK}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-8 inline-flex h-12 items-center gap-2 rounded-full border border-white/70 bg-white/50 px-6 text-[15px] font-medium tracking-[-0.01em] shadow-[0_8px_24px_-14px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl transition hover:bg-white/80"
-                >
-                  DM @{TIKTOK} on TikTok
-                </a>
               </div>
-              <CreatorForm apps={APPS.map((a) => ({ slug: INQUIRY_SLUG[a.id], name: a.name }))} />
+              <CreatorForm tiktok={TIKTOK} apps={APPS.map((a) => ({ slug: INQUIRY_SLUG[a.id], name: a.name, icon: a.icon }))} />
             </div>
           </div>
         </section>
