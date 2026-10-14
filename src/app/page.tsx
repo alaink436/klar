@@ -8,6 +8,7 @@ import BeamPill from "./components/home/BeamPill";
 import AppCarousel from "./components/home/AppCarousel";
 import Film from "./components/home/Film";
 import Site from "./components/home/Site";
+import BlurHeadline from "./components/home/BlurHeadline";
 import CreatorForm from "./components/home/CreatorForm";
 import HeroPhones from "./components/home/HeroPhones";
 
@@ -227,14 +228,17 @@ export default function Home() {
           <HeroPhones apps={APPS.map(({ id, name, icon, play, soon }) => ({ id, name, icon, play, soon }))} />
         </section>
 
-        <section id="creators" className="scroll-mt-20 border-t">
-          <div className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 md:px-12 md:py-32">
+        <section id="creators" className="relative scroll-mt-20 overflow-hidden border-t">
+          {/* Soft colour behind the heading, so the glass plate has something to frost. */}
+          <div aria-hidden="true" className="pointer-events-none absolute -left-[10%] top-[2%] size-[min(70vw,640px)] rounded-full bg-[#b7a6ff]/35 blur-[90px]" />
+          <div aria-hidden="true" className="pointer-events-none absolute left-[22%] top-[14%] size-[min(55vw,520px)] rounded-full bg-[#6fc7c0]/30 blur-[90px]" />
+          <div className="relative mx-auto max-w-[1280px] px-5 py-20 sm:px-8 md:px-12 md:py-32">
             <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">For creators</p>
-            <h2 className="mt-6 text-[clamp(52px,8vw,128px)] font-medium leading-[0.9] tracking-[-0.055em]">
-              Post about our apps.
-              <br />
-              Get paid.
-            </h2>
+            <BlurHeadline
+              lead="Post about our apps."
+              glass="Get paid."
+              className="mt-6 text-[clamp(52px,8vw,128px)] font-medium leading-[0.9] tracking-[-0.055em]"
+            />
             <div className="mt-14 grid gap-12 md:grid-cols-[1fr_1.1fr] md:gap-16">
               <div>
                 <p className="max-w-[34ch] text-[clamp(18px,1.6vw,23px)] leading-[1.3] tracking-[-0.015em] text-[var(--ink-2)]">

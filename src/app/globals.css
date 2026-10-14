@@ -650,5 +650,24 @@ html:has(.home), html:has(.home) body { background: #ededeb; }
   .home-phone-rise, .home-phone-bob { animation: none; }
 }
 
+/* Creators heading: words come into focus one by one, the last line lands on glass. */
+.home-blur-word {
+  display: inline-block;
+  filter: blur(16px);
+  opacity: 0;
+  transform: translateY(0.18em);
+  transition: filter 1s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 1s ease, transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.home-glass-plate {
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+[data-in] .home-blur-word { filter: blur(0); opacity: 1; transform: none; }
+[data-in] .home-glass-plate { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .home-blur-word, .home-glass-plate { filter: none; opacity: 1; transform: none; transition: none; }
+}
+
 .home-rail { scrollbar-width: none; }
 .home-rail::-webkit-scrollbar { display: none; }
