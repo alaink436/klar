@@ -1,0 +1,16 @@
+{
+  "name": "Basalt - Follow Through",
+  "short_name": "Basalt",
+  "start_url": "/basalt",
+  "display": "browser",
+  "background_color": "#ededeb",
+  "theme_color": "#ededeb",
+  "icons": [
+    { "src": "/basalt/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/basalt/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "prefer_related_applications": true,
+  "related_applications": [
+    { "platform": "play", "id": "com.basalt.app", "url": "https://play.google.com/store/apps/details?id=com.basalt.app" }
+  ]
+}
