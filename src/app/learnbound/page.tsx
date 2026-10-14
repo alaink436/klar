@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: "Learnbound · put your phone in the box",
   description: LINE,
   robots: { index: true, follow: true },
-  openGraph: { title: "Learnbound · put your phone in the box", description: LINE, images: ["/learnbound/icon.webp"] },
+  openGraph: { title: "Learnbound · put your phone in the box", description: LINE, images: ["/learnbound/icon-v2.webp"] },
 };
 
 const APP_STORE_URL = "https://apps.apple.com/app/id6778560113";
@@ -39,7 +39,7 @@ export default function LearnboundHomePage() {
     <main style={{ minHeight: "100vh", position: "relative", zIndex: 10, background: GROUND, color: INK, fontFamily: "system-ui, sans-serif" }}>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "64px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 40 }}>
-          <Image src="/learnbound/icon.webp" alt="Learnbound icon" width={72} height={72} priority style={{ borderRadius: 18 }} />
+          <Image src="/learnbound/icon-v2.webp" alt="Learnbound icon" width={72} height={72} priority style={{ borderRadius: 18 }} />
           <div>
             <h1 style={{ fontSize: 30, fontWeight: 800, margin: 0 }}>Learnbound</h1>
             <p style={{ color: MUTED, margin: 0 }}>put your phone in the box</p>
