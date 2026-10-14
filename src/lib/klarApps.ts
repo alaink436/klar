@@ -24,6 +24,8 @@ export interface KlarAppMeta {
   /** Shipped App Store version + build. Only set for apps that are LIVE. */
   release?: string;
   appStoreUrl?: string;
+  /** Only for apps that are public on Google Play (measured: page answers 200, not 404). */
+  playStoreUrl?: string;
   /** false = kept for data continuity, but never shown on the public site. */
   publicSite?: boolean;
   /**
@@ -82,6 +84,7 @@ export const KLAR_APPS: KlarAppMeta[] = [
     status: "LIVE",
     release: "v1.2.1",
     appStoreUrl: "https://apps.apple.com/app/id6759915617",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=com.animevault.app",
     publicSite: true,
     backendSlug: "promillio",
   },
@@ -144,6 +147,9 @@ export const KLAR_APPS: KlarAppMeta[] = [
     status: "LIVE",
     release: "v2.3.0",
     appStoreUrl: "https://apps.apple.com/app/id6762440839",
+    // Play lists Basalt as com.basalt.app (public since 2026-10-12), not under
+    // the com.wavelenght.app that app.json still carries.
+    playStoreUrl: "https://play.google.com/store/apps/details?id=com.basalt.app",
     publicSite: true,
   },
   // Promillo was paused 2026-06-30 and its Supabase project was recycled for
