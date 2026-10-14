@@ -6,6 +6,9 @@ import { useEffect, useRef, useState } from "react";
 // `wide` is the 21:9 cut for desktop, `tall` the 3:2 cut for phones; each is a
 // path without extension, with `.mp4` and a `.jpg` poster next to it. Plays only
 // while on screen, so six films on one page do not all decode at once.
+// The video takes no touches at all: on iPhone a swipe across it in the app
+// carousel opened Safari's own player (Alain, 2026-10-14), so pointer events
+// pass through to the card, and picture-in-picture and AirPlay are off.
 
 type Props = {
   wide: string;
@@ -43,12 +46,14 @@ export default function Film({ wide, tall, label, className = "" }: Props) {
         <video
           ref={video}
           key={src}
-          className="h-full w-full object-cover"
+          className="pointer-events-none h-full w-full object-cover"
           src={`${src}.mp4`}
           poster={`${src}.jpg`}
           muted
           loop
           playsInline
+          disablePictureInPicture
+          disableRemotePlayback
           preload="metadata"
           aria-label={label}
         />
