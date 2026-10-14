@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Inter_Tight } from "next/font/google";
 import { findKlarApp } from "@/lib/klarApps";
+import { AppleSvg, PlaySvg } from "./components/StoreBadges";
 import DissolveWord from "./components/home/DissolveWord";
 import BeamPill from "./components/home/BeamPill";
 import Film from "./components/home/Film";
@@ -44,6 +45,7 @@ type App = {
   line: string;
   icon: string;
   href: string;
+  play?: string;
   soon: boolean;
   film?: { wide: string; tall?: string; fit?: "contain" };
   shots: number;
@@ -51,7 +53,7 @@ type App = {
 
 function fromRegistry(slug: string) {
   const app = findKlarApp(slug)!;
-  return { icon: app.icon, href: app.appStoreUrl!, soon: false };
+  return { icon: app.icon, href: app.appStoreUrl!, play: app.playStoreUrl, soon: false };
 }
 
 const shot = (id: string, n: number) => `/home/shots/${id}/${String(n).padStart(2, "0")}.webp`;
@@ -76,14 +78,6 @@ const FAN_POSE = [
   "translate-y-[18%] rotate-[7deg]",
 ];
 
-function AppleMark() {
-  return (
-    <svg width="15" height="18" viewBox="0 0 22 26" fill="currentColor" aria-hidden="true">
-      <path d="M17.55 13.85c0-3.18 2.6-4.7 2.72-4.78-1.48-2.16-3.79-2.46-4.6-2.49-1.96-.2-3.83 1.15-4.83 1.15-1.01 0-2.55-1.12-4.19-1.09-2.16.03-4.15 1.25-5.27 3.18-2.25 3.9-.58 9.66 1.61 12.83 1.07 1.55 2.34 3.29 4.01 3.23 1.61-.06 2.22-1.04 4.17-1.04 1.94 0 2.49 1.04 4.19 1 1.73-.03 2.83-1.58 3.89-3.14 1.22-1.79 1.73-3.53 1.76-3.62-.04-.02-3.38-1.3-3.46-5.13zM14.42 4.34c.88-1.07 1.48-2.55 1.32-4.04-1.27.05-2.83.85-3.74 1.91-.81.94-1.53 2.45-1.34 3.91 1.42.11 2.87-.72 3.76-1.78z" />
-    </svg>
-  );
-}
-
 function StoreButton({ app }: { app: App }) {
   if (app.soon) {
     return (
@@ -96,15 +90,28 @@ function StoreButton({ app }: { app: App }) {
     );
   }
   return (
-    <a
-      href={app.href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex h-12 items-center gap-2.5 rounded-full bg-[var(--ink)] px-6 text-[15px] font-medium tracking-[-0.01em] text-[var(--paper)] transition hover:opacity-85"
-    >
-      <AppleMark />
-      App Store
-    </a>
+    <div className="flex flex-wrap gap-3">
+      <a
+        href={app.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex h-12 items-center gap-2.5 rounded-full bg-[var(--ink)] px-6 text-[15px] font-medium tracking-[-0.01em] text-[var(--paper)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition hover:opacity-85"
+      >
+        <AppleSvg size={15} />
+        App Store
+      </a>
+      {app.play && (
+        <a
+          href={app.play}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex h-12 items-center gap-2.5 rounded-full border border-white/70 bg-white/50 px-6 text-[15px] font-medium tracking-[-0.01em] shadow-[0_8px_24px_-14px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl transition hover:bg-white/80"
+        >
+          <PlaySvg size={15} />
+          Google Play
+        </a>
+      )}
+    </div>
   );
 }
 
@@ -113,7 +120,7 @@ function AppSection({ app, index }: { app: App; index: number }) {
     <section id={app.id} className="scroll-mt-4 border-t">
       <div className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 md:px-12 md:py-32">
         <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">
-          {String(index + 1).padStart(2, "0")} · {app.kind}
+          {String(index + 1).padStart(2, "0")} · {app.kind} · {app.soon ? "Coming soon" : app.play ? "iPhone & Android" : "iPhone"}
         </p>
 
         {app.film && (

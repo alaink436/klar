@@ -19,7 +19,7 @@ const badgeActive =
 const badgeDisabled =
   "bg-transparent text-[var(--fg-3)] border-[var(--line)] opacity-60 cursor-not-allowed";
 
-const AppleSvg = ({ size = 22 }: { size?: number }) => (
+export const AppleSvg = ({ size = 22 }: { size?: number }) => (
   <svg
     width={size}
     height={(size * 26) / 22}
@@ -32,7 +32,7 @@ const AppleSvg = ({ size = 22 }: { size?: number }) => (
   </svg>
 );
 
-const PlaySvg = ({ size = 22 }: { size?: number }) => (
+export const PlaySvg = ({ size = 22 }: { size?: number }) => (
   <svg
     width={size}
     height={(size * 24) / 22}
