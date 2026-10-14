@@ -580,3 +580,37 @@ details[open] .acc-toggle::after { content: "−"; }
   --sidebar-border: hsl(240 3.7% 15.9%);
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
+
+/* ── Home: light editorial (2026-10-14) ──
+   Only the front page is light. The other marketing pages stay dark, so the
+   tokens live on .home and not on :root. */
+html:has(.home), html:has(.home) body { background: #ededeb; }
+
+.home {
+  --paper: #ededeb;
+  --ink: #0e0e10;
+  --ink-2: #3b3b41;
+  --ink-3: #7b7b82;
+  --hair: rgb(14 14 16 / 0.1);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-grotesk), system-ui, sans-serif;
+  min-height: 100vh;
+}
+.home ::selection { background: var(--ink); color: var(--paper); }
+.home * { border-color: var(--hair); }
+
+.home-grid {
+  background-image:
+    linear-gradient(rgb(14 14 16 / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(14 14 16 / 0.05) 1px, transparent 1px);
+  background-size: 72px 72px;
+  background-position: center top;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, #000 20%, transparent 85%);
+}
+.home-glow {
+  background: radial-gradient(ellipse 55% 45% at 50% 32%, rgb(255 255 255 / 0.7), transparent 70%);
+}
+
+.home-rail { scrollbar-width: none; }
+.home-rail::-webkit-scrollbar { display: none; }
