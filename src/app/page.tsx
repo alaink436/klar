@@ -228,11 +228,8 @@ export default function Home() {
           <HeroPhones apps={APPS.map(({ id, name, icon, play, soon }) => ({ id, name, icon, play, soon }))} />
         </section>
 
-        <section id="creators" className="relative scroll-mt-20 overflow-hidden border-t">
-          {/* Soft colour behind the heading, so the glass plate has something to frost. */}
-          <div aria-hidden="true" className="pointer-events-none absolute -left-[10%] top-[2%] size-[min(70vw,640px)] rounded-full bg-[#b7a6ff]/35 blur-[90px]" />
-          <div aria-hidden="true" className="pointer-events-none absolute left-[22%] top-[14%] size-[min(55vw,520px)] rounded-full bg-[#6fc7c0]/30 blur-[90px]" />
-          <div className="relative mx-auto max-w-[1280px] px-5 py-20 sm:px-8 md:px-12 md:py-32">
+        <section id="creators" className="scroll-mt-20 border-t">
+          <div className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 md:px-12 md:py-32">
             <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">For creators</p>
             <BlurHeadline
               lead="Post about our apps."

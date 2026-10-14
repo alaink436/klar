@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
-// "Post about our apps. Get paid." with a blur reveal and a glass plate
-// (Alain, 2026-10-14). When the heading scrolls into view its words come into
-// focus one after another; the last line lands on frosted glass, which the
-// coloured glow behind the section shows through.
+// "Post about our apps. Get paid." with the effect on the letters themselves
+// (Alain, 2026-10-14: "Effekte auf den Fonts, nicht auf dem Hintergrund").
+// When the heading scrolls into view its words come out of a blur one after
+// another, and the last line is set in frosted-glass letters.
 
 export default function BlurHeadline({ lead, glass, className = "" }: { lead: string; glass: string; className?: string }) {
   const ref = useRef<HTMLHeadingElement>(null);
@@ -29,9 +29,11 @@ export default function BlurHeadline({ lead, glass, className = "" }: { lead: st
 
   const leadWords = lead.split(" ");
   const glassWords = glass.split(" ");
-  const word = (w: string, i: number) => (
+  // Blur on the outer span, glass on the inner one: both are filters and would
+  // overwrite each other on a single element.
+  const word = (w: string, i: number, glassy = false) => (
     <span key={i} className="home-blur-word" style={{ transitionDelay: `${i * 90}ms` }}>
-      {w}
+      {glassy ? <span className="home-glass-text">{w}</span> : w}
     </span>
   );
 
@@ -43,17 +45,12 @@ export default function BlurHeadline({ lead, glass, className = "" }: { lead: st
         </span>
       ))}
       <br />
-      <span
-        className="home-glass-plate mt-[0.12em] inline-block rounded-[0.32em] border border-white/70 bg-white/30 px-[0.2em] pb-[0.08em] shadow-[0_30px_70px_-30px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-1px_0_rgba(255,255,255,0.4)] backdrop-blur-2xl backdrop-saturate-150"
-        style={{ transitionDelay: `${leadWords.length * 90}ms` }}
-      >
-        {glassWords.map((w, i) => (
-          <span key={i}>
-            {word(w, leadWords.length + i)}
-            {i < glassWords.length - 1 ? " " : ""}
-          </span>
-        ))}
-      </span>
+      {glassWords.map((w, i) => (
+        <span key={i}>
+          {word(w, leadWords.length + i, true)}
+          {i < glassWords.length - 1 ? " " : ""}
+        </span>
+      ))}
     </h2>
   );
 }
