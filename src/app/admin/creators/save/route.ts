@@ -1,10 +1,11 @@
-// POST /admin/creators/save: einen Creator anlegen (action=add) oder entfernen
-// (action=remove). Schreibt in die Supabase der App, siehe src/lib/creators.ts.
+// POST /admin/creators/save: Creator anlegen oder entfernen, App anlegen,
+// bearbeiten oder entfernen. Schreibt in die Klar-Hub-Supabase, siehe
+// src/lib/creators.ts.
 
 import { NextResponse, type NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
 import { requireAdminRoute } from "@/lib/adminGuard";
-import { addCreator, removeCreator } from "@/lib/creators";
+import { addCreator, removeApp, removeCreator, saveApp, type CreatorWrite } from "@/lib/creators";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,17 +27,31 @@ export async function POST(req: NextRequest): Promise<Response> {
   } catch {
     return back(req, "err", "Formular unlesbar");
   }
+  const get = (k: string) => String(form.get(k) ?? "");
 
-  const action = String(form.get("action") ?? "");
-  const app = String(form.get("app") ?? "");
-  const handle = String(form.get("handle") ?? "");
-
-  const res =
-    action === "add"
-      ? await addCreator(app, String(form.get("name") ?? ""), handle)
-      : action === "remove"
-        ? await removeCreator(app, handle)
-        : { ok: false as const, msg: "Unbekannte Aktion" };
+  let res: CreatorWrite;
+  switch (get("action")) {
+    case "add":
+      res = await addCreator(get("app"), get("name"), get("handle"));
+      break;
+    case "remove":
+      res = await removeCreator(get("app"), get("handle"));
+      break;
+    case "app-save":
+      res = await saveApp({
+        slug: get("slug") || undefined,
+        name: get("name"),
+        shortPath: get("short_path"),
+        detourLink: get("detour_link"),
+        storeUrl: get("store_url"),
+      });
+      break;
+    case "app-remove":
+      res = await removeApp(get("slug"));
+      break;
+    default:
+      res = { ok: false, msg: "Unbekannte Aktion" };
+  }
 
   revalidatePath("/admin/creators");
   return back(req, res.ok ? "msg" : "err", res.msg);
