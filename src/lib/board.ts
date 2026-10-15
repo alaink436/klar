@@ -14,6 +14,12 @@
 // Uebersetzung genau diese Spalten zeigt. `translations` traegt jede Sprache,
 // die Quellsprache eingeschlossen. Eine App anschliessen heisst: Vertrag in
 // ihrer Datenbank anlegen und eine Zeile in BOARD_APPS.
+//
+// Meldungen (Basalt 2.6.0, Events): Nutzer melden einen Spitznamen aus der
+// Liste eines Events. Die App-Datenbank liefert sie ueber
+// `event_report_list()` und erledigt sie ueber `handle_event_report()`, beide
+// nur fuer den Service-Key. Sperren ersetzt den Spitznamen im Event durch einen
+// neutralen, die Teilnahme bleibt. Eine App ohne Events hat keine Meldungen.
 
 import { getApps, type AdminApp } from "./adminApps";
 import { BoardError, translateItems, type Translations } from "./boardTranslate";
@@ -89,7 +95,26 @@ export interface Wish {
   readAt: string | null;
 }
 
+/** Ein gemeldeter Eintrag in einem Event, alle Meldungen dazu zusammengefasst. */
+export interface EventReport {
+  eventId: string;
+  /** Das gemeldete Konto, fuer Sperren und Erledigen. */
+  userId: string;
+  nickname: string;
+  /** ISO-Region der Flagge, null ohne Flagge. */
+  flag: string | null;
+  blocked: boolean;
+  /** Wie viele Leute den Eintrag gemeldet haben. */
+  reports: number;
+  /** Davon noch nicht erledigt. */
+  open: number;
+  firstAt: string;
+  lastAt: string;
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Kennung eines Events, wie die Tabelle `events` sie erlaubt. */
+const EVENT_ID_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const TITLE_MAX = 120;
 const DETAIL_MAX = 600;
 const COMMENT_MAX = 2000;
@@ -318,4 +343,49 @@ export async function promoteWish(app: BoardApp, wishId: string, input: IdeaText
 export async function markWishRead(app: BoardApp, wishId: string): Promise<void> {
   const res = await db(app, "rpc/mark_wish_read", { method: "POST", body: JSON.stringify({ p_wish_id: checkId(wishId, "Wunsch") }) });
   if (!res.ok) throw new BoardError(await dbMessage(res));
+}
+
+// --- Meldungen ---------------------------------------------------------------
+
+/** Die gemeldeten Eintraege, offene zuerst, dann die juengsten. */
+export async function fetchReports(app: BoardApp): Promise<EventReport[]> {
+  const res = await db(app, "rpc/event_report_list", { method: "POST", body: "{}" });
+  if (!res.ok) throw new BoardError(await dbMessage(res));
+  const rows = (await res.json()) as Array<{
+    event_id: string;
+    user_id: string;
+    nickname: string;
+    flag: string | null;
+    blocked: boolean;
+    reports: number;
+    open: number;
+    first_at: string;
+    last_at: string;
+  }>;
+  return rows.map((r) => ({
+    eventId: r.event_id,
+    userId: r.user_id,
+    nickname: r.nickname,
+    flag: r.flag,
+    blocked: r.blocked,
+    reports: r.reports,
+    open: r.open,
+    firstAt: r.first_at,
+    lastAt: r.last_at,
+  }));
+}
+
+/**
+ * Erledigt die offenen Meldungen eines Eintrags; mit `block` wird dabei sein
+ * Spitzname im Event gesperrt. Gibt zurueck, wie viele Meldungen das schloss.
+ */
+export async function handleReport(app: BoardApp, eventId: string, userId: string, block: boolean): Promise<number> {
+  if (eventId.length < 3 || eventId.length > 40 || !EVENT_ID_RE.test(eventId)) throw new BoardError("Event nicht gefunden.");
+  const user = checkId(userId, "Eintrag");
+  const res = await db(app, "rpc/handle_event_report", {
+    method: "POST",
+    body: JSON.stringify({ p_event: eventId, p_user: user, p_block: block }),
+  });
+  if (!res.ok) throw new BoardError(await dbMessage(res));
+  return Number(await res.json());
 }
