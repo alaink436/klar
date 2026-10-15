@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { inZone, tagInZone } from "@/lib/zeit";
 import { AdminTopbar } from "../AdminTopbar";
+import { FeedbackReiter } from "./FeedbackReiter";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -92,6 +93,8 @@ export default async function FeedbackPage({
           Vorschläge, Beschwerden und Fragen, die Nutzer an die Support-Adressen der Apps schreiben.
           Antworten geht über das Mailprogramm, damit die Antwort vom Postfach der App kommt.
         </PageHeader>
+
+        <FeedbackReiter aktiv="postfach" />
 
         {liste === null ? (
           <Meldung ton="var(--danger)">
