@@ -3,9 +3,11 @@ import { AppleSvg, PlaySvg } from "../StoreBadges";
 // The hero's phones (Alain, 2026-10-14): one iPhone per app, each at its own
 // depth, height and float period, rising in from the bottom. The body is the
 // real model rendered straight on (public/home/iphone.webp, script in
-// AI-Brain Projects/Klar/Content/web-hero/phone-frame.py); the screen is HTML
-// on top of it: icon, name, where the app is out. A click jumps to the app's
-// section. Weekly user numbers come later, once they are worth showing.
+// AI-Brain Projects/Klar/Content/web-hero/phone-frame.py). The screen is a
+// still from the app's own film (public/home/scenes, cut from the store films:
+// its logo, mascot or scene, Alain 2026-10-15), with a glass card on top: icon,
+// name, where the app is out. A click jumps to the app's section. Weekly user
+// numbers come later, once they are worth showing.
 
 export type HeroPhoneApp = { id: string; name: string; icon: string; play?: string; soon: boolean };
 
@@ -23,36 +25,33 @@ const POSE = [
 function Screen({ app }: { app: HeroPhoneApp }) {
   return (
     <div className="absolute inset-x-[4.4%] inset-y-[2.3%] overflow-hidden rounded-[11%/5.3%] bg-black [container-type:inline-size]">
-      {/* the icon, blown up and blurred, is the wallpaper: every phone gets its app's colour */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={app.icon} alt="" className="absolute inset-0 h-full w-full scale-150 object-cover opacity-80 blur-2xl saturate-150" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
+      <img src={`/home/scenes/${app.id}.webp`} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />
       <div className="absolute left-1/2 top-[1.8%] h-[3.4%] w-[30%] -translate-x-1/2 rounded-full bg-black" />
 
-      {/* Only the top half shows above the fold, so everything sits up there. */}
-      <div className="relative flex h-full flex-col items-center px-[11%] pt-[17cqw] text-center text-white">
+      {/* Only the top half shows above the fold, so the card sits up there. */}
+      <div className="absolute inset-x-[6%] top-[13cqw] flex items-center gap-[3cqw] rounded-[6cqw] bg-black/50 p-[2.4cqw] pr-[3.6cqw] text-white backdrop-blur-md">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={app.icon} alt="" className="w-[38%] rounded-[22.5%] shadow-[0_10px_30px_rgba(0,0,0,0.45)]" />
-        <p className="mt-[6cqw] text-[9.5cqw] font-semibold leading-none tracking-[-0.03em]">{app.name}</p>
-        <div className="mt-[7cqw] flex w-full flex-col gap-[2.5cqw]">
-          {app.soon ? (
-            <span className="rounded-full border border-white/40 bg-white/15 py-[3.4cqw] text-[6.4cqw] font-medium backdrop-blur-md">
-              Coming soon
-            </span>
-          ) : (
-            <>
-              <span className="inline-flex items-center justify-center gap-[2.4cqw] rounded-full bg-white py-[3.4cqw] text-[6.4cqw] font-medium text-black">
-                <AppleSvg size={11} />
+        <img src={app.icon} alt="" className="w-[13cqw] shrink-0 rounded-[22.5%]" />
+        <div className="min-w-0">
+          <p className="truncate text-[6cqw] font-semibold leading-tight tracking-[-0.02em]">{app.name}</p>
+          <p className="mt-[0.8cqw] flex items-center gap-[1.4cqw] whitespace-nowrap text-[4cqw] font-medium leading-none text-white/75 [&_svg]:size-[4cqw]">
+            {app.soon ? (
+              "Coming soon"
+            ) : (
+              <>
+                <AppleSvg />
                 App Store
-              </span>
-              {app.play && (
-                <span className="inline-flex items-center justify-center gap-[2.4cqw] rounded-full border border-white/40 bg-white/15 py-[3.4cqw] text-[6.4cqw] font-medium backdrop-blur-md">
-                  <PlaySvg size={11} />
-                  Google Play
-                </span>
-              )}
-            </>
-          )}
+                {app.play && (
+                  <>
+                    <span className="text-white/50">·</span>
+                    <PlaySvg />
+                    Google Play
+                  </>
+                )}
+              </>
+            )}
+          </p>
         </div>
       </div>
     </div>
