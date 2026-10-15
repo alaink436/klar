@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { AppleSvg, PlaySvg } from "../StoreBadges";
 
 // The hero's phones (Alain, 2026-10-14): one iPhone per app, each at its own
@@ -6,8 +9,9 @@ import { AppleSvg, PlaySvg } from "../StoreBadges";
 // AI-Brain Projects/Klar/Content/web-hero/phone-frame.py). The screen is a
 // still from the app's own film (public/home/scenes, cut from the store films:
 // its logo, mascot or scene, Alain 2026-10-15), with a glass card on top: icon,
-// name, where the app is out. A click jumps to the app's section. Weekly user
-// numbers come later, once they are worth showing.
+// name, where the app is out. When the beam pill above names an app, that
+// phone's logo wiggles and glows in its own colours (Alain, 2026-10-15). A
+// click jumps to the app's section. Weekly user numbers come later.
 
 export type HeroPhoneApp = { id: string; name: string; icon: string; play?: string; soon: boolean };
 
@@ -22,7 +26,7 @@ const POSE = [
   { left: 80, m: 0, top: 8, z: 0.88, rot: 5, period: 6.0 },
 ];
 
-function Screen({ app }: { app: HeroPhoneApp }) {
+function Screen({ app, on }: { app: HeroPhoneApp; on: boolean }) {
   return (
     <div className="absolute inset-x-[4.4%] inset-y-[2.3%] overflow-hidden rounded-[11%/5.3%] bg-black [container-type:inline-size]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -31,8 +35,13 @@ function Screen({ app }: { app: HeroPhoneApp }) {
 
       {/* Only the top half shows above the fold, so the card sits up there. */}
       <div className="absolute inset-x-[6%] top-[13cqw] flex items-center gap-[3cqw] rounded-[6cqw] bg-black/50 p-[2.4cqw] pr-[3.6cqw] text-white backdrop-blur-md">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={app.icon} alt="" className="w-[13cqw] shrink-0 rounded-[22.5%]" />
+        <span className="relative w-[13cqw] shrink-0">
+          {/* the glow is the icon itself, blown up and blurred, so it has the app's colours */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={app.icon} alt="" className={`absolute inset-0 scale-[1.7] blur-[2.6cqw] brightness-150 saturate-200 transition-opacity duration-700 ${on ? "opacity-100" : "opacity-0"}`} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={app.icon} alt="" className={`relative w-full rounded-[22.5%] ${on ? "home-wiggle" : ""}`} />
+        </span>
         <div className="min-w-0">
           <p className="truncate text-[6cqw] font-semibold leading-tight tracking-[-0.02em]">{app.name}</p>
           <p className="mt-[0.8cqw] flex items-center gap-[1.4cqw] whitespace-nowrap text-[4cqw] font-medium leading-none text-white/75 [&_svg]:size-[4cqw]">
@@ -59,6 +68,14 @@ function Screen({ app }: { app: HeroPhoneApp }) {
 }
 
 export default function HeroPhones({ apps }: { apps: HeroPhoneApp[] }) {
+  const [active, setActive] = useState(0); // the pill starts on the first app
+
+  useEffect(() => {
+    const on = (e: Event) => setActive((e as CustomEvent<number>).detail);
+    window.addEventListener("klar:beam", on);
+    return () => window.removeEventListener("klar:beam", on);
+  }, []);
+
   return (
     // Clipped at the bottom only, about halfway down the phones (Alain: "nur die
     // Hälfte des Bildschirms"), like the screenshot fan before; the top stays open
@@ -88,7 +105,7 @@ export default function HeroPhones({ apps }: { apps: HeroPhoneApp[] }) {
                 <div className="relative aspect-[482/1000] drop-shadow-[0_30px_40px_rgba(0,0,0,0.28)]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/home/iphone.webp" alt="" className="absolute inset-0 h-full w-full" />
-                  <Screen app={app} />
+                  <Screen app={app} on={i === active} />
                 </div>
               </div>
             </div>

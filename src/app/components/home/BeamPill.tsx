@@ -51,6 +51,11 @@ export default function BeamPill({ apps }: { apps: BeamApp[] }) {
   const words = useMemo(() => apps.map((a) => a.name), [apps]);
   const { text, index } = useTyped(words);
 
+  // The hero phones listen and wiggle that app's logo (HeroPhones).
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("klar:beam", { detail: index }));
+  }, [index]);
+
   return (
     <div className="relative mx-auto h-14 w-[min(100%,540px)] overflow-hidden rounded-full border border-white/10 bg-[rgba(14,14,16,0.88)] text-left shadow-[0_30px_60px_-28px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl sm:h-16">
       {/* The cone: clipped wedges, blurred by their parents so the edges go soft.
