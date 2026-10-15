@@ -219,12 +219,32 @@ export async function fetchCreators(): Promise<CreatorsResult> {
   return { apps, creators, users: users.slice(0, USER_LIST_LIMIT), errors };
 }
 
+// Apps with a page getklar.org/<shortPath> (components/landing/AppLanding).
+const LANDING_PAGES = new Set(["basalt", "yarnstash", "kelva", "pocketmate", "animevault"]);
+
+export type LinkDevice = "ios" | "android" | "desktop";
+
+export function linkDevice(userAgent: string): LinkDevice {
+  if (/iPhone|iPad|iPod/i.test(userAgent)) return "ios";
+  return /Android/i.test(userAgent) ? "android" : "desktop";
+}
+
 /**
  * Ziel des Kurzlinks getklar.org/<shortPath>/<handle>. `null` heisst: diesen
- * Kurzpfad gibt es nicht (404). Ein unbekannter oder entfernter Creator fuehrt in
- * den Store der App, ohne Store auf die Startseite.
+ * Kurzpfad gibt es nicht (404).
+ *
+ * Auf dem Handy geht ein bekannter Creator ueber Detour (`?ref=`), sonst in den
+ * Store. Am Computer und auf Android ohne Detour geht es auf die Seite der App
+ * (`?ref=` fuer einen bekannten Creator), wo es eine gibt: Detour kann eine
+ * Installation vom Computer ohnehin nicht zuordnen, und Android bekommt dort den
+ * Play-Knopf statt des App-Store-Links (Alain, 2026-10-15). Ohne Seite und ohne
+ * Store fuehrt der Link auf die Startseite.
  */
-export async function creatorRedirect(shortPath: string, rawHandle: string): Promise<string | null> {
+export async function creatorRedirect(
+  shortPath: string,
+  rawHandle: string,
+  device: LinkDevice = "desktop",
+): Promise<string | null> {
   if (!HUB_KEY() || !SHORT_PATH_RE.test(shortPath)) return null;
   const handle = rawHandle.trim().toLowerCase();
   try {
@@ -234,14 +254,18 @@ export async function creatorRedirect(shortPath: string, rawHandle: string): Pro
     if (!res.ok) return null;
     const [app] = (await res.json()) as { slug: string; detour_link: string | null; store_url: string | null }[];
     if (!app) return null;
-    const fallback = app.store_url ?? `${SITE}/`;
+    const page = LANDING_PAGES.has(shortPath) ? `${SITE}/${shortPath}` : null;
+    const toPage = page && device !== "ios";
+    const fallback = (toPage ? page : app.store_url) ?? page ?? `${SITE}/`;
     if (!HANDLE_RE.test(handle)) return fallback;
     const linkRes = await hub(
       `klar_creator_links?select=handle&app_slug=eq.${encodeURIComponent(app.slug)}&handle=eq.${encodeURIComponent(handle)}&removed_at=is.null&limit=1`,
     );
     const found = linkRes.ok && ((await linkRes.json()) as unknown[]).length > 0;
     if (!found) return fallback;
-    return app.detour_link ? `${app.detour_link}?ref=${encodeURIComponent(handle)}` : fallback;
+    const ref = `?ref=${encodeURIComponent(handle)}`;
+    if (app.detour_link && device !== "desktop") return `${app.detour_link}${ref}`;
+    return toPage ? `${page}${ref}` : fallback;
   } catch {
     return null;
   }
