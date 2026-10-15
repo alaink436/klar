@@ -10,3 +10,13 @@ export const INBOX_FILTERS = [
   "collab",
 ] as const;
 export type InboxFilter = (typeof INBOX_FILTERS)[number];
+
+// Eigene Testanfragen, die nie in der Inbox auftauchen. Die Uebersicht zaehlt
+// mit derselben Regel, sonst meldet sie Anfragen, die die Inbox nicht zeigt.
+export const isTestInquiry = (r: { email?: string | null; handle?: string | null }): boolean => {
+  const email = (r.email ?? "").toLowerCase();
+  const handle = (r.handle ?? "").toLowerCase();
+  if (email === "alainkessler04@gmail.com") return true;
+  if (handle.includes("selftest") || handle === "klar_test" || handle === "@bombo") return true;
+  return false;
+};
