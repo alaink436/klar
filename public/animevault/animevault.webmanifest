@@ -1,0 +1,16 @@
+{
+  "name": "Anime Vault: Tracker & List",
+  "short_name": "Anime Vault",
+  "start_url": "/animevault",
+  "display": "browser",
+  "background_color": "#ededeb",
+  "theme_color": "#ededeb",
+  "icons": [
+    { "src": "/animevault/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/animevault/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "prefer_related_applications": true,
+  "related_applications": [
+    { "platform": "play", "id": "com.animevault.app", "url": "https://play.google.com/store/apps/details?id=com.animevault.app" }
+  ]
+}
