@@ -28,6 +28,7 @@ import { requireAdminPage } from "../../../lib/adminGuard";
 import { getApps, fetchAppUserStats, type AdminApp } from "../../../lib/adminApps";
 import { countOpenCollabs } from "@/lib/collabView";
 import { readActiveProjects, type BrainProject } from "@/lib/brainReader";
+import { isTestInquiry } from "../inbox/inboxFilters";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -44,12 +45,14 @@ type Uebersicht = {
 
 // Inbox-Anfragen: nur die Anzahl der neuen. Best-effort, ohne Schluessel
 // oder bei einem Fehler bleibt der Zaehler null und die Zeile faellt weg.
+// Testanfragen zaehlen nicht, die Inbox blendet sie aus (am 2026-10-15 meldete
+// die Uebersicht 5 neue, die Inbox zeigte keine).
 async function neueAnfragen(): Promise<number> {
   let inquiriesNew = 0;
   if (KLAR_INBOX_KEY) {
     try {
       const res = await fetch(
-        `${KLAR_INBOX_URL}/rest/v1/klar_inquiries?select=status&order=created_at.desc&limit=50`,
+        `${KLAR_INBOX_URL}/rest/v1/klar_inquiries?select=status,email,handle&order=created_at.desc&limit=50`,
         {
           headers: { apikey: KLAR_INBOX_KEY, Authorization: `Bearer ${KLAR_INBOX_KEY}`, Accept: "application/json" },
           next: { revalidate: 30 },
@@ -57,7 +60,7 @@ async function neueAnfragen(): Promise<number> {
       );
       if (res.ok) {
         const j = await res.json();
-        inquiriesNew = Array.isArray(j) ? j.filter((r) => r.status === "new").length : 0;
+        inquiriesNew = Array.isArray(j) ? j.filter((r) => r.status === "new" && !isTestInquiry(r)).length : 0;
       }
     } catch {
       /* Zaehler bleibt null */

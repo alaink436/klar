@@ -47,6 +47,9 @@ export const NAV_ITEMS: NavItemDef[] = [
   // Creators (seit 2026-10-14): Affiliates mit ihrem Detour-Link und wie viele
   // Nutzer ihnen in der App zugeordnet sind. Direkt unter Analytics (Alains Ansage).
   { id: "creators", labelKey: "navCreators", icon: "creators", href: "/admin/creators", section: "studios" },
+  // Bewerbungen (seit 2026-10-15): das Creator-Formular der Startseite. Die
+  // Inbox auf "Anfragen" gefiltert, darum ihr Symbol.
+  { id: "bewerbungen", labelKey: "navApplications", icon: "inbox", href: "/admin/bewerbungen", section: "studios" },
   // App-Nutzung aus PostHog (seit 2026-09-17): Starts, Screens, Versionen je
   // App. Eigener Punkt neben Analytics, weil Analytics die Landings und den
   // Umsatz zeigt und diese Seite das Verhalten IN den Apps.
