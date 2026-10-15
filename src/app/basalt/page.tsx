@@ -3,21 +3,24 @@
 // The app's website while it lives under getklar.org, and the page a creator
 // link opens on a computer (getklar.org/basalt/<handle> -> Detour -> here with
 // ?ref=). Since 2026-10-14 in the light Klar Studios frame of the front page
-// (Alain: "Inspiration von der getklar.org Seite"): a large iPhone floating
-// beside the headline with the stones film on its screen, new copy, and the
-// store buttons. Phones get an install banner: Safari draws Apple's from the
+// (Alain: "Inspiration von der getklar.org Seite"): two large iPhones in a
+// fan, the front one playing the stones film, the one behind showing the real
+// routines screen; the headline's last word breaks into dust like "Studios."
+// on the front page (Alain, 2026-10-15: no glass, phones bigger, built for the
+// phone first). Phones get an install banner: Safari draws Apple's from the
 // itunes metadata, Chrome on Android opens Play's install sheet from the bar.
 //
 // The film is the App Store header (Content/asc/header-styles/aether), scaled
 // to 80 % so the big stone stays whole on a tall screen, haze extended above
-// and below. Claims stay within the store listing.
+// and below. The routines screen is a simulator capture from the store shots
+// (Content/asc/store-shots-2026-10-09/pick). Claims stay within the listing.
 
 import type { Metadata } from "next";
 import Link from "next/link";
 import { findKlarApp } from "@/lib/klarApps";
 import { AppleSvg, PlaySvg } from "../components/StoreBadges";
 import AndroidInstallBar from "../components/AndroidInstallBar";
-import BlurHeadline from "../components/home/BlurHeadline";
+import DissolveWord from "../components/home/DissolveWord";
 import Film from "../components/home/Film";
 import Site, { SUPPORT_EMAIL } from "../components/home/Site";
 
@@ -75,20 +78,36 @@ function StoreButtons() {
   );
 }
 
-function Phone() {
+function Phone({ children, period }: { children: React.ReactNode; period: number }) {
   return (
-    // On a computer the whole phone fits under the header: its width follows the
-    // window height (482:1000 is the frame), never wider than 360 px.
-    <div className="home-phone-rise mx-auto w-[min(58vw,270px)] md:w-[clamp(240px,min(26vw,calc((100svh-190px)*0.482)),360px)]">
-      <div className="home-phone-bob" style={{ animationDuration: "7s" }}>
-        <div className="relative aspect-[482/1000] drop-shadow-[0_40px_50px_rgba(0,0,0,0.26)]">
+    <div className="home-phone-bob" style={{ animationDuration: `${period}s` }}>
+      <div className="relative aspect-[482/1000] drop-shadow-[0_40px_50px_rgba(0,0,0,0.26)]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/home/iphone.webp" alt="" className="absolute inset-0 h-full w-full" />
+        <div className="absolute inset-x-[4.4%] inset-y-[2.3%] overflow-hidden rounded-[11%/5.3%] bg-[#dcdcda]">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// Two phones fanned from a shared point below them: the routines screen tilted
+// back on the left, the film in front on the right. On a computer the fan is
+// as tall as the window allows; on a phone it runs edge to edge, the front
+// phone 62 % of the screen wide and the back one leaving past the left edge.
+function PhoneFan() {
+  return (
+    <div className="home-phone-rise relative -mx-5 aspect-[10/13.4] w-[calc(100%+40px)] sm:mx-auto sm:w-[min(100%,560px)] md:aspect-[10/11] md:w-[min(100%,calc((100svh-150px)*0.909),640px)]">
+      <div className="absolute -left-[5%] top-[7%] w-[54%] origin-bottom -rotate-[9deg] md:left-[4%] md:top-[6%] md:w-[46%]">
+        <Phone period={8.2}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/home/iphone.webp" alt="" className="absolute inset-0 h-full w-full" />
-          <div className="absolute inset-x-[4.4%] inset-y-[2.3%] overflow-hidden rounded-[11%/5.3%] bg-[#dcdcda]">
-            <Film wide="/basalt/stones" label="Basalt stones turning from black to frosted glass" className="h-full w-full" />
-            <div className="absolute left-1/2 top-[1.8%] h-[3.4%] w-[30%] -translate-x-1/2 rounded-full bg-black" />
-          </div>
-        </div>
+          <img src="/basalt/screen-home.webp" alt="Basalt: your routines with this week's check-ins" className="h-full w-full object-cover" />
+        </Phone>
+      </div>
+      <div className="absolute right-[3%] top-0 w-[62%] origin-bottom rotate-[4deg] md:right-[4%] md:w-[50%]">
+        <Phone period={7}>
+          <Film wide="/basalt/stones" label="Basalt stones turning from black to frosted glass" className="h-full w-full" />
+          <div className="absolute left-1/2 top-[1.8%] h-[3.4%] w-[30%] -translate-x-1/2 rounded-full bg-black" />
+        </Phone>
       </div>
     </div>
   );
@@ -101,12 +120,8 @@ export default function BasaltHomePage() {
         <div className="home-grid absolute inset-0" aria-hidden="true" />
         <div className="home-glow absolute inset-0" aria-hidden="true" />
 
-        <section className="relative mx-auto grid max-w-[1200px] items-center gap-12 px-5 pb-20 pt-28 sm:px-8 md:min-h-svh md:grid-cols-[1.1fr_0.9fr] md:gap-8 md:pb-16 md:pt-28">
-          <div className="md:order-2">
-            <Phone />
-          </div>
-
-          <div className="md:order-1">
+        <section className="relative mx-auto grid max-w-[1280px] items-center gap-6 px-5 pb-12 pt-24 sm:px-8 md:min-h-svh md:grid-cols-[0.95fr_1.05fr] md:gap-4 md:pb-10 md:pt-24">
+          <div>
             <div className="flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={APP.icon} alt="" className="size-12 rounded-[12px] shadow-[0_6px_18px_-8px_rgba(0,0,0,0.35)]" />
@@ -116,25 +131,24 @@ export default function BasaltHomePage() {
               </div>
             </div>
 
-            <BlurHeadline
-              as="h1"
-              lead="Your routine"
-              glass="actually gets done."
-              className="mt-8 text-[clamp(44px,6.4vw,92px)] font-medium leading-[0.92] tracking-[-0.05em]"
-            />
+            <h1 className="mt-6 text-[clamp(46px,6.2vw,96px)] font-medium leading-[0.9] tracking-[-0.055em] md:mt-8">
+              Your routine actually gets <DissolveWord>done.</DissolveWord>
+            </h1>
 
-            <p className="mt-7 max-w-[520px] text-[17px] leading-[1.55] text-[var(--ink-2)]">
+            <p className="mt-5 max-w-[520px] text-[16px] leading-[1.5] text-[var(--ink-2)] md:mt-7 md:text-[17px]">
               Write down what you want to follow through on and how many times a week. Then tick it off on your home
               screen.
             </p>
 
-            <div className="mt-9">
+            <div className="mt-7 md:mt-9">
               <StoreButtons />
             </div>
           </div>
+
+          <PhoneFan />
         </section>
 
-        <section className="relative mx-auto max-w-[1200px] px-5 pb-20 sm:px-8 md:pb-28">
+        <section className="relative mx-auto max-w-[1280px] px-5 pb-28 sm:px-8 md:pb-28">
           <div className="grid gap-px overflow-hidden rounded-[28px] border bg-[var(--hair)] sm:grid-cols-2">
             {FEATURES.map((f) => (
               <div key={f.title} className="bg-[var(--paper)]/90 p-7 backdrop-blur-sm md:p-9">

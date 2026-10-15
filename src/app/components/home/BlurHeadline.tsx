@@ -7,9 +7,7 @@ import { useEffect, useRef, useState } from "react";
 // When the heading scrolls into view its words come out of a blur one after
 // another, and the last line is set in frosted-glass letters.
 
-export default function BlurHeadline({
-  lead, glass, className = "", as: Tag = "h2",
-}: { lead: string; glass: string; className?: string; as?: "h1" | "h2" }) {
+export default function BlurHeadline({ lead, glass, className = "" }: { lead: string; glass: string; className?: string }) {
   const ref = useRef<HTMLHeadingElement>(null);
   const [inView, setInView] = useState(false);
 
@@ -40,7 +38,7 @@ export default function BlurHeadline({
   );
 
   return (
-    <Tag ref={ref} data-in={inView ? "" : undefined} className={className}>
+    <h2 ref={ref} data-in={inView ? "" : undefined} className={className}>
       {leadWords.map((w, i) => (
         <span key={i}>
           {word(w, i)}{" "}
@@ -53,6 +51,6 @@ export default function BlurHeadline({
           {i < glassWords.length - 1 ? " " : ""}
         </span>
       ))}
-    </Tag>
+    </h2>
   );
 }
