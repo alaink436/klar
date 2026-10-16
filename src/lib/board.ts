@@ -6,7 +6,7 @@
 // und schreibt dort mit dem Service-Key aus KLAR_ADMIN_APPS, wie bei den
 // App-Zahlen. Jede angeschlossene App erfuellt denselben Vertrag
 // (Spec: AI-Brain Projects/Klar/specs/board/spec.md):
-//   feature_ideas (title, detail, status, weight, translations)
+//   feature_ideas (title, detail, status, weight, translations, shipped_in)
 //   feature_votes, feature_idea_comments (body, translations)
 //   feature_wishes (body, body_de, promoted_idea_id, read_at)
 //   RPCs promote_wish, mark_wish_read
@@ -70,6 +70,8 @@ export interface Idea {
   votes: number;
   createdAt: string;
   translations: Translations;
+  /** Store-Version, mit der die Idee fertig kam ("2.7.0"); nur beim Stand fertig, sonst null. */
+  shippedIn: string | null;
 }
 
 export interface IdeaComment {
@@ -90,6 +92,14 @@ export interface Wish {
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/**
+ * Major.Minor.Patch, Zahlen ohne fuehrende Null, damit die App "2.10.0" nach
+ * Zahlen vergleicht. Dieselbe Regel steht als CHECK in der Datenbank
+ * (feature_ideas_shipped_in_format); ohne ^ und $, weil das Formular sie als
+ * `pattern` braucht.
+ */
+export const VERSION_PATTERN = "(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)";
+const VERSION_RE = new RegExp(`^${VERSION_PATTERN}$`);
 const TITLE_MAX = 120;
 const DETAIL_MAX = 600;
 const COMMENT_MAX = 2000;
@@ -159,7 +169,7 @@ export function sortIdeas(ideas: Idea[]): Idea[] {
 }
 
 export async function fetchIdeas(app: BoardApp): Promise<Idea[]> {
-  const res = await db(app, "feature_ideas?select=id,title,detail,status,weight,created_at,translations,feature_votes(count)");
+  const res = await db(app, "feature_ideas?select=id,title,detail,status,weight,created_at,translations,shipped_in,feature_votes(count)");
   if (!res.ok) throw new BoardError(await dbMessage(res));
   const rows = (await res.json()) as Array<{
     id: string;
@@ -169,6 +179,7 @@ export async function fetchIdeas(app: BoardApp): Promise<Idea[]> {
     weight: number;
     created_at: string;
     translations: Translations | null;
+    shipped_in: string | null;
     feature_votes: Array<{ count: number }> | null;
   }>;
   return sortIdeas(
@@ -181,6 +192,7 @@ export async function fetchIdeas(app: BoardApp): Promise<Idea[]> {
       votes: Number(r.feature_votes?.[0]?.count ?? 0),
       createdAt: r.created_at,
       translations: r.translations ?? {},
+      shippedIn: r.shipped_in ?? null,
     })),
   );
 }
@@ -270,10 +282,29 @@ export async function updateIdeaText(app: BoardApp, ideaId: string, input: IdeaT
   await writeOne(app, `feature_ideas?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(row) }, "Idee nicht gefunden.");
 }
 
+/** Setzt den Stand. Wer fertig verlaesst, verliert die Version: sonst zeigte die App ihn als neu. */
 export async function setIdeaStatus(app: BoardApp, ideaId: string, status: string): Promise<void> {
   const id = checkId(ideaId, "Idee");
   if (!(IDEA_STATUSES as readonly string[]).includes(status)) throw new BoardError("Unbekannter Stand.");
-  await writeOne(app, `feature_ideas?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status }) }, "Idee nicht gefunden.");
+  const row = status === "shipped" ? { status } : { status, shipped_in: null };
+  await writeOne(app, `feature_ideas?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(row) }, "Idee nicht gefunden.");
+}
+
+/**
+ * Die Store-Version, mit der eine fertige Idee kam, etwa "2.7.0"; leer loescht
+ * sie. Geht nur beim Stand fertig, das prueft die Anfrage selbst.
+ */
+export async function setIdeaVersion(app: BoardApp, ideaId: string, version: string): Promise<string | null> {
+  const id = checkId(ideaId, "Idee");
+  const v = version.trim() || null;
+  if (v && !VERSION_RE.test(v)) throw new BoardError("Version im Format Major.Minor.Patch, etwa 2.7.0.");
+  await writeOne(
+    app,
+    `feature_ideas?id=eq.${id}&status=eq.shipped`,
+    { method: "PATCH", body: JSON.stringify({ shipped_in: v }) },
+    "Eine Version gibt es nur beim Stand fertig.",
+  );
+  return v;
 }
 
 export async function setIdeaWeight(app: BoardApp, ideaId: string, weight: string): Promise<void> {

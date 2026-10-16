@@ -13,6 +13,7 @@ import {
   markWishRead,
   promoteWish,
   setIdeaStatus,
+  setIdeaVersion,
   setIdeaWeight,
   updateIdeaText,
   type IdeaStatus,
@@ -67,6 +68,10 @@ export async function POST(req: NextRequest): Promise<Response> {
       case "gewicht":
         await setIdeaWeight(app, id, feld("gewicht", 10));
         return zurueck({ msg: "Gewicht gesetzt." });
+      case "version": {
+        const v = await setIdeaVersion(app, id, feld("version", 40));
+        return zurueck({ msg: v ? `Fertig in Version ${v}.` : "Version entfernt." });
+      }
       case "kommentar":
         await addComment(app, id, feld("text", 4000));
         return zurueck({ msg: "Kommentar gespeichert und übersetzt." });

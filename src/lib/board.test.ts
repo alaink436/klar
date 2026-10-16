@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { BOARD_APPS, BoardError, createIdea, fetchWishes, promoteWish, setIdeaStatus } from "./board";
+import { BOARD_APPS, BoardError, createIdea, fetchIdeas, fetchWishes, promoteWish, setIdeaStatus, setIdeaVersion } from "./board";
 
 // The vault hands out the Anthropic key; here it always has one.
 vi.mock("./vault", () => ({
@@ -85,6 +85,49 @@ describe("board", () => {
     const calls = fake(() => [{ id: IDEA }]);
     await expect(setIdeaStatus(BASALT, IDEA, "done")).rejects.toThrow("Unbekannter Stand.");
     expect(calls).toHaveLength(0);
+  });
+
+  it("a shipped idea takes its version, trimmed, and only while it is shipped", async () => {
+    const calls = fake(() => [{ id: IDEA }]);
+    expect(await setIdeaVersion(BASALT, IDEA, " 2.10.0 ")).toBe("2.10.0");
+    expect(toDb(calls)).toEqual([
+      { url: `${DB}/rest/v1/feature_ideas?id=eq.${IDEA}&status=eq.shipped`, method: "PATCH", body: { shipped_in: "2.10.0" } },
+    ]);
+  });
+
+  it("an empty version clears it", async () => {
+    const calls = fake(() => [{ id: IDEA }]);
+    expect(await setIdeaVersion(BASALT, IDEA, "  ")).toBeNull();
+    expect(toDb(calls)[0].body).toEqual({ shipped_in: null });
+  });
+
+  it("a version that is not Major.Minor.Patch is refused before any request", async () => {
+    const calls = fake(() => [{ id: IDEA }]);
+    for (const bad of ["2.7", "02.7.0", "2.07.0", "v2.7.0", "2.7.0.1", "2.7.x", "2..0", "2.7.0-beta", "2.7.0\n1"]) {
+      await expect(setIdeaVersion(BASALT, IDEA, bad)).rejects.toThrow("Major.Minor.Patch");
+    }
+    expect(calls).toHaveLength(0);
+  });
+
+  it("an idea that is not shipped gets no version", async () => {
+    fake(() => []);
+    await expect(setIdeaVersion(BASALT, IDEA, "2.7.0")).rejects.toThrow("nur beim Stand fertig");
+  });
+
+  it("leaving shipped clears the version, setting shipped keeps it", async () => {
+    const calls = fake(() => [{ id: IDEA }]);
+    await setIdeaStatus(BASALT, IDEA, "building");
+    await setIdeaStatus(BASALT, IDEA, "shipped");
+    expect(toDb(calls).map((c) => c.body)).toEqual([{ status: "building", shipped_in: null }, { status: "shipped" }]);
+  });
+
+  it("ideas carry their version from the database", async () => {
+    const calls = fake(() => [
+      { id: IDEA, title: "a", detail: null, status: "shipped", weight: 0, created_at: "2026-10-16T10:00:00Z", translations: {}, shipped_in: "2.7.0", feature_votes: [{ count: 3 }] },
+    ]);
+    const [idea] = await fetchIdeas(BASALT);
+    expect(idea.shippedIn).toBe("2.7.0");
+    expect(toDb(calls)[0].url).toContain("shipped_in");
   });
 
   it("a wish goes on the board through promote_wish, then gets its translations", async () => {
