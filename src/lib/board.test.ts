@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BOARD_APPS, BoardError, createIdea, fetchWishes, promoteWish, setIdeaStatus } from "./board";
+
+// Fertig in Version (Basalt "Neu in Basalt" 01).
 import { fetchIdeas, setIdeaVersion } from "./board";
 
 // The vault hands out the Anthropic key; here it always has one.
