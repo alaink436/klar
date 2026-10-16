@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { creatorRedirect, linkDevice } from "./creators";
+import { creatorRedirect, fetchCreators, linkDevice } from "./creators";
 
 // The hub answers two questions: which app owns the short path, and is the
 // handle a live creator of it. Both are faked here per test.
@@ -48,6 +48,60 @@ describe("creatorRedirect", () => {
     expect(await creatorRedirect("learn", "tonystark", "desktop")).toBe("https://getklar.org/");
     fakeHub(null, false);
     expect(await creatorRedirect("nope", "tonystark", "desktop")).toBeNull();
+  });
+});
+
+describe("fetchCreators", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  // Kelva keeps Pro in `is_premium`, Basalt in `is_pro`; asking Kelva for
+  // `is_pro` is a 400 and the whole user list loses its names.
+  it("reads Pro from the column each app keeps it in", async () => {
+    vi.stubEnv("KLAR_INBOX_SERVICE_KEY", "test");
+    vi.stubEnv(
+      "KLAR_ADMIN_APPS",
+      JSON.stringify([
+        { slug: "kelva", name: "Kelva", supabaseUrl: "https://kelva.test", serviceKey: "k" },
+        { slug: "wavelength", name: "Basalt", supabaseUrl: "https://basalt.test", serviceKey: "b" },
+      ]),
+    );
+    const asked: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        asked.push(url);
+        const json = (body: unknown) => new Response(JSON.stringify(body));
+        if (url.includes("klar_creator_apps"))
+          return json([
+            { slug: "kelva", name: "Kelva", short_path: "kelva", detour_link: DETOUR, store_url: STORE, backend_slug: "kelva" },
+            { slug: "basalt", name: "Basalt", short_path: "basalt", detour_link: DETOUR, store_url: STORE, backend_slug: "wavelength" },
+          ]);
+        if (url.includes("klar_creator_links"))
+          return json([
+            { app_slug: "kelva", handle: "mia", name: "Mia" },
+            { app_slug: "basalt", handle: "tonystark", name: "Tony Stark" },
+          ]);
+        if (init?.method === "HEAD") return new Response(null, { headers: { "content-range": "0-0/1" } });
+        if (url.includes("/referrals"))
+          return json([{ user_id: url.includes("kelva") ? "u1" : "u2", influencer_handle: url.includes("kelva") ? "mia" : "tonystark", created_at: "2026-10-16T10:00:00Z" }]);
+        if (url.startsWith("https://kelva.test") && url.includes("pro:is_premium"))
+          return json([{ id: "u1", display_name: "Anna", pro: true }]);
+        if (url.startsWith("https://basalt.test") && url.includes("pro:is_pro"))
+          return json([{ id: "u2", display_name: "Ben", pro: false }]);
+        return new Response("column does not exist", { status: 400 });
+      }),
+    );
+
+    const r = await fetchCreators();
+    expect(r.errors).toEqual([]);
+    expect(r.users.map((u) => [u.app, u.name, u.pro]).sort()).toEqual([
+      ["Basalt", "Ben", false],
+      ["Kelva", "Anna", true],
+    ]);
+    expect(r.creators.find((c) => c.handle === "mia")?.referrals).toBe(1);
   });
 });
 
