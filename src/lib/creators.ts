@@ -37,6 +37,10 @@ const RESERVED_PATHS = new Set([
 /** Wie viele Zuordnungen die Nutzerliste zeigt. Gezaehlt wird trotzdem alles. */
 export const USER_LIST_LIMIT = 200;
 
+/** Spalte in `profiles`, die Pro traegt, je `backend_slug`; sonst `is_pro` wie bei
+    Basalt. Kelva schreibt `is_premium` aus ihrem RevenueCat-Webhook. */
+const PRO_COLUMN: Record<string, string> = { kelva: "is_premium" };
+
 export interface CreatorApp {
   slug: string;
   name: string;
@@ -181,11 +185,15 @@ export async function fetchCreators(): Promise<CreatorsResult> {
         }
         const refs = (await refRes.json()) as { user_id: string; influencer_handle: string; created_at: string }[];
         if (refs.length === 0) return;
-        const profRes = await appDb(backend, `profiles?select=id,display_name,is_pro&id=in.${inList(refs.map((r) => r.user_id))}`);
+        const pro = PRO_COLUMN[backend.slug] ?? "is_pro";
+        const profRes = await appDb(
+          backend,
+          `profiles?select=id,display_name,pro:${pro}&id=in.${inList(refs.map((r) => r.user_id))}`,
+        );
         if (!profRes.ok) errors.push(`${a.name}: profiles antwortet mit ${profRes.status}.`);
         const profiles = new Map(
           profRes.ok
-            ? ((await profRes.json()) as { id: string; display_name: string | null; is_pro: boolean | null }[]).map((p) => [p.id, p])
+            ? ((await profRes.json()) as { id: string; display_name: string | null; pro: boolean | null }[]).map((p) => [p.id, p])
             : [],
         );
         for (const r of refs) {
@@ -195,7 +203,7 @@ export async function fetchCreators(): Promise<CreatorsResult> {
             app: a.name,
             name: p?.display_name || "ohne Namen",
             assignedAt: r.created_at,
-            pro: p?.is_pro === true,
+            pro: p?.pro === true,
           });
         }
       } catch (e) {
