@@ -66,17 +66,19 @@ const APPS: App[] = [
 ];
 
 // Creators (getklar.org is the page creators land on from TikTok, Alain 2026-10-14).
-// They choose how they are paid; no promo codes, earnings run through their own link.
+// No promo codes, earnings run through their own link. Two tiers (Alain, 2026-10-16):
+// everyone starts on commission, no follower minimum; CPM and the paid test period
+// unlock once their posts perform. We hand them the format anyway.
 const DEALS = [
-  { title: "Commission", line: "Your own link. You earn a share of every subscription that comes through it." },
-  { title: "CPM", line: "A rate per thousand views on the videos you post about one of our apps." },
+  { title: "Commission", line: "Your own link. You earn a share of every subscription that comes through it, from day one." },
+  { title: "CPM", line: "A rate per thousand views on the videos you post. Unlocks once your posts perform." },
 ];
 // Test period and DM account: Alain, 2026-10-14.
 const TIKTOK = "clairmentklarclear";
 const STEPS = [
   "Apply by email with the form, or send us a DM on TikTok.",
-  "We match you with an app that fits your audience and start a paid test period: 7 days, $50.",
-  "After the test period you post, and get paid the way you picked.",
+  "We match you with an app and send you the format to post. You earn through your own link from day one.",
+  "Once your posts perform, we unlock CPM and a paid test period: 7 days, $50.",
 ];
 // Not to promote right now: still listed in the form, marked as not recommended.
 const NOT_RECOMMENDED = new Set(["yarnstash", "animevault"]);
@@ -239,8 +241,8 @@ export default function Home() {
             <div className="mt-14 grid gap-12 md:grid-cols-[1fr_1.1fr] md:gap-16">
               <div>
                 <p className="max-w-[34ch] text-[clamp(18px,1.6vw,23px)] leading-[1.3] tracking-[-0.015em] text-[var(--ink-2)]">
-                  You pick how you earn: a share of every subscription that comes through your own link, or a rate per
-                  thousand views.
+                  Everyone starts with a share of every subscription that comes through your own link. Once your posts
+                  perform, a rate per thousand views unlocks.
                 </p>
                 <div className="mt-8 grid gap-3 sm:grid-cols-2">
                   {DEALS.map((d) => (
@@ -262,8 +264,8 @@ export default function Home() {
                   ))}
                 </ol>
                 <p className="mt-8 max-w-[44ch] border-l-2 border-[var(--ink)] pl-4 text-[14.5px] leading-relaxed text-[var(--ink-2)]">
-                  You need at least 1,000 followers and an account that is already warmed up. Starting on a new account,
-                  the test period runs longer.
+                  No follower minimum. What counts is an account that posts regularly in one niche. Starting on a new
+                  account is fine, CPM just takes longer to unlock.
                 </p>
               </div>
               <CreatorForm tiktok={TIKTOK} apps={APPS.map((a) => ({ slug: INQUIRY_SLUG[a.id], name: a.name, icon: a.icon, recommended: !NOT_RECOMMENDED.has(a.id) }))} />
