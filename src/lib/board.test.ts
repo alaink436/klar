@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { BOARD_APPS, BoardError, createIdea, fetchIdeas, fetchWishes, promoteWish, setIdeaStatus, setIdeaVersion } from "./board";
+import { BOARD_APPS, BoardError, createIdea, fetchWishes, promoteWish, setIdeaStatus } from "./board";
+import { fetchIdeas, setIdeaVersion } from "./board";
 
 // The vault hands out the Anthropic key; here it always has one.
 vi.mock("./vault", () => ({

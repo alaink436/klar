@@ -61,6 +61,15 @@ export const IDEA_STATUS_LABELS: Record<IdeaStatus, string> = {
   shipped: "fertig",
 };
 
+/**
+ * Major.Minor.Patch, Zahlen ohne fuehrende Null, damit die App "2.10.0" nach
+ * Zahlen vergleicht. Dieselbe Regel steht als CHECK in der Datenbank
+ * (feature_ideas_shipped_in_format); ohne ^ und $, weil das Formular sie als
+ * `pattern` braucht.
+ */
+export const VERSION_PATTERN = "(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)";
+const VERSION_RE = new RegExp(`^${VERSION_PATTERN}$`);
+
 export interface Idea {
   id: string;
   title: string;
@@ -92,14 +101,6 @@ export interface Wish {
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-/**
- * Major.Minor.Patch, Zahlen ohne fuehrende Null, damit die App "2.10.0" nach
- * Zahlen vergleicht. Dieselbe Regel steht als CHECK in der Datenbank
- * (feature_ideas_shipped_in_format); ohne ^ und $, weil das Formular sie als
- * `pattern` braucht.
- */
-export const VERSION_PATTERN = "(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)";
-const VERSION_RE = new RegExp(`^${VERSION_PATTERN}$`);
 const TITLE_MAX = 120;
 const DETAIL_MAX = 600;
 const COMMENT_MAX = 2000;
