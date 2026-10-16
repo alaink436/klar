@@ -6,14 +6,15 @@ import { useState } from "react";
 // both at once was confusing): by email, which posts to /api/inquiry as an
 // `affiliate` request and lands in Klar Control's inbox, or by TikTok DM.
 // TikTok and Instagram only; no promo codes, creators earn through their own
-// link or CPM. Every choice is a chip, never a native select menu.
+// link from day one, CPM once their posts perform. Every choice is a chip,
+// never a native select menu.
 
 type AppOption = { slug: string; name: string; icon: string; recommended: boolean };
 type Mode = "email" | "dm";
 type State = "idle" | "sending" | "sent" | "error";
 
-// Minimum 1k followers (Alain, 2026-10-14), so there is no option below it.
-const AUDIENCE = ["1k-10k", "10k-100k", "100k+"];
+// No follower minimum since 2026-10-16 (Alain; it was 1k from 10-14).
+const AUDIENCE = ["0-1k", "1k-10k", "10k-100k", "100k+"];
 const PLATFORMS = ["TikTok", "Instagram"];
 
 const ERRORS: Record<string, string> = {
@@ -159,7 +160,7 @@ export default function CreatorForm({ apps, tiktok }: { apps: AppOption[]; tikto
           </div>
 
           <div className="mt-5">
-            <span className={label}>Followers <span className="font-normal text-[var(--ink-3)]">· minimum 1k</span></span>
+            <span className={label}>Followers <span className="font-normal text-[var(--ink-3)]">· no minimum</span></span>
             <Chips options={AUDIENCE} value={audience} onChange={setAudience} />
           </div>
 
@@ -176,7 +177,7 @@ export default function CreatorForm({ apps, tiktok }: { apps: AppOption[]; tikto
                 >
                   <span className="block text-[15px] font-medium">{d === "cpm" ? "CPM" : "Commission"}</span>
                   <span className={`block text-[12.5px] ${deal === d ? "text-white/70" : "text-[var(--ink-3)]"}`}>
-                    {d === "cpm" ? "Per 1,000 views" : "Your own link"}
+                    {d === "cpm" ? "Per 1,000 views, unlocks later" : "Your own link, from day one"}
                   </span>
                 </button>
               ))}
