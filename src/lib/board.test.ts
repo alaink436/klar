@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { BOARD_APPS, BoardError, createIdea, fetchWishes, promoteWish, setIdeaStatus } from "./board";
+import { BOARD_APPS, BoardError, createIdea, fetchReports, fetchWishes, handleReport, promoteWish, setIdeaStatus } from "./board";
 
 // The vault hands out the Anthropic key; here it always has one.
 vi.mock("./vault", () => ({
@@ -115,5 +115,38 @@ describe("board", () => {
     expect(String((asked.body as { messages: { content: string }[] }).messages[0].content)).not.toContain("track calories");
     const patches = toDb(calls).filter((c) => c.method === "PATCH");
     expect(patches).toEqual([{ url: `${DB}/rest/v1/feature_wishes?id=eq.${WISH}`, method: "PATCH", body: { body_de: "de:I want to get abs" } }]);
+  });
+
+  it("reports come from event_report_list and never ask Claude", async () => {
+    const calls = fake(() => [
+      {
+        event_id: "winter-arc-2026", user_id: WISH, nickname: "maple", flag: "CH", blocked: false,
+        reports: 2, open: 2, first_at: "2026-12-03T10:00:00Z", last_at: "2026-12-04T10:00:00Z",
+      },
+    ]);
+    expect(await fetchReports(BASALT)).toEqual([
+      {
+        eventId: "winter-arc-2026", userId: WISH, nickname: "maple", flag: "CH", blocked: false,
+        reports: 2, open: 2, firstAt: "2026-12-03T10:00:00Z", lastAt: "2026-12-04T10:00:00Z",
+      },
+    ]);
+    expect(calls.map((c) => [c.url, c.method])).toEqual([[`${DB}/rest/v1/rpc/event_report_list`, "POST"]]);
+  });
+
+  it("blocking goes through handle_event_report, letting a name stand too", async () => {
+    const calls = fake(() => 2);
+    expect(await handleReport(BASALT, "winter-arc-2026", WISH, true)).toBe(2);
+    await handleReport(BASALT, "winter-arc-2026", WISH, false);
+    expect(calls.map((c) => [c.url, c.body])).toEqual([
+      [`${DB}/rest/v1/rpc/handle_event_report`, { p_event: "winter-arc-2026", p_user: WISH, p_block: true }],
+      [`${DB}/rest/v1/rpc/handle_event_report`, { p_event: "winter-arc-2026", p_user: WISH, p_block: false }],
+    ]);
+  });
+
+  it("a malformed event or account is refused before any request", async () => {
+    const calls = fake(() => 1);
+    await expect(handleReport(BASALT, "Winter Arc", WISH, true)).rejects.toThrow("Event nicht gefunden.");
+    await expect(handleReport(BASALT, "winter-arc-2026", "maple", true)).rejects.toThrow("Eintrag nicht gefunden.");
+    expect(calls).toHaveLength(0);
   });
 });

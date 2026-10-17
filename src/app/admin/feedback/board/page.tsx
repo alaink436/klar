@@ -1,7 +1,8 @@
 // Klar Control · Klar Studios · Feedback · Board: das Board der Apps ("what i
 // want next"). Oben die App, darunter drei Ansichten: Ideen anlegen, umstellen
-// und kommentieren; Wuensche lesen und aufs Board stellen; Meldungen (kommen
-// mit Basalt 2.6.0). Daten und Ablaeufe in lib/board, geschrieben wird ueber
+// und kommentieren; Wuensche lesen und aufs Board stellen; Meldungen zu
+// Spitznamen aus Events lesen und sperren (Basalt 2.6.0). Daten und Ablaeufe
+// in lib/board, geschrieben wird ueber
 // ./aktion. Aufbau wie das Postfach: Liste links, Auswahl rechts, gewaehlt
 // wird ueber die Adresse.
 
@@ -14,9 +15,11 @@ import {
   IDEA_STATUS_LABELS,
   fetchComments,
   fetchIdeas,
+  fetchReports,
   fetchWishes,
   findBoardApp,
   type BoardApp,
+  type EventReport,
   type Idea,
   type IdeaComment,
   type IdeaStatus,
@@ -51,6 +54,10 @@ const LABEL = "[font-family:var(--font-mono)] text-[10px] font-semibold uppercas
 
 const datum = (iso: string) => inZone(iso, { day: "2-digit", month: "short", year: "numeric" });
 const stimmen = (n: number) => (n === 1 ? "1 Stimme" : `${n} Stimmen`);
+const meldungenZahl = (n: number) => (n === 1 ? "1 Meldung" : `${n} Meldungen`);
+
+/** Die Flagge einer ISO-Region, wie die App sie zeigt. */
+const flagge = (region: string) => String.fromCodePoint(...Array.from(region, (c) => 0x1f1e6 + c.charCodeAt(0) - 65));
 
 function adresse(p: { app: BoardApp; ansicht?: Ansicht; id?: string; wunsch?: string; neu?: boolean }): string {
   const q = new URLSearchParams({ app: p.app.slug });
@@ -128,6 +135,7 @@ export default async function BoardPage({
   let ideen: Idea[] = [];
   let kommentare: IdeaComment[] = [];
   let wuensche: Wish[] = [];
+  let meldungen: EventReport[] = [];
   try {
     if (ansicht === "ideen") {
       ideen = await fetchIdeas(app);
@@ -136,6 +144,8 @@ export default async function BoardPage({
       const r = await fetchWishes(app);
       wuensche = r.wishes;
       hinweis = r.warning;
+    } else {
+      meldungen = await fetchReports(app);
     }
   } catch (e) {
     if (!(e instanceof BoardError)) throw e;
@@ -151,8 +161,8 @@ export default async function BoardPage({
       <AdminTopbar titel="Board" bereich="Klar Studios" />
       <div className="content">
         <PageHeader eyebrow="Klar Studios · Feedback" icon={<Lightbulb />} title="Board">
-          Das Board der Apps: Ideen, auf die Nutzer stimmen, deine Kommentare dazu und die Wünsche, die Nutzer schicken.
-          Was du speicherst, übersetzt Claude in alle Sprachen der App.
+          Das Board der Apps: Ideen, auf die Nutzer stimmen, deine Kommentare dazu, die Wünsche, die Nutzer schicken, und
+          Meldungen zu Spitznamen aus Events. Was du speicherst, übersetzt Claude in alle Sprachen der App.
         </PageHeader>
 
         <FeedbackReiter aktiv="board" />
@@ -177,10 +187,7 @@ export default async function BoardPage({
         {err ? <Meldung ton="var(--danger)">{err}</Meldung> : msg ? <Meldung ton="var(--success)">{msg}</Meldung> : null}
 
         {ansicht === "meldungen" ? (
-          <TextureCard className="p-6 text-[13px] leading-[1.7] text-fg-2">
-            Hier landen Meldungen zu Spitznamen aus Events. Sie kommen mit {app.name} 2.6.0, sobald die App sie in ihre
-            Datenbank schreibt.
-          </TextureCard>
+          <MeldungenAnsicht app={app} meldungen={meldungen} />
         ) : (
           <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
             <TextureCard className="self-start">
@@ -443,5 +450,63 @@ function WunschAnsicht({ app, w }: { app: BoardApp; w: Wish }) {
         </form>
       )}
     </div>
+  );
+}
+
+/**
+ * Gemeldete Spitznamen aus Events, ein Eintrag pro gemeldeter Person, offene
+ * zuerst. Sperren ersetzt den Namen im Event durch einen neutralen; Stehen
+ * lassen erledigt die Meldungen, der Name bleibt.
+ */
+function MeldungenAnsicht({ app, meldungen }: { app: BoardApp; meldungen: EventReport[] }) {
+  return (
+    <TextureCard>
+      <p className="m-0 border-b px-5 py-4 text-[12.5px] leading-[1.7] text-fg-3">
+        Teilnehmer melden Spitznamen aus der Liste eines Events ({app.name} ab 2.6.0). Sperren ersetzt den Spitznamen im
+        Event für alle durch einen neutralen, die Teilnahme bleibt. Stehen lassen erledigt die Meldungen ohne Sperre.
+      </p>
+      {meldungen.length === 0 ? (
+        <p className="m-0 px-4 py-8 text-center text-[12.5px] text-fg-3">Keine Meldungen.</p>
+      ) : (
+        <ul className="m-0 list-none p-0">
+          {meldungen.map((m) => (
+            <li
+              key={`${m.eventId}:${m.userId}`}
+              className="flex flex-wrap items-center justify-between gap-3 border-t px-5 py-4 first:border-t-0"
+            >
+              <div className="min-w-0">
+                <div className="flex items-baseline gap-2">
+                  <span className={cn("truncate text-[14px] font-medium", m.blocked ? "text-fg-3" : "text-fg")}>{m.nickname}</span>
+                  {m.flag ? <span aria-label={m.flag}>{flagge(m.flag)}</span> : null}
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-fg-4">
+                  <Punkt ton={m.blocked ? "var(--danger)" : m.open > 0 ? "var(--warning)" : undefined} />
+                  {m.blocked ? "gesperrt" : m.open > 0 ? `${m.open} offen` : "stehen gelassen"} · {m.eventId} ·{" "}
+                  {meldungenZahl(m.reports)} · zuletzt {datum(m.lastAt)}
+                </div>
+              </div>
+              {m.blocked ? null : (
+                <div className="flex shrink-0 items-center gap-2">
+                  <form method="POST" action={AKTION}>
+                    <Felder app={app} tat="sperren" ansicht="meldungen" />
+                    <input type="hidden" name="event" value={m.eventId} />
+                    <input type="hidden" name="konto" value={m.userId} />
+                    <Button type="submit" variant="pill" size="sm">Sperren</Button>
+                  </form>
+                  {m.open > 0 ? (
+                    <form method="POST" action={AKTION}>
+                      <Felder app={app} tat="stehen-lassen" ansicht="meldungen" />
+                      <input type="hidden" name="event" value={m.eventId} />
+                      <input type="hidden" name="konto" value={m.userId} />
+                      <Button type="submit" variant="pill-dark" size="sm">Stehen lassen</Button>
+                    </form>
+                  ) : null}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </TextureCard>
   );
 }

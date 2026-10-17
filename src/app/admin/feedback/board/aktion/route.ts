@@ -10,6 +10,7 @@ import {
   addComment,
   createIdea,
   findBoardApp,
+  handleReport,
   markWishRead,
   promoteWish,
   setIdeaStatus,
@@ -76,6 +77,13 @@ export async function POST(req: NextRequest): Promise<Response> {
       case "gelesen":
         await markWishRead(app, wunsch);
         return zurueck({ msg: "Als gelesen markiert." });
+      case "sperren":
+        await handleReport(app, feld("event", 40), feld("konto", 40), true);
+        return zurueck({ msg: "Gesperrt. Das Event zeigt jetzt einen neutralen Namen." });
+      case "stehen-lassen": {
+        const n = await handleReport(app, feld("event", 40), feld("konto", 40), false);
+        return zurueck({ msg: n === 1 ? "1 Meldung erledigt, der Name bleibt." : `${n} Meldungen erledigt, der Name bleibt.` });
+      }
       default:
         return zurueck({ err: "Unbekannte Aktion." });
     }
