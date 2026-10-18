@@ -73,8 +73,9 @@ const DEALS = [
   { title: "Commission", line: "Your own link. You earn a share of every subscription that comes through it, from day one." },
   { title: "CPM", line: "A rate per thousand views on the videos you post. Unlocks once your posts perform." },
 ];
-// Test period and DM account: Alain, 2026-10-14.
-const TIKTOK = "clairmentklarclear";
+// Test period and DM account: Alain, 2026-10-14. The account was renamed to
+// klar.studios; the old handle answers "account not found" (measured 2026-10-18).
+const TIKTOK = "klar.studios";
 const STEPS = [
   "Apply by email with the form, or send us a DM on TikTok.",
   "We match you with an app and send you the format to post. You earn through your own link from day one.",
