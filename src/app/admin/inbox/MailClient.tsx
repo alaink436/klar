@@ -28,10 +28,20 @@ import {
   PencilLine,
   RotateCw,
   Star,
+  Trash2,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import TemplateManager from "./TemplateManager";
 import type { ReplyLang, ReplyTemplate } from "@/lib/replyTemplates";
@@ -321,6 +331,12 @@ export default function MailClient({
     [convs],
   );
 
+  // Delete a website request (Bewerbung). Only after the server confirmed: the
+  // dialog stays open with its error otherwise.
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteErr, setDeleteErr] = useState<string | null>(null);
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return convs.filter((c) => {
@@ -332,6 +348,31 @@ export default function MailClient({
       return hay.includes(q);
     });
   }, [convs, query, filter]);
+
+  const deleteSel = useCallback(async () => {
+    if (!sel?.inquiry) return;
+    setDeleting(true);
+    setDeleteErr(null);
+    try {
+      const res = await fetch("/admin/inbox/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: sel.inquiry.inquiryId }),
+      });
+      const j = (await res.json().catch(() => ({ ok: false }))) as { ok?: boolean; error?: string };
+      if (!res.ok || !j.ok) throw new Error(j.error || `HTTP ${res.status}`);
+      // Move on to the neighbour in the list, on phones back to the list.
+      const i = visible.findIndex((c) => c.id === sel.id);
+      const next = visible[i + 1] ?? visible[i - 1] ?? null;
+      setConvs((prev) => prev.filter((c) => c.id !== sel.id));
+      setSelectedId(narrow ? null : next?.id ?? null);
+      setDeleteOpen(false);
+    } catch (e) {
+      setDeleteErr(e instanceof Error ? e.message : "Löschen fehlgeschlagen");
+    } finally {
+      setDeleting(false);
+    }
+  }, [sel, visible, narrow]);
 
   const translateMsg = useCallback(
     async (m: ThreadMessage, srcLang: string) => {
@@ -584,7 +625,9 @@ export default function MailClient({
                   <span aria-hidden className="klar-kachel size-[38px] text-[16px] font-semibold">
                     {(sel.displayName || sel.handle || "?").charAt(0).toUpperCase()}
                   </span>
-                  <div className="min-w-0 flex-1">
+                  {/* Phones: with the delete button next to it the name column got
+                      squeezed, so it takes its own line under Liste and Löschen. */}
+                  <div className={cn("min-w-0 flex-1", sel.kind === "inquiry" && "max-[760px]:order-last max-[760px]:basis-full")}>
                     <div className="flex flex-wrap items-center gap-x-[9px] gap-y-1">
                       <span className="text-[19px] font-medium leading-tight tracking-[-0.015em] text-fg">
                         {sel.displayName || `@${sel.handle}`}
@@ -618,6 +661,17 @@ export default function MailClient({
                       </span>
                     </div>
                   </div>
+                  {sel.kind === "inquiry" && (
+                    <Button
+                      variant="pill-dark"
+                      size="sm"
+                      className="ml-auto h-8 px-3.5 text-[12.5px] text-danger"
+                      onClick={() => { setDeleteErr(null); setDeleteOpen(true); }}
+                    >
+                      <Trash2 />
+                      Löschen
+                    </Button>
+                  )}
                 </div>
 
                 {/* Context: collab mailbox, or the mail address of an inquiry */}
@@ -816,6 +870,28 @@ export default function MailClient({
         </Panel>
       )}
       </PanelGroup>
+      <AlertDialog open={deleteOpen} onOpenChange={(o) => !deleting && setDeleteOpen(o)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bewerbung löschen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Die Anfrage von {sel ? sel.displayName || `@${sel.handle}` : "diesem Kontakt"} verschwindet aus
+              Bewerbungen und Inbox. Sie wandert ins Archiv der Datenbank und lässt sich von dort zurückholen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteErr && <div className="text-[12.5px] text-danger">Nicht gelöscht: {deleteErr}</div>}
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button type="button" variant="pill-dark" disabled={deleting}>
+                Abbrechen
+              </Button>
+            </AlertDialogCancel>
+            <Button type="button" variant="pill-dark" className="text-danger" disabled={deleting} onClick={() => void deleteSel()}>
+              {deleting ? "Lösche…" : "Löschen"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {/* Lade fuer die Vorlagen: Grund nur abgedunkelt wie beim Dialog, die
           Lade selbst ist eine Karte, die von rechts hereinsteht. */}
       {tplOpen && (
