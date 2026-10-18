@@ -1,14 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Inter_Tight } from "next/font/google";
+import localFont from "next/font/local";
 
 // The light Klar Studios frame shared by the front page and /support: font,
 // glass header with the chrome symbol, footer with the large wordmark.
 
-const grotesk = Inter_Tight({
+const grotesk = localFont({
+  src: "../../../fonts/intertight.woff2",
+  weight: "400 600",
   variable: "--font-grotesk",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
   display: "swap",
 });
 
