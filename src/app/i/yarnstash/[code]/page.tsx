@@ -4,23 +4,27 @@
 // yarn-stash domain is purchased. Thin server shell; logic in InstallClient.
 
 import { use } from "react";
-import { Gloock, Newsreader } from "next/font/google";
+import localFont from "next/font/local";
 import { InstallClient } from "./InstallClient";
 
 // Atelier brand faces (scoped to this route, not the klar root layout):
 // Gloock = chunky cozy display serif, Newsreader = editorial italic accent.
-const display = Gloock({
+const gloock = localFont({
+  src: "../../../../fonts/gloock.woff2",
   weight: "400",
-  subsets: ["latin"],
   variable: "--ys-display",
   display: "swap",
+  adjustFontFallback: "Times New Roman",
 });
 
-const editorial = Newsreader({
-  subsets: ["latin"],
-  style: ["normal", "italic"],
+const newsreader = localFont({
+  src: [
+    { path: "../../../../fonts/newsreader.woff2", weight: "200 800", style: "normal" },
+    { path: "../../../../fonts/newsreader-italic.woff2", weight: "200 800", style: "italic" },
+  ],
   variable: "--ys-editorial",
   display: "swap",
+  adjustFontFallback: "Times New Roman",
 });
 
 export default function YarnStashInvitePage({
@@ -38,7 +42,7 @@ export default function YarnStashInvitePage({
     .slice(0, 32);
 
   return (
-    <div className={`${display.variable} ${editorial.variable}`}>
+    <div className={`${gloock.variable} ${newsreader.variable}`}>
       <InstallClient code={code} />
     </div>
   );

@@ -9,7 +9,7 @@
 
 import type { ReactNode } from "react";
 import { cookies, headers } from "next/headers";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { LANG_COOKIE, normalizeAdminLang } from "./_i18n";
 import { NAV_COOKIE, parseNavPrefs } from "./_nav";
 import { countOpenCollabs } from "@/lib/collabView";
@@ -22,8 +22,8 @@ import "./admin.css";
 // families are handed to admin.css as variables on :root rather than as a
 // class on a wrapper, because dialogs, menus and toasts render into <body>,
 // outside any wrapper this layout could draw.
-const geist = Geist({ subsets: ["latin"], display: "swap" });
-const geistMono = Geist_Mono({ subsets: ["latin"], display: "swap" });
+const geist = localFont({ src: "../../fonts/geist.woff2", weight: "100 900", display: "swap" });
+const geistMono = localFont({ src: "../../fonts/geistmono.woff2", weight: "100 900", display: "swap" });
 const FONT_VARS = `:root{--font-geist-sans:${geist.style.fontFamily};--font-geist-mono:${geistMono.style.fontFamily}}`;
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {

@@ -4,20 +4,21 @@
 // throttleup domain is purchased. Thin server shell; logic in InstallClient.
 
 import { use } from "react";
-import { Boldonse, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import { InstallClient } from "./InstallClient";
 
 // ThrottleUp brand faces: Boldonse for the display, Inter for body text —
 // matches the in-app type stack.
-const display = Boldonse({
+const boldonse = localFont({
+  src: "../../../../fonts/boldonse.woff2",
   weight: "400",
-  subsets: ["latin"],
   variable: "--tu-display",
   display: "swap",
 });
 
-const body = Inter({
-  subsets: ["latin"],
+const inter = localFont({
+  src: "../../../../fonts/inter.woff2",
+  weight: "100 900",
   variable: "--tu-body",
   display: "swap",
 });
@@ -37,7 +38,7 @@ export default function ThrottleUpInvitePage({
     .slice(0, 32);
 
   return (
-    <div className={`${display.variable} ${body.variable}`}>
+    <div className={`${boldonse.variable} ${inter.variable}`}>
       <InstallClient code={code} />
     </div>
   );

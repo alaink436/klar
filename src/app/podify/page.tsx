@@ -16,7 +16,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Figtree } from "next/font/google";
+import localFont from "next/font/local";
 
 import Wheel from "./Wheel";
 
@@ -34,9 +34,9 @@ export const metadata: Metadata = {
   },
 };
 
-const figtree = Figtree({
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+const figtree = localFont({
+  src: "../../fonts/figtree.woff2",
+  weight: "500 800",
   variable: "--pf-sans",
   display: "swap",
 });
