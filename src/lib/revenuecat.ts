@@ -71,7 +71,7 @@ async function readVaultConfigs(): Promise<RcConfig[]> {
   );
   const found = await Promise.all(
     LISTED_APPS.map(async (app): Promise<RcConfig | null> => {
-      const names = new Set([norm(app.name), norm(app.slug)]);
+      const names = new Set([norm(app.name), norm(app.slug), ...(app.aliases ?? []).map(norm)]);
       const entry = secrets.find((s) => names.has(norm(s.label)));
       if (!entry) return null;
       const secretKey = await revealSecret(entry.id);
@@ -175,6 +175,45 @@ export async function fetchRcOverview(cfg: RcConfig): Promise<RcOverview | null>
       currency: mrr?.unit || revenue?.unit || "$",
       ok: true,
     };
+  } catch {
+    return null;
+  }
+}
+
+// Everyone who ever opened the app, by the platform they first came from
+// (chart "New Customers", segment `first_platform`, summed since 2023). These
+// are RevenueCat customers, so people without an account count too: more than
+// the app's own users. The app databases do not know the platform of an
+// account (Alain, 2026-10-21: RevenueCat over the partial push tokens).
+// An hour of cache: the chart endpoint is rate limited and this moves slowly.
+export interface RcPlatforms {
+  ios: number;
+  android: number;
+}
+
+export async function fetchRcPlatforms(cfg: RcConfig): Promise<RcPlatforms | null> {
+  try {
+    const q = new URLSearchParams({
+      segment: "first_platform",
+      resolution: "month",
+      start_date: "2023-01-01",
+      end_date: new Date().toISOString().slice(0, 10),
+    });
+    const res = await fetch(
+      `https://api.revenuecat.com/v2/projects/${encodeURIComponent(cfg.projectId)}/charts/customers_new?${q}`,
+      {
+        headers: { Authorization: `Bearer ${cfg.secretKey}`, Accept: "application/json" },
+        next: { revalidate: 3600 },
+      },
+    );
+    if (!res.ok) return null;
+    const total = (await res.json())?.summary?.total;
+    if (!total || typeof total !== "object") return null;
+    const count = (segment: string): number => {
+      const v = total[segment] && Object.values(total[segment])[0];
+      return typeof v === "number" ? v : 0;
+    };
+    return { ios: count("iOS"), android: count("Android") };
   } catch {
     return null;
   }

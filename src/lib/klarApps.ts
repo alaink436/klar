@@ -41,6 +41,8 @@ export interface KlarAppMeta {
    * otherwise the app whose backend it handed over shows up twice.
    */
   listed?: boolean;
+  /** Older names a vault label may still carry ("Revenuecat Podify" for Learnbound). */
+  aliases?: string[];
 }
 
 export const KLAR_APPS: KlarAppMeta[] = [
@@ -168,6 +170,18 @@ export const KLAR_APPS: KlarAppMeta[] = [
     status: "PAUSED",
     publicSite: false,
     listed: false,
+  },
+  // Learnbound (repo Podify, formerly Focus Crew) since 2026-10-21: users from
+  // its Supabase, revenue from the RevenueCat project that is still called
+  // "Podify". iOS 1.0.1 waits for Apple, so it stays off the public site.
+  // Last in the list so every other app keeps its chart colour.
+  {
+    slug: "learnbound",
+    name: "Learnbound",
+    icon: "/icons/learnbound-v3.webp",
+    status: "BETA",
+    publicSite: false,
+    aliases: ["Podify"],
   },
 ];
 

@@ -24,7 +24,7 @@ import {
   getApps,
   fetchAppUserStats,
 } from "../../../lib/adminApps";
-import { getRcConfigs, fetchRcOverview } from "../../../lib/revenuecat";
+import { getRcConfigs, fetchRcOverview, fetchRcPlatforms } from "../../../lib/revenuecat";
 import {
   fetchAppUserSeries,
   readMetricsHistory,
@@ -396,7 +396,7 @@ const EMPTY_LANDINGS: LandingsPayload = {
 // from RevenueCat's Overview metrics (vault entry "Revenuecat <App>", see lib/revenuecat).
 // Either side degrades to "—" independently, so an app can show users without
 // revenue, or neither, without breaking the others.
-async function buildApps(): Promise<AppsPayload> {
+async function buildApps(selected: Set<string>): Promise<AppsPayload> {
   const backendApps = getApps();
   const bySlug = new Map(backendApps.map((a) => [a.slug, a]));
   const rcBySlug = new Map((await getRcConfigs()).map((c) => [c.slug, c]));
@@ -407,14 +407,16 @@ async function buildApps(): Promise<AppsPayload> {
   const SPARK_DAYS = 28;
   const sparkSince = daysAgo(SPARK_DAYS);
 
+  // Cards and totals follow the app chips, like the chart.
   const perApp: AppRow[] = await Promise.all(
-    LISTED_APPS.map(async (meta) => {
+    LISTED_APPS.filter((m) => selected.has(m.slug)).map(async (meta) => {
       const backend = bySlug.get(resolveBackendKey(meta, bySlug));
       const rcCfg = rcBySlug.get(resolveBackendKey(meta, rcBySlug));
-      const [stats, rc, series] = await Promise.all([
+      const [stats, rc, series, platforms] = await Promise.all([
         backend ? fetchAppUserStats(backend) : Promise.resolve(null),
         rcCfg ? fetchRcOverview(rcCfg) : Promise.resolve(null),
         backend ? fetchAppUserSeries(backend, sparkSince, "day") : Promise.resolve(null),
+        rcCfg ? fetchRcPlatforms(rcCfg) : Promise.resolve(null),
       ]);
       // Fill the window day by day so gaps read as zero instead of collapsing
       // the curve — a day without signups is information.
@@ -447,6 +449,8 @@ async function buildApps(): Promise<AppsPayload> {
         activeSubscriptions: rc?.activeSubscriptions ?? null,
         activeTrials: rc?.activeTrials ?? null,
         currency: rc?.currency ?? "$",
+        customersIos: platforms?.ios ?? null,
+        customersAndroid: platforms?.android ?? null,
       };
     }),
   );
@@ -457,6 +461,7 @@ async function buildApps(): Promise<AppsPayload> {
   const totalMrr = perApp.reduce((s, a) => s + (a.mrr ?? 0), 0);
   const totalRevenue28d = perApp.reduce((s, a) => s + (a.revenue28d ?? 0), 0);
   const rcApps = perApp.filter((a) => a.hasRevenueCat);
+  const platformApps = perApp.filter((a) => a.customersIos !== null);
   return {
     perApp,
     totalUsers,
@@ -464,6 +469,9 @@ async function buildApps(): Promise<AppsPayload> {
     totalActiveSubs,
     totalMrr,
     totalRevenue28d,
+    totalCustomersIos: platformApps.reduce((s, a) => s + (a.customersIos ?? 0), 0),
+    totalCustomersAndroid: platformApps.reduce((s, a) => s + (a.customersAndroid ?? 0), 0),
+    platformCount: platformApps.length,
     // Money totals assume a single display currency across RevenueCat projects
     // (typically USD); we surface the first connected app's unit.
     currency: rcApps[0]?.currency ?? "$",
@@ -479,6 +487,9 @@ const EMPTY_APPS: AppsPayload = {
   totalActiveSubs: 0,
   totalMrr: 0,
   totalRevenue28d: 0,
+  totalCustomersIos: 0,
+  totalCustomersAndroid: 0,
+  platformCount: 0,
   currency: "$",
   connectedCount: 0,
   revenueCatCount: 0,
@@ -500,12 +511,17 @@ function parseMetric(m: string | undefined): AppsMetric {
   return m === "revenue" ? "revenue" : "users";
 }
 
-// `apps` param = csv of slugs to show. Absent or empty => all apps on.
+// Apps that start switched off, one click on their chip away (Alain,
+// 2026-10-21: Anime Vault and Yarn Stash are not where the work is).
+const HIDDEN_BY_DEFAULT = new Set(["anime-vault", "yarn-stash"]);
+const DEFAULT_APPS = new Set(LISTED_APPS.map((a) => a.slug).filter((s) => !HIDDEN_BY_DEFAULT.has(s)));
+
+// `apps` param = csv of slugs to show. Absent or empty => the default apps.
 function parseSelectedApps(raw: string | undefined): Set<string> {
+  if (!raw) return DEFAULT_APPS;
   const all = new Set(LISTED_APPS.map((a) => a.slug));
-  if (!raw) return all;
   const sel = new Set(raw.split(",").map((s) => s.trim()).filter((s) => all.has(s)));
-  return sel.size > 0 ? sel : all;
+  return sel.size > 0 ? sel : DEFAULT_APPS;
 }
 
 // Ordered bucket keys + display labels spanning [since, now].
@@ -605,6 +621,7 @@ async function buildAppsChart(
       slug: m.slug,
       name: m.name,
       on: selected.has(m.slug),
+      defaultOn: DEFAULT_APPS.has(m.slug),
       color: colorForSlug(m.slug),
     })),
     unit: metric === "revenue" ? "$" : "",
@@ -686,11 +703,12 @@ export default async function AnalyticsPage({
   // that tab is active. Cards and chart side by side: they share no data, and
   // one after the other the page waited for the sum of both.
   // Chart driven by ?am / ?apps / ?p_app.
+  const selectedApps = parseSelectedApps(sp.apps);
   const [appsData, appsChart]: [AppsPayload, AppsChartPayload] =
     tab === "apps"
       ? await Promise.all([
-          buildApps(),
-          buildAppsChart(parseMetric(sp.am), parsePeriod(sp.p_app), parseSelectedApps(sp.apps)),
+          buildApps(selectedApps),
+          buildAppsChart(parseMetric(sp.am), parsePeriod(sp.p_app), selectedApps),
         ])
       : [EMPTY_APPS, EMPTY_CHART];
 
