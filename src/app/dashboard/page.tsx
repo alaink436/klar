@@ -1,8 +1,8 @@
 // getklar.org/dashboard: the creator platform (spec Projects/Klar/specs/
 // creator-plattform). Ticket 02 brought sign-up and the bio code, ticket 03 the
-// kit, ticket 04 the posts with their status and the strike notices; the
-// numbers (ticket 05) come into the verified view later. A paused or closed
-// account gets no kit.
+// kit, ticket 04 the posts with their status and the strike notices, ticket 05
+// the estimate for creators without a link and the link offer from 1000
+// followers. A paused or closed account gets no kit.
 //
 // Signed out: to /dashboard/login. Signed in without an account: sign-up form.
 // Account without a verified bio: the bio code. Verified: what happens next.
@@ -11,9 +11,11 @@ import { redirect } from "next/navigation";
 import Site from "../components/home/Site";
 import { card } from "../components/home/formStyles";
 import { getSessionUser } from "@/lib/supabaseAuth";
-import { creatorShortLink, getCreatorAccount } from "@/lib/creatorAccounts";
+import { LINK_FOLLOWERS, creatorShortLink, getCreatorAccount } from "@/lib/creatorAccounts";
+import { creatorEarning, latestModelRun, postEstimate } from "@/lib/creatorEarnings";
 import { getCreatorKit } from "@/lib/creatorKit";
 import { listCreatorPosts } from "@/lib/postCheck";
+import Earnings from "./Earnings";
 import Kit from "./Kit";
 import Posts from "./Posts";
 import SignupForm from "./SignupForm";
@@ -32,6 +34,12 @@ export default async function CreatorDashboard() {
   const closed = !!verified?.closed_at;
   const kit = verified && !paused && !closed ? await getCreatorKit(verified.id) : null;
   const posts = verified ? await listCreatorPosts(verified.id) : null;
+  const run = verified ? await latestModelRun() : null;
+  const earning = verified && run ? await creatorEarning(verified.id, run.month) : null;
+  // After switching to a link, posts counted before still earn from the estimate.
+  const estimated = verified && (!verified.has_link || earning) ? verified : null;
+  const estimates =
+    run && posts ? new Map(posts.filter((p) => p.status === "counts" || p.status === "approved").map((p) => [p.postId, postEstimate(run, p.views)])) : undefined;
 
   return (
     <Site>
@@ -71,8 +79,11 @@ export default async function CreatorDashboard() {
                   : "You have one warning: a post was rejected. A second rejection pauses your account for 30 days."}
           </div>
         )}
+        {estimated && (
+          <Earnings run={run} earning={earning} offerLink={!closed && !estimated.has_link && (estimated.followers ?? 0) >= LINK_FOLLOWERS} followers={estimated.followers ?? 0} />
+        )}
         {kit && <Kit kit={kit.kit} waiting={kit.waiting} />}
-        {posts && <Posts posts={posts} />}
+        {posts && <Posts posts={posts} estimates={estimates} />}
 
         <form action="/dashboard/logout" method="post" className="mt-10">
           <button type="submit" className="text-[13px] font-medium text-[var(--ink-3)] transition hover:text-[var(--ink)]">

@@ -5,11 +5,14 @@
 // Je Format eine Vorschau (eine Fassung), der Vorrat an fertigen Fassungen, wie
 // viele schon vergeben sind und wie viele ueberhaupt verschieden aussehen koennen.
 // Neue Fassungen rendert die Routine im Vault: Projects/Klar/creator-kit/refill.ps1.
+// Seit Ticket 05 je Format die Views nach 3 Tagen bei den Creatorn und die
+// Markierung "müde" (src/lib/formatStats.ts), nur als Hinweis.
 // Geschrieben wird ueber /admin/formate/save, gelesen ueber src/lib/creatorKit.ts.
 
 import { Clapperboard } from "lucide-react";
 import { requireAdminPage } from "../../../lib/adminGuard";
 import { MAX_ACTIVE, listFormats } from "../../../lib/creatorKit";
+import { formatStats } from "../../../lib/formatStats";
 import { AdminTopbar } from "../AdminTopbar";
 import { Kennzahlen } from "../Kennzahlen";
 import { Button } from "@/components/ui/button";
@@ -33,7 +36,9 @@ function Marke({ an }: { an: boolean }) {
 export default async function FormatePage({ searchParams }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
   await requireAdminPage();
   const sp = await searchParams;
-  const formats = await listFormats();
+  const [formats, stats] = await Promise.all([listFormats(), formatStats()]);
+  const statOf = new Map(stats.formats.map((s) => [s.formatId, s]));
+  const views = (n: number | null) => (n === null ? "-" : Math.round(n).toLocaleString("de-CH"));
   const aktiv = formats.filter((f) => f.active);
   const knapp = aktiv.filter((f) => f.pool < 2);
 
@@ -56,6 +61,11 @@ export default async function FormatePage({ searchParams }: { searchParams: Prom
               wert: knapp.length,
               zusatz: knapp.length ? "Routine laufen lassen: refill.ps1" : "jedes aktive Format hat Fassungen bereit",
             },
+            {
+              label: "Unsere Konten",
+              wert: views(stats.own.viewsPerPost),
+              zusatz: `Views nach 3 Tagen je Post, ${stats.own.posts} Posts der letzten Woche`,
+            },
           ]}
         />
 
@@ -71,9 +81,18 @@ export default async function FormatePage({ searchParams }: { searchParams: Prom
                   <div className="flex items-center gap-3">
                     <h2 className="m-0">{f.name}</h2>
                     <Marke an={f.active} />
+                    {statOf.get(f.id)?.tired ? (
+                      <span className="klar-marke">
+                        <span className="klar-punkt" style={{ background: "var(--warning)" }} aria-hidden="true" />
+                        müde
+                      </span>
+                    ) : null}
                   </div>
                   <p className="mt-1 text-[12.5px] text-fg-3" style={mono}>
                     {f.id} · Vorrat {f.pool} · vergeben {f.assigned} · {f.looks.toLocaleString("de-CH")} mögliche Fassungen
+                  </p>
+                  <p className="mt-1 text-[12.5px] text-fg-3">
+                    Creator: {views(statOf.get(f.id)?.viewsPerPost ?? null)} Views nach 3 Tagen je Post ({statOf.get(f.id)?.posts ?? 0} Posts)
                   </p>
                   <p className="mt-2 text-[13px] text-fg-2">{f.caption}</p>
                 </div>

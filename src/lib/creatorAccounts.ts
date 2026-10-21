@@ -41,7 +41,11 @@ export interface CreatorAccount {
   strikes: number;
   suspended_until: string | null;
   closed_at: string | null;
+  followers: number | null;
 }
+
+/** From here TikTok lets a creator put a link in his bio. */
+export const LINK_FOLLOWERS = 1000;
 
 function headers(extra?: HeadersInit): HeadersInit {
   return { apikey: HUB_KEY(), Authorization: `Bearer ${HUB_KEY()}`, "Content-Type": "application/json", ...extra };
@@ -187,4 +191,21 @@ export async function verifyCreatorAccount(
   if (!read.ok) return { ok: false, error: "hub" };
   if (account.has_link) await addCreator(account.app_slug, account.tiktok_handle, account.tiktok_handle);
   return { ok: true };
+}
+
+/** The creator switches to a bio link (offered from LINK_FOLLOWERS). His posts
+    from now on are `link` and paid through it; posts counted before stay with
+    the estimate. */
+export async function switchToLink(account: CreatorAccount): Promise<boolean> {
+  if (!account.verified_at || account.closed_at) return false;
+  if (!account.has_link) {
+    const res = await fetch(`${TABLE}?id=eq.${account.id}`, {
+      method: "PATCH",
+      headers: headers({ Prefer: "return=minimal" }),
+      body: JSON.stringify({ has_link: true }),
+      cache: "no-store",
+    });
+    if (!res.ok) return false;
+  }
+  return (await addCreator(account.app_slug, account.tiktok_handle, account.tiktok_handle)).ok;
 }
