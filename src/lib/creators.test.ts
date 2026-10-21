@@ -103,6 +103,44 @@ describe("fetchCreators", () => {
     ]);
     expect(r.creators.find((c) => c.handle === "mia")?.referrals).toBe(1);
   });
+
+  // Learnbound keeps profiles in `study` keyed by `user_id`, and Pro in
+  // `study.entitlements`; `public.profiles` does not exist there.
+  it("reads Learnbound's profiles and Pro from the study schema", async () => {
+    vi.stubEnv("KLAR_INBOX_SERVICE_KEY", "test");
+    vi.stubEnv(
+      "KLAR_ADMIN_APPS",
+      JSON.stringify([{ slug: "learnbound", name: "Learnbound", supabaseUrl: "https://learnbound.test", serviceKey: "l" }]),
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const json = (body: unknown) => new Response(JSON.stringify(body));
+        const profile = (init?.headers as Record<string, string> | undefined)?.["Accept-Profile"];
+        if (url.includes("klar_creator_apps"))
+          return json([{ slug: "learnbound", name: "Learnbound", short_path: "learn", detour_link: DETOUR, store_url: null, backend_slug: "learnbound" }]);
+        if (url.includes("klar_creator_links")) return json([{ app_slug: "learnbound", handle: "mia", name: "Mia" }]);
+        if (init?.method === "HEAD") return new Response(null, { headers: { "content-range": "0-1/2" } });
+        if (url.includes("/referrals"))
+          return json([
+            { user_id: "u1", influencer_handle: "mia", created_at: "2026-10-21T10:00:00Z" },
+            { user_id: "u2", influencer_handle: "mia", created_at: "2026-10-21T11:00:00Z" },
+          ]);
+        if (profile === "study" && url.includes("/profiles?select=id:user_id,display_name"))
+          return json([{ id: "u1", display_name: "Anna" }, { id: "u2", display_name: "Ben" }]);
+        if (profile === "study" && url.includes("/entitlements") && url.includes("is_pro=is.true")) return json([{ user_id: "u1" }]);
+        return new Response("relation does not exist", { status: 404 });
+      }),
+    );
+
+    const r = await fetchCreators();
+    expect(r.errors).toEqual([]);
+    expect(r.users.map((u) => [u.name, u.pro])).toEqual([
+      ["Ben", false],
+      ["Anna", true],
+    ]);
+    expect(r.creators[0]?.referrals).toBe(2);
+  });
 });
 
 describe("linkDevice", () => {

@@ -41,6 +41,10 @@ export const USER_LIST_LIMIT = 200;
     Basalt. Kelva schreibt `is_premium` aus ihrem RevenueCat-Webhook. */
 const PRO_COLUMN: Record<string, string> = { kelva: "is_premium" };
 
+/** Backends, die Profile und Pro im Schema `study` fuehren: `profiles` mit
+    `user_id` statt `id`, Pro in `entitlements` (Learnbound, Podify-Migrationen). */
+const STUDY_BACKENDS = new Set(["learnbound"]);
+
 export interface CreatorApp {
   slug: string;
   name: string;
@@ -130,6 +134,25 @@ async function countReferrals(app: AdminApp, handle: string): Promise<number | n
   return Number.isFinite(total) ? total : null;
 }
 
+type ProfileRow = { id: string; display_name: string | null; pro: boolean | null };
+
+/** Name und Pro der zugeordneten Nutzer; null, wenn die App nicht antwortet. */
+async function fetchProfiles(backend: AdminApp, ids: string[]): Promise<ProfileRow[] | null> {
+  const list = inList(ids);
+  if (STUDY_BACKENDS.has(backend.slug)) {
+    const study = { headers: { "Accept-Profile": "study" } };
+    const [profRes, entRes] = await Promise.all([
+      appDb(backend, `profiles?select=id:user_id,display_name&user_id=in.${list}`, study),
+      appDb(backend, `entitlements?select=user_id&is_pro=is.true&user_id=in.${list}`, study),
+    ]);
+    if (!profRes.ok || !entRes.ok) return null;
+    const pro = new Set(((await entRes.json()) as { user_id: string }[]).map((e) => e.user_id));
+    return ((await profRes.json()) as { id: string; display_name: string | null }[]).map((p) => ({ ...p, pro: pro.has(p.id) }));
+  }
+  const res = await appDb(backend, `profiles?select=id,display_name,pro:${PRO_COLUMN[backend.slug] ?? "is_pro"}&id=in.${list}`);
+  return res.ok ? ((await res.json()) as ProfileRow[]) : null;
+}
+
 function counted(app: AppRow, backends: AdminApp[]): AdminApp | null {
   if (!app.detour_link || !app.backend_slug) return null;
   return backends.find((b) => b.slug === app.backend_slug) ?? null;
@@ -185,17 +208,9 @@ export async function fetchCreators(): Promise<CreatorsResult> {
         }
         const refs = (await refRes.json()) as { user_id: string; influencer_handle: string; created_at: string }[];
         if (refs.length === 0) return;
-        const pro = PRO_COLUMN[backend.slug] ?? "is_pro";
-        const profRes = await appDb(
-          backend,
-          `profiles?select=id,display_name,pro:${pro}&id=in.${inList(refs.map((r) => r.user_id))}`,
-        );
-        if (!profRes.ok) errors.push(`${a.name}: profiles antwortet mit ${profRes.status}.`);
-        const profiles = new Map(
-          profRes.ok
-            ? ((await profRes.json()) as { id: string; display_name: string | null; pro: boolean | null }[]).map((p) => [p.id, p])
-            : [],
-        );
+        const profRows = await fetchProfiles(backend, refs.map((r) => r.user_id));
+        if (!profRows) errors.push(`${a.name}: profiles antwortet nicht.`);
+        const profiles = new Map((profRows ?? []).map((p) => [p.id, p]));
         for (const r of refs) {
           const p = profiles.get(r.user_id);
           users.push({
