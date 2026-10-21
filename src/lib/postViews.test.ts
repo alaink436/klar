@@ -6,7 +6,7 @@ vi.mock("./vault", () => ({
   revealSecret: async () => "apify-key",
 }));
 
-import { APIFY_TASK_ID, ingestRun, parseItems } from "./postViews";
+import { APIFY_CREATOR_TASK_ID, APIFY_TASK_ID, ingestRun, parseItems } from "./postViews";
 
 const AT = "2026-10-21T12:00:00.000Z";
 
@@ -53,19 +53,26 @@ describe("parseItems", () => {
 
 describe("ingestRun", () => {
   const inserted: Record<string, unknown[]> = {};
+  const taskCalls: string[] = [];
   let run: Record<string, unknown>;
+  let accounts: Array<{ handle: string; source: string }>;
 
   beforeEach(() => {
     vi.stubEnv("KLAR_INBOX_SERVICE_KEY", "hub");
     run = { actorTaskId: APIFY_TASK_ID, status: "SUCCEEDED", finishedAt: AT, defaultDatasetId: "ds1" };
+    accounts = [{ handle: "motivationwithbasalt", source: "own" }];
     for (const k of Object.keys(inserted)) delete inserted[k];
+    taskCalls.length = 0;
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string, init?: RequestInit) => {
         if (url.includes("/actor-runs/")) return new Response(JSON.stringify({ data: run }));
         if (url.includes("/datasets/ds1/items")) return new Response(JSON.stringify([item()]));
-        if (url.includes("klar_view_accounts")) return new Response(JSON.stringify([{ handle: "motivationwithbasalt" }]));
-        if (url.includes("/actor-tasks/")) return new Response("{}");
+        if (url.includes("klar_view_accounts")) return new Response(JSON.stringify(accounts));
+        if (url.includes("/actor-tasks/")) {
+          taskCalls.push(`${init?.method} ${url.split("/actor-tasks/")[1]}`);
+          return new Response("{}");
+        }
         const table = url.split("/rest/v1/")[1];
         inserted[table] = JSON.parse(String(init?.body));
         return new Response(null, { status: 201 });
@@ -93,5 +100,27 @@ describe("ingestRun", () => {
   it("refuses a run that did not succeed", async () => {
     run.status = "RUNNING";
     expect(await ingestRun("abcdefghij12")).toEqual({ ok: false, error: "run-running", retry: false });
+  });
+
+  it("starts the creators' run after our own run, with their accounts as input", async () => {
+    accounts.push({ handle: "somecreator", source: "creator" });
+    await ingestRun("abcdefghij12");
+    expect(taskCalls).toEqual([
+      `PUT ${APIFY_TASK_ID}/input`,
+      `PUT ${APIFY_CREATOR_TASK_ID}/input`,
+      `POST ${APIFY_CREATOR_TASK_ID}/runs`,
+    ]);
+  });
+
+  it("stores a creators' run without starting another one", async () => {
+    accounts.push({ handle: "somecreator", source: "creator" });
+    run.actorTaskId = APIFY_CREATOR_TASK_ID;
+    expect((await ingestRun("abcdefghij12")).ok).toBe(true);
+    expect(taskCalls.some((c) => c.startsWith("POST"))).toBe(false);
+  });
+
+  it("starts no creators' run while there are no creators", async () => {
+    await ingestRun("abcdefghij12");
+    expect(taskCalls).toEqual([`PUT ${APIFY_TASK_ID}/input`]);
   });
 });
