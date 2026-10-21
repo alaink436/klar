@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { card, field, label } from "./formStyles";
 
-// The creator application on the front page. Creators pick ONE way in (Alain:
-// both at once was confusing): by email, which posts to /api/inquiry as an
-// `affiliate` request and lands in Klar Control's inbox, or by TikTok DM.
-// TikTok and Instagram only; no promo codes, creators earn through their own
-// link from day one, CPM once their posts perform. Every choice is a chip,
-// never a native select menu.
+// The inquiry form on the front page, folded under the creator sign-up since the
+// creator platform (ticket 07): for everything that is not a Basalt creator
+// (another app, a brand, an agency). One way in at a time (Alain: both at once
+// was confusing): by email, which posts to /api/inquiry as an `affiliate`
+// request and lands in Klar Control's inbox, or by TikTok DM. No CPM choice any
+// more (it comes back later). Every choice is a chip, never a native select menu.
 
 type AppOption = { slug: string; name: string; icon: string; recommended: boolean };
 type Mode = "email" | "dm";
@@ -51,15 +51,9 @@ export default function CreatorForm({ apps, tiktok }: { apps: AppOption[]; tikto
   const [error, setError] = useState("");
   const [platforms, setPlatforms] = useState<string[]>(["TikTok"]);
   const [audience, setAudience] = useState<string[]>([]);
-  const [deal, setDeal] = useState<"commission" | "cpm" | "">("");
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!deal) {
-      setState("error");
-      setError("Pick how you want to be paid.");
-      return;
-    }
     const f = new FormData(e.currentTarget);
     setState("sending");
     setError("");
@@ -73,7 +67,6 @@ export default function CreatorForm({ apps, tiktok }: { apps: AppOption[]; tikto
           email: f.get("email"),
           platforms: platforms.join(", "),
           audience: audience[0] ?? "",
-          deal,
           target_app: app,
           why: f.get("why"),
           company: f.get("company"),
@@ -97,7 +90,7 @@ export default function CreatorForm({ apps, tiktok }: { apps: AppOption[]; tikto
       <div className={card}>
         <p className="text-[clamp(26px,3vw,36px)] font-medium leading-tight tracking-[-0.04em]">Got it.</p>
         <p className="mt-3 max-w-[36ch] text-[16px] leading-relaxed text-[var(--ink-2)]">
-          We read every application and write back by email, usually within a few days.
+          We read every message and write back by email, usually within a few days.
         </p>
       </div>
     );
@@ -105,7 +98,7 @@ export default function CreatorForm({ apps, tiktok }: { apps: AppOption[]; tikto
 
   return (
     <div className={card}>
-      <span className={label}>How do you want to apply?</span>
+      <span className={label}>How do you want to reach us?</span>
       <div className="grid grid-cols-2 gap-1 rounded-full border border-[var(--hair)] bg-white/70 p-1">
         {(["email", "dm"] as const).map((m) => (
           <button
@@ -123,8 +116,8 @@ export default function CreatorForm({ apps, tiktok }: { apps: AppOption[]; tikto
       {mode === "dm" ? (
         <div className="mt-7">
           <p className="text-[16px] leading-relaxed text-[var(--ink-2)]">
-            Send a DM to <span className="font-medium text-[var(--ink)]">@{tiktok}</span> with your handle, your
-            follower count, the app you would post about and whether you want commission or CPM.
+            Send a DM to <span className="font-medium text-[var(--ink)]">@{tiktok}</span> with your handle, the
+            app you have in mind and what you would like to do.
           </p>
           <a
             href={`https://www.tiktok.com/@${tiktok}`}
@@ -159,27 +152,7 @@ export default function CreatorForm({ apps, tiktok }: { apps: AppOption[]; tikto
           </div>
 
           <div className="mt-5">
-            <span className={label}>How you want to be paid</span>
-            <div className="grid grid-cols-2 gap-2">
-              {(["commission", "cpm"] as const).map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  aria-pressed={deal === d}
-                  onClick={() => setDeal(d)}
-                  className={`rounded-2xl border px-4 py-3 text-left transition ${deal === d ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]" : "border-[var(--hair)] bg-white/70 hover:border-[var(--ink-3)]"}`}
-                >
-                  <span className="block text-[15px] font-medium">{d === "cpm" ? "CPM" : "Commission"}</span>
-                  <span className={`block text-[12.5px] ${deal === d ? "text-white/70" : "text-[var(--ink-3)]"}`}>
-                    {d === "cpm" ? "Per 1,000 views, unlocks later" : "Your own link, from day one"}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-5">
-            <span className={label}>App you would post about</span>
+            <span className={label}>Which app it is about</span>
             <div className="flex flex-wrap gap-2">
               {[{ slug: "", name: "Any, you pick", icon: "", recommended: true }, ...apps].map((a) => (
                 <button
@@ -207,7 +180,7 @@ export default function CreatorForm({ apps, tiktok }: { apps: AppOption[]; tikto
               name="why"
               rows={3}
               maxLength={8000}
-              placeholder="Links to videos of yours you like"
+              placeholder="What you have in mind, links to your work"
               className={`${field} h-auto resize-y py-3`}
             />
           </div>
@@ -221,7 +194,7 @@ export default function CreatorForm({ apps, tiktok }: { apps: AppOption[]; tikto
               disabled={state === "sending"}
               className="inline-flex h-12 items-center rounded-full bg-[var(--ink)] px-7 text-[15px] font-medium tracking-[-0.01em] text-[var(--paper)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition hover:opacity-85 disabled:opacity-50"
             >
-              {state === "sending" ? "Sending…" : "Apply"}
+              {state === "sending" ? "Sending…" : "Send"}
             </button>
             {state === "error" && <p role="alert" className="text-[14px] text-[#b42318]">{error}</p>}
           </div>

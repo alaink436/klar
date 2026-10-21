@@ -10,6 +10,7 @@ import Film from "./components/home/Film";
 import Site from "./components/home/Site";
 import BlurHeadline from "./components/home/BlurHeadline";
 import CreatorForm from "./components/home/CreatorForm";
+import { card } from "./components/home/formStyles";
 import HeroPhones from "./components/home/HeroPhones";
 
 // getklar.org's front page: the apps, nothing else (Alain's call, 2026-10-01).
@@ -66,20 +67,26 @@ const APPS: App[] = [
 ];
 
 // Creators (getklar.org is the page creators land on from TikTok, Alain 2026-10-14).
-// No promo codes, earnings run through their own link. Two tiers (Alain, 2026-10-16):
-// everyone starts on commission, no follower minimum; CPM and the paid test period
-// unlock once their posts perform. We hand them the format anyway.
+// Since the creator platform (spec Projects/Klar/specs/creator-plattform, ticket
+// 07): creators sign up themselves, only for Basalt, and post slideshows from
+// their kit; 50 % of the revenue they bring, estimated without a link, exact with
+// one. CPM and the paid test week are gone for now. The old form stays for
+// everything else (other apps, brands, agencies).
 const DEALS = [
-  { title: "Commission", line: "Your own link. You earn a share of every subscription that comes through it, from day one." },
-  { title: "CPM", line: "A rate per thousand views on the videos you post. Unlocks once your posts perform." },
+  {
+    title: "Without a link",
+    line: "Under 1,000 followers TikTok gives you no bio link. We read your views and estimate the sign-ups they bring from Basalt's own numbers.",
+  },
+  { title: "With a link", line: "From 1,000 followers, put your own link in your bio. Every install through it counts exactly." },
 ];
-// Test period and DM account: Alain, 2026-10-14. The account was renamed to
-// klar.studios; the old handle answers "account not found" (measured 2026-10-18).
+// DM account: Alain, 2026-10-14. The account was renamed to klar.studios; the
+// old handle answers "account not found" (measured 2026-10-18).
 const TIKTOK = "klar.studios";
 const STEPS = [
-  "Apply by email with the form, or send us a DM on TikTok.",
-  "We match you with an app and send you the format to post. You earn through your own link from day one.",
-  "Once your posts perform, we unlock CPM and a paid test period: 7 days, $50.",
+  "Sign up with your email and your TikTok handle.",
+  "Put a short code in your bio, so we know the account is yours.",
+  "Save the slideshows from your kit and post them unchanged, with “Basalt” in the caption.",
+  "Watch your views and earnings in your dashboard. We pay out monthly through Wise, from $25.",
 ];
 // Not to promote right now: still listed in the form, marked as not recommended.
 const NOT_RECOMMENDED = new Set(["yarnstash", "animevault"]);
@@ -235,15 +242,14 @@ export default function Home() {
           <div className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 md:px-12 md:py-32">
             <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">For creators</p>
             <BlurHeadline
-              lead="Post about our apps."
+              lead="Post about Basalt."
               glass="Get paid."
               className="mt-6 text-[clamp(52px,8vw,128px)] font-medium leading-[0.9] tracking-[-0.055em]"
             />
             <div className="mt-14 grid gap-12 md:grid-cols-[1fr_1.1fr] md:gap-16">
               <div>
                 <p className="max-w-[34ch] text-[clamp(18px,1.6vw,23px)] leading-[1.3] tracking-[-0.015em] text-[var(--ink-2)]">
-                  Everyone starts with a share of every subscription that comes through your own link. Once your posts
-                  perform, a rate per thousand views unlocks.
+                  We make the slideshows, you post them. You get 50 % of the revenue your posts bring in.
                 </p>
                 <div className="mt-8 grid gap-3 sm:grid-cols-2">
                   {DEALS.map((d) => (
@@ -265,11 +271,41 @@ export default function Home() {
                   ))}
                 </ol>
                 <p className="mt-8 max-w-[44ch] border-l-2 border-[var(--ink)] pl-4 text-[14.5px] leading-relaxed text-[var(--ink-2)]">
-                  No follower minimum. What counts is an account that posts regularly in one niche. Starting on a new
-                  account is fine, CPM just takes longer to unlock.
+                  No follower minimum. For now it is Basalt only, and TikTok is the platform we pay for.
                 </p>
               </div>
-              <CreatorForm tiktok={TIKTOK} apps={APPS.map((a) => ({ slug: INQUIRY_SLUG[a.id], name: a.name, icon: a.icon, recommended: !NOT_RECOMMENDED.has(a.id) }))} />
+              {/* On the phone the sign-up comes first: people arrive from TikTok to sign up. */}
+              <div className="order-first md:order-none">
+                <div className={card}>
+                  <p className="text-[clamp(26px,3vw,36px)] font-medium leading-tight tracking-[-0.04em]">Start in two minutes.</p>
+                  <p className="mt-3 max-w-[36ch] text-[16px] leading-relaxed text-[var(--ink-2)]">
+                    Sign up, prove the TikTok account is yours and your first slideshows are waiting.
+                  </p>
+                  <Link
+                    href="/dashboard/login"
+                    className="mt-7 inline-flex h-12 items-center rounded-full bg-[var(--ink)] px-7 text-[15px] font-medium tracking-[-0.01em] text-[var(--paper)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition hover:opacity-85"
+                  >
+                    Sign up
+                  </Link>
+                  <p className="mt-4 text-[14px] text-[var(--ink-3)]">
+                    Already in?{" "}
+                    <Link href="/dashboard/login" className="font-medium text-[var(--ink)] underline decoration-[var(--hair)] underline-offset-4">
+                      Sign in
+                    </Link>
+                  </p>
+                </div>
+                <details className="group mt-6">
+                  <summary className="cursor-pointer list-none text-[15px] font-medium tracking-[-0.01em]">
+                    Something else? Another app, a brand or an{" "}
+                    <span className="whitespace-nowrap">
+                      agency <span className="inline-block text-[var(--ink-3)] transition group-open:rotate-90">→</span>
+                    </span>
+                  </summary>
+                  <div className="mt-4">
+                    <CreatorForm tiktok={TIKTOK} apps={APPS.map((a) => ({ slug: INQUIRY_SLUG[a.id], name: a.name, icon: a.icon, recommended: !NOT_RECOMMENDED.has(a.id) }))} />
+                  </div>
+                </details>
+              </div>
             </div>
           </div>
         </section>
