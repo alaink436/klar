@@ -121,6 +121,7 @@ describe("verifyCreatorAccount", () => {
     strikes: 0,
     suspended_until: null,
     closed_at: null,
+    followers: null,
   };
 
   beforeEach(() => {

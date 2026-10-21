@@ -158,6 +158,16 @@ export async function checkCreatorPosts(items: unknown[]): Promise<{ checked: nu
     `klar_creator_accounts?tiktok_handle=${inList(handles)}&verified_at=not.is.null&select=id,email,tiktok_handle,has_link,strikes,suspended_until,closed_at`,
   );
   const byHandle = new Map(creators.map((c) => [c.tiktok_handle, c]));
+  // Followers, for the link suggestion from 1000 in his dashboard.
+  for (const c of creators) {
+    const fans = posts.map((p) => p.authorMeta as Record<string, unknown>).find((a) => String(a?.name).toLowerCase() === c.tiktok_handle)?.fans;
+    if (typeof fans !== "number") continue;
+    await fetch(`${HUB}/rest/v1/klar_creator_accounts?id=eq.${c.id}`, {
+      method: "PATCH",
+      headers: headers({ Prefer: "return=minimal" }),
+      body: JSON.stringify({ followers: fans }),
+    });
+  }
   const done = new Map(
     (await hubGet<{ post_id: string; status: CheckStatus }>(`klar_post_checks?post_id=${inList(posts.map((p) => String(p.id)))}&select=post_id,status`)).map(
       (c) => [c.post_id, c.status],

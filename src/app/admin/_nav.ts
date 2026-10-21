@@ -51,6 +51,8 @@ export const NAV_ITEMS: NavItemDef[] = [
   { id: "formats", labelKey: "navFormats", icon: "content", href: "/admin/formate", section: "studios" },
   // Pruefliste (seit 2026-10-21): Creator-Posts, die Basalt nennen, aber keine Fassung sind.
   { id: "review", labelKey: "navReview", icon: "check", href: "/admin/pruefliste", section: "studios" },
+  // Modell (seit 2026-10-21): das Rechenmodell hinter der Provision der Creator ohne Link.
+  { id: "model", labelKey: "navModel", icon: "analytics", href: "/admin/modell", section: "studios" },
   // Bewerbungen (seit 2026-10-15): das Creator-Formular der Startseite. Die
   // Inbox auf "Anfragen" gefiltert, darum ihr Symbol.
   { id: "bewerbungen", labelKey: "navApplications", icon: "inbox", href: "/admin/bewerbungen", section: "studios" },

@@ -1,6 +1,8 @@
-// The creator's posts with what became of them (ticket 04). Server component:
-// labels only, no actions.
+// The creator's posts with what became of them (ticket 04) and, without a link,
+// the estimate per counted post (ticket 05). Server component: labels only, no
+// actions.
 
+import { usd } from "@/lib/creatorEarnings";
 import type { CreatorPost } from "@/lib/postCheck";
 import { card } from "../components/home/formStyles";
 
@@ -20,7 +22,13 @@ const REJECTED: Record<string, string> = {
 };
 const COUNTS = new Set(["counts", "link", "approved"]);
 
-export default function Posts({ posts }: { posts: CreatorPost[] }) {
+export default function Posts({
+  posts,
+  estimates,
+}: {
+  posts: CreatorPost[];
+  estimates?: Map<string, { signups: number; commissionCents: number }>;
+}) {
   return (
     <section className="mt-12">
       <h2 className="text-[28px] font-medium tracking-[-0.03em]">Your posts</h2>
@@ -42,6 +50,11 @@ export default function Posts({ posts }: { posts: CreatorPost[] }) {
               </span>
               <span className={COUNTS.has(p.status) ? "text-[var(--ink)]" : "text-[var(--ink-3)]"}>
                 {p.status === "rejected" && p.reason ? REJECTED[p.reason] : LABEL[p.status]}
+                {estimates?.has(p.postId) && (
+                  <span className="ml-2 tabular-nums text-[var(--ink-3)]">
+                    ≈ {estimates.get(p.postId)!.signups.toFixed(1)} sign-ups, {usd(estimates.get(p.postId)!.commissionCents)}
+                  </span>
+                )}
               </span>
             </li>
           ))}
