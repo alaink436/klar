@@ -37,7 +37,8 @@ export default function Kit({ kit, waiting }: { kit: KitView[]; waiting: string[
       </p>
       <div className="mt-6 grid gap-5">
         {kit.map((k) => (
-          <div key={k.formatId} className={card}>
+          // min-w-0: a grid item grows to its content, and the slide row would widen the whole page on a phone.
+          <div key={k.formatId} className={`${card} min-w-0`}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-[19px] font-medium tracking-[-0.02em]">{k.name}</p>
               <CopyCaption text={k.caption} />
