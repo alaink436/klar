@@ -1,6 +1,6 @@
 // getklar.org/dashboard: the creator platform (spec Projects/Klar/specs/
-// creator-plattform). Ticket 02 brings sign-up and the bio code; the kit
-// (ticket 03) and the numbers (ticket 05) come into the verified view later.
+// creator-plattform). Ticket 02 brought sign-up and the bio code, ticket 03 the
+// kit; the numbers (ticket 05) come into the verified view later.
 //
 // Signed out: to /dashboard/login. Signed in without an account: sign-up form.
 // Account without a verified bio: the bio code. Verified: what happens next.
@@ -10,6 +10,8 @@ import Site from "../components/home/Site";
 import { card } from "../components/home/formStyles";
 import { getSessionUser } from "@/lib/supabaseAuth";
 import { creatorShortLink, getCreatorAccount } from "@/lib/creatorAccounts";
+import { getCreatorKit } from "@/lib/creatorKit";
+import Kit from "./Kit";
 import SignupForm from "./SignupForm";
 import VerifyStep from "./VerifyStep";
 
@@ -21,6 +23,7 @@ export default async function CreatorDashboard() {
   if (!user) redirect("/dashboard/login");
   const account = await getCreatorAccount(user.id);
   const link = account ? await creatorShortLink(account) : null;
+  const kit = account?.verified_at ? await getCreatorKit(account.id) : null;
 
   return (
     <Site>
@@ -47,9 +50,9 @@ export default async function CreatorDashboard() {
                 link to your bio, it counts exactly.
               </p>
             )}
-            <p className="text-[var(--ink-2)]">Your Basalt slideshows will show up here soon.</p>
           </div>
         )}
+        {kit && <Kit kit={kit.kit} waiting={kit.waiting} />}
 
         <form action="/dashboard/logout" method="post" className="mt-10">
           <button type="submit" className="text-[13px] font-medium text-[var(--ink-3)] transition hover:text-[var(--ink)]">
