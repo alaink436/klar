@@ -57,9 +57,9 @@ export interface AppRow {
   activeSubscriptions: number | null;
   activeTrials: number | null;
   currency: string;
-  /** RevenueCat customers by first platform, since the start (people without an account too). */
-  customersIos: number | null;
-  customersAndroid: number | null;
+  /** Accounts by the platform RevenueCat last saw them on (no installs without an account). */
+  usersIos: number | null;
+  usersAndroid: number | null;
 }
 
 export interface AppsPayload {
@@ -69,8 +69,8 @@ export interface AppsPayload {
   totalActiveSubs: number;
   totalMrr: number;
   totalRevenue28d: number;
-  totalCustomersIos: number;
-  totalCustomersAndroid: number;
+  totalUsersIos: number;
+  totalUsersAndroid: number;
   /** Apps whose RevenueCat answered with the platform split. */
   platformCount: number;
   currency: string;
@@ -538,6 +538,11 @@ function growthFor(row: AppRow): { headline: string; unit: string; caption: stri
   };
 }
 
+/** Accounts RevenueCat does not know under their account id (or last saw elsewhere). */
+function unassignedOf(row: AppRow): number {
+  return Math.max(0, (row.usersTotal ?? 0) - (row.usersIos ?? 0) - (row.usersAndroid ?? 0));
+}
+
 function AppCard({ row }: { row: AppRow }) {
   const growth = growthFor(row);
   return (
@@ -636,6 +641,15 @@ function AppCard({ row }: { row: AppRow }) {
         <MiniStat label="Aktiv 30T" value={row.hasBackend ? fmtInt(row.usersActive30d) : "—"} />
       </div>
 
+      {/* Accounts by platform (RevenueCat); the rest RevenueCat does not know with their account. */}
+      {row.usersIos !== null ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 12 }}>
+          <MiniStat label="User iOS" value={fmtInt(row.usersIos)} />
+          <MiniStat label="User Android" value={fmtInt(row.usersAndroid)} />
+          <MiniStat label="Ohne Plattform" value={fmtInt(unassignedOf(row))} />
+        </div>
+      ) : null}
+
       {/* Revenue */}
       <div
         style={{
@@ -657,13 +671,6 @@ function AppCard({ row }: { row: AppRow }) {
               <MiniStat label="Abos" value={fmtInt(row.activeSubscriptions)} />
               <MiniStat label="Trials" value={fmtInt(row.activeTrials)} />
             </div>
-            {/* Everyone who opened the app, by first platform: RevenueCat customers, not accounts. */}
-            {row.customersIos !== null ? (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 12 }}>
-                <MiniStat label="Kunden iOS" value={fmtInt(row.customersIos)} />
-                <MiniStat label="Kunden Android" value={fmtInt(row.customersAndroid)} />
-              </div>
-            ) : null}
           </>
         ) : (
           <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] leading-relaxed text-fg-3">
@@ -805,14 +812,16 @@ function AppsView({ apps, chart }: { apps: AppsPayload; chart: AppsChartPayload 
             zusatz: apps.revenueCatCount > 0 ? "letzte 28 Tage (RevenueCat)" : "Key fehlt",
           },
           {
-            label: "iOS / Android",
+            label: "User iOS / Android",
             wert:
               apps.platformCount > 0
-                ? `${fmtInt(apps.totalCustomersIos)} / ${fmtInt(apps.totalCustomersAndroid)}`
+                ? `${fmtInt(apps.totalUsersIos)} / ${fmtInt(apps.totalUsersAndroid)}`
                 : "—",
             zusatz:
               apps.platformCount > 0
-                ? `Kunden seit Start, auch ohne Konto (RevenueCat, ${apps.platformCount} Apps)`
+                ? `Konten nach Plattform (RevenueCat) · ${fmtInt(
+                    apps.perApp.reduce((s, a) => s + (a.usersIos !== null ? unassignedOf(a) : 0), 0),
+                  )} ohne Plattform`
                 : "RevenueCat noch nicht verbunden",
           },
         ]}

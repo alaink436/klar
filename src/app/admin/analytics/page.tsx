@@ -449,8 +449,8 @@ async function buildApps(selected: Set<string>): Promise<AppsPayload> {
         activeSubscriptions: rc?.activeSubscriptions ?? null,
         activeTrials: rc?.activeTrials ?? null,
         currency: rc?.currency ?? "$",
-        customersIos: platforms?.ios ?? null,
-        customersAndroid: platforms?.android ?? null,
+        usersIos: platforms?.ios ?? null,
+        usersAndroid: platforms?.android ?? null,
       };
     }),
   );
@@ -461,7 +461,7 @@ async function buildApps(selected: Set<string>): Promise<AppsPayload> {
   const totalMrr = perApp.reduce((s, a) => s + (a.mrr ?? 0), 0);
   const totalRevenue28d = perApp.reduce((s, a) => s + (a.revenue28d ?? 0), 0);
   const rcApps = perApp.filter((a) => a.hasRevenueCat);
-  const platformApps = perApp.filter((a) => a.customersIos !== null);
+  const platformApps = perApp.filter((a) => a.usersIos !== null);
   return {
     perApp,
     totalUsers,
@@ -469,8 +469,8 @@ async function buildApps(selected: Set<string>): Promise<AppsPayload> {
     totalActiveSubs,
     totalMrr,
     totalRevenue28d,
-    totalCustomersIos: platformApps.reduce((s, a) => s + (a.customersIos ?? 0), 0),
-    totalCustomersAndroid: platformApps.reduce((s, a) => s + (a.customersAndroid ?? 0), 0),
+    totalUsersIos: platformApps.reduce((s, a) => s + (a.usersIos ?? 0), 0),
+    totalUsersAndroid: platformApps.reduce((s, a) => s + (a.usersAndroid ?? 0), 0),
     platformCount: platformApps.length,
     // Money totals assume a single display currency across RevenueCat projects
     // (typically USD); we surface the first connected app's unit.
@@ -487,8 +487,8 @@ const EMPTY_APPS: AppsPayload = {
   totalActiveSubs: 0,
   totalMrr: 0,
   totalRevenue28d: 0,
-  totalCustomersIos: 0,
-  totalCustomersAndroid: 0,
+  totalUsersIos: 0,
+  totalUsersAndroid: 0,
   platformCount: 0,
   currency: "$",
   connectedCount: 0,
