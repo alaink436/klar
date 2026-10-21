@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+const checkCreatorPosts = vi.fn(async () => ({ checked: 0, promoted: 0 }));
+vi.mock("./postCheck", () => ({ checkCreatorPosts: (...a: unknown[]) => checkCreatorPosts(...(a as [])) }));
 vi.mock("./vault", () => ({
   listSecrets: async () => [{ id: "k1", provider: "apify", label: "Apify Key", revoked_at: null }],
   revealSecret: async () => "apify-key",
@@ -112,11 +114,19 @@ describe("ingestRun", () => {
     ]);
   });
 
-  it("stores a creators' run without starting another one", async () => {
+  it("stores a creators' run, checks its posts and starts no other run", async () => {
     accounts.push({ handle: "somecreator", source: "creator" });
     run.actorTaskId = APIFY_CREATOR_TASK_ID;
+    checkCreatorPosts.mockClear();
     expect((await ingestRun("abcdefghij12")).ok).toBe(true);
+    expect(checkCreatorPosts).toHaveBeenCalledTimes(1);
     expect(taskCalls.some((c) => c.startsWith("POST"))).toBe(false);
+  });
+
+  it("does not check our own posts", async () => {
+    checkCreatorPosts.mockClear();
+    await ingestRun("abcdefghij12");
+    expect(checkCreatorPosts).not.toHaveBeenCalled();
   });
 
   it("starts no creators' run while there are no creators", async () => {

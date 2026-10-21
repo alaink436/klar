@@ -1,6 +1,8 @@
 // getklar.org/dashboard: the creator platform (spec Projects/Klar/specs/
 // creator-plattform). Ticket 02 brought sign-up and the bio code, ticket 03 the
-// kit; the numbers (ticket 05) come into the verified view later.
+// kit, ticket 04 the posts with their status and the strike notices; the
+// numbers (ticket 05) come into the verified view later. A paused or closed
+// account gets no kit.
 //
 // Signed out: to /dashboard/login. Signed in without an account: sign-up form.
 // Account without a verified bio: the bio code. Verified: what happens next.
@@ -11,7 +13,9 @@ import { card } from "../components/home/formStyles";
 import { getSessionUser } from "@/lib/supabaseAuth";
 import { creatorShortLink, getCreatorAccount } from "@/lib/creatorAccounts";
 import { getCreatorKit } from "@/lib/creatorKit";
+import { listCreatorPosts } from "@/lib/postCheck";
 import Kit from "./Kit";
+import Posts from "./Posts";
 import SignupForm from "./SignupForm";
 import VerifyStep from "./VerifyStep";
 
@@ -23,7 +27,11 @@ export default async function CreatorDashboard() {
   if (!user) redirect("/dashboard/login");
   const account = await getCreatorAccount(user.id);
   const link = account ? await creatorShortLink(account) : null;
-  const kit = account?.verified_at ? await getCreatorKit(account.id) : null;
+  const verified = account?.verified_at ? account : null;
+  const paused = !!verified?.suspended_until && new Date(verified.suspended_until) > new Date();
+  const closed = !!verified?.closed_at;
+  const kit = verified && !paused && !closed ? await getCreatorKit(verified.id) : null;
+  const posts = verified ? await listCreatorPosts(verified.id) : null;
 
   return (
     <Site>
@@ -52,7 +60,19 @@ export default async function CreatorDashboard() {
             )}
           </div>
         )}
+        {verified && (closed || paused || verified.strikes > 0) && (
+          <div className={`${card} mt-6 border-[#b42318]/30 text-[15px] leading-relaxed`}>
+            {closed
+              ? "Your account is closed after three rejected posts. We no longer read your posts; what you earned with posts that counted is still paid out."
+              : paused
+                ? `Your account is paused until ${new Date(verified.suspended_until!).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}. Posts in this time don't count and you get no new slideshows.`
+                : verified.strikes >= 2
+                  ? "Your pause is over. One more rejected post closes your account."
+                  : "You have one warning: a post was rejected. A second rejection pauses your account for 30 days."}
+          </div>
+        )}
         {kit && <Kit kit={kit.kit} waiting={kit.waiting} />}
+        {posts && <Posts posts={posts} />}
 
         <form action="/dashboard/logout" method="post" className="mt-10">
           <button type="submit" className="text-[13px] font-medium text-[var(--ink-3)] transition hover:text-[var(--ink)]">
