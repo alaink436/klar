@@ -65,11 +65,15 @@ export function possibleLooks(c: FormatConfig): number {
   return (c.hooks?.length ?? 1) * (c.tones?.length ?? 1) * orders * query;
 }
 
-/** Signed URLs for paths in the bucket, in the same order; the download variant
-    makes the browser save the file instead of opening it. */
-async function signPaths(paths: string[], downloadName?: (path: string, i: number) => string): Promise<KitSlide[]> {
+/** Signed URLs for paths in a private bucket, in the same order; the download
+    variant makes the browser save the file instead of opening it. */
+export async function signPaths(
+  paths: string[],
+  downloadName?: (path: string, i: number) => string,
+  bucket = BUCKET,
+): Promise<KitSlide[]> {
   if (paths.length === 0) return [];
-  const res = await fetch(`${HUB}/storage/v1/object/sign/${BUCKET}`, {
+  const res = await fetch(`${HUB}/storage/v1/object/sign/${bucket}`, {
     method: "POST",
     headers: headers(),
     body: JSON.stringify({ expiresIn: URL_TTL, paths }),

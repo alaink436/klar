@@ -76,7 +76,11 @@ const nextConfig: NextConfig = {
   // admin.css read from disk, so the file must ship with that function.
   outputFileTracingIncludes: {
     "/admin/tokens": ["./src/app/admin/admin.css"],
+    // lib/imageMatch loads OpenCV (WASM, 12 MB) at run time with createRequire,
+    // which the file tracer cannot follow; the ingest route needs it on disk.
+    "/api/post-views/ingest": ["./node_modules/@techstark/opencv-js/**"],
   },
+  serverExternalPackages: ["@techstark/opencv-js"],
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [

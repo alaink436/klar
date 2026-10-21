@@ -24,6 +24,7 @@
 // the own task starts it, and only when there are creators.
 
 import "server-only";
+import { checkCreatorPosts } from "./postCheck";
 import { listSecrets, revealSecret } from "./vault";
 
 const HUB = process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
@@ -35,7 +36,9 @@ const APIFY = "https://api.apify.com/v2";
 export const APIFY_TASK_ID = "sDI1BJGD2vlfF4Uqf";
 export const APIFY_CREATOR_TASK_ID = "gRbJcBN7WtcyPVUeo";
 
-const ITEM_FIELDS = "id,createTime,playCount,diggCount,commentCount,shareCount,collectCount,authorMeta,webVideoUrl,isSlideshow";
+// text and slideshowImageLinks only matter for creators' posts (lib/postCheck).
+const ITEM_FIELDS =
+  "id,createTime,playCount,diggCount,commentCount,shareCount,collectCount,authorMeta,webVideoUrl,isSlideshow,text,slideshowImageLinks";
 
 export interface PostRow {
   post_id: string;
@@ -176,10 +179,14 @@ export async function ingestRun(runId: string): Promise<IngestResult> {
     { headers: auth, cache: "no-store" },
   );
   if (!itemsRes.ok) return { ok: false, error: `items ${itemsRes.status}`, retry: true };
-  const { posts, views } = parseItems((await itemsRes.json()) as unknown[], run.finishedAt);
+  const items = (await itemsRes.json()) as unknown[];
+  const { posts, views } = parseItems(items, run.finishedAt);
 
   const err = (await hubInsert("klar_posts", posts)) ?? (await hubInsert("klar_post_views", views));
   if (err) return { ok: false, error: err, retry: true };
+
+  // A creator's post counts only after the check (caption, images); our own always do.
+  if (run.actorTaskId === APIFY_CREATOR_TASK_ID) await checkCreatorPosts(items);
 
   const { own, creators } = await syncTaskInputs(key);
   // Our own run is the clock: it starts the creators' run, never the other way round.

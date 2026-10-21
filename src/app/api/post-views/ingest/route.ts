@@ -11,6 +11,8 @@ import { ingestRun } from "@/lib/postViews";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// A creators' run checks images (lib/postCheck, OpenCV); give it the Hobby maximum.
+export const maxDuration = 60;
 
 const MAX_BODY_BYTES = 64 * 1024;
 const RUN_ID_RE = /^[A-Za-z0-9]{10,32}$/;

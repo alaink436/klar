@@ -38,6 +38,9 @@ export interface CreatorAccount {
   bio_code: string;
   verified_at: string | null;
   created_at: string;
+  strikes: number;
+  suspended_until: string | null;
+  closed_at: string | null;
 }
 
 function headers(extra?: HeadersInit): HeadersInit {

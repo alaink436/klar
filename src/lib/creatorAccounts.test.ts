@@ -118,6 +118,9 @@ describe("verifyCreatorAccount", () => {
     bio_code: "klar-7F3K",
     verified_at: null,
     created_at: "2026-10-21T12:00:00Z",
+    strikes: 0,
+    suspended_until: null,
+    closed_at: null,
   };
 
   beforeEach(() => {
