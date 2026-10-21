@@ -180,40 +180,41 @@ export async function fetchRcOverview(cfg: RcConfig): Promise<RcOverview | null>
   }
 }
 
-// Everyone who ever opened the app, by the platform they first came from
-// (chart "New Customers", segment `first_platform`, summed since 2023). These
-// are RevenueCat customers, so people without an account count too: more than
-// the app's own users. The app databases do not know the platform of an
-// account (Alain, 2026-10-21: RevenueCat over the partial push tokens).
-// An hour of cache: the chart endpoint is rate limited and this moves slowly.
+// Users with an account, by the platform RevenueCat last saw them on. A user
+// counts once they have an account (Alain, 2026-10-21), and the app databases
+// do not know an account's platform. The apps log in to RevenueCat with the
+// account id, so every customer without `$RCAnonymousID:` is an account;
+// anonymous ones (installs without an account) stay out. Deleted accounts can
+// linger there: measured 2026-10-21, Basalt 291 against 280 live accounts.
+// An hour of cache per page; Basalt is six pages of 100.
 export interface RcPlatforms {
   ios: number;
   android: number;
 }
 
+const MAX_CUSTOMER_PAGES = 50;
+
 export async function fetchRcPlatforms(cfg: RcConfig): Promise<RcPlatforms | null> {
   try {
-    const q = new URLSearchParams({
-      segment: "first_platform",
-      resolution: "month",
-      start_date: "2023-01-01",
-      end_date: new Date().toISOString().slice(0, 10),
-    });
-    const res = await fetch(
-      `https://api.revenuecat.com/v2/projects/${encodeURIComponent(cfg.projectId)}/charts/customers_new?${q}`,
-      {
+    const out: RcPlatforms = { ios: 0, android: 0 };
+    let url: string | null =
+      `https://api.revenuecat.com/v2/projects/${encodeURIComponent(cfg.projectId)}/customers?limit=100`;
+    for (let page = 0; url && page < MAX_CUSTOMER_PAGES; page++) {
+      const res: Response = await fetch(url, {
         headers: { Authorization: `Bearer ${cfg.secretKey}`, Accept: "application/json" },
         next: { revalidate: 3600 },
-      },
-    );
-    if (!res.ok) return null;
-    const total = (await res.json())?.summary?.total;
-    if (!total || typeof total !== "object") return null;
-    const count = (segment: string): number => {
-      const v = total[segment] && Object.values(total[segment])[0];
-      return typeof v === "number" ? v : 0;
-    };
-    return { ios: count("iOS"), android: count("Android") };
+      });
+      if (!res.ok) return null;
+      const j = await res.json();
+      for (const c of Array.isArray(j?.items) ? j.items : []) {
+        if (typeof c?.id !== "string" || c.id.startsWith("$RCAnonymousID:")) continue;
+        const platform = String(c.last_seen_platform ?? "").toLowerCase();
+        if (platform === "ios") out.ios++;
+        else if (platform === "android") out.android++;
+      }
+      url = typeof j?.next_page === "string" ? j.next_page : null;
+    }
+    return out;
   } catch {
     return null;
   }
