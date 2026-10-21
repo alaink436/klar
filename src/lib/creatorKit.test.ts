@@ -94,8 +94,27 @@ describe("getCreatorKit", () => {
             download: `${HUB}/storage/v1/object/sign/creator-kit/study-01/4/2.jpg?token=t&download=basalt-study-01-2.jpg`,
           },
         ],
+        version: 1,
+        nextInHours: null,
       },
     ]);
     expect(waiting).toEqual(["discipline"]);
+  });
+
+  it("shows the newest of several versions and when the next new one is possible", async () => {
+    const recent = new Date(Date.now() - 2 * 3_600_000).toISOString();
+    const f = globalThis.fetch as unknown as { getMockImplementation: () => (u: string, i?: RequestInit) => Promise<Response> };
+    const inner = f.getMockImplementation();
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) =>
+      url.includes("rpc/klar_assign_variants")
+        ? new Response(JSON.stringify([
+            { id: "v1", format_id: "study-01", images: ["study-01/4/1.jpg"], creator_id: "c1", assigned_at: "2026-10-01T10:00:00Z" },
+            { id: "v2", format_id: "study-01", images: ["study-01/9/1.jpg"], creator_id: "c1", assigned_at: recent },
+          ]))
+        : inner(url, init)));
+    const { kit } = await getCreatorKit("c1");
+    expect(kit[0].slides[0].view).toContain("study-01/9/1.jpg");
+    expect(kit[0].version).toBe(2);
+    expect(kit[0].nextInHours).toBe(18);
   });
 });

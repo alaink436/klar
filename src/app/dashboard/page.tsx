@@ -17,6 +17,8 @@ import { creatorEarning, latestModelRun, postEstimate } from "@/lib/creatorEarni
 import { getCreatorKit } from "@/lib/creatorKit";
 import { balances, listPayouts } from "@/lib/payouts";
 import { listCreatorPosts } from "@/lib/postCheck";
+import { findKlarApp } from "@/lib/klarApps";
+import Apps, { type AppChoiceItem } from "./Apps";
 import Earnings from "./Earnings";
 import Kit from "./Kit";
 import Payouts from "./Payouts";
@@ -27,7 +29,18 @@ import VerifyStep from "./VerifyStep";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Creator dashboard · Klar Studios", robots: { index: false } };
 
-export default async function CreatorDashboard() {
+// Basalt (registry slug wavelength) is the app with a kit; Kelva and Pocketmate (myloo) follow.
+const APPS: AppChoiceItem[] = [
+  ["wavelength", true],
+  ["kelva", false],
+  ["myloo", false],
+].map(([slug, live]) => {
+  const app = findKlarApp(slug as string);
+  return { name: slug === "myloo" ? "Pocketmate" : (app?.name ?? String(slug)), icon: app?.icon ?? "", live: live as boolean };
+});
+
+export default async function CreatorDashboard({ searchParams }: { searchParams: Promise<{ new?: string }> }) {
+  const { new: notice } = await searchParams;
   const user = await getSessionUser();
   if (!user) redirect("/dashboard/login");
   const account = await getCreatorAccount(user.id);
@@ -54,10 +67,14 @@ export default async function CreatorDashboard() {
           {account?.verified_at ? `You're in, @${account.tiktok_handle}.` : "Post about Basalt. Get paid."}
         </h1>
 
-        {!account && <SignupForm email={user.email ?? ""} />}
+        {!account && <SignupForm email={user.email ?? ""} apps={APPS} />}
         {account && !account.verified_at && <VerifyStep handle={account.tiktok_handle} code={account.bio_code} />}
         {account?.verified_at && (
           <div className={`${card} mt-10 grid gap-5 text-[15.5px] leading-relaxed`}>
+            <div>
+              <p className="mb-2 text-[13px] font-medium text-[var(--ink-2)]">Your app</p>
+              <Apps apps={APPS} />
+            </div>
             <p>We now read your TikTok posts every 6 hours.</p>
             {link ? (
               <p>
@@ -88,7 +105,7 @@ export default async function CreatorDashboard() {
           <Earnings run={run} earning={earning} offerLink={!closed && !estimated.has_link && (estimated.followers ?? 0) >= LINK_FOLLOWERS} followers={estimated.followers ?? 0} />
         )}
         {verified && <Payouts balance={balance ?? null} payouts={payouts} />}
-        {kit && <Kit kit={kit.kit} waiting={kit.waiting} />}
+        {kit && <Kit kit={kit.kit} waiting={kit.waiting} notice={notice} />}
         {posts && <Posts posts={posts} estimates={estimates} />}
 
         <form action="/dashboard/logout" method="post" className="mt-10">
