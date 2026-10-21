@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { card, field, label } from "./formStyles";
 
 // The creator application on the front page. Creators pick ONE way in (Alain:
 // both at once was confusing): by email, which posts to /api/inquiry as an
@@ -22,11 +23,7 @@ const ERRORS: Record<string, string> = {
   rate_limited: "Too many tries. Give it a few minutes.",
 };
 
-const field =
-  "h-12 w-full rounded-2xl border border-[var(--hair)] bg-white/70 px-4 text-[15px] outline-none transition placeholder:text-[var(--ink-3)] focus:border-[var(--ink)]";
-const label = "mb-2 block text-[13px] font-medium text-[var(--ink-2)]";
-
-function Chips({ options, value, onChange, multi }: { options: string[]; value: string[]; onChange: (v: string[]) => void; multi?: boolean }) {
+export function Chips({ options, value, onChange, multi }: { options: string[]; value: string[]; onChange: (v: string[]) => void; multi?: boolean }) {
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((o) => {
@@ -46,9 +43,6 @@ function Chips({ options, value, onChange, multi }: { options: string[]; value: 
     </div>
   );
 }
-
-const card =
-  "rounded-[28px] border border-white/70 bg-white/50 p-6 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl sm:p-8";
 
 export default function CreatorForm({ apps, tiktok }: { apps: AppOption[]; tiktok: string }) {
   const [mode, setMode] = useState<Mode>("email");

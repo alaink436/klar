@@ -51,9 +51,9 @@ function realtimeUrl(r: EvomiRouting): URL {
   return u;
 }
 
-async function boundedFetch(url: string, init: RequestInit): Promise<{ ok: boolean; text: string }> {
+async function boundedFetch(url: string, init: RequestInit, timeoutMs = LOOKUP_TIMEOUT_MS): Promise<{ ok: boolean; text: string }> {
   const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), LOOKUP_TIMEOUT_MS);
+  const t = setTimeout(() => ac.abort(), timeoutMs);
   try {
     const res = await fetch(url, { ...init, signal: ac.signal, cache: "no-store" });
     const text = await res.text();
@@ -74,18 +74,27 @@ interface TtStats {
   videoCount?: number | string;
   followerCount?: number | string;
 }
+interface TtUserInfo {
+  user?: { uniqueId?: string; signature?: string };
+  stats?: TtStats;
+  statsV2?: TtStats;
+}
 interface TtData {
-  __DEFAULT_SCOPE__?: { "webapp.user-detail"?: { userInfo?: { stats?: TtStats; statsV2?: TtStats } } };
+  __DEFAULT_SCOPE__?: { "webapp.user-detail"?: { userInfo?: TtUserInfo } };
 }
 
-async function lookupTiktok(handle: string, r: EvomiRouting): Promise<NativeCount> {
+async function tiktokUserInfo(handle: string, r: EvomiRouting, timeoutMs?: number): Promise<TtUserInfo | null> {
   const u = realtimeUrl(r);
   u.searchParams.set("url", `https://www.tiktok.com/@${handle}`);
   u.searchParams.set("mode", "auto");
-  const res = await boundedFetch(u.toString(), { method: "GET" });
-  if (!res.ok) return miss();
+  const res = await boundedFetch(u.toString(), { method: "GET" }, timeoutMs);
+  if (!res.ok) return null;
   const data = extractUniversalData(res.text) as TtData | null;
-  const info = data?.__DEFAULT_SCOPE__?.["webapp.user-detail"]?.userInfo;
+  return data?.__DEFAULT_SCOPE__?.["webapp.user-detail"]?.userInfo ?? null;
+}
+
+async function lookupTiktok(handle: string, r: EvomiRouting): Promise<NativeCount> {
+  const info = await tiktokUserInfo(handle, r);
   if (!info) return miss();
   const stats = info.stats ?? info.statsV2 ?? {};
   const posts = toInt(stats.videoCount);
@@ -129,6 +138,24 @@ async function lookupOne(platform: string, handle: string, r: EvomiRouting): Pro
   if (platform === "tiktok") return lookupTiktok(handle, r);
   if (platform === "instagram") return lookupInstagram(handle, r);
   return miss();
+}
+
+export interface TiktokProfile {
+  ok: boolean; // false when the profile was not readable (blocked, missing, no creds)
+  bio: string;
+  followers: number | null;
+}
+
+/** Bio and followers of one public TikTok profile, uncached: the creator
+ *  platform checks a bio code right after the creator set it. Given more time
+ *  than the admin lookups, because a creator is waiting on the answer. */
+export async function readTiktokProfile(handle: string): Promise<TiktokProfile> {
+  const routing = await getForProxy(EVOMI_ID);
+  if (!routing) return { ok: false, bio: "", followers: null };
+  const info = await tiktokUserInfo(handle, routing, 25_000);
+  if (!info?.user) return { ok: false, bio: "", followers: null };
+  const stats = info.stats ?? info.statsV2 ?? {};
+  return { ok: true, bio: info.user.signature ?? "", followers: toInt(stats.followerCount) };
 }
 
 /** Native post counts for the given accounts, keyed by lowercased username.
