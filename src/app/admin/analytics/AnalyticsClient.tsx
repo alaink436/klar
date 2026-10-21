@@ -57,6 +57,9 @@ export interface AppRow {
   activeSubscriptions: number | null;
   activeTrials: number | null;
   currency: string;
+  /** RevenueCat customers by first platform, since the start (people without an account too). */
+  customersIos: number | null;
+  customersAndroid: number | null;
 }
 
 export interface AppsPayload {
@@ -66,6 +69,10 @@ export interface AppsPayload {
   totalActiveSubs: number;
   totalMrr: number;
   totalRevenue28d: number;
+  totalCustomersIos: number;
+  totalCustomersAndroid: number;
+  /** Apps whose RevenueCat answered with the platform split. */
+  platformCount: number;
   currency: string;
   connectedCount: number;
   revenueCatCount: number;
@@ -80,7 +87,7 @@ export interface AppsChartPayload {
   categories: string[]; // selected app display names = chart series
   colors: string[]; // chart-colour keys aligned to categories
   data: Record<string, number | string>[]; // [{ label, [appName]: value }]
-  apps: { slug: string; name: string; on: boolean; color: string }[]; // chip state
+  apps: { slug: string; name: string; on: boolean; defaultOn: boolean; color: string }[]; // chip state
   unit: "" | "$";
   note: string | null;
 }
@@ -650,6 +657,13 @@ function AppCard({ row }: { row: AppRow }) {
               <MiniStat label="Abos" value={fmtInt(row.activeSubscriptions)} />
               <MiniStat label="Trials" value={fmtInt(row.activeTrials)} />
             </div>
+            {/* Everyone who opened the app, by first platform: RevenueCat customers, not accounts. */}
+            {row.customersIos !== null ? (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 12 }}>
+                <MiniStat label="Kunden iOS" value={fmtInt(row.customersIos)} />
+                <MiniStat label="Kunden Android" value={fmtInt(row.customersAndroid)} />
+              </div>
+            ) : null}
           </>
         ) : (
           <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] leading-relaxed text-fg-3">
@@ -665,15 +679,16 @@ function AppCard({ row }: { row: AppRow }) {
 }
 
 // Build an Apps-tab URL preserving metric/period/app-selection. Omits the `apps`
-// param when every app is on (canonical "all").
+// param when the selection is the default one (Anime Vault and Yarn Stash off).
 function appsHref(
   metric: AppsMetric,
   period: Period,
   onSlugs: string[],
-  allCount: number,
+  defaultSlugs: string[],
 ): string {
   const p = new URLSearchParams({ tab: "apps", am: metric, p_app: period });
-  if (onSlugs.length > 0 && onSlugs.length < allCount) p.set("apps", onSlugs.join(","));
+  const isDefault = onSlugs.length === defaultSlugs.length && onSlugs.every((s) => defaultSlugs.includes(s));
+  if (onSlugs.length > 0 && !isDefault) p.set("apps", onSlugs.join(","));
   return `/admin/analytics?${p.toString()}`;
 }
 
@@ -683,8 +698,8 @@ const APPS_METRICS: { id: AppsMetric; label: string }[] = [
 ];
 
 function AppsChartSection({ chart }: { chart: AppsChartPayload }) {
-  const allCount = chart.apps.length;
   const onSlugs = chart.apps.filter((a) => a.on).map((a) => a.slug);
+  const defaultSlugs = chart.apps.filter((a) => a.defaultOn).map((a) => a.slug);
   return (
     <>
       <h2>Verlauf</h2>
@@ -693,7 +708,7 @@ function AppsChartSection({ chart }: { chart: AppsChartPayload }) {
           {APPS_METRICS.map((m) => (
             <Link
               key={m.id}
-              href={appsHref(m.id, chart.period, onSlugs, allCount)}
+              href={appsHref(m.id, chart.period, onSlugs, defaultSlugs)}
               role="tab"
               aria-selected={chart.metric === m.id}
               prefetch
@@ -706,7 +721,7 @@ function AppsChartSection({ chart }: { chart: AppsChartPayload }) {
           {PERIODS.map((p) => (
             <Link
               key={p.id}
-              href={appsHref(chart.metric, p.id, onSlugs, allCount)}
+              href={appsHref(chart.metric, p.id, onSlugs, defaultSlugs)}
               role="tab"
               aria-selected={chart.period === p.id}
               prefetch
@@ -719,12 +734,12 @@ function AppsChartSection({ chart }: { chart: AppsChartPayload }) {
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         {chart.apps.map((a) => {
           const toggled = a.on ? onSlugs.filter((s) => s !== a.slug) : [...onSlugs, a.slug];
-          // Never allow an empty selection — turning the last one off shows all.
-          const next = toggled.length === 0 ? chart.apps.map((x) => x.slug) : toggled;
+          // Never allow an empty selection: turning the last one off goes back to the default.
+          const next = toggled.length === 0 ? defaultSlugs : toggled;
           return (
             <Link
               key={a.slug}
-              href={appsHref(chart.metric, chart.period, next, allCount)}
+              href={appsHref(chart.metric, chart.period, next, defaultSlugs)}
               prefetch
               className="klar-chip"
               data-aus={a.on ? undefined : "ja"}
@@ -788,6 +803,17 @@ function AppsView({ apps, chart }: { apps: AppsPayload; chart: AppsChartPayload 
             label: "Umsatz 28T",
             wert: apps.revenueCatCount > 0 ? fmtMoney(apps.totalRevenue28d, apps.currency) : "—",
             zusatz: apps.revenueCatCount > 0 ? "letzte 28 Tage (RevenueCat)" : "Key fehlt",
+          },
+          {
+            label: "iOS / Android",
+            wert:
+              apps.platformCount > 0
+                ? `${fmtInt(apps.totalCustomersIos)} / ${fmtInt(apps.totalCustomersAndroid)}`
+                : "—",
+            zusatz:
+              apps.platformCount > 0
+                ? `Kunden seit Start, auch ohne Konto (RevenueCat, ${apps.platformCount} Apps)`
+                : "RevenueCat noch nicht verbunden",
           },
         ]}
       />

@@ -52,6 +52,12 @@ export const chartColors = {
     fill: "fill-[var(--chart-lime)]",
     text: "text-[var(--chart-lime)]",
   },
+  fuchsia: {
+    bg: "bg-[var(--chart-fuchsia)]",
+    stroke: "stroke-[var(--chart-fuchsia)]",
+    fill: "fill-[var(--chart-fuchsia)]",
+    text: "text-[var(--chart-fuchsia)]",
+  },
   // Klar admin token-bound shades (monochrome, theme-aware via CSS vars).
   ink: {
     bg: "bg-[var(--chart-1)]",
@@ -109,15 +115,16 @@ export const getColorClassName = (
 
 // Jede App behaelt ihre Farbe, festgemacht an ihrer Stelle in KLAR_APPS, egal
 // welche anderen gerade eingeblendet sind: MyLoo gruen, Anime Vault violett,
-// Yarn Stash orange, Kelva cyan, Basalt lime, Trubel blau.
-const APP_CHART_COLORS: AvailableChartColorsKeys[] = ["blue", "emerald", "violet", "amber", "cyan", "pink", "lime"]
+// Yarn Stash orange, Kelva cyan, Basalt lime, Trubel blau, Learnbound fuchsia
+// (wie Focus Crew auf der Landkarte). Promillo (unsichtbar) bleibt blau.
+const APP_CHART_COLORS: AvailableChartColorsKeys[] = ["blue", "emerald", "violet", "amber", "cyan", "pink", "lime", "blue", "fuchsia"]
 
 export function appChartColor(slug: string): AvailableChartColorsKeys {
   const i = KLAR_APPS.findIndex((a) => a.slug === slug)
   return APP_CHART_COLORS[(i < 0 ? 0 : i) % APP_CHART_COLORS.length]
 }
 
-const HUES = new Set(["blue", "emerald", "violet", "amber", "cyan", "pink", "lime"])
+const HUES = new Set(["blue", "emerald", "violet", "amber", "cyan", "pink", "lime", "fuchsia"])
 
 /** Dieselbe Farbe als CSS-Wert, fuer Punkte und Markierungen ausserhalb der Diagramme. */
 export function chartColorValue(color: string): string {
