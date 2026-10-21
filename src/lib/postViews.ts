@@ -1,10 +1,10 @@
 // SERVER ONLY. View counts of the posts that advertise our apps, read every
-// 2 hours: the input for estimating which creator brought which installs
+// 6 hours: the input for estimating which creator brought which installs
 // (migrations/0044, Alain 2026-10-21).
 //
 // TikTok only tells the total right now, never when the views came. So an
 // Apify schedule runs the task APIFY_TASK_ID (clockworks~tiktok-scraper, the
-// latest posts of every tracked profile) every 2 h. When a run succeeds, Apify
+// latest posts of every tracked profile) every 6 h. When a run succeeds, Apify
 // calls POST /api/post-views/ingest. The payload is not trusted: ingestRun()
 // fetches the run from Apify with our own key, checks that it belongs to our
 // task and succeeded, and only then stores its items. A forged call can at most
@@ -14,7 +14,11 @@
 // klar_view_accounts, so an account added there is read from the next run on.
 //
 // Cost (Apify, 2026-10-21): 0.0037 USD per post read plus 0.001 per run.
-// 2 profiles x 15 posts every 2 h is about 1.35 USD a day.
+// Kept inside Apify's free 5 USD a month on purpose (Alain: fixed costs as low
+// as possible): 2 profiles x the latest 4 posts every 6 h is about 3.70 USD a
+// month. Nearly all views come in a post's first 24 h, which 4 posts cover at
+// our posting rate. Once creators who post less often join, the task's date
+// filter (posts of the last 24 h, +0.0013 USD per post) is cheaper per account.
 
 import "server-only";
 import { listSecrets, revealSecret } from "./vault";

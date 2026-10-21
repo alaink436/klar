@@ -1,10 +1,10 @@
 -- klar_view_accounts + klar_posts + klar_post_views: view counts of the posts
--- that advertise our apps, read every 2 hours, as the input for estimating
+-- that advertise our apps, read every 6 hours, as the input for estimating
 -- which creator brought which installs (Alain, 2026-10-21: creators without a
 -- link are paid from the estimate; "dann bauen wir das so").
 --
 -- TikTok does not say *when* a post got its views, only the total right now.
--- So an Apify schedule scrapes the tracked profiles every 2 h and
+-- So an Apify schedule scrapes the tracked profiles every 6 h and
 -- /api/post-views/ingest stores one row per post and run in klar_post_views;
 -- the differences between rows are the view curve.
 --
