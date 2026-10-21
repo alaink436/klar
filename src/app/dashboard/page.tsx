@@ -2,7 +2,8 @@
 // creator-plattform). Ticket 02 brought sign-up and the bio code, ticket 03 the
 // kit, ticket 04 the posts with their status and the strike notices, ticket 05
 // the estimate for creators without a link and the link offer from 1000
-// followers. A paused or closed account gets no kit.
+// followers, ticket 06 the payouts. A paused or closed account gets no kit, but
+// is still paid what its counted posts earned.
 //
 // Signed out: to /dashboard/login. Signed in without an account: sign-up form.
 // Account without a verified bio: the bio code. Verified: what happens next.
@@ -14,9 +15,11 @@ import { getSessionUser } from "@/lib/supabaseAuth";
 import { LINK_FOLLOWERS, creatorShortLink, getCreatorAccount } from "@/lib/creatorAccounts";
 import { creatorEarning, latestModelRun, postEstimate } from "@/lib/creatorEarnings";
 import { getCreatorKit } from "@/lib/creatorKit";
+import { balances, listPayouts } from "@/lib/payouts";
 import { listCreatorPosts } from "@/lib/postCheck";
 import Earnings from "./Earnings";
 import Kit from "./Kit";
+import Payouts from "./Payouts";
 import Posts from "./Posts";
 import SignupForm from "./SignupForm";
 import VerifyStep from "./VerifyStep";
@@ -38,6 +41,8 @@ export default async function CreatorDashboard() {
   const earning = verified && run ? await creatorEarning(verified.id, run.month) : null;
   // After switching to a link, posts counted before still earn from the estimate.
   const estimated = verified && (!verified.has_link || earning) ? verified : null;
+  const [balance] = verified ? await balances(verified.id).catch(() => []) : [];
+  const payouts = verified ? await listPayouts(verified.id).catch(() => []) : [];
   const estimates =
     run && posts ? new Map(posts.filter((p) => p.status === "counts" || p.status === "approved").map((p) => [p.postId, postEstimate(run, p.views)])) : undefined;
 
@@ -82,6 +87,7 @@ export default async function CreatorDashboard() {
         {estimated && (
           <Earnings run={run} earning={earning} offerLink={!closed && !estimated.has_link && (estimated.followers ?? 0) >= LINK_FOLLOWERS} followers={estimated.followers ?? 0} />
         )}
+        {verified && <Payouts balance={balance ?? null} payouts={payouts} />}
         {kit && <Kit kit={kit.kit} waiting={kit.waiting} />}
         {posts && <Posts posts={posts} estimates={estimates} />}
 
