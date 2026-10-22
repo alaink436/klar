@@ -62,9 +62,11 @@ const TABS = [
 ] as const;
 type Tab = (typeof TABS)[number][0];
 
-const Later = () => (
-  <p className={`${card} mt-8 text-[15px] leading-relaxed text-[var(--ink-2)]`}>
-    Connect your TikTok above first. Once it is confirmed, this is where you see it.
+// Not confirmed yet: the real tabs, empty, under one line that says why (Alain 2026-10-22: "mach doch bereits das
+// Dashboard, aber halt leer hin").
+const Unconfirmed = () => (
+  <p className="mt-8 rounded-2xl bg-white/60 px-4 py-3 text-[14px] leading-relaxed text-[var(--ink-2)]">
+    This fills up once your TikTok is confirmed. Until then we don&apos;t read your posts.
   </p>
 );
 
@@ -90,7 +92,7 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
   const closed = !!account?.closed_at;
   const kit = account && !paused && !closed ? await getCreatorKit(account.id) : null;
   const posts = verified ? await listCreatorPosts(verified.id) : null;
-  const run = verified ? await latestModelRun() : null;
+  const run = account ? await latestModelRun() : null;
   const earning = verified && run ? await creatorEarning(verified.id, run.month) : null;
   // After switching to a link, posts counted before still earn from the estimate.
   const estimated = verified && (!verified.has_link || earning) ? verified : null;
@@ -174,7 +176,15 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
             ) : (
               <p className={`${card} mt-8 text-[15px] leading-relaxed text-[var(--ink-2)]`}>No new posts while your account is paused or closed.</p>
             ))}
-          {account && tab === "posts" && (posts ? <Posts posts={posts} estimates={estimates} /> : <Later />)}
+          {account && tab === "posts" &&
+            (posts ? (
+              <Posts posts={posts} estimates={estimates} />
+            ) : (
+              <>
+                <Unconfirmed />
+                <Posts posts={[]} />
+              </>
+            ))}
           {account && tab === "earnings" &&
             (verified ? (
               <>
@@ -198,9 +208,20 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
                 )}
               </>
             ) : (
-              <Later />
+              <>
+                <Unconfirmed />
+                <Earnings run={run} earning={null} offerLink={false} followers={0} />
+              </>
             ))}
-          {account && tab === "payouts" && (verified ? <Payouts balance={balance ?? null} payouts={payouts} /> : <Later />)}
+          {account && tab === "payouts" &&
+            (verified ? (
+              <Payouts balance={balance ?? null} payouts={payouts} />
+            ) : (
+              <>
+                <Unconfirmed />
+                <Payouts balance={null} payouts={[]} />
+              </>
+            ))}
         </div>
       </main>
     </Site>
