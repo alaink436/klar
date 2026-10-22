@@ -8,6 +8,10 @@ import { card } from "../components/home/formStyles";
 // bio, we read the bio once on "Check my bio" (Evomi, lib/creatorAccounts).
 // Afterwards he may delete it again. A typo in the username is undone with
 // "Use a different account".
+//
+// Coming back to tap is its own step (Alain 2026-10-22, "einen Hinweis, dass man
+// das noch extra klicken muss"): the first creator with a large account put the
+// code into the bio and never tapped, so nothing confirmed the account.
 
 const ERRORS: Record<string, string> = {
   code_missing: "We can't see the code in your bio yet. TikTok sometimes takes a minute to update, try again shortly.",
@@ -63,7 +67,14 @@ export default function VerifyStep({ handle, code }: { handle: string; code: str
         </li>
         <li className="grid grid-cols-[2rem_1fr]">
           <span className="text-[13px] tabular-nums text-[var(--ink-3)]">02</span>
-          <span>Save it, then tap the button below. Once we have seen it, you can delete it again.</span>
+          <span>Save your bio in TikTok.</span>
+        </li>
+        <li className="grid grid-cols-[2rem_1fr]">
+          <span className="text-[13px] tabular-nums text-[var(--ink-3)]">03</span>
+          <span>
+            <span className="font-medium">Come back here and tap &ldquo;Check my bio&rdquo;.</span> We only look when you tap, so
+            without it your account stays unconfirmed.
+          </span>
         </li>
       </ol>
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -81,6 +92,9 @@ export default function VerifyStep({ handle, code }: { handle: string; code: str
       >
         {busy ? "Checking your bio" : "Check my bio"}
       </button>
+      <p className="mt-3 text-center text-[13px] leading-relaxed text-[var(--ink-3)]">
+        We&apos;ll email you once you&apos;re confirmed. After that you can delete the code again.
+      </p>
       <button type="button" onClick={change} disabled={busy} className="mt-4 text-[13px] font-medium text-[var(--ink-3)] transition hover:text-[var(--ink)]">
         Not @{handle}? Use a different account
       </button>

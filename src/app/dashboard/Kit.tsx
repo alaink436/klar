@@ -129,6 +129,18 @@ const TIPS = [
   ["Keep it honest.", "Write in your own words if you like, but don’t promise what the app doesn’t do."],
 ];
 
+// "How to post" (Alain 2026-10-22: "nicht zu viel auf einmal posten", "ein einheitliches Zeitfenster", "was gibt es
+// sonst noch"): the two from Alain first, then what our counting needs (posts stay up, public account) and what keeps
+// the reach real.
+const GUIDE = [
+  ["One or two a day.", "Space them a few hours apart. Several at once compete with each other, and each gets less reach."],
+  ["Same time every day.", "Pick an hour when your followers are usually online and post around then."],
+  ["Leave your posts up.", "We read your views every 6 hours. A deleted post stops counting."],
+  ["Keep your account public.", "We can only see the views of a public account."],
+  ["Every version once.", "Don’t post the same one twice. For your next post, make yourself a new one."],
+  ["Real views only.", "No bought views, likes or followers. We pay for reach from real people."],
+];
+
 export default function Kit({ kit, waiting, notice }: { kit: KitView[]; waiting: string[]; notice?: string }) {
   return (
     <section id="kit" className="mt-12 scroll-mt-24">
@@ -199,6 +211,21 @@ export default function Kit({ kit, waiting, notice }: { kit: KitView[]; waiting:
               <span className="text-[var(--ink-3)]">Caption:</span> {kit[0].caption}
             </p>
           </div>
+        </div>
+      )}
+      {kit.length > 0 && (
+        <div className={`${card} mt-5`}>
+          <p className="text-[19px] font-medium tracking-[-0.02em]">How to post</p>
+          <ol className="mt-4 grid gap-x-8 gap-y-4 text-[14.5px] leading-relaxed sm:grid-cols-2">
+            {GUIDE.map(([head, text], i) => (
+              <li key={head} className="grid grid-cols-[2rem_1fr]">
+                <span className="pt-0.5 text-[13px] tabular-nums text-[var(--ink-3)]">{String(i + 1).padStart(2, "0")}</span>
+                <span>
+                  <span className="font-medium">{head}</span> <span className="text-[var(--ink-2)]">{text}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
         </div>
       )}
     </section>
