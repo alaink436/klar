@@ -1,7 +1,23 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { CalendarCheck, Check, ChevronLeft, Clock, Copy, Download, Eye, Music, Pin, ShieldCheck, Sparkles, type LucideIcon } from "lucide-react";
+import {
+  CalendarCheck,
+  Check,
+  ChevronLeft,
+  Clock,
+  Copy,
+  Download,
+  Eye,
+  Fingerprint,
+  Music,
+  Pin,
+  RefreshCw,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { RiTiktokFill } from "@remixicon/react";
 import { zipSync } from "fflate";
 import { card } from "../components/home/formStyles";
@@ -187,14 +203,38 @@ const GUIDE: Array<[LucideIcon, string, string]> = [
   [ShieldCheck, "Real views only", "No bought views, likes or followers."],
 ];
 
+// How the kit works, above the slideshows instead of one paragraph (Alain 2026-10-22: "mach das noch etwas klarer, wie
+// das funktioniert"; he asked whether every newcomer gets their own and how often a new one comes).
+const HOW: Array<[LucideIcon, string, string]> = [
+  [Fingerprint, "Made for you", "Every slideshow here is your own version. Nobody else gets it, that's how we know a post is yours."],
+  [Smartphone, "Post it as it is", "As a TikTok photo slideshow, all slides in this order. Cropped or screenshotted, we can't recognise it."],
+  [RefreshCw, "Then get a new one", "Posted it? “Make me a new one” gives you a fresh version, every 20 hours per slideshow."],
+];
+
+// A row on a phone (a stack of tiles would be a tower), a tile from sm.
+function Tiles({ items, className }: { items: Array<[LucideIcon, string, string]>; className: string }) {
+  return (
+    <ul className={`mt-5 grid gap-3 ${className}`}>
+      {items.map(([Icon, head, text]) => (
+        <li key={head} className="flex items-start gap-3.5 rounded-2xl border border-white/70 bg-white/45 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:block">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-[var(--ink)] shadow-[0_4px_12px_-6px_rgba(0,0,0,0.25)]">
+            <Icon className="size-[18px]" strokeWidth={1.8} />
+          </span>
+          <div className="min-w-0 sm:mt-3">
+            <p className="text-[15.5px] font-medium leading-snug tracking-[-0.01em]">{head}</p>
+            <p className="mt-1 text-[13.5px] leading-relaxed text-[var(--ink-2)]">{text}</p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function Kit({ kit, waiting, notice }: { kit: KitView[]; waiting: string[]; notice?: string }) {
   return (
     <section id="kit" className="mt-12 scroll-mt-24">
       <h2 className="text-[28px] font-medium tracking-[-0.03em]">Ready to post</h2>
-      <p className="mt-2 max-w-[56ch] text-[15px] leading-relaxed text-[var(--ink-2)]">
-        Every version is yours alone. Post the slides as a TikTok photo slideshow, unchanged and in this order: no
-        cropping, no screenshots, or we can&apos;t recognise them. Posted one? Make yourself a new one.
-      </p>
+      <Tiles items={HOW} className="sm:grid-cols-3" />
       {notice && NOTICE[notice] && (
         <p className={`mt-4 rounded-2xl px-4 py-3 text-[14px] ${notice === "ok" ? "bg-[#e3f1e6] text-[#1f5130]" : "bg-white/70 text-[var(--ink-2)]"}`}>{NOTICE[notice]}</p>
       )}
@@ -262,20 +302,7 @@ export default function Kit({ kit, waiting, notice }: { kit: KitView[]; waiting:
       {kit.length > 0 && (
         <section className="mt-14">
           <h3 className="text-[22px] font-medium tracking-[-0.03em]">How to post</h3>
-          <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {GUIDE.map(([Icon, head, text]) => (
-              // A row on a phone (six tiles would be a tower), a tile from sm.
-              <li key={head} className="flex items-start gap-3.5 rounded-2xl border border-white/70 bg-white/45 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:block">
-                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-[var(--ink)] shadow-[0_4px_12px_-6px_rgba(0,0,0,0.25)]">
-                  <Icon className="size-[18px]" strokeWidth={1.8} />
-                </span>
-                <div className="min-w-0 sm:mt-3">
-                  <p className="text-[15.5px] font-medium leading-snug tracking-[-0.01em]">{head}</p>
-                  <p className="mt-1 text-[13.5px] leading-relaxed text-[var(--ink-2)]">{text}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <Tiles items={GUIDE} className="sm:grid-cols-2 lg:grid-cols-3" />
         </section>
       )}
     </section>
