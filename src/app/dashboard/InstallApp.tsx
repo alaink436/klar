@@ -7,7 +7,8 @@ import { card } from "../components/home/formStyles";
 // The dashboard as an app (Alain 2026-10-22: "Icon auf dem Homescreen am Handy, eigenes Fenster am PC, mit einem Knopf
 // zum Installieren im Dashboard"). Chrome and Edge, on a phone and on a computer, hand over their install dialog
 // through beforeinstallprompt, so the button opens it. An iPhone has no such dialog: there the button shows how to add
-// the page in Safari. Nothing shows inside the installed app or in a browser that can't install; "Not now" hides it in
+// the page in Safari (the steps as walked in the iOS 26.5 simulator on 2026-10-22: ••• > Share > View More > Add to
+// Home Screen, "Open as Web App" on by itself). Nothing shows inside the installed app or in a browser that can't install; "Not now" hides it in
 // this browser. Also registers the service worker those browsers want before they offer the install.
 
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
@@ -68,8 +69,8 @@ export default function InstallApp({ variant }: { variant: "side" | "bar" }) {
   );
   const howTo = help && (
     <p className="mt-3 rounded-xl bg-white/70 px-3 py-2.5 text-[13px] leading-relaxed text-[var(--ink-2)]">
-      Open this page in Safari, tap Share and choose &ldquo;Add to Home Screen&rdquo;. Inside TikTok&apos;s browser this
-      doesn&apos;t work, open Safari first.
+      In Safari, tap &bull;&bull;&bull; at the bottom, then Share, View More and &ldquo;Add to Home Screen&rdquo;. Inside
+      TikTok&apos;s browser this doesn&apos;t work, open the page in Safari first.
     </p>
   );
   const button = (
