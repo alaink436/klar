@@ -24,6 +24,7 @@
 // the own task starts it, and only when there are creators.
 
 import "server-only";
+import { checkWaitingBios } from "./autoVerify";
 import { checkCreatorPosts } from "./postCheck";
 import { listSecrets, revealSecret } from "./vault";
 
@@ -187,6 +188,9 @@ export async function ingestRun(runId: string): Promise<IngestResult> {
 
   // A creator's post counts only after the check (caption, images); our own always do.
   if (run.actorTaskId === APIFY_CREATOR_TASK_ID) await checkCreatorPosts(items);
+  // Every 6 h with our own run: confirm whoever has the code in the bio by now (lib/autoVerify), before the inputs
+  // are synced, so they are read in the creators' run below. Never fails the ingest.
+  if (run.actorTaskId === APIFY_TASK_ID) await checkWaitingBios().catch(() => null);
 
   const { own, creators } = await syncTaskInputs(key);
   // Our own run is the clock: it starts the creators' run, never the other way round.

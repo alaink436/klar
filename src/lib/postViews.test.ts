@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 const checkCreatorPosts = vi.fn(async () => ({ checked: 0, promoted: 0 }));
 vi.mock("./postCheck", () => ({ checkCreatorPosts: (...a: unknown[]) => checkCreatorPosts(...(a as [])) }));
+const checkWaitingBios = vi.fn(async () => ({ checked: 0, confirmed: [] as string[] }));
+vi.mock("./autoVerify", () => ({ checkWaitingBios: (...a: unknown[]) => checkWaitingBios(...(a as [])) }));
 vi.mock("./vault", () => ({
   listSecrets: async () => [{ id: "k1", provider: "apify", label: "Apify Key", revoked_at: null }],
   revealSecret: async () => "apify-key",
@@ -132,5 +134,17 @@ describe("ingestRun", () => {
   it("starts no creators' run while there are no creators", async () => {
     await ingestRun("abcdefghij12");
     expect(taskCalls).toEqual([`PUT ${APIFY_TASK_ID}/input`]);
+  });
+
+  it("reads the bios of waiting creators with our own run only, and never fails for them", async () => {
+    checkWaitingBios.mockClear();
+    await ingestRun("abcdefghij12");
+    expect(checkWaitingBios).toHaveBeenCalledTimes(1);
+    checkWaitingBios.mockRejectedValueOnce(new Error("evomi down"));
+    expect((await ingestRun("abcdefghij12")).ok).toBe(true);
+    checkWaitingBios.mockClear();
+    run.actorTaskId = APIFY_CREATOR_TASK_ID;
+    await ingestRun("abcdefghij12");
+    expect(checkWaitingBios).not.toHaveBeenCalled();
   });
 });

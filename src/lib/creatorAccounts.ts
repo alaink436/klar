@@ -126,6 +126,21 @@ export async function listCreatorAccounts(): Promise<Array<CreatorAccount & { st
   return ((await res.json()) as CreatorAccount[]).map((a) => ({ ...a, status: accountStatus(a, now) }));
 }
 
+/** How long the 6-hour run keeps reading the bio of someone who connected a TikTok but isn't confirmed yet. */
+export const AUTO_CHECK_DAYS = 7;
+/** At most this many per run: each is one Evomi read, and the webhook has 60 s. */
+export const AUTO_CHECK_MAX = 10;
+
+/** Accounts waiting for their bio code, connected at most AUTO_CHECK_DAYS ago, longest waiting first; no test accounts. */
+export async function listWaitingAccounts(now = Date.now()): Promise<CreatorAccount[]> {
+  const since = new Date(now - AUTO_CHECK_DAYS * 86_400_000).toISOString();
+  const res = await fetch(
+    `${TABLE}?verified_at=is.null&tiktok_handle=not.is.null&closed_at=is.null&email=not.like.klar_test*&estimate_accepted_at=gte.${since}&select=*&order=estimate_accepted_at.asc&limit=${AUTO_CHECK_MAX}`,
+    { headers: headers(), cache: "no-store" },
+  );
+  return res.ok ? ((await res.json()) as CreatorAccount[]) : [];
+}
+
 // The dashboard opened on this day (ticket 02). Earlier logins in the hub's Auth
 // are the affiliate era's and say nothing about the sign-up form.
 const DASHBOARD_SINCE = Date.parse("2026-10-21T00:00:00Z");
