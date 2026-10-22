@@ -43,7 +43,7 @@ const SECTIONS: Array<[string, string[]]> = [
       "Without a link, we estimate how many sign-ups your counted views brought, from all posts that advertise the app. You get 50 % of the revenue from those sign-ups.",
       "All creators together get at most 40 % of what the app earns above its usual sign-ups in a month. If that limit is reached, everyone's share shrinks by the same factor.",
       "The estimate updates every day and is final when the month ends. It is an estimate, not an exact count.",
-      "From 1,000 followers you can get your own link. Installs through it count exactly, and you get 50 % of the revenue they bring. Posts that counted before you switched keep earning from the estimate.",
+      "From 1,000 followers you can get your own link. Sign-ups through it count exactly, and for each one you get 50 % of the app's average revenue per sign-up. Posts that counted before you switched keep earning from the estimate.",
     ],
   ],
   [
