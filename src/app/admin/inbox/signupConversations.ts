@@ -8,6 +8,7 @@ import type { Conversation } from "./MailClient";
 import type { AccountStatus, CreatorAccount, UnfinishedSignup } from "@/lib/creatorAccounts";
 
 const STATUS: Record<AccountStatus, string> = {
+  unconnected: "TikTok nicht verbunden",
   waiting: "wartet auf Bio-Code",
   verified: "bestätigt",
   paused: "pausiert",
@@ -38,21 +39,23 @@ export function signupConversations(
     .filter((a) => !isTest(a.email))
     .map((a): Conversation => {
       const status = STATUS[a.status];
+      // Since 2026-10-22 the account exists from the first login, before a TikTok is connected.
+      const handle = a.tiktok_handle;
       const body = [
-        "Hat sich auf getklar.org als Creator angemeldet.",
+        handle ? "Hat sich auf getklar.org als Creator angemeldet." : "Hat sich auf getklar.org eingeloggt und sieht seine Slideshows, TikTok noch nicht verbunden.",
         "",
         `Status: ${status}${a.status === "waiting" ? ` (der Code ${a.bio_code} fehlt noch in der TikTok-Bio)` : ""}`,
-        `TikTok: tiktok.com/@${a.tiktok_handle}`,
-        `Land: ${a.country}`,
-        `Link in der Bio: ${a.has_link ? "ja" : "nein"}`,
+        ...(handle ? [`TikTok: tiktok.com/@${handle}`] : []),
+        ...(a.country ? [`Land: ${a.country}`] : []),
+        ...(handle ? [`Link in der Bio: ${a.has_link ? "ja" : "nein"}`] : []),
         `E-Mail: ${a.email}`,
         `Angemeldet: ${when(a.created_at)}`,
       ].join("\n");
       return {
         id: `signup-${a.id}`,
-        handle: a.tiktok_handle,
-        displayName: null,
-        platform: "tiktok",
+        handle: handle ?? a.email,
+        displayName: handle ? null : a.email,
+        platform: handle ? "tiktok" : "",
         contactEmail: a.email,
         language: "en",
         apps: [BASALT],
@@ -62,7 +65,7 @@ export function signupConversations(
         lastInboundAt: a.created_at,
         lastActivityAt: a.created_at,
         kind: "signup",
-        signup: { status, at: "angemeldet", tiktok: `https://www.tiktok.com/@${a.tiktok_handle}` },
+        signup: { status, at: "angemeldet", tiktok: handle ? `https://www.tiktok.com/@${handle}` : null },
       };
     });
   const stuck = unfinished

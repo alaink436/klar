@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { card } from "../components/home/formStyles";
 
-// Step 2: the bio code. The creator puts it into his TikTok bio, we read the
-// bio once on "Check my bio" (Evomi, lib/creatorAccounts). Afterwards he may
-// delete it again.
+// After "Connect your TikTok": the bio code. The creator puts it into his TikTok
+// bio, we read the bio once on "Check my bio" (Evomi, lib/creatorAccounts).
+// Afterwards he may delete it again. A typo in the username is undone with
+// "Use a different account".
 
 const ERRORS: Record<string, string> = {
   code_missing: "We can't see the code in your bio yet. TikTok sometimes takes a minute to update, try again shortly.",
@@ -34,6 +35,13 @@ export default function VerifyStep({ handle, code }: { handle: string; code: str
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setBusy(false);
     }
+  }
+
+  async function change() {
+    if (busy) return;
+    setBusy(true);
+    await fetch("/dashboard/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reset: true }) }).catch(() => {});
+    router.refresh();
   }
 
   async function copy() {
@@ -72,6 +80,9 @@ export default function VerifyStep({ handle, code }: { handle: string; code: str
         className="mt-6 h-12 w-full rounded-full bg-[var(--ink)] text-[15px] font-medium text-[var(--paper)] transition hover:opacity-85 disabled:opacity-40"
       >
         {busy ? "Checking your bio" : "Check my bio"}
+      </button>
+      <button type="button" onClick={change} disabled={busy} className="mt-4 text-[13px] font-medium text-[var(--ink-3)] transition hover:text-[var(--ink)]">
+        Not @{handle}? Use a different account
       </button>
     </div>
   );

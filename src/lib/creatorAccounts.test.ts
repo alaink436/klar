@@ -9,7 +9,9 @@ vi.mock("./creators", () => ({ addCreator: (...a: unknown[]) => addCreator(...(a
 import {
   accountStatus,
   bioHasCode,
-  createCreatorAccount,
+  connectTiktok,
+  disconnectTiktok,
+  ensureCreatorAccount,
   unfinishedSignups,
   newBioCode,
   normaliseHandle,
@@ -32,8 +34,9 @@ describe("normaliseHandle", () => {
 
 describe("accountStatus", () => {
   const now = Date.parse("2026-10-22T12:00:00Z");
-  const open = { verified_at: null, suspended_until: null, closed_at: null };
-  it("waits for the bio code until the account is verified", () => {
+  const open = { tiktok_handle: "lisa", verified_at: null, suspended_until: null, closed_at: null };
+  it("is unconnected without a TikTok, then waits for the bio code until verified", () => {
+    expect(accountStatus({ ...open, tiktok_handle: null }, now)).toBe("unconnected");
     expect(accountStatus(open, now)).toBe("waiting");
     expect(accountStatus({ ...open, verified_at: "2026-10-22T08:00:00Z" }, now)).toBe("verified");
   });
@@ -92,17 +95,25 @@ function fakeHub() {
   );
 }
 
-const SIGNUP = {
-  userId: "u1",
+const ACCOUNT_NEW: CreatorAccount = {
+  id: "c1",
+  user_id: "u1",
   email: "lisa@example.com",
-  handle: "@Lisa",
-  country: "de",
-  platforms: ["tiktok", "instagram"],
-  hasLink: false,
-  acceptedEstimate: true,
+  app_slug: "basalt",
+  tiktok_handle: null,
+  country: null,
+  platforms: ["tiktok"],
+  has_link: false,
+  bio_code: "klar-7F3K",
+  verified_at: null,
+  created_at: "2026-10-22T08:00:00Z",
+  strikes: 0,
+  suspended_until: null,
+  closed_at: null,
+  followers: null,
 };
 
-describe("createCreatorAccount", () => {
+describe("ensureCreatorAccount", () => {
   beforeEach(() => {
     vi.stubEnv("KLAR_INBOX_SERVICE_KEY", "test");
     hub = { creators: [], verified: [], own: [], patchStatus: 204 };
@@ -114,27 +125,63 @@ describe("createCreatorAccount", () => {
     vi.unstubAllEnvs();
   });
 
-  it("stores the account for Basalt with a bio code", async () => {
-    const r = await createCreatorAccount(SIGNUP);
-    expect(r.ok).toBe(true);
-    expect(writes[0].body).toMatchObject({ app_slug: "basalt", tiktok_handle: "lisa", country: "DE", platforms: ["tiktok", "instagram"] });
+  it("creates the account at the first login, for Basalt, with a bio code and no TikTok yet", async () => {
+    const r = await ensureCreatorAccount("u1", "lisa@example.com");
+    expect(r?.created).toBe(true);
+    expect(writes[0].url).toContain("on_conflict=user_id");
+    expect(writes[0].body).toMatchObject({ user_id: "u1", email: "lisa@example.com", app_slug: "basalt" });
     expect((writes[0].body as { bio_code: string }).bio_code).toMatch(/^klar-/);
+    expect(writes[0].body).not.toHaveProperty("tiktok_handle");
   });
 
-  it("refuses without the tick, without TikTok, or for an unknown platform", async () => {
-    expect(await createCreatorAccount({ ...SIGNUP, acceptedEstimate: false })).toEqual({ ok: false, error: "no_consent" });
-    expect(await createCreatorAccount({ ...SIGNUP, platforms: ["instagram"] })).toEqual({ ok: false, error: "bad_platforms" });
-    expect(await createCreatorAccount({ ...SIGNUP, platforms: ["tiktok", "snapchat"] })).toEqual({ ok: false, error: "bad_platforms" });
+  it("keeps the account that is already there", async () => {
+    hub.creators = [ACCOUNT_NEW];
+    expect(await ensureCreatorAccount("u1", "lisa@example.com")).toEqual({ account: ACCOUNT_NEW, created: false });
     expect(writes).toEqual([]);
   });
+});
 
-  it("refuses a handle that is verified for someone else or one of our own accounts", async () => {
+describe("connectTiktok", () => {
+  beforeEach(() => {
+    vi.stubEnv("KLAR_INBOX_SERVICE_KEY", "test");
+    hub = { creators: [], verified: [], own: [], patchStatus: 204 };
+    writes.length = 0;
+    fakeHub();
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("takes only the username, the country from the IP and the consent with the button", async () => {
+    expect(await connectTiktok(ACCOUNT_NEW, { handle: "@Lisa", country: "de" })).toEqual({ ok: true });
+    expect(writes[0].method).toBe("PATCH");
+    expect(writes[0].url).toContain("id=eq.c1&verified_at=is.null");
+    expect(writes[0].body).toMatchObject({ tiktok_handle: "lisa", country: "DE" });
+    expect((writes[0].body as { estimate_accepted_at: string }).estimate_accepted_at).toBeTruthy();
+  });
+
+  it("leaves the country empty without the IP header", async () => {
+    await connectTiktok(ACCOUNT_NEW, { handle: "lisa", country: null });
+    expect(writes[0].body).toMatchObject({ country: null });
+  });
+
+  it("refuses a bad username, a verified account, and a handle someone else verified or one of ours", async () => {
+    expect(await connectTiktok(ACCOUNT_NEW, { handle: "no spaces allowed" })).toEqual({ ok: false, error: "bad_handle" });
+    expect(await connectTiktok({ ...ACCOUNT_NEW, tiktok_handle: "lisa", verified_at: "2026-10-22T09:00:00Z" }, { handle: "lisa2" })).toEqual({ ok: false, error: "exists" });
     hub.verified = [{ id: "other" }];
-    expect(await createCreatorAccount(SIGNUP)).toEqual({ ok: false, error: "handle_taken" });
+    expect(await connectTiktok(ACCOUNT_NEW, { handle: "lisa" })).toEqual({ ok: false, error: "handle_taken" });
     hub.verified = [];
     hub.own = [{ id: "own" }];
-    expect(await createCreatorAccount(SIGNUP)).toEqual({ ok: false, error: "handle_taken" });
+    expect(await connectTiktok(ACCOUNT_NEW, { handle: "lisa" })).toEqual({ ok: false, error: "handle_taken" });
     expect(writes).toEqual([]);
+  });
+
+  it("lets go of an unverified username, never of a verified one", async () => {
+    expect(await disconnectTiktok({ ...ACCOUNT_NEW, tiktok_handle: "lsia" })).toBe(true);
+    expect(writes[0].body).toEqual({ tiktok_handle: null });
+    expect(await disconnectTiktok({ ...ACCOUNT_NEW, tiktok_handle: "lisa", verified_at: "2026-10-22T09:00:00Z" })).toBe(false);
+    expect(writes).toHaveLength(1);
   });
 });
 
