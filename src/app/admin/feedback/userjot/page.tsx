@@ -1,7 +1,7 @@
 // Klar Control · Klar Studios · Feedback · UserJot: die Wuensche auf den
-// UserJot-Boards der Apps, nach Stimmen sortiert. Nur lesen; Stand setzen,
-// antworten und den Changelog schreiben geht in UserJot selbst. Daten aus
-// lib/userjot, der Token liegt im Vault.
+// UserJot-Boards der Apps (ein Workspace, ein Board pro App), nach Stimmen
+// sortiert. Nur lesen; Stand setzen, antworten und den Changelog schreiben geht
+// in UserJot selbst. Daten aus lib/userjot, der Token liegt im Vault.
 
 import { ExternalLink, MessagesSquare } from "lucide-react";
 import { requireAdminPage } from "@/lib/adminGuard";
@@ -9,6 +9,7 @@ import {
   REQUEST_STATUS_LABELS,
   USERJOT_APPS,
   UserjotError,
+  boardUrl,
   fetchRequests,
   findUserjotApp,
   type RequestStatus,
@@ -71,7 +72,7 @@ export default async function UserjotPage({ searchParams }: { searchParams: Prom
             ))}
           </nav>
           <Button asChild variant="pill-dark" size="sm">
-            <a href={app.boardUrl} target="_blank" rel="noreferrer">
+            <a href={boardUrl(app)} target="_blank" rel="noreferrer">
               <ExternalLink />
               Board
             </a>
@@ -109,7 +110,7 @@ export default async function UserjotPage({ searchParams }: { searchParams: Prom
                         <div className="text-[14px] font-medium text-fg">{w.title}</div>
                         {w.body ? <p className="m-0 mt-1 line-clamp-2 text-[12.5px] text-fg-2">{w.body}</p> : null}
                         <div className="mt-1.5 text-[11.5px] text-fg-3">
-                          {[REQUEST_STATUS_LABELS[w.status], w.board, stimmen(w.votes), kommentare(w.comments), w.createdAt ? datum(w.createdAt) : null]
+                          {[REQUEST_STATUS_LABELS[w.status], stimmen(w.votes), kommentare(w.comments), w.createdAt ? datum(w.createdAt) : null]
                             .filter(Boolean)
                             .join(" · ")}
                         </div>

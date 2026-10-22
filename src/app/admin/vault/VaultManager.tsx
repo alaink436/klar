@@ -295,6 +295,9 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   // (e.g. `v1/search?query=roadtrip`), videos under `videos/…`.
   // Limits: 200 req/h and 20'000/month; image/video file downloads don't count.
   { id: "pexels", label: "Pexels (API Key)", category: "Sonstiges", provider: "pexels", baseUrl: "https://api.pexels.com", authHeader: "authorization", authScheme: "", keyExample: { de: "56-stelliger alphanumerischer Key", en: "56-character alphanumeric key" }, labelExample: "Pexels API Key" },
+  // UserJot: one workspace ("Klar Studios") with a board per app, one token for
+  // all of them. Feedback > UserJot finds it by provider "userjot" (lib/userjot).
+  { id: "userjot", label: "UserJot (API Token)", category: "Sonstiges", provider: "userjot", baseUrl: "https://api.userjot.com/v1", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "API-Token aus den Workspace-Einstellungen", en: "API token from the workspace settings" }, labelExample: "UserJot Klar Studios" },
   // Analytics
   // PostHog: the PERSONAL API key (phx_…) is the one that drives the private
   // REST API (projects, insights, dashboards, flags) and the MCP server. It is
