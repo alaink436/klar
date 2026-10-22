@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { Check, Copy, ScanSearch } from "lucide-react";
+import { RiTiktokFill } from "@remixicon/react";
 import { card } from "../components/home/formStyles";
 
 // After "Connect your TikTok": the bio code. The creator puts it into his TikTok
@@ -12,6 +14,32 @@ import { card } from "../components/home/formStyles";
 // Coming back to tap is its own step (Alain 2026-10-22, "einen Hinweis, dass man
 // das noch extra klicken muss"): the first creator with a large account put the
 // code into the bio and never tapped, so nothing confirmed the account.
+//
+// The steps read as a small path (Alain 2026-10-22: "nicht so gevibecodet"): a
+// circle per step joined by a line, side by side from sm, stacked on a phone; the
+// last one dark, because the button below it is what confirms.
+
+function Step({ icon, title, last, children }: { icon: ReactNode; title: string; last?: boolean; children: ReactNode }) {
+  return (
+    <li className="relative flex gap-4 sm:block">
+      {!last && (
+        <span
+          aria-hidden="true"
+          className="absolute -bottom-5 left-[21px] top-12 w-px bg-black/10 sm:bottom-auto sm:left-[52px] sm:right-[-8px] sm:top-[21px] sm:h-px sm:w-auto"
+        />
+      )}
+      <span
+        className={`relative grid size-11 shrink-0 place-items-center rounded-full border ${last ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]" : "border-[var(--hair)] bg-white text-[var(--ink)]"}`}
+      >
+        {icon}
+      </span>
+      <div className="min-w-0 pt-2.5 sm:pt-4">
+        <p className="text-[15.5px] font-medium leading-snug">{title}</p>
+        <div className="mt-1 text-[14px] leading-relaxed text-[var(--ink-2)]">{children}</div>
+      </div>
+    </li>
+  );
+}
 
 const ERRORS: Record<string, string> = {
   code_missing: "We can't see the code in your bio yet. TikTok sometimes takes a minute to update, try again shortly.",
@@ -60,35 +88,31 @@ export default function VerifyStep({ handle, code }: { handle: string; code: str
   return (
     <div className={`${card} mt-10`}>
       <p className="text-[22px] font-medium tracking-[-0.03em]">Show us @{handle} is yours</p>
-      <ol className="mt-6 space-y-4 text-[15.5px] leading-snug">
-        <li className="grid grid-cols-[2rem_1fr]">
-          <span className="text-[13px] tabular-nums text-[var(--ink-3)]">01</span>
-          <span>Add this code anywhere in your TikTok bio (Edit profile, Bio).</span>
-        </li>
-        <li className="grid grid-cols-[2rem_1fr]">
-          <span className="text-[13px] tabular-nums text-[var(--ink-3)]">02</span>
-          <span>Save your bio in TikTok.</span>
-        </li>
-        <li className="grid grid-cols-[2rem_1fr]">
-          <span className="text-[13px] tabular-nums text-[var(--ink-3)]">03</span>
-          <span>
-            <span className="font-medium">Come back here and tap &ldquo;Check my bio&rdquo;.</span> We only look when you tap, so
-            without it your account stays unconfirmed.
-          </span>
-        </li>
+      <ol className="mt-7 grid gap-6 sm:grid-cols-3 sm:gap-4">
+        <Step icon={<Copy className="size-[18px]" strokeWidth={1.8} />} title="Copy your code">
+          <button
+            type="button"
+            onClick={copy}
+            aria-label={`Copy ${code}`}
+            className="mt-1 inline-flex items-center gap-2.5 rounded-xl border border-[var(--hair)] bg-white px-3 py-1.5 font-mono text-[17px] tracking-[0.04em] text-[var(--ink)] transition hover:border-[var(--ink-3)]"
+          >
+            {code}
+            {copied ? <Check className="size-4 text-[var(--ink-3)]" strokeWidth={2} /> : <Copy className="size-4 text-[var(--ink-3)]" strokeWidth={1.8} />}
+          </button>
+        </Step>
+        <Step icon={<RiTiktokFill className="size-[18px]" />} title="Put it in your TikTok bio">
+          Edit profile, Bio, anywhere in it. Then save.
+        </Step>
+        <Step icon={<ScanSearch className="size-[18px]" strokeWidth={1.8} />} title="Come back and check" last>
+          We only look when you tap the button below.
+        </Step>
       </ol>
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <code className="rounded-2xl border border-[var(--hair)] bg-white/70 px-5 py-3 font-mono text-[22px] tracking-[0.04em]">{code}</code>
-        <button type="button" onClick={copy} className="h-11 rounded-full border border-[var(--hair)] bg-white/70 px-5 text-[14px] font-medium transition hover:border-[var(--ink-3)]">
-          {copied ? "Copied" : "Copy"}
-        </button>
-      </div>
       {error && <p className="mt-5 text-[14px] text-[#b42318]">{error}</p>}
       <button
         type="button"
         onClick={check}
         disabled={busy}
-        className="mt-6 h-12 w-full rounded-full bg-[var(--ink)] text-[15px] font-medium text-[var(--paper)] transition hover:opacity-85 disabled:opacity-40"
+        className="mt-7 h-12 w-full rounded-full bg-[var(--ink)] text-[15px] font-medium text-[var(--paper)] transition hover:opacity-85 disabled:opacity-40"
       >
         {busy ? "Checking your bio" : "Check my bio"}
       </button>

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Copy, Download, Sparkles } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { CalendarCheck, Check, ChevronLeft, Clock, Copy, Download, Eye, Music, Pin, ShieldCheck, Sparkles, type LucideIcon } from "lucide-react";
+import { RiTiktokFill } from "@remixicon/react";
 import { zipSync } from "fflate";
 import { card } from "../components/home/formStyles";
 
@@ -19,6 +20,7 @@ import { card } from "../components/home/formStyles";
 export interface KitView {
   formatId: string;
   name: string;
+  hook: string;
   caption: string;
   slides: Array<{ view: string; download: string }>;
   version: number;
@@ -122,23 +124,67 @@ function DownloadAll({ slides, name }: { slides: KitView["slides"]; name: string
   );
 }
 
-const TIPS = [
-  ["Paste our caption.", "“Copy caption” has the hashtags, and “Basalt” has to stay in it."],
-  ["Use slide 1 as the title.", "The line on the first slide is the hook, put it in TikTok’s title field."],
-  ["Add a sound.", "Pick one from TikTok’s trending sounds before you post."],
-  ["Keep it honest.", "Write in your own words if you like, but don’t promise what the app doesn’t do."],
+// "What to write" as TikTok's post screen with the first slideshow filled in, the notes beside it (Alain 2026-10-22:
+// "What to write als TikTok-Feld", "nicht so gevibecodet"). Dark numbers point at a field of the screen, the light
+// marks are notes without one.
+function Mark({ dark, children }: { dark?: boolean; children: ReactNode }) {
+  return (
+    <span
+      className={`grid size-6 shrink-0 place-items-center rounded-full text-[12px] font-semibold ${dark ? "bg-[var(--ink)] text-[var(--paper)]" : "border border-[var(--hair)] bg-white text-[var(--ink)]"}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function PostScreen({ title, caption, cover }: { title: string; caption: string; cover?: string }) {
+  return (
+    <div className="rounded-[28px] border border-[var(--hair)] bg-white p-4 shadow-[0_24px_50px_-32px_rgba(0,0,0,0.45)]" aria-hidden="true">
+      <div className="flex items-center justify-between border-b border-[var(--hair)] pb-3">
+        <ChevronLeft className="size-5" strokeWidth={1.8} />
+        <span className="text-[14px] font-semibold">Post</span>
+        <RiTiktokFill className="size-5" />
+      </div>
+      <div className="mt-4 flex gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="flex gap-2 text-[15px] font-semibold leading-snug">
+            <Mark dark>1</Mark>
+            <span className="min-w-0 pt-0.5">{title}</span>
+          </p>
+          <p className="mt-3 flex gap-2 text-[13px] leading-relaxed text-[var(--ink-2)]">
+            <Mark dark>2</Mark>
+            <span className="line-clamp-5 min-w-0 pt-0.5">{caption}</span>
+          </p>
+        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URLs */}
+        {cover && <img src={cover} alt="" className="h-[104px] w-[78px] shrink-0 rounded-xl object-cover" />}
+      </div>
+      <div className="mt-4 flex gap-2 text-[12.5px] font-medium text-[var(--ink-2)]">
+        <span className="rounded-full bg-[#f2f2f3] px-3 py-1.5"># Hashtags</span>
+        <span className="rounded-full bg-[#f2f2f3] px-3 py-1.5">@ Mention</span>
+      </div>
+      <div className="mt-4 rounded-full bg-[#fe2c55] py-2.5 text-center text-[14px] font-semibold text-white">Post</div>
+    </div>
+  );
+}
+
+const NOTES: Array<[ReactNode, boolean, string, string]> = [
+  [1, true, "Title", "The line on slide 1 is the hook. It goes into the title."],
+  [2, true, "Caption", "Paste ours with “Copy caption”. The hashtags are in it, and the app’s name has to stay."],
+  [<Music key="sound" className="size-3.5" strokeWidth={2} />, false, "Sound", "Pick one of TikTok’s trending sounds before you post."],
+  [<Check key="words" className="size-3.5" strokeWidth={2.2} />, false, "Your own words", "Fine, as long as you don’t promise what the app doesn’t do."],
 ];
 
-// "How to post" (Alain 2026-10-22: "nicht zu viel auf einmal posten", "ein einheitliches Zeitfenster", "was gibt es
-// sonst noch"): the two from Alain first, then what our counting needs (posts stay up, public account) and what keeps
-// the reach real.
-const GUIDE = [
-  ["One or two a day.", "Space them a few hours apart. Several at once compete with each other, and each gets less reach."],
-  ["Same time every day.", "Pick an hour when your followers are usually online and post around then."],
-  ["Leave your posts up.", "We read your views every 6 hours. A deleted post stops counting."],
-  ["Keep your account public.", "We can only see the views of a public account."],
-  ["Every version once.", "Don’t post the same one twice. For your next post, make yourself a new one."],
-  ["Real views only.", "No bought views, likes or followers. We pay for reach from real people."],
+// "How to post" as tiles (Alain 2026-10-22: "nicht zu viel auf einmal posten", "ein einheitliches Zeitfenster", "was
+// gibt es sonst noch"): the two from Alain first, then what our counting needs (posts stay up, public account) and
+// what keeps the reach real.
+const GUIDE: Array<[LucideIcon, string, string]> = [
+  [CalendarCheck, "One or two a day", "A few hours apart. Several at once take reach from each other."],
+  [Clock, "Same time every day", "When your followers are usually online."],
+  [Pin, "Leave your posts up", "We read views every 6 hours. A deleted post stops counting."],
+  [Eye, "Keep your account public", "We only see the views of a public account."],
+  [Sparkles, "Every version once", "For your next post, make yourself a new one."],
+  [ShieldCheck, "Real views only", "No bought views, likes or followers."],
 ];
 
 export default function Kit({ kit, waiting, notice }: { kit: KitView[]; waiting: string[]; notice?: string }) {
@@ -193,40 +239,42 @@ export default function Kit({ kit, waiting, notice }: { kit: KitView[]; waiting:
         <p className="mt-5 text-[14px] text-[var(--ink-3)]">No slideshows yet. They show up here as soon as we switch the first ones on.</p>
       )}
       {kit.length > 0 && (
-        <div className={`${card} mt-8`}>
-          <p className="text-[19px] font-medium tracking-[-0.02em]">What to write</p>
-          <ul className="mt-4 grid gap-3 text-[14.5px] leading-relaxed">
-            {TIPS.map(([head, text]) => (
-              <li key={head}>
-                <span className="font-medium">{head}</span> <span className="text-[var(--ink-2)]">{text}</span>
+        <section className="mt-14">
+          <h3 className="text-[22px] font-medium tracking-[-0.03em]">What to write</h3>
+          <div className="mt-5 grid items-center gap-7 sm:grid-cols-[minmax(0,320px)_1fr] sm:gap-9">
+            <PostScreen title={kit[0].hook} caption={kit[0].caption} cover={kit[0].slides[0]?.view} />
+            <ul className="grid gap-5">
+              {NOTES.map(([mark, dark, head, text]) => (
+                <li key={head} className="flex gap-3">
+                  <Mark dark={dark}>{mark}</Mark>
+                  <div className="pt-0.5">
+                    <p className="text-[15px] font-medium leading-snug">{head}</p>
+                    <p className="mt-1 text-[14px] leading-relaxed text-[var(--ink-2)]">{text}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+      {kit.length > 0 && (
+        <section className="mt-14">
+          <h3 className="text-[22px] font-medium tracking-[-0.03em]">How to post</h3>
+          <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {GUIDE.map(([Icon, head, text]) => (
+              // A row on a phone (six tiles would be a tower), a tile from sm.
+              <li key={head} className="flex items-start gap-3.5 rounded-2xl border border-white/70 bg-white/45 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:block">
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-[var(--ink)] shadow-[0_4px_12px_-6px_rgba(0,0,0,0.25)]">
+                  <Icon className="size-[18px]" strokeWidth={1.8} />
+                </span>
+                <div className="min-w-0 sm:mt-3">
+                  <p className="text-[15.5px] font-medium leading-snug tracking-[-0.01em]">{head}</p>
+                  <p className="mt-1 text-[13.5px] leading-relaxed text-[var(--ink-2)]">{text}</p>
+                </div>
               </li>
             ))}
           </ul>
-          <div className="mt-5 rounded-2xl bg-white/70 p-4 text-[14px] leading-relaxed">
-            <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--ink-3)]">Example</p>
-            <p className="mt-2">
-              <span className="text-[var(--ink-3)]">Title:</span> {kit[0].name}
-            </p>
-            <p className="mt-1">
-              <span className="text-[var(--ink-3)]">Caption:</span> {kit[0].caption}
-            </p>
-          </div>
-        </div>
-      )}
-      {kit.length > 0 && (
-        <div className={`${card} mt-5`}>
-          <p className="text-[19px] font-medium tracking-[-0.02em]">How to post</p>
-          <ol className="mt-4 grid gap-x-8 gap-y-4 text-[14.5px] leading-relaxed sm:grid-cols-2">
-            {GUIDE.map(([head, text], i) => (
-              <li key={head} className="grid grid-cols-[2rem_1fr]">
-                <span className="pt-0.5 text-[13px] tabular-nums text-[var(--ink-3)]">{String(i + 1).padStart(2, "0")}</span>
-                <span>
-                  <span className="font-medium">{head}</span> <span className="text-[var(--ink-2)]">{text}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        </div>
+        </section>
       )}
     </section>
   );
