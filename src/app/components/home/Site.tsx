@@ -15,7 +15,8 @@ const grotesk = localFont({
 
 export const SUPPORT_EMAIL = "support@getklar.org";
 
-export default function Site({ children }: { children: React.ReactNode }) {
+/** `nav` replaces the right side of the header (the creator dashboard puts its profile menu there). */
+export default function Site({ children, nav }: { children: React.ReactNode; nav?: React.ReactNode }) {
   return (
     <div className={`home ${grotesk.variable}`}>
       <header className="fixed inset-x-0 top-0 z-30 px-3 pt-3 sm:px-5">
@@ -26,10 +27,12 @@ export default function Site({ children }: { children: React.ReactNode }) {
           </Link>
           {/* getklar.org is where creators land from TikTok; support stays in the footer (Basalt's store listing links /support). */}
           {/* With "Sign in" the row needs about 334 px: below 390 px (iPhone mini, small Androids) "Apps" steps aside. */}
-          <nav className="flex items-center gap-3 whitespace-nowrap text-[13px] font-medium text-[var(--ink-2)] sm:gap-7">
-            <Link href="/#apps" className="transition hover:text-[var(--ink)] max-[389px]:hidden">Apps</Link>
-            <CreatorLinks />
-          </nav>
+          {nav ?? (
+            <nav className="flex items-center gap-3 whitespace-nowrap text-[13px] font-medium text-[var(--ink-2)] sm:gap-7">
+              <Link href="/#apps" className="transition hover:text-[var(--ink)] max-[389px]:hidden">Apps</Link>
+              <CreatorLinks />
+            </nav>
+          )}
         </div>
       </header>
 

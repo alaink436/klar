@@ -8,9 +8,11 @@
 // Signed out: to /dashboard/login. Signed in: straight into the dashboard (Alain
 // 2026-10-22: "nach dem Mail-Link sofort das eigene Dashboard mit den Slideshows",
 // "so wenig Friktion wie möglich"); the account is created on the first visit and
-// gets its kit at once. Not connected yet: "Connect your TikTok" above the kit.
-// Connected, not verified: the bio code. Verified: what happens next.
+// gets its kit at once. Not connected yet: "Connect your TikTok" above the tabs.
+// Connected, not verified: the bio code. The profile sits at the top right, the
+// content in four tabs (Alain: "Profil oben rechts", "wo sind die Tabs").
 
+import Link from "next/link";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 import Site from "../components/home/Site";
@@ -30,23 +32,41 @@ import Earnings from "./Earnings";
 import Kit from "./Kit";
 import Payouts from "./Payouts";
 import Posts from "./Posts";
+import ProfileMenu from "./ProfileMenu";
 import VerifyStep from "./VerifyStep";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Creator dashboard · Klar Studios", robots: { index: false } };
 
-// Basalt (registry slug wavelength) is the app with a kit; Kelva and Pocketmate (myloo) follow.
+// Basalt (registry slug wavelength) is the app with a kit; Kelva, Pocketmate (myloo) and Learnbound follow.
 const APPS: AppChoiceItem[] = [
   ["wavelength", true],
   ["kelva", false],
   ["myloo", false],
+  ["learnbound", false],
 ].map(([slug, live]) => {
   const app = findKlarApp(slug as string);
   return { name: slug === "myloo" ? "Pocketmate" : (app?.name ?? String(slug)), icon: app?.icon ?? "", live: live as boolean };
 });
 
-export default async function CreatorDashboard({ searchParams }: { searchParams: Promise<{ new?: string }> }) {
-  const { new: notice } = await searchParams;
+// As links, so the back button and a shared link land on the same tab.
+const TABS = [
+  ["ready", "Ready to post"],
+  ["posts", "My posts"],
+  ["earnings", "Earnings"],
+  ["payouts", "Payouts"],
+] as const;
+type Tab = (typeof TABS)[number][0];
+
+const Later = () => (
+  <p className={`${card} mt-8 text-[15px] leading-relaxed text-[var(--ink-2)]`}>
+    Connect your TikTok above first. Once it is confirmed, this is where you see it.
+  </p>
+);
+
+export default async function CreatorDashboard({ searchParams }: { searchParams: Promise<{ new?: string; tab?: string }> }) {
+  const { new: notice, tab: asked } = await searchParams;
+  const tab: Tab = TABS.find(([t]) => t === asked)?.[0] ?? "ready";
   const user = await getSessionUser();
   if (!user) redirect("/dashboard/login");
   const ensured = await ensureCreatorAccount(user.id, user.email ?? "");
@@ -76,38 +96,21 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
     run && posts ? new Map(posts.filter((p) => p.status === "counts" || p.status === "approved").map((p) => [p.postId, postEstimate(run, p.views)])) : undefined;
 
   return (
-    <Site>
-      <main className="mx-auto max-w-[720px] px-5 pb-24 pt-32 sm:px-8">
+    <Site nav={account ? <ProfileMenu email={account.email} handle={account.tiktok_handle} verified={!!verified} /> : undefined}>
+      <main className="mx-auto max-w-[720px] px-5 pb-24 pt-28 sm:px-8">
         <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">Creator dashboard</p>
-        <h1 className="mt-4 text-[clamp(40px,6vw,64px)] font-medium leading-[0.95] tracking-[-0.05em]">
-          {account?.verified_at ? `You're in, @${account.tiktok_handle}.` : "Get paid to post."}
+        <h1 className="mt-3 text-[clamp(34px,5vw,48px)] font-medium leading-[0.95] tracking-[-0.045em]">
+          {verified ? `Hi, @${verified.tiktok_handle}.` : "Your dashboard."}
         </h1>
-        <div className="mt-6">
+        <div className="mt-5">
           <Apps apps={APPS} />
         </div>
 
-        {!account && <p className={`${card} mt-10 text-[15px]`}>We couldn&apos;t load your dashboard. Reload the page in a moment.</p>}
+        {!account && <p className={`${card} mt-8 text-[15px]`}>We couldn&apos;t load your dashboard. Reload the page in a moment.</p>}
         {account && !account.tiktok_handle && <ConnectTiktok />}
         {account?.tiktok_handle && !account.verified_at && <VerifyStep handle={account.tiktok_handle} code={account.bio_code} />}
-        {account?.verified_at && (
-          <div className={`${card} mt-10 grid gap-5 text-[15.5px] leading-relaxed`}>
-            <p>We now read your TikTok posts every 6 hours.</p>
-            {link ? (
-              <p>
-                Your link: <span className="font-medium">{link}</span>
-                <br />
-                <span className="text-[var(--ink-2)]">Put it in your bio. Every install through it counts exactly.</span>
-              </p>
-            ) : (
-              <p className="text-[var(--ink-2)]">
-                Without a link we estimate your share from your views and the app&apos;s sign-ups. Once you can add a
-                link to your bio, it counts exactly.
-              </p>
-            )}
-          </div>
-        )}
         {verified && (closed || paused || verified.strikes > 0) && (
-          <div className={`${card} mt-6 border-[#b42318]/30 text-[15px] leading-relaxed`}>
+          <div className={`${card} mt-8 border-[#b42318]/30 text-[15px] leading-relaxed`}>
             {closed
               ? "Your account is closed after three rejected posts. We no longer read your posts; what you earned with posts that counted is still paid out."
               : paused
@@ -117,18 +120,57 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
                   : "You have one warning: a post was rejected. A second rejection pauses your account for 30 days."}
           </div>
         )}
-        {estimated && (
-          <Earnings run={run} earning={earning} offerLink={!closed && !estimated.has_link && (estimated.followers ?? 0) >= LINK_FOLLOWERS} followers={estimated.followers ?? 0} />
-        )}
-        {verified && <Payouts balance={balance ?? null} payouts={payouts} />}
-        {kit && <Kit kit={kit.kit} waiting={kit.waiting} notice={notice} />}
-        {posts && <Posts posts={posts} estimates={estimates} />}
 
-        <form action="/dashboard/logout" method="post" className="mt-10">
-          <button type="submit" className="text-[13px] font-medium text-[var(--ink-3)] transition hover:text-[var(--ink)]">
-            Sign out
-          </button>
-        </form>
+        {account && (
+          <nav aria-label="Dashboard" className="-mx-5 mt-8 overflow-x-auto px-5 sm:mx-0 sm:px-0">
+            <div className="inline-flex gap-1 rounded-full border border-white/70 bg-white/50 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+              {TABS.map(([t, name]) => (
+                <Link
+                  key={t}
+                  href={t === "ready" ? "/dashboard" : `/dashboard?tab=${t}`}
+                  aria-current={t === tab ? "page" : undefined}
+                  className={`whitespace-nowrap rounded-full px-3 py-2 text-[13.5px] font-medium transition sm:px-4 sm:text-[14px] ${t === tab ? "bg-[var(--ink)] text-[var(--paper)]" : "text-[var(--ink-2)] hover:text-[var(--ink)]"}`}
+                >
+                  {name}
+                </Link>
+              ))}
+            </div>
+          </nav>
+        )}
+
+        {account && tab === "ready" &&
+          (kit ? (
+            <Kit kit={kit.kit} waiting={kit.waiting} notice={notice} />
+          ) : (
+            <p className={`${card} mt-8 text-[15px] leading-relaxed text-[var(--ink-2)]`}>No new posts while your account is paused or closed.</p>
+          ))}
+        {account && tab === "posts" && (posts ? <Posts posts={posts} estimates={estimates} /> : <Later />)}
+        {account && tab === "earnings" &&
+          (verified ? (
+            <>
+              <div className={`${card} mt-8 grid gap-4 text-[15.5px] leading-relaxed`}>
+                <p>We now read your TikTok posts every 6 hours.</p>
+                {link ? (
+                  <p>
+                    Your link: <span className="font-medium">{link}</span>
+                    <br />
+                    <span className="text-[var(--ink-2)]">Put it in your bio. Every install through it counts exactly.</span>
+                  </p>
+                ) : (
+                  <p className="text-[var(--ink-2)]">
+                    Without a link we estimate your share from your views and the app&apos;s sign-ups. Once you can add a
+                    link to your bio, it counts exactly.
+                  </p>
+                )}
+              </div>
+              {estimated && (
+                <Earnings run={run} earning={earning} offerLink={!closed && !estimated.has_link && (estimated.followers ?? 0) >= LINK_FOLLOWERS} followers={estimated.followers ?? 0} />
+              )}
+            </>
+          ) : (
+            <Later />
+          ))}
+        {account && tab === "payouts" && (verified ? <Payouts balance={balance ?? null} payouts={payouts} /> : <Later />)}
       </main>
     </Site>
   );

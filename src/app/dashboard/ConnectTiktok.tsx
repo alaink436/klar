@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { card, field } from "../components/home/formStyles";
+import { field } from "../components/home/formStyles";
 
 // "Connect your TikTok", the one step inside the dashboard before the bio code (Alain 2026-10-22: "so wenig Friktion
-// wie möglich"): the username and a button. The sentence next to the button replaces the old tick box; country comes
-// from the IP, TikTok is the only platform we pay for, a link is offered later from 1000 followers.
+// wie möglich"), a slim bar above the tabs ("Hinweis-Balken"): the username and a button. The sentence under them
+// replaces the old tick box; country comes from the IP, TikTok is the only platform we pay for, a link is offered
+// later from 1000 followers.
 
 const ERRORS: Record<string, string> = {
   bad_handle: "That does not look like a TikTok username.",
@@ -41,12 +42,14 @@ export default function ConnectTiktok() {
   }
 
   return (
-    <form onSubmit={submit} className={`${card} mt-10`}>
-      <p className="text-[22px] font-medium tracking-[-0.03em]">Connect your TikTok to get paid</p>
-      <p className="mt-2 text-[15px] leading-relaxed text-[var(--ink-2)]">
-        Your posts are below. Connect first, so the ones you post count.
+    <form
+      onSubmit={submit}
+      className="mt-8 rounded-[22px] border border-white/80 bg-white/60 p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl sm:p-5"
+    >
+      <p className="text-[16px] font-medium tracking-[-0.02em]">
+        Connect your TikTok to get paid <span className="font-normal text-[var(--ink-3)]">· so the posts you make count</span>
       </p>
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-3 flex flex-col gap-2.5 sm:flex-row">
         <input
           className={`${field} sm:flex-1`}
           value={handle}
@@ -66,8 +69,8 @@ export default function ConnectTiktok() {
           {busy ? "Connecting" : "Connect"}
         </button>
       </div>
-      {error && <p className="mt-4 text-[14px] text-[#b42318]">{error}</p>}
-      <p className="mt-4 text-[13px] leading-relaxed text-[var(--ink-3)]">
+      {error && <p className="mt-3 text-[14px] text-[#b42318]">{error}</p>}
+      <p className="mt-3 text-[12.5px] leading-relaxed text-[var(--ink-3)]">
         Without a link in your bio we estimate your share from your views and the app&apos;s sign-ups. By connecting you
         agree to that.
       </p>

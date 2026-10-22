@@ -13,5 +13,5 @@ export async function POST(req: Request): Promise<Response> {
   if (!user) return NextResponse.redirect(new URL("/dashboard/login", req.url), { status: 303 });
   const account = await getCreatorAccount(user.id);
   if (account && (account.followers ?? 0) >= LINK_FOLLOWERS) await switchToLink(account);
-  return NextResponse.redirect(new URL("/dashboard", req.url), { status: 303 });
+  return NextResponse.redirect(new URL("/dashboard?tab=earnings", req.url), { status: 303 });
 }
