@@ -6,9 +6,10 @@ import { getBrowserSupabase } from "../../brain/_shared/supabase-browser";
 
 // signInWithOtp creates the user on first use (unlike /brain, which is invite
 // only). The link lands on /dashboard/auth/callback, the one redirect the hub's
-// Supabase Auth allows for getklar.org.
+// Supabase Auth allows for getklar.org. Used by the sign-in page and the
+// sign-up page (/dashboard/join), which only differ in their text.
 
-export default function LoginForm({ expired }: { expired: boolean }) {
+export default function LoginForm({ expired, cta = "Send me a link" }: { expired: boolean; cta?: string }) {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -56,7 +57,7 @@ export default function LoginForm({ expired }: { expired: boolean }) {
         disabled={busy}
         className="h-12 rounded-full bg-[var(--ink)] text-[15px] font-medium text-[var(--paper)] transition hover:opacity-85 disabled:opacity-40"
       >
-        {busy ? "Sending" : "Send me a link"}
+        {busy ? "Sending" : cta}
       </button>
     </form>
   );

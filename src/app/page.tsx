@@ -279,10 +279,10 @@ export default function Home() {
                 <div className={card}>
                   <p className="text-[clamp(26px,3vw,36px)] font-medium leading-tight tracking-[-0.04em]">Start in two minutes.</p>
                   <p className="mt-3 max-w-[36ch] text-[16px] leading-relaxed text-[var(--ink-2)]">
-                    Sign up, prove the TikTok account is yours and your first slideshows are waiting.
+                    Sign up with your email and your first slideshows are waiting in your dashboard.
                   </p>
                   <Link
-                    href="/dashboard/login"
+                    href="/dashboard/join"
                     className="mt-7 inline-flex h-12 items-center rounded-full bg-[var(--ink)] px-7 text-[15px] font-medium tracking-[-0.01em] text-[var(--paper)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition hover:opacity-85"
                   >
                     Sign up
