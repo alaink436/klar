@@ -71,22 +71,16 @@ const APPS: App[] = [
 // 07): creators sign up themselves, only for Basalt, and post slideshows from
 // their kit; 50 % of the revenue they bring, estimated without a link, exact with
 // one. CPM and the paid test week are gone for now. The old form stays for
-// everything else (other apps, brands, agencies).
-const DEALS = [
-  {
-    title: "Without a link",
-    line: "Under 1,000 followers TikTok gives you no bio link. We read your views and estimate the sign-ups they bring from Basalt's own numbers.",
-  },
-  { title: "With a link", line: "From 1,000 followers, put your own link in your bio. Every install through it counts exactly." },
-];
+// everything else (other apps, brands, agencies). One sentence and three steps
+// since 2026-10-22 (Alain: "komprimieren", the section was two phone screens);
+// link, threshold and payout details live in the dashboard and /creator-terms.
 // DM account: Alain, 2026-10-14. The account was renamed to klar.studios; the
 // old handle answers "account not found" (measured 2026-10-18).
 const TIKTOK = "klar.studios";
 const STEPS = [
-  "Sign up with your email and your TikTok handle.",
-  "Put a short code in your bio, so we know the account is yours.",
-  "Save the slideshows from your kit and post them unchanged, with “Basalt” in the caption.",
-  "Watch your views and earnings in your dashboard. We pay out monthly through Wise, from $25.",
+  "Sign up with your email and TikTok.",
+  "Put a short code in your bio.",
+  "Post your kit with “Basalt” in the caption. We pay monthly through Wise.",
 ];
 // Not to promote right now: still listed in the form, marked as not recommended.
 const NOT_RECOMMENDED = new Set(["yarnstash", "animevault"]);
@@ -228,9 +222,6 @@ export default function Home() {
                 <DissolveWord>Studios.</DissolveWord>
               </span>
             </h1>
-            <p className="mx-auto mt-9 max-w-[32ch] text-[clamp(17px,1.5vw,21px)] font-medium leading-[1.3] tracking-[-0.02em]">
-              Based in Switzerland. These are the apps Klar Studios ships.
-            </p>
             <div className="mt-10">
               <BeamPill apps={APPS.map(({ name, icon }) => ({ name, icon }))} />
             </div>
@@ -249,20 +240,9 @@ export default function Home() {
             <div className="mt-14 grid gap-12 md:grid-cols-[1fr_1.1fr] md:gap-16">
               <div>
                 <p className="max-w-[34ch] text-[clamp(18px,1.6vw,23px)] leading-[1.3] tracking-[-0.015em] text-[var(--ink-2)]">
-                  We make the slideshows, you post them. You get 50 % of the revenue your posts bring in.
+                  We make the slideshows, you post them. You get 50 % of what your posts earn, with or without a bio link. No follower minimum.
                 </p>
-                <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                  {DEALS.map((d) => (
-                    <div
-                      key={d.title}
-                      className="rounded-[24px] border border-white/70 bg-white/50 p-6 shadow-[0_18px_40px_-26px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl"
-                    >
-                      <p className="text-[22px] font-medium tracking-[-0.03em]">{d.title}</p>
-                      <p className="mt-2 text-[14.5px] leading-relaxed text-[var(--ink-2)]">{d.line}</p>
-                    </div>
-                  ))}
-                </div>
-                <ol className="mt-10 space-y-5">
+                <ol className="mt-8 space-y-4">
                   {STEPS.map((step, i) => (
                     <li key={step} className="grid grid-cols-[2.5rem_1fr] items-baseline">
                       <span className="text-[13px] tabular-nums text-[var(--ink-3)]">{String(i + 1).padStart(2, "0")}</span>
@@ -270,9 +250,6 @@ export default function Home() {
                     </li>
                   ))}
                 </ol>
-                <p className="mt-8 max-w-[44ch] border-l-2 border-[var(--ink)] pl-4 text-[14.5px] leading-relaxed text-[var(--ink-2)]">
-                  No follower minimum. For now it is Basalt only, and TikTok is the platform we pay for.
-                </p>
               </div>
               {/* On the phone the sign-up comes first: people arrive from TikTok to sign up. */}
               <div className="order-first md:order-none">
