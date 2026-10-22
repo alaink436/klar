@@ -49,11 +49,13 @@ export function digestCounts(events: Pick<PendingNotif, "event_type">[]): string
   return parts.join(", ");
 }
 
-function buildDigestHtml(events: PendingNotif[]): { subject: string; html: string } {
+export function buildDigestHtml(events: PendingNotif[]): { subject: string; html: string } {
   const subject = `Klar Inbox Digest · ${digestCounts(events)}`;
 
   const row = (e: PendingNotif) => {
+    // Swiss time: Vercel runs in UTC, so without the zone the digest said 08:54 for 10:54.
     const when = new Date(e.created_at).toLocaleString("de-CH", {
+      timeZone: "Europe/Zurich",
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
