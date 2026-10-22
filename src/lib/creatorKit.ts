@@ -46,6 +46,8 @@ export interface KitSlide {
 export interface KitEntry {
   formatId: string;
   name: string;
+  /** The line on the cover of this version (its hook as plain text), the format's name when it has none. */
+  hook: string;
   caption: string;
   slides: KitSlide[];
   /** How many versions of this format he has; the kit shows the newest. */
@@ -114,7 +116,11 @@ interface VariantRow {
   images: string[];
   creator_id: string | null;
   assigned_at?: string | null;
+  params?: { hook?: string } | null;
 }
+
+// Hooks are cover markup ("<i>SLEEPMAXXING</i> TRICKS<br>THAT ACTUALLY<br>WORK").
+const plain = (html: string) => html.replace(/<br\s*\/?>/gi, " ").replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
 
 export async function listFormats(): Promise<FormatOverview[]> {
   const [fRes, vRes] = await Promise.all([
@@ -194,6 +200,7 @@ export async function getCreatorKit(creatorId: string): Promise<{ kit: KitEntry[
     kit.push({
       formatId: f.id,
       name: f.name,
+      hook: v.params?.hook ? plain(v.params.hook) : f.name,
       caption: f.caption,
       slides: await signPaths(v.images, (_, i) => `basalt-${f.id}-${i + 1}.jpg`),
       version: own.length,
