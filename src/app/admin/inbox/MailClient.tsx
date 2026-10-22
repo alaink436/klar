@@ -72,8 +72,9 @@ export interface Conversation {
   lastInboundAt: string | null;
   lastActivityAt: string | null;
   // Source of the conversation. "inquiry" = website contact-form request,
-  // "collab" = mail to a public per-app address (TikTok-Bio).
-  kind?: "inquiry" | "collab";
+  // "collab" = mail to a public per-app address (TikTok-Bio), "signup" = creator
+  // sign-up on getklar.org/dashboard, or a login that never sent the form.
+  kind?: "inquiry" | "collab" | "signup";
   // Admin star (klar_inbox_stars). Toggled optimistically in the client.
   starred?: boolean;
   // Present when kind === "inquiry": the website request.
@@ -89,6 +90,9 @@ export interface Conversation {
     channelLabel?: string;
     handle?: string | null;
   };
+  // Present when kind === "signup" (signupConversations.ts). Answered by mail
+  // from Alain's own mail program.
+  signup?: { status: string; at: "angemeldet" | "eingeloggt"; tiktok: string | null };
 }
 
 // Website contact-form request folded into the inbox. Answered by mail.
@@ -341,7 +345,7 @@ export default function MailClient({
     const q = query.trim().toLowerCase();
     return convs.filter((c) => {
       if (filter === "starred" && !c.starred) return false;
-      if (filter === "inquiry" && c.kind !== "inquiry") return false;
+      if (filter === "inquiry" && c.kind !== "inquiry" && c.kind !== "signup") return false;
       if (filter === "collab" && c.kind !== "collab") return false;
       if (!q) return true;
       const hay = `${c.displayName ?? ""} ${c.handle} ${c.messages.map((m) => m.body).join(" ")}`.toLowerCase();
@@ -584,6 +588,7 @@ export default function MailClient({
                           {c.replyCount}. Antw.
                         </Badge>
                       )}
+                      {c.signup && <Badge className="h-5 px-2 text-[10.5px]">{c.signup.status}</Badge>}
                     </div>
                     {preview && (
                       <div className="line-clamp-2 w-full text-[12px] leading-[1.4] text-fg-3">
@@ -641,7 +646,8 @@ export default function MailClient({
                       >
                         <Star className={cn("size-4", sel.starred && "fill-current")} />
                       </span>
-                      <span className="text-[12.5px] text-fg-3">@{sel.handle}</span>
+                      {/* Without a name the title is already @handle; a login without a sign-up has only its mail address. */}
+                      {sel.displayName && !sel.handle.includes("@") && <span className="text-[12.5px] text-fg-3">@{sel.handle}</span>}
                       {sel.platform ? <Badge className="h-5 px-2 text-[10.5px]">{platformLabel(sel.platform)}</Badge> : null}
                     </div>
                     <div className="mt-[7px] flex flex-wrap items-center gap-2">
@@ -657,7 +663,11 @@ export default function MailClient({
                         </Badge>
                       )}
                       <span suppressHydrationWarning className="text-[11.5px] text-fg-3 [font-family:var(--font-mono)]" title={abs(sel.lastInboundAt)}>
-                        {sel.kind === "inquiry" || sel.kind === "collab" ? `Anfrage ${rel(sel.lastInboundAt)}` : `antwortete ${rel(sel.lastInboundAt)}`}
+                        {sel.signup
+                          ? `${sel.signup.at} ${rel(sel.lastInboundAt)}`
+                          : sel.kind === "inquiry" || sel.kind === "collab"
+                            ? `Anfrage ${rel(sel.lastInboundAt)}`
+                            : `antwortete ${rel(sel.lastInboundAt)}`}
                       </span>
                     </div>
                   </div>
@@ -686,6 +696,18 @@ export default function MailClient({
                         : `Eingegangen über ${sel.collab?.address ?? "die öffentliche App-Adresse"}. Deine Antwort geht per Mail raus und läuft über dieselbe Adresse zurück in diesen Thread.`}
                     </span>
                   </div>
+                ) : sel.signup ? (
+                  <div className="klar-einschub flex flex-wrap items-center gap-2.5 px-3.5 py-2.5">
+                    <Badge>{sel.signup.status}</Badge>
+                    <span className="min-w-0 flex-1 text-[12px] leading-relaxed text-fg-3">
+                      {sel.signup.tiktok ? "Creator-Anmeldung über getklar.org/dashboard." : "Eingeloggt, aber keine Anmeldung abgeschickt. Frag nach, woran es hing."}
+                    </span>
+                    {sel.signup.tiktok && (
+                      <a href={sel.signup.tiktok} target="_blank" rel="noreferrer" className="text-[12px] text-fg-2 underline underline-offset-4 hover:text-fg">
+                        TikTok-Profil
+                      </a>
+                    )}
+                  </div>
                 ) : sel.kind === "inquiry" && sel.contactEmail ? (
                   <span className="text-[11.5px] text-fg-3">Antwort per Mail an {sel.contactEmail}</span>
                 ) : null}
@@ -702,7 +724,7 @@ export default function MailClient({
                   const tr = trans[m.id];
                   const isIn = m.direction === "in";
                   const inboundNo = isIn ? sel.messages.slice(0, i + 1).filter((x) => x.direction === "in").length : 0;
-                  const label = isIn ? `${inboundNo}. Antwort` : "Du";
+                  const label = isIn ? (sel.signup ? "getklar.org" : `${inboundNo}. Antwort`) : "Du";
                   return (
                     <div
                       key={m.id}
@@ -721,7 +743,7 @@ export default function MailClient({
                         <div className="mb-[5px] text-[12.5px] font-semibold text-fg">{m.subject}</div>
                       )}
                       <div className="whitespace-pre-wrap text-fg">{m.body}</div>
-                      {isIn && (
+                      {isIn && !sel.signup && (
                         <div className="mt-2.5 border-t border-dashed pt-2.5">
                           {!tr || tr === "error" ? (
                             <Button variant="pill-dark" size="sm" className="h-7 px-3 text-[11.5px]" onClick={() => translateMsg(m, pickLang(sel.language))}>
@@ -753,7 +775,12 @@ export default function MailClient({
 
               {/* Composer, collapsed to a click-bar until opened */}
               <div className="flex flex-col gap-[9px] border-t bg-black/40 px-6 py-3.5 max-[760px]:px-3 max-[760px]:py-2.5">
-                {!composerOpen ? (
+                {sel.signup && sel.contactEmail ? (
+                  // No in-app channel for sign-ups: the mail program opens with the address filled in.
+                  <Button asChild variant="pill" className="h-9 self-start px-5">
+                    <a href={`mailto:${sel.contactEmail}`}>Per Mail an {sel.contactEmail} antworten</a>
+                  </Button>
+                ) : !composerOpen ? (
                   <button
                     type="button"
                     onClick={() => { setComposerOpen(true); requestAnimationFrame(() => composerRef.current?.focus()); }}
