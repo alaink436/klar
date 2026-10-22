@@ -62,6 +62,22 @@ describe("runCreatorModel", () => {
           ]);
         }
         if (url.includes("klar_post_checks")) return json(url.includes("offset=0") ? checks : []);
+        if (url.includes("klar_creator_accounts") && url.includes("has_link=eq.true")) {
+          return json(url.includes("offset=0") ? [{ id: "c-max", tiktok_handle: "max", suspended_until: null, closed_at: null }] : []);
+        }
+        if (url.startsWith("https://basalt.test/rest/v1/referrals")) {
+          // Three through max's link this month (one with the handle as typed), one through a link nobody owns.
+          return json(
+            url.includes("offset=0")
+              ? [
+                  { influencer_handle: "max", created_at: T("2026-10-22T12:00:00Z") },
+                  { influencer_handle: "Max", created_at: T("2026-10-23T09:00:00Z") },
+                  { influencer_handle: "max", created_at: T("2026-10-23T20:00:00Z") },
+                  { influencer_handle: "nobody", created_at: T("2026-10-23T20:00:00Z") },
+                ]
+              : [],
+          );
+        }
         if (url.includes("klar_app_metrics_daily")) return json([{ revenue_28d_cents: 2600, users_new_30d: 260 }]);
         if (url.includes("klar_posts")) return json(url.includes("offset=0") ? posts : []);
         if (url.includes("klar_post_views")) return json(url.includes("offset=0") ? views : []);
@@ -82,12 +98,14 @@ describe("runCreatorModel", () => {
     expect(run.revenue_per_signup_cents).toBe(10);
     // Window from the first snapshot (21.10. 10:00) to 24.10. 04:00: 66 hours at 1, plus 3.
     expect(run.actual_signups).toBe(69);
-    const [lisa] = writes.klar_creator_earnings;
+    const [lisa, max] = writes.klar_creator_earnings;
     // 20 000 views x 0.5 per 1000 = 10 sign-ups x 10 cents = 100 cents, half of it hers.
-    expect(lisa).toMatchObject({ creator_id: "c-lisa", month: "2026-10-01", views: 20_000, payable_cents: 50 });
+    expect(lisa).toMatchObject({ creator_id: "c-lisa", month: "2026-10-01", views: 20_000, payable_cents: 50, link_signups: 0, link_commission_cents: 0 });
     expect(lisa.est_signups).toBeCloseTo(10);
     expect(lisa.commission_cents).toBeCloseTo(50);
-    expect(writes.klar_creator_earnings).toHaveLength(1); // max is paid through his link, lisa2 is not about us
+    // max is paid through his link: 3 sign-ups x 10 cents, half of it his, not cut by the cap. lisa2 is not about us.
+    expect(max).toMatchObject({ creator_id: "c-max", month: "2026-10-01", views: 0, commission_cents: 0, link_signups: 3, link_commission_cents: 15, payable_cents: 15 });
+    expect(writes.klar_creator_earnings).toHaveLength(2);
   });
 
   it("refuses to run before the first view snapshot", async () => {
