@@ -25,10 +25,14 @@ import { Kommandopalette } from "./Kommandopalette";
 import { FormulareOhneSprung } from "./FormulareOhneSprung";
 import { TabellenGriffe } from "./TabellenGriffe";
 import type { AdminLang } from "./_i18n";
-import { DEFAULT_NAV_PREFS, type NavPrefs } from "./_nav";
+import { DEFAULT_NAV_PREFS, navItemForPath, type NavPrefs } from "./_nav";
+import { AdminLangContext } from "./AdminTopbar";
 
 function activeFromPath(path: string): string {
-  // /admin/<seg>/... -> "<seg>"; blankes /admin oder /admin/ -> "overview".
+  // The menu entry of the path, for a tab page the entry it sits under (_nav tabOf). Paths outside the menu
+  // (settings) keep their first segment; bare /admin -> "overview".
+  const item = navItemForPath(path);
+  if (item) return item.tabOf ?? item.id;
   const seg = path.replace(/^\/admin\/?/, "").split("/")[0];
   return seg || "overview";
 }
@@ -68,7 +72,8 @@ export default function AdminShell({
         <div className="klar-hintergrund" aria-hidden="true">
           <GridPattern width={56} height={56} />
         </div>
-        {children}
+        {/* The language for the tab labels under the top bar (AdminTopbar), which the pages render themselves. */}
+        <AdminLangContext.Provider value={lang}>{children}</AdminLangContext.Provider>
       </SidebarInset>
       {/* Beide leben hier, weil hier der Rahmen steht: die Palette braucht den
           Sidebar-Kontext zum Ein- und Ausklappen, und Meldungen sollen einen
