@@ -13,6 +13,7 @@
 // content in four tabs (Alain: "Profil oben rechts", "wo sind die Tabs").
 
 import Link from "next/link";
+import { Images, ListChecks, TrendingUp, Wallet } from "lucide-react";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 import Site from "../components/home/Site";
@@ -50,12 +51,14 @@ const APPS: AppChoiceItem[] = [
   return { name: slug === "myloo" ? "Pocketmate" : (app?.name ?? String(slug)), icon: app?.icon ?? "", live: live as boolean };
 });
 
-// As links, so the back button and a shared link land on the same tab.
+// As links, so the back button and a shared link land on the same tab. On a computer they stand in a column on the
+// left like the menu of Klar Control (Alain 2026-10-22: "die Tabs links, so wie bei der Admin-Ansicht"); on a phone
+// they stay a row of pills above the content.
 const TABS = [
-  ["ready", "Ready to post"],
-  ["posts", "My posts"],
-  ["earnings", "Earnings"],
-  ["payouts", "Payouts"],
+  ["ready", "Ready to post", Images],
+  ["posts", "My posts", ListChecks],
+  ["earnings", "Earnings", TrendingUp],
+  ["payouts", "Payouts", Wallet],
 ] as const;
 type Tab = (typeof TABS)[number][0];
 
@@ -98,82 +101,104 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
 
   return (
     <Site nav={account ? <ProfileMenu email={account.email} handle={account.tiktok_handle} verified={!!verified} /> : undefined}>
-      <main className="mx-auto max-w-[720px] px-5 pb-24 pt-28 sm:px-8">
-        <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">Creator dashboard</p>
-        <h1 className="mt-3 text-[clamp(34px,5vw,48px)] font-medium leading-[0.95] tracking-[-0.045em]">
-          {verified ? `Hi, @${verified.tiktok_handle}.` : "Your dashboard."}
-        </h1>
-        <div className="mt-5">
-          <Apps apps={APPS} />
-        </div>
-
-        {!account && <p className={`${card} mt-8 text-[15px]`}>We couldn&apos;t load your dashboard. Reload the page in a moment.</p>}
-        {account && !account.tiktok_handle && <ConnectTiktok />}
-        {account?.tiktok_handle && !account.verified_at && <VerifyStep handle={account.tiktok_handle} code={account.bio_code} />}
-        {verified && (closed || paused || verified.strikes > 0) && (
-          <div className={`${card} mt-8 border-[#b42318]/30 text-[15px] leading-relaxed`}>
-            {closed
-              ? "Your account is closed after three rejected posts. We no longer read your posts; what you earned with posts that counted is still paid out."
-              : paused
-                ? `Your account is paused until ${new Date(verified.suspended_until!).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}. Posts in this time don't count and you get no new posts.`
-                : verified.strikes >= 2
-                  ? "Your pause is over. One more rejected post closes your account."
-                  : "You have one warning: a post was rejected. A second rejection pauses your account for 30 days."}
-          </div>
-        )}
-
-        {account && <LaptopHint email={account.email} />}
-
+      <main className="mx-auto max-w-[1040px] px-5 pb-24 pt-28 sm:px-8 md:grid md:grid-cols-[200px_minmax(0,1fr)] md:gap-12">
         {account && (
-          <nav aria-label="Dashboard" className="-mx-5 mt-8 overflow-x-auto px-5 sm:mx-0 sm:px-0">
-            <div className="inline-flex gap-1 rounded-full border border-white/70 bg-white/50 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-              {TABS.map(([t, name]) => (
-                <Link
-                  key={t}
-                  href={t === "ready" ? "/dashboard" : `/dashboard?tab=${t}`}
-                  aria-current={t === tab ? "page" : undefined}
-                  className={`whitespace-nowrap rounded-full px-3 py-2 text-[13.5px] font-medium transition sm:px-4 sm:text-[14px] ${t === tab ? "bg-[var(--ink)] text-[var(--paper)]" : "text-[var(--ink-2)] hover:text-[var(--ink)]"}`}
-                >
-                  {name}
-                </Link>
-              ))}
-            </div>
-          </nav>
-        )}
-
-        {account && tab === "ready" &&
-          (kit ? (
-            <Kit kit={kit.kit} waiting={kit.waiting} notice={notice} />
-          ) : (
-            <p className={`${card} mt-8 text-[15px] leading-relaxed text-[var(--ink-2)]`}>No new posts while your account is paused or closed.</p>
-          ))}
-        {account && tab === "posts" && (posts ? <Posts posts={posts} estimates={estimates} /> : <Later />)}
-        {account && tab === "earnings" &&
-          (verified ? (
-            <>
-              <div className={`${card} mt-8 grid gap-4 text-[15.5px] leading-relaxed`}>
-                <p>We now read your TikTok posts every 6 hours.</p>
-                {link ? (
-                  <p>
-                    Your link: <span className="font-medium">{link}</span>
-                    <br />
-                    <span className="text-[var(--ink-2)]">Put it in your bio. Every install through it counts exactly.</span>
-                  </p>
-                ) : (
-                  <p className="text-[var(--ink-2)]">
-                    Without a link we estimate your share from your views and the app&apos;s sign-ups. Once you can add a
-                    link to your bio, it counts exactly.
-                  </p>
-                )}
+          <aside className="hidden md:block">
+            <nav aria-label="Dashboard" className="sticky top-28">
+              <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-3)]">Dashboard</p>
+              <div className="mt-3 grid gap-1">
+                {TABS.map(([t, name, Icon]) => (
+                  <Link
+                    key={t}
+                    href={t === "ready" ? "/dashboard" : `/dashboard?tab=${t}`}
+                    aria-current={t === tab ? "page" : undefined}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14.5px] font-medium transition ${t === tab ? "bg-white/75 text-[var(--ink)] shadow-[0_8px_24px_-16px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.9)]" : "text-[var(--ink-2)] hover:bg-white/40 hover:text-[var(--ink)]"}`}
+                  >
+                    <Icon className="size-[18px] shrink-0" strokeWidth={1.8} />
+                    {name}
+                  </Link>
+                ))}
               </div>
-              {estimated && (
-                <Earnings run={run} earning={earning} offerLink={!closed && !estimated.has_link && (estimated.followers ?? 0) >= LINK_FOLLOWERS} followers={estimated.followers ?? 0} />
-              )}
-            </>
-          ) : (
-            <Later />
-          ))}
-        {account && tab === "payouts" && (verified ? <Payouts balance={balance ?? null} payouts={payouts} /> : <Later />)}
+            </nav>
+          </aside>
+        )}
+        <div className="min-w-0 max-w-[720px] md:col-start-2">
+          <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">Creator dashboard</p>
+          <h1 className="mt-3 text-[clamp(34px,5vw,48px)] font-medium leading-[0.95] tracking-[-0.045em]">
+            {verified ? `Hi, @${verified.tiktok_handle}.` : "Your dashboard."}
+          </h1>
+          <div className="mt-5">
+            <Apps apps={APPS} />
+          </div>
+
+          {!account && <p className={`${card} mt-8 text-[15px]`}>We couldn&apos;t load your dashboard. Reload the page in a moment.</p>}
+          {account && !account.tiktok_handle && <ConnectTiktok />}
+          {account?.tiktok_handle && !account.verified_at && <VerifyStep handle={account.tiktok_handle} code={account.bio_code} />}
+          {verified && (closed || paused || verified.strikes > 0) && (
+            <div className={`${card} mt-8 border-[#b42318]/30 text-[15px] leading-relaxed`}>
+              {closed
+                ? "Your account is closed after three rejected posts. We no longer read your posts; what you earned with posts that counted is still paid out."
+                : paused
+                  ? `Your account is paused until ${new Date(verified.suspended_until!).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}. Posts in this time don't count and you get no new posts.`
+                  : verified.strikes >= 2
+                    ? "Your pause is over. One more rejected post closes your account."
+                    : "You have one warning: a post was rejected. A second rejection pauses your account for 30 days."}
+            </div>
+          )}
+
+          {account && <LaptopHint email={account.email} />}
+
+          {account && (
+            <nav aria-label="Dashboard tabs" className="-mx-5 mt-8 overflow-x-auto px-5 sm:mx-0 sm:px-0 md:hidden">
+              <div className="inline-flex gap-1 rounded-full border border-white/70 bg-white/50 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                {TABS.map(([t, name]) => (
+                  <Link
+                    key={t}
+                    href={t === "ready" ? "/dashboard" : `/dashboard?tab=${t}`}
+                    aria-current={t === tab ? "page" : undefined}
+                    className={`whitespace-nowrap rounded-full px-3 py-2 text-[13.5px] font-medium transition sm:px-4 sm:text-[14px] ${t === tab ? "bg-[var(--ink)] text-[var(--paper)]" : "text-[var(--ink-2)] hover:text-[var(--ink)]"}`}
+                  >
+                    {name}
+                  </Link>
+                ))}
+              </div>
+            </nav>
+          )}
+
+          {account && tab === "ready" &&
+            (kit ? (
+              <Kit kit={kit.kit} waiting={kit.waiting} notice={notice} />
+            ) : (
+              <p className={`${card} mt-8 text-[15px] leading-relaxed text-[var(--ink-2)]`}>No new posts while your account is paused or closed.</p>
+            ))}
+          {account && tab === "posts" && (posts ? <Posts posts={posts} estimates={estimates} /> : <Later />)}
+          {account && tab === "earnings" &&
+            (verified ? (
+              <>
+                <div className={`${card} mt-8 grid gap-4 text-[15.5px] leading-relaxed`}>
+                  <p>We now read your TikTok posts every 6 hours.</p>
+                  {link ? (
+                    <p>
+                      Your link: <span className="font-medium">{link}</span>
+                      <br />
+                      <span className="text-[var(--ink-2)]">Put it in your bio. Every install through it counts exactly.</span>
+                    </p>
+                  ) : (
+                    <p className="text-[var(--ink-2)]">
+                      Without a link we estimate your share from your views and the app&apos;s sign-ups. Once you can add a
+                      link to your bio, it counts exactly.
+                    </p>
+                  )}
+                </div>
+                {estimated && (
+                  <Earnings run={run} earning={earning} offerLink={!closed && !estimated.has_link && (estimated.followers ?? 0) >= LINK_FOLLOWERS} followers={estimated.followers ?? 0} />
+                )}
+              </>
+            ) : (
+              <Later />
+            ))}
+          {account && tab === "payouts" && (verified ? <Payouts balance={balance ?? null} payouts={payouts} /> : <Later />)}
+        </div>
       </main>
     </Site>
   );
