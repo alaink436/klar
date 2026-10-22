@@ -140,7 +140,7 @@ export default function SettingsManager({
                 name="notification_trigger_inquiry"
                 defaultChecked={settings.notification_trigger_inquiry}
                 title="Neue Inquiry"
-                desc="Wenn jemand über die Website eine Anfrage schickt."
+                desc="Wenn jemand über die Website eine Anfrage schickt oder sich als Creator anmeldet."
               />
             </div>
             <div className="flex flex-wrap gap-4">

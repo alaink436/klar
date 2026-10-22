@@ -209,7 +209,7 @@ export async function markInviteUsed(
 // ─── Notification log ─────────────────────────────────────────────────────
 
 export interface NotifEvent {
-  event_type: "inquiry_new";
+  event_type: "inquiry_new" | "creator_signup";
   app_slug?: string | null;
   handle?: string | null;
   inquiry_id?: string | null;
@@ -217,7 +217,7 @@ export interface NotifEvent {
 }
 
 // Append a pending notification event. The /api/inquiry route fires
-// inquiry_new. The notification flusher reads pending events and emails a
+// inquiry_new, /dashboard/signup creator_signup. The notification flusher reads pending events and emails a
 // digest when count >= notification_batch_size. Older rows may still carry
 // the affiliate-era `setup_completed`; the flusher ignores them.
 export async function logNotifEvent(ev: NotifEvent): Promise<void> {
@@ -237,7 +237,7 @@ export async function logNotifEvent(ev: NotifEvent): Promise<void> {
 
 export interface PendingNotif {
   id: number;
-  event_type: "inquiry_new" | "setup_completed";
+  event_type: "inquiry_new" | "creator_signup" | "setup_completed";
   app_slug: string | null;
   handle: string | null;
   inquiry_id: string | null;

@@ -81,6 +81,25 @@ export async function getCreatorAccount(userId: string): Promise<CreatorAccount 
   return rows[0] ?? null;
 }
 
+export type AccountStatus = "waiting" | "verified" | "paused" | "closed";
+
+export function accountStatus(
+  a: Pick<CreatorAccount, "verified_at" | "suspended_until" | "closed_at">,
+  now: number,
+): AccountStatus {
+  if (a.closed_at) return "closed";
+  if (a.suspended_until && Date.parse(a.suspended_until) > now) return "paused";
+  return a.verified_at ? "verified" : "waiting";
+}
+
+/** Every sign-up, newest first, with its status: Klar Control > Bewerbungen. */
+export async function listCreatorAccounts(): Promise<Array<CreatorAccount & { status: AccountStatus }>> {
+  const res = await fetch(`${TABLE}?select=*&order=created_at.desc&limit=200`, { headers: headers(), cache: "no-store" });
+  if (!res.ok) return [];
+  const now = Date.now();
+  return ((await res.json()) as CreatorAccount[]).map((a) => ({ ...a, status: accountStatus(a, now) }));
+}
+
 /** Is the handle already someone else's: a verified creator or one of our own accounts? */
 async function handleTaken(handle: string, exceptId?: string): Promise<boolean> {
   const h = encodeURIComponent(handle);

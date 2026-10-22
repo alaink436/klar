@@ -71,11 +71,14 @@ export default async function InboxAnsicht({
   searchParams,
   titel = "Inbox",
   startFilter,
+  oben,
 }: {
   searchParams: Promise<{ msg?: string; f?: string; sel?: string }>;
   titel?: string;
   /** Filter, wenn die URL keinen ?f= mitbringt. */
   startFilter?: InboxFilter;
+  /** Steht zwischen Kopfzeile und Postfach (Bewerbungen: die Creator-Anmeldungen). */
+  oben?: React.ReactNode;
 }) {
   const sp = await searchParams;
   const flashMsg = (sp.msg ?? "").slice(0, 300);
@@ -203,6 +206,7 @@ export default async function InboxAnsicht({
       <title>{`${titel} · Klar Control`}</title>
       <AdminTopbar titel={titel} />
       {flashMsg && <TextureCard className="mx-9 mt-3 shrink-0 px-4 py-3 text-[13px] text-fg-2 max-[820px]:mx-4">{flashMsg}</TextureCard>}
+      {oben}
       <MailClient
         conversations={conversations}
         appMeta={appMeta}
