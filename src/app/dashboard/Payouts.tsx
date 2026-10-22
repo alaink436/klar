@@ -13,7 +13,9 @@ const STATUS: Record<Payout["status"], string> = {
   failed: "Didn't go through, we'll sort it out",
 };
 
-function WiseForm({ email, name }: { email: string; name: string }) {
+// `terms`: the first payout is where the creator accepts the creator terms (Alain 2026-10-22: "wenn man die erste
+// Abhebung macht"); changing the Wise details later doesn't ask again.
+function WiseForm({ email, name, terms }: { email: string; name: string; terms?: boolean }) {
   return (
     <form action="/dashboard/wise" method="post" className="mt-4 grid gap-4 sm:grid-cols-2">
       <label>
@@ -24,6 +26,18 @@ function WiseForm({ email, name }: { email: string; name: string }) {
         <span className={label}>Your full name, as on it</span>
         <input name="name" required minLength={2} maxLength={80} defaultValue={name} className={field} autoComplete="name" />
       </label>
+      {terms && (
+        <label className="flex items-start gap-2.5 text-[14px] leading-snug text-[var(--ink-2)] sm:col-span-2">
+          <input name="terms" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-[var(--ink)]" />
+          <span>
+            I agree to the{" "}
+            <a href="/creator-terms" target="_blank" className="font-medium text-[var(--ink)] underline decoration-[var(--hair)] underline-offset-2">
+              creator terms
+            </a>
+            .
+          </span>
+        </label>
+      )}
       <button type="submit" className="h-11 w-fit rounded-full bg-[var(--ink)] px-5 text-[14px] font-medium text-white transition hover:opacity-85">
         Save
       </button>
@@ -63,7 +77,7 @@ export default function Payouts({ balance, payouts }: { balance: Balance | null;
         {owed >= MIN_PAYOUT_CENTS && !hasWise && (
           <>
             <p className="mt-3 text-[var(--ink-2)]">Tell us where to send it. We pay through Wise; if something is missing, Wise emails you.</p>
-            <WiseForm email="" name="" />
+            <WiseForm email="" name="" terms />
           </>
         )}
         {hasWise && (
