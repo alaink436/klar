@@ -202,8 +202,9 @@ export default function Kit({ kit, waiting, notice }: { kit: KitView[]; waiting:
         {kit.map((k) => (
           // A row per slideshow (Alain 2026-10-22: "jede Slideshow als breite Zeile"): the cover at the left, title,
           // slides and buttons beside it. min-w-0: the slide strip would otherwise widen the whole page on a phone.
-          <div key={k.formatId} className={`${card} flex min-w-0 gap-4 p-4! sm:gap-6 sm:p-5!`}>
-            <a href={k.slides[0]?.download} className="relative block w-[96px] shrink-0 self-start overflow-hidden rounded-xl bg-white sm:w-[150px] sm:rounded-2xl" aria-label="Save the cover">
+          // A visible edge round the row and a hairline round the white slides ("umrande es noch etwas").
+          <div key={k.formatId} className={`${card} flex min-w-0 gap-4 border-black/10! p-4! sm:gap-6 sm:p-5!`}>
+            <a href={k.slides[0]?.download} className="relative block w-[96px] shrink-0 self-start overflow-hidden rounded-xl bg-white ring-1 ring-black/10 sm:w-[150px] sm:rounded-2xl" aria-label="Save the cover">
               {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URLs */}
               <img src={k.slides[0]?.view} alt="" className="aspect-[3/4] w-full object-cover" />
               <span className="absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[12px]">
@@ -219,7 +220,7 @@ export default function Kit({ kit, waiting, notice }: { kit: KitView[]; waiting:
                 {k.slides.map((s, i) => (
                   <a key={s.view} href={s.download} className="group flex-none" aria-label={`Save slide ${i + 1}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URLs */}
-                    <img src={s.view} alt="" loading="lazy" className="h-16 w-auto rounded-lg shadow-[0_6px_16px_-10px_rgba(0,0,0,0.45)] transition group-hover:-translate-y-0.5 sm:h-20" />
+                    <img src={s.view} alt="" loading="lazy" className="h-16 w-auto rounded-lg shadow-[0_6px_16px_-10px_rgba(0,0,0,0.45)] ring-1 ring-black/10 transition group-hover:-translate-y-0.5 sm:h-20" />
                     <span className="mt-1 block text-center text-[11px] tabular-nums text-[var(--ink-3)]">{i + 1}</span>
                   </a>
                 ))}
