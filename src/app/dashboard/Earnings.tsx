@@ -1,13 +1,14 @@
 // The creator's month from the estimate (ticket 05): what his counted posts
-// earned so far, his views per day above Basalt's sign-ups per day, and from
-// 1000 followers the offer of a link. Server component.
+// earned so far, his views per day above Basalt's sign-ups per day. The offer
+// of a link from 1000 followers sits above the tabs since 2026-10-22 (LinkOffer).
+// Server component.
 
 import { card } from "../components/home/formStyles";
 import { usd, type Earning, type ModelRun } from "@/lib/creatorEarnings";
 import { CAP_SHARE, COMMISSION } from "@/lib/creatorModel";
 import DayBars from "./DayBars";
 
-export default function Earnings({ run, earning, offerLink, followers }: { run: ModelRun | null; earning: Earning | null; offerLink: boolean; followers: number }) {
+export default function Earnings({ run, earning }: { run: ModelRun | null; earning: Earning | null }) {
   const month = run ? new Date(`${run.month}T00:00:00Z`).toLocaleDateString("en-GB", { month: "long", timeZone: "UTC" }) : null;
   const days = run?.days.map((d) => d.d) ?? [];
   const views = new Map(earning?.days.map((d) => [d.d, d.views]) ?? []);
@@ -48,19 +49,6 @@ export default function Earnings({ run, earning, offerLink, followers }: { run: 
           </>
         )}
       </div>
-      {offerLink && (
-        <div className={`${card} mt-6 text-[15px] leading-relaxed`}>
-          <p>
-            You have {followers.toLocaleString("en-US")} followers, so TikTok lets you put a link in your bio. With your own link every
-            install through it counts exactly instead of being estimated.
-          </p>
-          <form action="/dashboard/link" method="post" className="mt-4">
-            <button type="submit" className="h-11 rounded-full bg-[var(--ink)] px-5 text-[14px] font-medium text-white transition hover:opacity-85">
-              Get my link
-            </button>
-          </form>
-        </div>
-      )}
     </section>
   );
 }

@@ -211,6 +211,7 @@ describe("verifyCreatorAccount", () => {
     addCreator.mockClear();
     profile.ok = true;
     profile.bio = "";
+    profile.followers = 120;
     fakeHub();
   });
   afterEach(() => {
@@ -234,8 +235,16 @@ describe("verifyCreatorAccount", () => {
     profile.bio = "gym girl klar-7f3k";
     expect(await verifyCreatorAccount(account)).toEqual({ ok: true });
     expect(writes.map((w) => w.method)).toEqual(["PATCH", "POST"]);
+    expect(writes[0].body).toMatchObject({ followers: 120 });
     expect(writes[1].body).toEqual({ platform: "tiktok", handle: "lisa", app_slug: "basalt", source: "creator" });
     expect(addCreator).not.toHaveBeenCalled();
+  });
+
+  it("keeps the followers it had when TikTok doesn't show them", async () => {
+    profile.bio = "klar-7F3K";
+    profile.followers = null;
+    await verifyCreatorAccount(account);
+    expect(writes[0].body).not.toHaveProperty("followers");
   });
 
   it("gives a creator with a link his short link", async () => {

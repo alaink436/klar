@@ -23,8 +23,8 @@ export async function POST(): Promise<Response> {
   const result = await verifyCreatorAccount(account);
   if (result.ok) {
     if (!account.verified_at && account.tiktok_handle) {
-      const { email, tiktok_handle } = account;
-      after(() => sendConfirmedMail(email, tiktok_handle));
+      const { email, tiktok_handle, bio_code } = account;
+      after(() => sendConfirmedMail(email, tiktok_handle, bio_code));
     }
     return Response.json({ ok: true });
   }

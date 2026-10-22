@@ -243,10 +243,12 @@ export async function verifyCreatorAccount(
     if (!bioHasCode(profile.bio, account.bio_code)) return { ok: false, error: "code_missing" };
     if (await handleTaken(handle, account.id)) return { ok: false, error: "handle_taken" };
 
+    // The followers from the same read, so the link offer from LINK_FOLLOWERS shows at once, not only once the
+    // creators' run has found a post (Alain 2026-10-22: "so, dass man das direkt sieht").
     const res = await fetch(`${TABLE}?id=eq.${account.id}&verified_at=is.null`, {
       method: "PATCH",
       headers: headers({ Prefer: "return=minimal" }),
-      body: JSON.stringify({ verified_at: new Date().toISOString() }),
+      body: JSON.stringify({ verified_at: new Date().toISOString(), ...(profile.followers !== null && { followers: profile.followers }) }),
       cache: "no-store",
     });
     // 409: someone verified the same handle a moment earlier (unique index).
