@@ -32,6 +32,7 @@ import ConnectTiktok from "./ConnectTiktok";
 import Earnings from "./Earnings";
 import Kit from "./Kit";
 import LaptopHint from "./LaptopHint";
+import LinkOffer from "./LinkOffer";
 import Payouts from "./Payouts";
 import Posts from "./Posts";
 import ProfileMenu from "./ProfileMenu";
@@ -151,6 +152,8 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
             </div>
           )}
 
+          {verified && !closed && !verified.has_link && (verified.followers ?? 0) >= LINK_FOLLOWERS && <LinkOffer followers={verified.followers!} />}
+
           {account && <LaptopHint email={account.email} />}
 
           {account && (
@@ -203,14 +206,12 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
                     </p>
                   )}
                 </div>
-                {estimated && (
-                  <Earnings run={run} earning={earning} offerLink={!closed && !estimated.has_link && (estimated.followers ?? 0) >= LINK_FOLLOWERS} followers={estimated.followers ?? 0} />
-                )}
+                {estimated && <Earnings run={run} earning={earning} />}
               </>
             ) : (
               <>
                 <Unconfirmed />
-                <Earnings run={run} earning={null} offerLink={false} followers={0} />
+                <Earnings run={run} earning={null} />
               </>
             ))}
           {account && tab === "payouts" &&
