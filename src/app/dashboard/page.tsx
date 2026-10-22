@@ -32,6 +32,7 @@ import ConnectTiktok from "./ConnectTiktok";
 import Earnings from "./Earnings";
 import Kit from "./Kit";
 import LaptopHint from "./LaptopHint";
+import InstallApp from "./InstallApp";
 import LinkOffer from "./LinkOffer";
 import Payouts from "./Payouts";
 import Posts from "./Posts";
@@ -126,6 +127,9 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
                 ))}
               </div>
             </nav>
+            <div className="absolute inset-x-4 bottom-6">
+              <InstallApp variant="side" />
+            </div>
           </aside>
         )}
         <div className="mx-auto w-full min-w-0 max-w-[720px] md:max-w-[800px] md:px-10 md:pb-24 md:pt-7">
@@ -155,6 +159,7 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
           {verified && !closed && !verified.has_link && (verified.followers ?? 0) >= LINK_FOLLOWERS && <LinkOffer followers={verified.followers!} />}
 
           {account && <LaptopHint email={account.email} />}
+          {account && <InstallApp variant="bar" />}
 
           {account && (
             <nav aria-label="Dashboard tabs" className="-mx-5 mt-8 overflow-x-auto px-5 sm:mx-0 sm:px-0 md:hidden">
