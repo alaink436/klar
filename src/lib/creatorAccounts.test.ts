@@ -10,6 +10,7 @@ import {
   accountStatus,
   bioHasCode,
   createCreatorAccount,
+  unfinishedSignups,
   newBioCode,
   normaliseHandle,
   verifyCreatorAccount,
@@ -41,6 +42,22 @@ describe("accountStatus", () => {
     expect(accountStatus({ ...verified, suspended_until: "2026-10-23T00:00:00Z" }, now)).toBe("paused");
     expect(accountStatus({ ...verified, suspended_until: "2026-10-21T00:00:00Z" }, now)).toBe("verified");
     expect(accountStatus({ ...verified, closed_at: "2026-10-21T00:00:00Z" }, now)).toBe("closed");
+  });
+});
+
+describe("unfinishedSignups", () => {
+  it("lists dashboard logins without an account, newest first, not the affiliate era's", () => {
+    const users = [
+      { id: "u1", email: "pete@gmail.com", last_sign_in_at: "2026-10-22T05:13:01Z" },
+      { id: "u2", email: "dra@gmail.com", last_sign_in_at: "2026-10-21T23:25:51Z" },
+      { id: "u3", email: "old@gmail.com", last_sign_in_at: "2026-07-10T02:04:38Z" },
+      { id: "u4", email: "never@gmail.com", last_sign_in_at: null },
+      { id: "u5", email: "late@gmail.com", last_sign_in_at: "2026-10-22T09:00:00Z" },
+    ];
+    expect(unfinishedSignups(users, new Set(["u1"]))).toEqual([
+      { userId: "u5", email: "late@gmail.com", signedInAt: "2026-10-22T09:00:00Z" },
+      { userId: "u2", email: "dra@gmail.com", signedInAt: "2026-10-21T23:25:51Z" },
+    ]);
   });
 });
 

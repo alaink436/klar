@@ -100,6 +100,42 @@ export async function listCreatorAccounts(): Promise<Array<CreatorAccount & { st
   return ((await res.json()) as CreatorAccount[]).map((a) => ({ ...a, status: accountStatus(a, now) }));
 }
 
+// The dashboard opened on this day (ticket 02). Earlier logins in the hub's Auth
+// are the affiliate era's and say nothing about the sign-up form.
+const DASHBOARD_SINCE = Date.parse("2026-10-21T00:00:00Z");
+
+interface AuthUser {
+  id: string;
+  email?: string;
+  last_sign_in_at?: string | null;
+}
+
+export interface UnfinishedSignup {
+  userId: string;
+  email: string;
+  signedInAt: string;
+}
+
+/** Signed in to the dashboard but never sent the sign-up form: who got stuck there. */
+export function unfinishedSignups(users: AuthUser[], withAccount: Set<string>): UnfinishedSignup[] {
+  return users
+    .filter((u) => u.email && u.last_sign_in_at && Date.parse(u.last_sign_in_at) >= DASHBOARD_SINCE && !withAccount.has(u.id))
+    .map((u) => ({ userId: u.id, email: u.email as string, signedInAt: u.last_sign_in_at as string }))
+    .sort((a, b) => b.signedInAt.localeCompare(a.signedInAt));
+}
+
+export async function listUnfinishedSignups(): Promise<UnfinishedSignup[]> {
+  // One page holds 1000 users; the hub's Auth had 93 on 2026-10-22.
+  const [usersRes, accountsRes] = await Promise.all([
+    fetch(`${HUB}/auth/v1/admin/users?per_page=1000`, { headers: headers(), cache: "no-store" }),
+    fetch(`${TABLE}?select=user_id`, { headers: headers(), cache: "no-store" }),
+  ]);
+  if (!usersRes.ok || !accountsRes.ok) return [];
+  const { users } = (await usersRes.json()) as { users: AuthUser[] };
+  const accounts = (await accountsRes.json()) as Array<{ user_id: string }>;
+  return unfinishedSignups(users, new Set(accounts.map((a) => a.user_id)));
+}
+
 /** Is the handle already someone else's: a verified creator or one of our own accounts? */
 async function handleTaken(handle: string, exceptId?: string): Promise<boolean> {
   const h = encodeURIComponent(handle);

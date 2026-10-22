@@ -1,5 +1,6 @@
 // Klar Control · Inbox, the one mailbox. Folds website contact-form requests
-// (klar_inquiries) and collab threads into a single Conversation[] and mounts
+// (klar_inquiries), collab threads and creator sign-ups from the dashboard
+// (signupConversations) into a single Conversation[] and mounts
 // the <MailClient/> (list · thread · composer).
 //
 // Shown by two routes: /admin/inbox and Klar Studios > Bewerbungen
@@ -23,6 +24,8 @@ import MailClient, {
 // Client-Modul-Exports erreichen Server-Komponenten nur als Referenz-Proxies
 // (Laufzeit-TypeError bei .includes), tsc/build merken davon nichts.
 import { INBOX_FILTERS, isTestInquiry, type InboxFilter } from "./inboxFilters";
+import { signupConversations } from "./signupConversations";
+import { listCreatorAccounts, listUnfinishedSignups } from "@/lib/creatorAccounts";
 
 import { TextureCard } from "@/components/ui/texture-card";
 import { AdminTopbar } from "../AdminTopbar";
@@ -71,14 +74,11 @@ export default async function InboxAnsicht({
   searchParams,
   titel = "Inbox",
   startFilter,
-  oben,
 }: {
   searchParams: Promise<{ msg?: string; f?: string; sel?: string }>;
   titel?: string;
   /** Filter, wenn die URL keinen ?f= mitbringt. */
   startFilter?: InboxFilter;
-  /** Steht zwischen Kopfzeile und Postfach (Bewerbungen: die Creator-Anmeldungen). */
-  oben?: React.ReactNode;
 }) {
   const sp = await searchParams;
   const flashMsg = (sp.msg ?? "").slice(0, 300);
@@ -192,8 +192,12 @@ export default async function InboxAnsicht({
     };
   });
 
+  // ── Creator sign-ups from the dashboard, and logins that never sent the form ─
+  const [accounts, unfinished] = await Promise.all([listCreatorAccounts(), listUnfinishedSignups()]);
+  const signupConvs = signupConversations(accounts, unfinished);
+
   const starredIds = await listStarredIds();
-  const conversations: Conversation[] = [...inquiryConvs, ...collabConvs]
+  const conversations: Conversation[] = [...inquiryConvs, ...collabConvs, ...signupConvs]
     .sort((a, b) => (b.lastActivityAt || "").localeCompare(a.lastActivityAt || ""))
     .map((c) => (starredIds.has(c.id) ? { ...c, starred: true } : c));
 
@@ -206,7 +210,6 @@ export default async function InboxAnsicht({
       <title>{`${titel} · Klar Control`}</title>
       <AdminTopbar titel={titel} />
       {flashMsg && <TextureCard className="mx-9 mt-3 shrink-0 px-4 py-3 text-[13px] text-fg-2 max-[820px]:mx-4">{flashMsg}</TextureCard>}
-      {oben}
       <MailClient
         conversations={conversations}
         appMeta={appMeta}
