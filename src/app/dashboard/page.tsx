@@ -30,6 +30,7 @@ import Apps, { type AppChoiceItem } from "./Apps";
 import ConnectTiktok from "./ConnectTiktok";
 import Earnings from "./Earnings";
 import Kit from "./Kit";
+import LaptopHint from "./LaptopHint";
 import Payouts from "./Payouts";
 import Posts from "./Posts";
 import ProfileMenu from "./ProfileMenu";
@@ -120,6 +121,8 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
                   : "You have one warning: a post was rejected. A second rejection pauses your account for 30 days."}
           </div>
         )}
+
+        {account && <LaptopHint email={account.email} />}
 
         {account && (
           <nav aria-label="Dashboard" className="-mx-5 mt-8 overflow-x-auto px-5 sm:mx-0 sm:px-0">
