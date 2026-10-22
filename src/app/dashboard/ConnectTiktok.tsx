@@ -72,7 +72,11 @@ export default function ConnectTiktok() {
       {error && <p className="mt-3 text-[14px] text-[#b42318]">{error}</p>}
       <p className="mt-3 text-[12.5px] leading-relaxed text-[var(--ink-3)]">
         Without a link in your bio we estimate your share from your views and the app&apos;s sign-ups. By connecting you
-        agree to that.
+        agree to that and to the{" "}
+        <a href="/creator-terms" target="_blank" className="underline decoration-[var(--hair)] underline-offset-2">
+          creator terms
+        </a>
+        .
       </p>
     </form>
   );

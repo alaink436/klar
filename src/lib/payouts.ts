@@ -128,12 +128,18 @@ export async function listPayouts(creatorId?: string): Promise<Payout[]> {
   return hubGet<Payout>(`klar_payouts?select=*&order=created_at.desc${creatorId ? `&creator_id=eq.${creatorId}` : "&limit=50"}`);
 }
 
-/** The creator's Wise details; a change drops the recipient Wise knows, so the next payout creates a new one. */
-export async function saveWiseDetails(accountId: string, email: string, name: string): Promise<boolean> {
+/** The creator's Wise details; a change drops the recipient Wise knows, so the next payout creates a new one. With
+    `acceptTerms` (the first payout's form) it also notes when he accepted the creator terms. */
+export async function saveWiseDetails(accountId: string, email: string, name: string, acceptTerms = false): Promise<boolean> {
   const e = email.trim().toLowerCase();
   const n = name.trim().replace(/\s+/g, " ");
   if (!EMAIL_RE.test(e) || n.length < 2 || n.length > 80) return false;
-  return hubPatch(`klar_creator_accounts?id=eq.${accountId}`, { wise_email: e, wise_name: n, wise_recipient_id: null });
+  return hubPatch(`klar_creator_accounts?id=eq.${accountId}`, {
+    wise_email: e,
+    wise_name: n,
+    wise_recipient_id: null,
+    ...(acceptTerms && { terms_accepted_at: new Date().toISOString() }),
+  });
 }
 
 type Wise = (path: string, body?: unknown) => Promise<Record<string, unknown> & { id?: number | string }>;
