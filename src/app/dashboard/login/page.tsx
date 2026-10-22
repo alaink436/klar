@@ -20,7 +20,7 @@ export default async function CreatorLogin({ searchParams }: { searchParams: Pro
       <p className="mt-6 text-[14px] text-[var(--ink-3)]">
         New here?{" "}
         <Link href="/dashboard/join" className="font-medium text-[var(--ink)] underline decoration-[var(--hair)] underline-offset-4">
-          Get your slideshows
+          Get started
         </Link>
       </p>
     </AuthFrame>

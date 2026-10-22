@@ -54,7 +54,7 @@ function CopyCaption({ text }: { text: string }) {
 export default function Kit({ kit, waiting, notice }: { kit: KitView[]; waiting: string[]; notice?: string }) {
   return (
     <section id="kit" className="mt-12 scroll-mt-24">
-      <h2 className="text-[28px] font-medium tracking-[-0.03em]">Your slideshows</h2>
+      <h2 className="text-[28px] font-medium tracking-[-0.03em]">Ready to post</h2>
       <p className="mt-2 max-w-[56ch] text-[15px] leading-relaxed text-[var(--ink-2)]">
         These versions are yours alone. Save the images and post them as a TikTok photo slideshow, unchanged and in this
         order: no cropping, no screenshots, or we can&apos;t recognise them. Keep &ldquo;Basalt&rdquo; in the caption.

@@ -279,7 +279,7 @@ export default function Home() {
                 <div className={card}>
                   <p className="text-[clamp(26px,3vw,36px)] font-medium leading-tight tracking-[-0.04em]">Start in two minutes.</p>
                   <p className="mt-3 max-w-[36ch] text-[16px] leading-relaxed text-[var(--ink-2)]">
-                    Sign up with your email and your first slideshows are waiting in your dashboard.
+                    Sign up with your email and your first posts are waiting in your dashboard.
                   </p>
                   <Link
                     href="/dashboard/join"

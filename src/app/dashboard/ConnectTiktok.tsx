@@ -44,7 +44,7 @@ export default function ConnectTiktok() {
     <form onSubmit={submit} className={`${card} mt-10`}>
       <p className="text-[22px] font-medium tracking-[-0.03em]">Connect your TikTok to get paid</p>
       <p className="mt-2 text-[15px] leading-relaxed text-[var(--ink-2)]">
-        Your slideshows are below. Connect first, so the posts you make count.
+        Your posts are below. Connect first, so the ones you post count.
       </p>
       <div className="mt-5 flex flex-col gap-3 sm:flex-row">
         <input
@@ -68,7 +68,7 @@ export default function ConnectTiktok() {
       </div>
       {error && <p className="mt-4 text-[14px] text-[#b42318]">{error}</p>}
       <p className="mt-4 text-[13px] leading-relaxed text-[var(--ink-3)]">
-        Without a link in your bio we estimate your share from your views and Basalt&apos;s sign-ups. By connecting you
+        Without a link in your bio we estimate your share from your views and the app&apos;s sign-ups. By connecting you
         agree to that.
       </p>
     </form>
