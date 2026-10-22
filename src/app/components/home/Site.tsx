@@ -15,12 +15,13 @@ const grotesk = localFont({
 
 export const SUPPORT_EMAIL = "support@getklar.org";
 
-/** `nav` replaces the right side of the header (the creator dashboard puts its profile menu there). */
+/** `nav` replaces the right side of the header (the creator dashboard puts its profile menu there). There the header
+    spans the whole width, so the symbol stays above the dashboard's column at the left edge on a wide screen. */
 export default function Site({ children, nav }: { children: React.ReactNode; nav?: React.ReactNode }) {
   return (
     <div className={`home ${grotesk.variable}`}>
       <header className="fixed inset-x-0 top-0 z-30 px-3 pt-3 sm:px-5">
-        <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between rounded-full border border-white/60 bg-white/45 pl-2.5 pr-2.5 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-xl backdrop-saturate-150">
+        <div className={`mx-auto flex h-14 ${nav ? "" : "max-w-[1400px]"} items-center justify-between rounded-full border border-white/60 bg-white/45 pl-2.5 pr-2.5 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-xl backdrop-saturate-150`}>
           <Link href="/" className="flex items-center gap-2">
             <Image src="/logo/klar-symbol.png" alt="" width={40} height={40} className="size-10 object-contain" />
             <span className="text-[19px] font-semibold tracking-[-0.04em]">Klar Studios</span>

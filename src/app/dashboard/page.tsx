@@ -101,10 +101,13 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
 
   return (
     <Site nav={account ? <ProfileMenu email={account.email} handle={account.tiktok_handle} verified={!!verified} /> : undefined}>
-      <main className="mx-auto max-w-[1040px] px-5 pb-24 pt-28 sm:px-8 md:grid md:grid-cols-[200px_minmax(0,1fr)] md:gap-12">
+      <main className="px-5 pb-24 pt-28 sm:px-8 md:flex md:p-0 md:pt-[84px]">
+        {/* Flush with the left edge under the header, as high as the window, like the sidebar of Klar Control (Alain
+            2026-10-22: "die Tabs müssen weiter links sein, halt wie bei der Admin-Ansicht"). Sticky rather than fixed,
+            so it ends above the footer instead of covering it. */}
         {account && (
-          <aside className="hidden md:block">
-            <nav aria-label="Dashboard" className="sticky top-28">
+          <aside className="sticky top-[84px] hidden h-[calc(100dvh-84px)] w-[248px] shrink-0 border-r border-white/60 bg-white/35 px-4 pt-7 backdrop-blur-xl md:block">
+            <nav aria-label="Dashboard">
               <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-3)]">Dashboard</p>
               <div className="mt-3 grid gap-1">
                 {TABS.map(([t, name, Icon]) => (
@@ -122,7 +125,7 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
             </nav>
           </aside>
         )}
-        <div className="min-w-0 max-w-[720px] md:col-start-2">
+        <div className="mx-auto w-full min-w-0 max-w-[720px] md:max-w-[800px] md:px-10 md:pb-24 md:pt-7">
           <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">Creator dashboard</p>
           <h1 className="mt-3 text-[clamp(34px,5vw,48px)] font-medium leading-[0.95] tracking-[-0.045em]">
             {verified ? `Hi, @${verified.tiktok_handle}.` : "Your dashboard."}
