@@ -32,7 +32,18 @@ function WiseForm({ email, name }: { email: string; name: string }) {
 }
 
 export default function Payouts({ balance, payouts }: { balance: Balance | null; payouts: Payout[] }) {
-  if (!balance && payouts.length === 0) return null;
+  // Its own tab since 2026-10-22, so it says what happens instead of showing nothing.
+  if (!balance && payouts.length === 0) {
+    return (
+      <section className="mt-12">
+        <h2 className="text-[28px] font-medium tracking-[-0.03em]">Payouts</h2>
+        <p className={`${card} mt-5 text-[15px] leading-relaxed text-[var(--ink-2)]`}>
+          Nothing to pay out yet. We pay monthly through Wise once you have earned $25; you add your Wise details here
+          when it&apos;s time.
+        </p>
+      </section>
+    );
+  }
   const owed = balance?.owedCents ?? 0;
   const through = balance?.throughMonth
     ? new Date(`${balance.throughMonth}T00:00:00Z`).toLocaleDateString("en-GB", { month: "long", timeZone: "UTC" })

@@ -15,5 +15,5 @@ export async function POST(req: Request): Promise<Response> {
   const account = await getCreatorAccount(user.id);
   const form = await req.formData().catch(() => null);
   if (account?.verified_at && form) await saveWiseDetails(account.id, String(form.get("email") ?? ""), String(form.get("name") ?? ""));
-  return NextResponse.redirect(new URL("/dashboard", req.url), { status: 303 });
+  return NextResponse.redirect(new URL("/dashboard?tab=payouts", req.url), { status: 303 });
 }
