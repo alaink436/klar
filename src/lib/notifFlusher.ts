@@ -63,7 +63,9 @@ export function buildDigestHtml(events: PendingNotif[]): { subject: string; html
       minute: "2-digit",
     });
     const app = e.app_slug ? APP_LABEL[e.app_slug] ?? e.app_slug : "—";
-    const who = e.handle ? `@${e.handle}` : "(kein Handle)";
+    // A sign-up arrives at the first login, before a TikTok is connected: then the mail address says who.
+    const email = typeof e.payload?.email === "string" ? e.payload.email : null;
+    const who = e.handle ? `@${e.handle}` : (email ?? "(kein Handle)");
     const kind = e.event_type === "creator_signup" ? "neue Creator-Anmeldung" : "neue Inquiry";
     return `<tr>
       <td style="padding:8px 10px;border-bottom:1px solid #E4E4DD;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6B6B6B;white-space:nowrap">${when}</td>

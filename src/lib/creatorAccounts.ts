@@ -7,6 +7,11 @@
 // 'creator'), and only then does it belong to him alone: unverified claims never
 // block the real owner. With a link in his bio he also gets a short link
 // (klar_creator_links) and is paid through it instead of the estimate.
+//
+// Dashboard first since 2026-10-22 (Alain: "nach dem Mail-Link sofort das eigene
+// Dashboard", "so wenig Friktion wie möglich"): the account is created at the
+// first login (ensureCreatorAccount) and gets its kit at once; the TikTok account
+// is connected inside the dashboard with nothing but the username (connectTiktok).
 
 import "server-only";
 import { readTiktokProfile } from "./contentWarmup";
@@ -18,7 +23,6 @@ const TABLE = `${HUB}/rest/v1/klar_creator_accounts`;
 
 /** The only app creators can sign up for in v1. */
 export const CREATOR_APP = "basalt";
-export const PLATFORMS = ["tiktok", "instagram", "youtube"] as const;
 
 // TikTok usernames: letters, digits, underscore, dot; 2 to 24 characters.
 const HANDLE_RE = /^[a-z0-9_.]{2,24}$/;
@@ -31,8 +35,9 @@ export interface CreatorAccount {
   user_id: string;
   email: string;
   app_slug: string;
-  tiktok_handle: string;
-  country: string;
+  /** null until the creator connects his TikTok in the dashboard */
+  tiktok_handle: string | null;
+  country: string | null;
   platforms: string[];
   has_link: boolean;
   bio_code: string;
@@ -81,15 +86,34 @@ export async function getCreatorAccount(userId: string): Promise<CreatorAccount 
   return rows[0] ?? null;
 }
 
-export type AccountStatus = "waiting" | "verified" | "paused" | "closed";
+/** The signed-in user's account, created on his first visit to the dashboard. */
+export async function ensureCreatorAccount(userId: string, email: string): Promise<{ account: CreatorAccount; created: boolean } | null> {
+  const existing = await getCreatorAccount(userId);
+  if (existing) return { account: existing, created: false };
+  // Two tabs opening at once: the unique user_id lets one insert win, the other reads it back.
+  const res = await fetch(`${TABLE}?on_conflict=user_id`, {
+    method: "POST",
+    headers: headers({ Prefer: "resolution=ignore-duplicates,return=representation" }),
+    body: JSON.stringify({ user_id: userId, email, app_slug: CREATOR_APP, bio_code: newBioCode() }),
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  const [row] = (await res.json()) as CreatorAccount[];
+  if (row) return { account: row, created: true };
+  const raced = await getCreatorAccount(userId);
+  return raced ? { account: raced, created: false } : null;
+}
+
+export type AccountStatus = "unconnected" | "waiting" | "verified" | "paused" | "closed";
 
 export function accountStatus(
-  a: Pick<CreatorAccount, "verified_at" | "suspended_until" | "closed_at">,
+  a: Pick<CreatorAccount, "tiktok_handle" | "verified_at" | "suspended_until" | "closed_at">,
   now: number,
 ): AccountStatus {
   if (a.closed_at) return "closed";
   if (a.suspended_until && Date.parse(a.suspended_until) > now) return "paused";
-  return a.verified_at ? "verified" : "waiting";
+  if (a.verified_at) return "verified";
+  return a.tiktok_handle ? "waiting" : "unconnected";
 }
 
 /** Every sign-up, newest first, with its status: Klar Control > Bewerbungen. */
@@ -152,57 +176,48 @@ async function handleTaken(handle: string, exceptId?: string): Promise<boolean> 
   return own.length > 0 || verified.some((r) => r.id !== exceptId);
 }
 
-export interface SignupInput {
-  userId: string;
-  email: string;
-  handle: string;
-  country: string;
-  platforms: string[];
-  hasLink: boolean;
-  acceptedEstimate: boolean;
-}
+export type ConnectError = "bad_handle" | "handle_taken" | "exists" | "hub";
 
-export type SignupError = "bad_handle" | "bad_country" | "bad_platforms" | "no_consent" | "handle_taken" | "exists" | "hub";
-
-export async function createCreatorAccount(
-  input: SignupInput,
-): Promise<{ ok: true; account: CreatorAccount } | { ok: false; error: SignupError }> {
+/** "Connect your TikTok": only the username. Pressing the button is the consent to the estimate (the sentence sits
+    next to it); the country comes from the request's IP when there is one; TikTok only, no link until the creator
+    asks for one (offered from LINK_FOLLOWERS). Until verified the creator may connect a different account. */
+export async function connectTiktok(
+  account: CreatorAccount,
+  input: { handle: string; country?: string | null },
+): Promise<{ ok: true } | { ok: false; error: ConnectError }> {
   const handle = normaliseHandle(input.handle);
   if (!handle) return { ok: false, error: "bad_handle" };
-  const country = input.country.trim().toUpperCase();
-  if (!COUNTRY_RE.test(country)) return { ok: false, error: "bad_country" };
-  const platforms = [...new Set(input.platforms)];
-  if (!platforms.includes("tiktok") || platforms.some((p) => !(PLATFORMS as readonly string[]).includes(p))) {
-    return { ok: false, error: "bad_platforms" };
-  }
-  if (!input.acceptedEstimate) return { ok: false, error: "no_consent" };
-  if (await getCreatorAccount(input.userId)) return { ok: false, error: "exists" };
+  if (account.verified_at) return { ok: false, error: "exists" };
   if (await handleTaken(handle)) return { ok: false, error: "handle_taken" };
-
-  const res = await fetch(TABLE, {
-    method: "POST",
-    headers: headers({ Prefer: "return=representation" }),
+  const country = (input.country ?? "").trim().toUpperCase();
+  const res = await fetch(`${TABLE}?id=eq.${account.id}&verified_at=is.null`, {
+    method: "PATCH",
+    headers: headers({ Prefer: "return=minimal" }),
     body: JSON.stringify({
-      user_id: input.userId,
-      email: input.email,
-      app_slug: CREATOR_APP,
       tiktok_handle: handle,
-      country,
-      platforms,
-      has_link: input.hasLink,
+      country: COUNTRY_RE.test(country) ? country : account.country,
       estimate_accepted_at: new Date().toISOString(),
-      bio_code: newBioCode(),
     }),
     cache: "no-store",
   });
-  if (!res.ok) return { ok: false, error: "hub" };
-  const rows = (await res.json()) as CreatorAccount[];
-  return rows[0] ? { ok: true, account: rows[0] } : { ok: false, error: "hub" };
+  return res.ok ? { ok: true } : { ok: false, error: "hub" };
+}
+
+/** "Use a different account" on the bio code step, for a typo in the username. */
+export async function disconnectTiktok(account: CreatorAccount): Promise<boolean> {
+  if (account.verified_at) return false;
+  const res = await fetch(`${TABLE}?id=eq.${account.id}&verified_at=is.null`, {
+    method: "PATCH",
+    headers: headers({ Prefer: "return=minimal" }),
+    body: JSON.stringify({ tiktok_handle: null }),
+    cache: "no-store",
+  });
+  return res.ok;
 }
 
 /** getklar.org/<short_path>/<handle> of a verified creator with a link. */
 export async function creatorShortLink(account: CreatorAccount): Promise<string | null> {
-  if (!account.has_link || !account.verified_at) return null;
+  if (!account.has_link || !account.verified_at || !account.tiktok_handle) return null;
   const res = await fetch(`${HUB}/rest/v1/klar_creator_apps?slug=eq.${encodeURIComponent(account.app_slug)}&select=short_path&limit=1`, {
     headers: headers(),
     cache: "no-store",
@@ -212,7 +227,7 @@ export async function creatorShortLink(account: CreatorAccount): Promise<string 
   return app ? `https://getklar.org/${app.short_path}/${account.tiktok_handle}` : null;
 }
 
-export type VerifyError ="profile_unreadable" | "code_missing" | "handle_taken" | "hub";
+export type VerifyError = "no_handle" | "profile_unreadable" | "code_missing" | "handle_taken" | "hub";
 
 /** Reads the bio; with the code in it the account is the creator's, is read
     from the next run on and, with a link, gets its short link. The steps after
@@ -220,11 +235,13 @@ export type VerifyError ="profile_unreadable" | "code_missing" | "handle_taken" 
 export async function verifyCreatorAccount(
   account: CreatorAccount,
 ): Promise<{ ok: true } | { ok: false; error: VerifyError }> {
+  const handle = account.tiktok_handle;
+  if (!handle) return { ok: false, error: "no_handle" };
   if (!account.verified_at) {
-    const profile = await readTiktokProfile(account.tiktok_handle);
+    const profile = await readTiktokProfile(handle);
     if (!profile.ok) return { ok: false, error: "profile_unreadable" };
     if (!bioHasCode(profile.bio, account.bio_code)) return { ok: false, error: "code_missing" };
-    if (await handleTaken(account.tiktok_handle, account.id)) return { ok: false, error: "handle_taken" };
+    if (await handleTaken(handle, account.id)) return { ok: false, error: "handle_taken" };
 
     const res = await fetch(`${TABLE}?id=eq.${account.id}&verified_at=is.null`, {
       method: "PATCH",
@@ -240,11 +257,11 @@ export async function verifyCreatorAccount(
   const read = await fetch(`${HUB}/rest/v1/klar_view_accounts?on_conflict=platform,handle`, {
     method: "POST",
     headers: headers({ Prefer: "resolution=ignore-duplicates,return=minimal" }),
-    body: JSON.stringify({ platform: "tiktok", handle: account.tiktok_handle, app_slug: account.app_slug, source: "creator" }),
+    body: JSON.stringify({ platform: "tiktok", handle, app_slug: account.app_slug, source: "creator" }),
     cache: "no-store",
   });
   if (!read.ok) return { ok: false, error: "hub" };
-  if (account.has_link) await addCreator(account.app_slug, account.tiktok_handle, account.tiktok_handle);
+  if (account.has_link) await addCreator(account.app_slug, handle, handle);
   return { ok: true };
 }
 
@@ -252,7 +269,7 @@ export async function verifyCreatorAccount(
     from now on are `link` and paid through it; posts counted before stay with
     the estimate. */
 export async function switchToLink(account: CreatorAccount): Promise<boolean> {
-  if (!account.verified_at || account.closed_at) return false;
+  if (!account.verified_at || account.closed_at || !account.tiktok_handle) return false;
   if (!account.has_link) {
     const res = await fetch(`${TABLE}?id=eq.${account.id}`, {
       method: "PATCH",

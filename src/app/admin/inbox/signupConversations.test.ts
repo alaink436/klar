@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { signupConversations } from "./signupConversations";
 import type { AccountStatus, CreatorAccount } from "@/lib/creatorAccounts";
 
-const account = (over: Partial<CreatorAccount> = {}): CreatorAccount & { status: AccountStatus } => ({
+const account = (over: Partial<CreatorAccount & { status: AccountStatus }> = {}): CreatorAccount & { status: AccountStatus } => ({
   id: "a1",
   user_id: "u1",
   email: "pete@gmail.com",
@@ -29,6 +29,14 @@ describe("signupConversations", () => {
     expect(c.signup).toEqual({ status: "wartet auf Bio-Code", at: "angemeldet", tiktok: "https://www.tiktok.com/@babysphinx8" });
     expect(c.messages[0].body).toContain("der Code klar-ZCFZ fehlt noch in der TikTok-Bio");
     expect(c.messages[0].body).toContain("Angemeldet: 22.10.26, 07:13");
+  });
+
+  it("shows an account without TikTok by its mail address, as a sign-up", () => {
+    const [c] = signupConversations([account({ tiktok_handle: null, country: null, status: "unconnected" })], []);
+    expect(c).toMatchObject({ id: "signup-a1", handle: "pete@gmail.com", displayName: "pete@gmail.com", platform: "" });
+    expect(c.signup).toEqual({ status: "TikTok nicht verbunden", at: "angemeldet", tiktok: null });
+    expect(c.messages[0].body).not.toContain("tiktok.com");
+    expect(c.messages[0].body).not.toContain("Land:");
   });
 
   it("shows a login without sign-up by its mail address", () => {

@@ -700,7 +700,7 @@ export default function MailClient({
                   <div className="klar-einschub flex flex-wrap items-center gap-2.5 px-3.5 py-2.5">
                     <Badge>{sel.signup.status}</Badge>
                     <span className="min-w-0 flex-1 text-[12px] leading-relaxed text-fg-3">
-                      {sel.signup.tiktok ? "Creator-Anmeldung über getklar.org/dashboard." : "Eingeloggt, aber keine Anmeldung abgeschickt. Frag nach, woran es hing."}
+                      {sel.signup.at === "eingeloggt" ? "Eingeloggt, aber keine Anmeldung abgeschickt. Frag nach, woran es hing." : "Creator-Anmeldung über getklar.org/dashboard."}
                     </span>
                     {sel.signup.tiktok && (
                       <a href={sel.signup.tiktok} target="_blank" rel="noreferrer" className="text-[12px] text-fg-2 underline underline-offset-4 hover:text-fg">

@@ -1,5 +1,6 @@
 // POST /dashboard/kit/new: "Make me a new one" in the kit, the next version of one format for the signed-in
-// creator (lib/creatorKit newVariant), back to the kit with the outcome. A paused or closed account gets none.
+// creator (lib/creatorKit newVariant), back to the kit with the outcome. A paused or closed account gets none; since the
+// dashboard comes first (2026-10-22) the TikTok need not be connected yet.
 
 import { NextResponse } from "next/server";
 import { getCreatorAccount } from "@/lib/creatorAccounts";
@@ -16,6 +17,6 @@ export async function POST(req: Request): Promise<Response> {
   const form = await req.formData().catch(() => null);
   const format = String(form?.get("format") ?? "");
   const paused = !!account?.suspended_until && new Date(account.suspended_until) > new Date();
-  const result = account?.verified_at && !paused && !account.closed_at && format ? await newVariant(account.id, format) : "no_format";
+  const result = account && !paused && !account.closed_at && format ? await newVariant(account.id, format) : "no_format";
   return NextResponse.redirect(new URL(`/dashboard?new=${result}#kit`, req.url), { status: 303 });
 }

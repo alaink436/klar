@@ -5,25 +5,31 @@
 // followers, ticket 06 the payouts. A paused or closed account gets no kit, but
 // is still paid what its counted posts earned.
 //
-// Signed out: to /dashboard/login. Signed in without an account: sign-up form.
-// Account without a verified bio: the bio code. Verified: what happens next.
+// Signed out: to /dashboard/login. Signed in: straight into the dashboard (Alain
+// 2026-10-22: "nach dem Mail-Link sofort das eigene Dashboard mit den Slideshows",
+// "so wenig Friktion wie möglich"); the account is created on the first visit and
+// gets its kit at once. Not connected yet: "Connect your TikTok" above the kit.
+// Connected, not verified: the bio code. Verified: what happens next.
 
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import Site from "../components/home/Site";
 import { card } from "../components/home/formStyles";
 import { getSessionUser } from "@/lib/supabaseAuth";
-import { LINK_FOLLOWERS, creatorShortLink, getCreatorAccount } from "@/lib/creatorAccounts";
+import { getAdminSettings, logNotifEvent } from "@/lib/adminSettings";
+import { LINK_FOLLOWERS, creatorShortLink, ensureCreatorAccount } from "@/lib/creatorAccounts";
 import { creatorEarning, latestModelRun, postEstimate } from "@/lib/creatorEarnings";
 import { getCreatorKit } from "@/lib/creatorKit";
 import { balances, listPayouts } from "@/lib/payouts";
 import { listCreatorPosts } from "@/lib/postCheck";
 import { findKlarApp } from "@/lib/klarApps";
+import { flushNotifsIfBatchReady } from "@/lib/notifFlusher";
 import Apps, { type AppChoiceItem } from "./Apps";
+import ConnectTiktok from "./ConnectTiktok";
 import Earnings from "./Earnings";
 import Kit from "./Kit";
 import Payouts from "./Payouts";
 import Posts from "./Posts";
-import SignupForm from "./SignupForm";
 import VerifyStep from "./VerifyStep";
 
 export const dynamic = "force-dynamic";
@@ -43,12 +49,22 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
   const { new: notice } = await searchParams;
   const user = await getSessionUser();
   if (!user) redirect("/dashboard/login");
-  const account = await getCreatorAccount(user.id);
+  const ensured = await ensureCreatorAccount(user.id, user.email ?? "");
+  const account = ensured?.account ?? null;
+  // A new account is the sign-up: it goes into the notification digest like a website application.
+  if (ensured?.created) {
+    const { app_slug, email } = ensured.account;
+    after(async () => {
+      if (!(await getAdminSettings({ revalidate: 30 })).notification_trigger_inquiry) return;
+      await logNotifEvent({ event_type: "creator_signup", app_slug, handle: null, payload: { email } });
+      await flushNotifsIfBatchReady();
+    });
+  }
   const link = account ? await creatorShortLink(account) : null;
   const verified = account?.verified_at ? account : null;
-  const paused = !!verified?.suspended_until && new Date(verified.suspended_until) > new Date();
-  const closed = !!verified?.closed_at;
-  const kit = verified && !paused && !closed ? await getCreatorKit(verified.id) : null;
+  const paused = !!account?.suspended_until && new Date(account.suspended_until) > new Date();
+  const closed = !!account?.closed_at;
+  const kit = account && !paused && !closed ? await getCreatorKit(account.id) : null;
   const posts = verified ? await listCreatorPosts(verified.id) : null;
   const run = verified ? await latestModelRun() : null;
   const earning = verified && run ? await creatorEarning(verified.id, run.month) : null;
@@ -66,15 +82,15 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
         <h1 className="mt-4 text-[clamp(40px,6vw,64px)] font-medium leading-[0.95] tracking-[-0.05em]">
           {account?.verified_at ? `You're in, @${account.tiktok_handle}.` : "Post about Basalt. Get paid."}
         </h1>
+        <div className="mt-6">
+          <Apps apps={APPS} />
+        </div>
 
-        {!account && <SignupForm email={user.email ?? ""} apps={APPS} />}
-        {account && !account.verified_at && <VerifyStep handle={account.tiktok_handle} code={account.bio_code} />}
+        {!account && <p className={`${card} mt-10 text-[15px]`}>We couldn&apos;t load your dashboard. Reload the page in a moment.</p>}
+        {account && !account.tiktok_handle && <ConnectTiktok />}
+        {account?.tiktok_handle && !account.verified_at && <VerifyStep handle={account.tiktok_handle} code={account.bio_code} />}
         {account?.verified_at && (
           <div className={`${card} mt-10 grid gap-5 text-[15.5px] leading-relaxed`}>
-            <div>
-              <p className="mb-2 text-[13px] font-medium text-[var(--ink-2)]">Your app</p>
-              <Apps apps={APPS} />
-            </div>
             <p>We now read your TikTok posts every 6 hours.</p>
             {link ? (
               <p>
