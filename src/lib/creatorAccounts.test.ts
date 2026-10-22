@@ -7,6 +7,7 @@ const addCreator = vi.fn(async () => ({ ok: true, msg: "" }));
 vi.mock("./creators", () => ({ addCreator: (...a: unknown[]) => addCreator(...(a as [])) }));
 
 import {
+  accountStatus,
   bioHasCode,
   createCreatorAccount,
   newBioCode,
@@ -25,6 +26,21 @@ describe("normaliseHandle", () => {
     expect(normaliseHandle("a")).toBeNull();
     expect(normaliseHandle("lisa fit")).toBeNull();
     expect(normaliseHandle("x".repeat(25))).toBeNull();
+  });
+});
+
+describe("accountStatus", () => {
+  const now = Date.parse("2026-10-22T12:00:00Z");
+  const open = { verified_at: null, suspended_until: null, closed_at: null };
+  it("waits for the bio code until the account is verified", () => {
+    expect(accountStatus(open, now)).toBe("waiting");
+    expect(accountStatus({ ...open, verified_at: "2026-10-22T08:00:00Z" }, now)).toBe("verified");
+  });
+  it("is paused only while the pause lasts, closed for good", () => {
+    const verified = { ...open, verified_at: "2026-10-20T08:00:00Z" };
+    expect(accountStatus({ ...verified, suspended_until: "2026-10-23T00:00:00Z" }, now)).toBe("paused");
+    expect(accountStatus({ ...verified, suspended_until: "2026-10-21T00:00:00Z" }, now)).toBe("verified");
+    expect(accountStatus({ ...verified, closed_at: "2026-10-21T00:00:00Z" }, now)).toBe("closed");
   });
 });
 

@@ -2,7 +2,8 @@
 // pending count crosses the configured batch_size, builds + sends one
 // digest mail through Resend, and stamps emailed_at on the rows it sent.
 //
-// Called from /api/inquiry inside after(), once inquiry_new is logged.
+// Called inside after() from /api/inquiry once inquiry_new is logged, and from
+// /dashboard/signup once creator_signup is.
 // Cheap-ish — when there's nothing to do it's one HTTP GET to PostgREST and
 // returns.
 //
@@ -31,14 +32,25 @@ const APP_LABEL: Record<string, string> = {
   trubel: "Trubel",
   myloo: "Pocketmate",
   wavelength: "Basalt",
+  basalt: "Basalt", // the creator platform's slug (klar_creator_accounts.app_slug)
   kelva: "Kelva",
   moto: "ThrottleUp",
   "anime-vault": "Anime Vault",
   learnbound: "Learnbound",
 };
 
+/** "1 neue Anmeldung, 2 neue Inquiries": what the digest holds, for subject and intro. */
+export function digestCounts(events: Pick<PendingNotif, "event_type">[]): string {
+  const signups = events.filter((e) => e.event_type === "creator_signup").length;
+  const inquiries = events.length - signups;
+  const parts: string[] = [];
+  if (signups) parts.push(`${signups} neue Anmeldung${signups === 1 ? "" : "en"}`);
+  if (inquiries) parts.push(`${inquiries} neue Inquir${inquiries === 1 ? "y" : "ies"}`);
+  return parts.join(", ");
+}
+
 function buildDigestHtml(events: PendingNotif[]): { subject: string; html: string } {
-  const subject = `Klar Inbox Digest · ${events.length} neue Inquir${events.length === 1 ? "y" : "ies"}`;
+  const subject = `Klar Inbox Digest · ${digestCounts(events)}`;
 
   const row = (e: PendingNotif) => {
     const when = new Date(e.created_at).toLocaleString("de-CH", {
@@ -50,7 +62,7 @@ function buildDigestHtml(events: PendingNotif[]): { subject: string; html: strin
     });
     const app = e.app_slug ? APP_LABEL[e.app_slug] ?? e.app_slug : "—";
     const who = e.handle ? `@${e.handle}` : "(kein Handle)";
-    const kind = "neue Inquiry";
+    const kind = e.event_type === "creator_signup" ? "neue Creator-Anmeldung" : "neue Inquiry";
     return `<tr>
       <td style="padding:8px 10px;border-bottom:1px solid #E4E4DD;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6B6B6B;white-space:nowrap">${when}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #E4E4DD;font-size:13px;color:#1A1A1A">${kind}</td>
@@ -63,7 +75,7 @@ function buildDigestHtml(events: PendingNotif[]): { subject: string; html: strin
 <div style="max-width:680px;margin:0 auto;padding:32px 24px">
   <div style="font-family:'Geist','Inter',sans-serif;font-weight:800;font-size:28px;letter-spacing:-0.02em;margin-bottom:24px">Klar<span style="color:#A8A8A0">.</span></div>
   <h1 style="font-size:22px;font-weight:600;margin:0 0 8px;letter-spacing:-0.01em">Inbox Digest</h1>
-  <p style="font-size:14px;margin:0 0 24px;color:#6B6B6B">${events.length} neue Inquir${events.length === 1 ? "y" : "ies"} seit der letzten Digest.</p>
+  <p style="font-size:14px;margin:0 0 24px;color:#6B6B6B">${digestCounts(events)} seit der letzten Digest.</p>
   <table style="width:100%;border-collapse:collapse;margin:0 0 24px">
     <thead>
       <tr style="background:#F4F4F0">
@@ -75,7 +87,7 @@ function buildDigestHtml(events: PendingNotif[]): { subject: string; html: strin
     </thead>
     <tbody>${events.map(row).join("")}</tbody>
   </table>
-  <p style="margin:0 0 24px"><a href="https://getklar.org/admin?view=inbox" style="display:inline-block;padding:10px 18px;background:#1A1A1A;color:#FAFAF7;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px">Inbox öffnen →</a></p>
+  <p style="margin:0 0 24px"><a href="https://getklar.org/admin/bewerbungen" style="display:inline-block;padding:10px 18px;background:#1A1A1A;color:#FAFAF7;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px">Bewerbungen öffnen →</a></p>
   <hr style="border:none;border-top:1px solid #E4E4DD;margin:24px 0"/>
   <p style="font-size:12px;color:#6B6B6B;margin:0">Digest-Frequenz änderbar unter <a href="https://getklar.org/admin/settings" style="color:#6B6B6B">getklar.org/admin/settings</a>.</p>
 </div></body></html>`;
@@ -124,7 +136,7 @@ export async function flushNotifsIfBatchReady(): Promise<boolean> {
     // trigger sit until the trigger gets re-enabled (or until enough OTHER
     // events accumulate to flush them together).
     const eligible = pending.filter(
-      (e) => e.event_type === "inquiry_new" && settings.notification_trigger_inquiry,
+      (e) => (e.event_type === "inquiry_new" || e.event_type === "creator_signup") && settings.notification_trigger_inquiry,
     );
     if (eligible.length < settings.notification_batch_size) return false;
 

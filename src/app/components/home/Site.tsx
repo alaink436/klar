@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import localFont from "next/font/local";
+import CreatorLinks from "./CreatorLinks";
 
 // The light Klar Studios frame shared by the front page and /support: font,
 // glass header with the chrome symbol, footer with the large wordmark.
@@ -24,14 +25,10 @@ export default function Site({ children }: { children: React.ReactNode }) {
             <span className="text-[19px] font-semibold tracking-[-0.04em]">Klar Studios</span>
           </Link>
           {/* getklar.org is where creators land from TikTok; support stays in the footer (Basalt's store listing links /support). */}
-          <nav className="flex items-center gap-5 text-[13px] font-medium text-[var(--ink-2)] sm:gap-7">
-            <Link href="/#apps" className="transition hover:text-[var(--ink)]">Apps</Link>
-            <Link
-              href="/#creators"
-              className="inline-flex h-9 items-center rounded-full bg-[var(--ink)] px-4 text-[var(--paper)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition hover:opacity-85"
-            >
-              For creators
-            </Link>
+          {/* With "Sign in" the row needs about 334 px: below 390 px (iPhone mini, small Androids) "Apps" steps aside. */}
+          <nav className="flex items-center gap-3 whitespace-nowrap text-[13px] font-medium text-[var(--ink-2)] sm:gap-7">
+            <Link href="/#apps" className="transition hover:text-[var(--ink)] max-[389px]:hidden">Apps</Link>
+            <CreatorLinks />
           </nav>
         </div>
       </header>
