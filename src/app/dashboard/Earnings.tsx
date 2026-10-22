@@ -22,12 +22,21 @@ export default function Earnings({ run, earning }: { run: ModelRun | null; earni
         ) : (
           <>
             <p className="text-[clamp(36px,5vw,48px)] font-medium leading-none tracking-[-0.04em] tabular-nums">{usd(earning?.payable_cents ?? 0)}</p>
-            <p className="mt-3 text-[var(--ink-2)]">
-              {earning
-                ? `About ${earning.est_signups.toFixed(1)} sign-ups from ${earning.views.toLocaleString("en-US")} views of your counted posts.`
-                : "No counted views this month yet."}{" "}
-              An estimate, updated every day.
-            </p>
+            {(!!earning?.views || !earning?.link_signups) && (
+              <p className="mt-3 text-[var(--ink-2)]">
+                {earning?.views
+                  ? `About ${earning.est_signups.toFixed(1)} sign-ups from ${earning.views.toLocaleString("en-US")} views of your counted posts.`
+                  : "No counted views this month yet."}{" "}
+                An estimate, updated every day.
+              </p>
+            )}
+            {!!earning?.link_signups && (
+              // Counted, not estimated: every sign-up through the link at Basalt's revenue per sign-up, half of it his.
+              <p className="mt-2 text-[var(--ink-2)]">
+                Through your link: {earning.link_signups} sign-up{earning.link_signups === 1 ? "" : "s"}, {usd(Math.floor(earning.link_commission_cents + 1e-6))}{" "}
+                (half of Basalt&apos;s revenue per sign-up, counted exactly).
+              </p>
+            )}
             <p className="mt-3 text-[13.5px] text-[var(--ink-3)]">
               How we estimate: from all Basalt posts, ours and every creator&apos;s, about {run.rate_per_1000.toFixed(2)} people sign up per
               1,000 views. You get {COMMISSION * 100} % of the revenue your share brings. All creators together get at most {CAP_SHARE * 100} %

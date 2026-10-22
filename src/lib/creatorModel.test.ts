@@ -1,5 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { HOUR, estimateMonth, fitRate, freshViews } from "./creatorModel";
+import { HOUR, estimateMonth, fitRate, freshViews, linkEarning, linkSignupCounts } from "./creatorModel";
+
+describe("linkEarning", () => {
+  it("pays half the revenue per sign-up for every sign-up through the link, down to the cent", () => {
+    expect(linkEarning(3, 10)).toEqual({ revenueCents: 30, commissionCents: 15, payableCents: 15 });
+    expect(linkEarning(1, 9.9)).toMatchObject({ payableCents: 4 });
+    expect(linkEarning(0, 10).payableCents).toBe(0);
+  });
+});
+
+describe("linkSignupCounts", () => {
+  const open = { suspended_until: null, closed_at: null };
+  const at = (s: string) => Date.parse(s);
+  it("counts while the account is open, not during its 30-day pause, not after it closed", () => {
+    expect(linkSignupCounts(at("2026-10-22T12:00:00Z"), open)).toBe(true);
+    const paused = { suspended_until: "2026-11-20T00:00:00Z", closed_at: null }; // paused from 21.10.
+    expect(linkSignupCounts(at("2026-10-25T12:00:00Z"), paused)).toBe(false);
+    expect(linkSignupCounts(at("2026-10-20T12:00:00Z"), paused)).toBe(true); // before the pause began
+    expect(linkSignupCounts(at("2026-11-21T00:00:00Z"), paused)).toBe(true);
+    const closed = { suspended_until: null, closed_at: "2026-10-23T00:00:00Z" };
+    expect(linkSignupCounts(at("2026-10-22T23:00:00Z"), closed)).toBe(true);
+    expect(linkSignupCounts(at("2026-10-23T01:00:00Z"), closed)).toBe(false);
+  });
+});
 
 const T0 = Date.parse("2026-10-01T00:00:00Z");
 

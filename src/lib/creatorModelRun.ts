@@ -9,6 +9,9 @@
 //   paid        only counted posts (counts, approved): they were checked while
 //               the creator had no link; after switching to a link his new
 //               posts are `link` and paid through it
+//   link        every sign-up through a creator's link (Basalt's `referrals`)
+//               at the same revenue per sign-up, half of it his, not under the
+//               cap (lib/creatorModel linkEarning), in the same earnings row
 //   rate        fitted once the snapshots cover MIN_FIT_DAYS, else the prior
 //   revenue     RevenueCat revenue of 28 days / new users of 30 days
 //
@@ -17,7 +20,7 @@
 import "server-only";
 import { getApps } from "./adminApps";
 import { CREATOR_APP } from "./creatorAccounts";
-import { HOUR, MIN_FIT_DAYS, PRIOR_RATE_PER_1000, estimateMonth, fitRate, freshViews, type Snapshot } from "./creatorModel";
+import { HOUR, MIN_FIT_DAYS, PRIOR_RATE_PER_1000, estimateMonth, fitRate, freshViews, linkEarning, linkSignupCounts, type Snapshot } from "./creatorModel";
 
 const HUB = process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
 const HUB_KEY = () => process.env.KLAR_INBOX_SERVICE_KEY ?? "";
@@ -31,12 +34,14 @@ function headers(extra?: HeadersInit): HeadersInit {
   return { apikey: HUB_KEY(), Authorization: `Bearer ${HUB_KEY()}`, "Content-Type": "application/json", ...extra };
 }
 
-/** All rows, page by page (PostgREST stops at 1000). */
-async function hubAll<T>(path: string): Promise<T[]> {
+/** All rows, page by page (PostgREST stops at 1000), from the hub or, with `db`, from an app's database. */
+async function hubAll<T>(path: string, db?: { url: string; key: string }): Promise<T[]> {
+  const base = db?.url ?? HUB;
+  const head = db ? { apikey: db.key, Authorization: `Bearer ${db.key}` } : headers();
   const out: T[] = [];
   for (let offset = 0; ; offset += PAGE) {
-    const res = await fetch(`${HUB}/rest/v1/${path}&limit=${PAGE}&offset=${offset}`, { headers: headers(), cache: "no-store" });
-    if (!res.ok) throw new Error(`hub ${res.status} ${path.split("?")[0]}`);
+    const res = await fetch(`${base}/rest/v1/${path}&limit=${PAGE}&offset=${offset}`, { headers: head, cache: "no-store" });
+    if (!res.ok) throw new Error(`${db ? "app" : "hub"} ${res.status} ${path.split("?")[0]}`);
     const rows = (await res.json()) as T[];
     out.push(...rows);
     if (rows.length < PAGE) return out;
@@ -97,11 +102,14 @@ export async function runCreatorModel(now = Date.now()): Promise<ModelRunResult>
   const hours = Math.max(1, (nowHour - from) / HOUR);
   const daysOfData = Math.floor((nowHour - firstHour) / DAY);
 
-  const [accounts, checks, m] = await Promise.all([
+  const [accounts, checks, m, linked] = await Promise.all([
     hubAll<{ handle: string; source: "own" | "creator" }>(`klar_view_accounts?app_slug=eq.${CREATOR_APP}&platform=eq.tiktok&select=handle,source`),
     hubAll<{ post_id: string; creator_id: string; status: string }>("klar_post_checks?select=post_id,creator_id,status"),
     hubFirst<{ revenue_28d_cents: number | null; users_new_30d: number | null }>(
       `klar_app_metrics_daily?app_slug=eq.${APP_BACKEND}&select=revenue_28d_cents,users_new_30d&order=day.desc`,
+    ),
+    hubAll<{ id: string; tiktok_handle: string; suspended_until: string | null; closed_at: string | null }>(
+      `klar_creator_accounts?app_slug=eq.${CREATOR_APP}&has_link=eq.true&verified_at=not.is.null&select=id,tiktok_handle,suspended_until,closed_at`,
     ),
   ]);
   const own = new Set(accounts.filter((a) => a.source === "own").map((a) => a.handle));
@@ -158,6 +166,22 @@ export async function runCreatorModel(now = Date.now()): Promise<ModelRunResult>
 
   const revenuePerSignupCents = m && m.users_new_30d ? Number(m.revenue_28d_cents ?? 0) / m.users_new_30d : 0;
 
+  // Sign-ups through creators' links: Basalt writes a `referrals` row with the handle once someone who came through
+  // getklar.org/basalt/<handle> has signed up (lib/creators). Creator id -> the times of the ones that count.
+  const linkSignups = new Map<string, number[]>();
+  if (linked.length > 0) {
+    const byHandle = new Map(linked.map((a) => [a.tiktok_handle.toLowerCase(), a]));
+    const refs = await hubAll<{ influencer_handle: string; created_at: string }>(
+      `referrals?created_at=gte.${new Date(months[0]).toISOString()}&influencer_handle=not.is.null&select=influencer_handle,created_at`,
+      { url: basalt.supabaseUrl, key: basalt.serviceKey },
+    );
+    for (const r of refs) {
+      const account = byHandle.get(r.influencer_handle.toLowerCase());
+      const at = Date.parse(r.created_at);
+      if (account && linkSignupCounts(at, account)) linkSignups.set(account.id, [...(linkSignups.get(account.id) ?? []), at]);
+    }
+  }
+
   const signupDays = byDay(signups, from);
   const baselineDays = byDay(fit.baseline, from);
   const days = [...signupDays.keys()].map((d) => ({ d, signups: signupDays.get(d) ?? 0, baseline: +(baselineDays.get(d) ?? 0).toFixed(2) }));
@@ -202,23 +226,44 @@ export async function runCreatorModel(now = Date.now()): Promise<ModelRunResult>
       ]);
       paidCreators = est.creators.length;
     }
-    await upsert(
-      "klar_creator_earnings",
-      est.creators.map((c) => {
-        const perDay = byDay(paidViews.get(c.creatorId)!, from, i0, i1);
-        return {
-          creator_id: c.creatorId,
-          month,
-          views: Math.round(c.views),
-          est_signups: c.signups,
-          est_revenue_cents: c.revenueCents,
-          commission_cents: c.commissionCents,
-          payable_cents: c.payableCents,
-          days: [...perDay].map(([d, v]) => ({ d, views: Math.round(v) })),
-          updated_at: new Date(now).toISOString(),
-        };
-      }),
-    );
+    // One row per creator and month: the estimate of his counted posts plus what came through his link. Every row
+    // carries both link fields, PostgREST takes one set of keys per batch.
+    const rows = new Map<string, Record<string, unknown> & { payable_cents: number }>();
+    for (const c of est.creators) {
+      const perDay = byDay(paidViews.get(c.creatorId)!, from, i0, i1);
+      rows.set(c.creatorId, {
+        creator_id: c.creatorId,
+        month,
+        views: Math.round(c.views),
+        est_signups: c.signups,
+        est_revenue_cents: c.revenueCents,
+        commission_cents: c.commissionCents,
+        payable_cents: c.payableCents,
+        link_signups: 0,
+        link_commission_cents: 0,
+        days: [...perDay].map(([d, v]) => ({ d, views: Math.round(v) })),
+        updated_at: new Date(now).toISOString(),
+      });
+    }
+    const mEnd = monthStart(mStart + 32 * DAY);
+    for (const [creatorId, times] of linkSignups) {
+      const n = times.filter((t) => t >= mStart && t < mEnd).length;
+      if (n === 0) continue;
+      const link = linkEarning(n, revenuePerSignupCents);
+      const row = rows.get(creatorId) ?? {
+        creator_id: creatorId,
+        month,
+        views: 0,
+        est_signups: 0,
+        est_revenue_cents: 0,
+        commission_cents: 0,
+        payable_cents: 0,
+        days: [],
+        updated_at: new Date(now).toISOString(),
+      };
+      rows.set(creatorId, { ...row, link_signups: n, link_commission_cents: link.commissionCents, payable_cents: row.payable_cents + link.payableCents });
+    }
+    await upsert("klar_creator_earnings", [...rows.values()]);
   }
   return { ok: true, ratePer1000: fit.ratePer1000, rateSource: useFit ? "fit" : "prior", creators: paidCreators };
 }

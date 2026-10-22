@@ -34,7 +34,11 @@ export interface Earning {
   est_signups: number;
   est_revenue_cents: number;
   commission_cents: number;
+  /** Estimate and link together, what lib/payouts pays. */
   payable_cents: number;
+  /** Sign-ups through his link this month and his half of their revenue (migrations/0054). */
+  link_signups: number;
+  link_commission_cents: number;
   days: Array<{ d: string; views: number }>;
 }
 

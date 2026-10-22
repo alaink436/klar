@@ -53,7 +53,7 @@ describe("buildWeeklyReport", () => {
         ],
         own: { posts: 9, viewsPerPost: 3100 },
       },
-      [{ creator_id: "c1", handle: "lisa", month: "2026-11-01", views: 12_000, est_signups: 6, est_revenue_cents: 42, commission_cents: 21, payable_cents: 11, days: [] }],
+      [{ creator_id: "c1", handle: "lisa", month: "2026-11-01", views: 12_000, est_signups: 6, est_revenue_cents: 42, commission_cents: 21, payable_cents: 11, link_signups: 0, link_commission_cents: 0, days: [] }],
     );
     expect(subject).toBe("Creator-Plattform: Woche bis 2026-11-02, 1 müde Formate");
     expect(text).toContain("Prototyp, erst 12 Tage View-Stände");

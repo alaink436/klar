@@ -57,7 +57,11 @@ describe("getCreatorKit", () => {
       "fetch",
       vi.fn(async (url: string, init?: RequestInit) => {
         if (url.includes("rpc/klar_assign_variants")) {
-          return new Response(JSON.stringify([{ id: "v1", format_id: "study-01", images: ["study-01/4/1.jpg", "study-01/4/2.jpg"], creator_id: "c1" }]));
+          return new Response(
+            JSON.stringify([
+              { id: "v1", format_id: "study-01", images: ["study-01/4/1.jpg", "study-01/4/2.jpg"], creator_id: "c1", params: { hook: "how to <i>actually</i><br>remember it" } },
+            ]),
+          );
         }
         if (url.includes("/storage/v1/object/sign/")) {
           const { paths } = JSON.parse(String(init?.body)) as { paths: string[] };
@@ -83,6 +87,7 @@ describe("getCreatorKit", () => {
       {
         formatId: "study-01",
         name: "how to actually study",
+        hook: "how to actually remember it", // the cover line of his version, markup gone
         caption: "#studytok #basalt",
         slides: [
           {

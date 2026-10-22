@@ -163,3 +163,25 @@ export function estimateMonth(args: {
     capFactor,
   };
 }
+
+/** A creator with his own link: every sign-up through it counts, at the month's revenue per sign-up, half of it his
+    (Alain 2026-10-22: "jede Anmeldung über den Link zählt exakt, mal Basalts Umsatz pro Anmeldung, davon 50 %"). Not
+    under the cap, which shares out estimated sign-ups; these are counted. */
+export function linkEarning(signups: number, revenuePerSignupCents: number): { revenueCents: number; commissionCents: number; payableCents: number } {
+  const revenueCents = signups * revenuePerSignupCents;
+  const commissionCents = COMMISSION * revenueCents;
+  return { revenueCents, commissionCents, payableCents: Math.floor(commissionCents + 1e-6) };
+}
+
+const PAUSE_MS = 30 * 24 * 3_600_000; // as PAUSE_DAYS in lib/postCheck
+
+/** Whether a sign-up through a creator's link at `at` counts: not while his account is paused, not after it closed,
+    the same as for posts. */
+export function linkSignupCounts(at: number, account: { suspended_until: string | null; closed_at: string | null }): boolean {
+  if (account.closed_at && at >= Date.parse(account.closed_at)) return false;
+  if (account.suspended_until) {
+    const end = Date.parse(account.suspended_until);
+    if (at >= end - PAUSE_MS && at < end) return false;
+  }
+  return true;
+}
