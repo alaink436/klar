@@ -13,7 +13,7 @@ import { card } from "../components/home/formStyles";
 // (POST /dashboard/kit/new); the kit always shows the newest.
 //
 // Since 2026-10-22 (Alain: "eine bessere Ansicht", "einen Button, wo die Person die Slides direkt herunterladen
-// kann", "unten einen Hinweis für Captions"): one card per slideshow with the cover large, all slides small below,
+// kann", "unten einen Hinweis für Captions"): one row per slideshow with the cover at the left, all slides small beside it,
 // "Download all slides" (on a phone the share sheet, so "Save images" puts them in the photos in order; on a
 // computer a ZIP), and "What to write" under the cards.
 
@@ -116,7 +116,7 @@ function DownloadAll({ slides, name }: { slides: KitView["slides"]; name: string
       type="button"
       onClick={run}
       disabled={state === "loading"}
-      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--ink)] text-[15px] font-medium text-[var(--paper)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition hover:opacity-85 disabled:opacity-60"
+      className="inline-flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-full bg-[var(--ink)] px-5 text-[14px] font-medium sm:w-auto text-[var(--paper)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition hover:opacity-85 disabled:opacity-60"
     >
       {state === "done" ? <Check className="size-[18px]" strokeWidth={2} /> : <Download className="size-[18px]" strokeWidth={1.9} />}
       {label}
@@ -198,36 +198,37 @@ export default function Kit({ kit, waiting, notice }: { kit: KitView[]; waiting:
       {notice && NOTICE[notice] && (
         <p className={`mt-4 rounded-2xl px-4 py-3 text-[14px] ${notice === "ok" ? "bg-[#e3f1e6] text-[#1f5130]" : "bg-white/70 text-[var(--ink-2)]"}`}>{NOTICE[notice]}</p>
       )}
-      <div className="mt-6 grid gap-5 sm:grid-cols-2">
+      <div className="mt-6 grid gap-4">
         {kit.map((k) => (
-          // min-w-0: a grid item grows to its content, and the slide row would widen the whole page on a phone.
-          <div key={k.formatId} className={`${card} min-w-0 p-4! sm:p-5!`}>
-            <a href={k.slides[0]?.download} className="relative block overflow-hidden rounded-2xl bg-white" aria-label="Save the cover">
+          // A row per slideshow (Alain 2026-10-22: "jede Slideshow als breite Zeile"): the cover at the left, title,
+          // slides and buttons beside it. min-w-0: the slide strip would otherwise widen the whole page on a phone.
+          <div key={k.formatId} className={`${card} flex min-w-0 gap-4 p-4! sm:gap-6 sm:p-5!`}>
+            <a href={k.slides[0]?.download} className="relative block w-[96px] shrink-0 self-start overflow-hidden rounded-xl bg-white sm:w-[150px] sm:rounded-2xl" aria-label="Save the cover">
               {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URLs */}
               <img src={k.slides[0]?.view} alt="" className="aspect-[3/4] w-full object-cover" />
-              <span className="absolute left-3 top-3 rounded-full bg-black/70 px-2.5 py-1 text-[12px] font-medium text-white backdrop-blur">
+              <span className="absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[12px]">
                 {k.slides.length} slides
               </span>
             </a>
-            <p className="mt-4 text-[17px] font-medium leading-snug tracking-[-0.02em]">
-              {k.name}
-              {k.version > 1 && <span className="ml-2 text-[13px] font-normal text-[var(--ink-3)]">version {k.version}</span>}
-            </p>
-            <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1">
-              {k.slides.map((s, i) => (
-                <a key={s.view} href={s.download} className="group flex-none" aria-label={`Save slide ${i + 1}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URLs */}
-                  <img src={s.view} alt="" loading="lazy" className="h-20 w-auto rounded-lg shadow-[0_6px_16px_-10px_rgba(0,0,0,0.45)] transition group-hover:-translate-y-0.5" />
-                  <span className="mt-1 block text-center text-[11px] tabular-nums text-[var(--ink-3)]">{i + 1}</span>
-                </a>
-              ))}
-            </div>
-            <div className="mt-4">
-              <DownloadAll slides={k.slides} name={k.formatId} />
-            </div>
-            <div className="mt-2.5 flex flex-wrap items-center gap-2">
-              <CopyCaption text={k.caption} />
-              <NewVersion formatId={k.formatId} nextInHours={k.nextInHours} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[16px] font-medium leading-snug tracking-[-0.02em] sm:text-[17px]">
+                {k.name}
+                {k.version > 1 && <span className="ml-2 text-[13px] font-normal text-[var(--ink-3)]">version {k.version}</span>}
+              </p>
+              <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1">
+                {k.slides.map((s, i) => (
+                  <a key={s.view} href={s.download} className="group flex-none" aria-label={`Save slide ${i + 1}`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URLs */}
+                    <img src={s.view} alt="" loading="lazy" className="h-16 w-auto rounded-lg shadow-[0_6px_16px_-10px_rgba(0,0,0,0.45)] transition group-hover:-translate-y-0.5 sm:h-20" />
+                    <span className="mt-1 block text-center text-[11px] tabular-nums text-[var(--ink-3)]">{i + 1}</span>
+                  </a>
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <DownloadAll slides={k.slides} name={k.formatId} />
+                <CopyCaption text={k.caption} />
+                <NewVersion formatId={k.formatId} nextInHours={k.nextInHours} />
+              </div>
             </div>
           </div>
         ))}
