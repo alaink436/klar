@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { card, field, label } from "../../components/home/formStyles";
+import { authCard, field, label } from "../../components/home/formStyles";
 import { getBrowserSupabase } from "../../brain/_shared/supabase-browser";
 
 // signInWithOtp creates the user on first use (unlike /brain, which is invite
@@ -31,13 +31,13 @@ export default function LoginForm({ expired, cta = "Send me a link" }: { expired
 
   if (sent) {
     return (
-      <div className={`${card} mt-10 text-[15.5px] leading-relaxed`}>
+      <div className={`${authCard} mt-9 text-center text-[15.5px] leading-relaxed`}>
         Check your inbox (and spam) for a link from Klar. It works once and for an hour.
       </div>
     );
   }
   return (
-    <form onSubmit={submit} className={`${card} mt-10 grid gap-5`}>
+    <form onSubmit={submit} className={`${authCard} mt-9 grid gap-4 text-left`}>
       <div>
         <label htmlFor="email" className={label}>Email</label>
         <input
@@ -55,7 +55,7 @@ export default function LoginForm({ expired, cta = "Send me a link" }: { expired
       <button
         type="submit"
         disabled={busy}
-        className="h-12 rounded-full bg-[var(--ink)] text-[15px] font-medium text-[var(--paper)] transition hover:opacity-85 disabled:opacity-40"
+        className="h-14 rounded-full bg-[var(--ink)] text-[16px] font-medium text-[var(--paper)] transition hover:opacity-85 disabled:opacity-40"
       >
         {busy ? "Sending" : cta}
       </button>

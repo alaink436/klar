@@ -4,8 +4,8 @@
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import Site from "../../components/home/Site";
 import { getSessionUser } from "@/lib/supabaseAuth";
+import AuthFrame from "./AuthFrame";
 import LoginForm from "./LoginForm";
 
 export const dynamic = "force-dynamic";
@@ -15,21 +15,14 @@ export default async function CreatorLogin({ searchParams }: { searchParams: Pro
   if (await getSessionUser()) redirect("/dashboard");
   const { error } = await searchParams;
   return (
-    <Site>
-      <main className="mx-auto max-w-[560px] px-5 pb-24 pt-32 sm:px-8">
-        <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">For creators</p>
-        <h1 className="mt-4 text-[clamp(40px,6vw,64px)] font-medium leading-[0.95] tracking-[-0.05em]">Welcome back.</h1>
-        <p className="mt-5 max-w-[42ch] text-[17px] leading-snug text-[var(--ink-2)]">
-          Sign in with your email. No password, we send you a link.
-        </p>
-        <LoginForm expired={error === "link"} />
-        <p className="mt-6 text-[14px] text-[var(--ink-3)]">
-          New here?{" "}
-          <Link href="/dashboard/join" className="font-medium text-[var(--ink)] underline decoration-[var(--hair)] underline-offset-4">
-            Get your slideshows
-          </Link>
-        </p>
-      </main>
-    </Site>
+    <AuthFrame title="Welcome back." sub="Sign in with your email. No password, we send you a link.">
+      <LoginForm expired={error === "link"} />
+      <p className="mt-6 text-[14px] text-[var(--ink-3)]">
+        New here?{" "}
+        <Link href="/dashboard/join" className="font-medium text-[var(--ink)] underline decoration-[var(--hair)] underline-offset-4">
+          Get started
+        </Link>
+      </p>
+    </AuthFrame>
   );
 }

@@ -80,7 +80,7 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
       <main className="mx-auto max-w-[720px] px-5 pb-24 pt-32 sm:px-8">
         <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">Creator dashboard</p>
         <h1 className="mt-4 text-[clamp(40px,6vw,64px)] font-medium leading-[0.95] tracking-[-0.05em]">
-          {account?.verified_at ? `You're in, @${account.tiktok_handle}.` : "Post about Basalt. Get paid."}
+          {account?.verified_at ? `You're in, @${account.tiktok_handle}.` : "Get paid to post."}
         </h1>
         <div className="mt-6">
           <Apps apps={APPS} />
@@ -100,7 +100,7 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
               </p>
             ) : (
               <p className="text-[var(--ink-2)]">
-                Without a link we estimate your share from your views and Basalt&apos;s sign-ups. Once you can add a
+                Without a link we estimate your share from your views and the app&apos;s sign-ups. Once you can add a
                 link to your bio, it counts exactly.
               </p>
             )}
@@ -111,7 +111,7 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
             {closed
               ? "Your account is closed after three rejected posts. We no longer read your posts; what you earned with posts that counted is still paid out."
               : paused
-                ? `Your account is paused until ${new Date(verified.suspended_until!).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}. Posts in this time don't count and you get no new slideshows.`
+                ? `Your account is paused until ${new Date(verified.suspended_until!).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}. Posts in this time don't count and you get no new posts.`
                 : verified.strikes >= 2
                   ? "Your pause is over. One more rejected post closes your account."
                   : "You have one warning: a post was rejected. A second rejection pauses your account for 30 days."}
