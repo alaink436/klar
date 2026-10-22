@@ -48,7 +48,14 @@ export interface KitEntry {
   name: string;
   caption: string;
   slides: KitSlide[];
+  /** How many versions of this format he has; the kit shows the newest. */
+  version: number;
+  /** Hours until "Make me a new one" works again (rounded up), null if it works now. */
+  nextInHours: number | null;
 }
+
+/** One new version per format this often; the same interval is in klar_new_variant (migrations/0050). */
+export const NEW_EVERY_HOURS = 20;
 
 function headers(extra?: HeadersInit): HeadersInit {
   return { apikey: HUB_KEY(), Authorization: `Bearer ${HUB_KEY()}`, "Content-Type": "application/json", ...extra };
@@ -106,6 +113,7 @@ interface VariantRow {
   format_id: string;
   images: string[];
   creator_id: string | null;
+  assigned_at?: string | null;
 }
 
 export async function listFormats(): Promise<FormatOverview[]> {
@@ -176,17 +184,36 @@ export async function getCreatorKit(creatorId: string): Promise<{ kit: KitEntry[
   const kit: KitEntry[] = [];
   const waiting: string[] = [];
   for (const f of formats) {
-    const v = variants.find((x) => x.format_id === f.id);
+    const own = variants.filter((x) => x.format_id === f.id).sort((a, b) => (b.assigned_at ?? "").localeCompare(a.assigned_at ?? ""));
+    const v = own[0];
     if (!v) {
       waiting.push(f.name); // the pool ran dry; the routine refills it
       continue;
     }
+    const next = v.assigned_at ? Date.parse(v.assigned_at) + NEW_EVERY_HOURS * 3_600_000 : 0;
     kit.push({
       formatId: f.id,
       name: f.name,
       caption: f.caption,
       slides: await signPaths(v.images, (_, i) => `basalt-${f.id}-${i + 1}.jpg`),
+      version: own.length,
+      nextInHours: next > Date.now() ? Math.ceil((next - Date.now()) / 3_600_000) : null,
     });
   }
   return { kit, waiting };
+}
+
+export type NewVariantResult = "ok" | "wait" | "empty" | "no_format" | "hub";
+
+/** "Make me a new one": the next version of a format from the pool (klar_new_variant). */
+export async function newVariant(creatorId: string, formatId: string): Promise<NewVariantResult> {
+  const res = await fetch(`${HUB}/rest/v1/rpc/klar_new_variant`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({ p_creator: creatorId, p_format: formatId }),
+    cache: "no-store",
+  });
+  if (!res.ok) return "hub";
+  const r = (await res.json()) as string;
+  return r === "ok" || r === "wait" || r === "empty" || r === "no_format" ? r : "hub";
 }

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Chips } from "../components/home/CreatorForm";
+import Apps, { type AppChoiceItem } from "./Apps";
 import { card, field, label } from "../components/home/formStyles";
 
 // Step 1 of the creator dashboard: TikTok name, country, platforms, link or not,
@@ -30,7 +31,7 @@ const ERRORS: Record<string, string> = {
   exists: "You already signed up. Reload the page.",
 };
 
-export default function SignupForm({ email }: { email: string }) {
+export default function SignupForm({ email, apps }: { email: string; apps: AppChoiceItem[] }) {
   const router = useRouter();
   const names = useMemo(() => new Intl.DisplayNames(["en"], { type: "region" }), []);
   const countryName = (c: string) => names.of(c) ?? c;
@@ -95,6 +96,12 @@ export default function SignupForm({ email }: { email: string }) {
           placeholder="@yourname"
           className={field}
         />
+      </div>
+
+      <div>
+        <span className={label}>App you promote</span>
+        <Apps apps={apps} />
+        <p className="mt-2 text-[13px] text-[var(--ink-3)]">For now Basalt. More apps follow once their slideshows are ready.</p>
       </div>
 
       <div>
