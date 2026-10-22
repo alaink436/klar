@@ -1,15 +1,20 @@
 // Klar Control · Creators.
 //
-// Server component, 2FA-gated wie der Rest von /admin. Oben die Apps, je mit
-// Marke, ob sie Detour hat, und dem Link auf ihr Creator Kit; darunter das
-// Formular fuer einen neuen Creator, die Links (filterbar nach App) und die
-// Nutzer, die ueber einen Link kamen.
+// Server component, 2FA-gated wie der Rest von /admin. Ganz oben alle Creator in
+// einer Liste, von der Plattform und von Hand angelegt (lib/allCreators, seit
+// 2026-10-22). Darunter die Apps, je mit Marke, ob sie Detour hat, und dem Link
+// auf ihr Creator Kit; darunter das Formular fuer einen neuen Creator, die Links
+// (filterbar nach App) und die Nutzer, die ueber einen Link kamen.
 // Geschrieben wird ueber /admin/creators/save, gelesen ueber src/lib/creators.ts.
 
 import Link from "next/link";
 import { Users } from "lucide-react";
 import { requireAdminPage } from "../../../lib/adminGuard";
 import { USER_LIST_LIMIT, fetchCreators } from "../../../lib/creators";
+import { mergeCreators, type AnyCreator } from "../../../lib/allCreators";
+import { listCreatorAccounts } from "../../../lib/creatorAccounts";
+import { latestModelRun, monthEarnings } from "../../../lib/creatorEarnings";
+import { balances } from "../../../lib/payouts";
 import { AdminTopbar } from "../AdminTopbar";
 import { Kennzahlen } from "../Kennzahlen";
 import { AppAuswahl, AppDialog, BestaetigenKnopf } from "./CreatorDialoge";
@@ -44,6 +49,16 @@ function LinkZelle({ href }: { href: string }) {
   );
 }
 
+const usd = (cents: number | null) => (cents === null ? "–" : `$${(cents / 100).toFixed(2)}`);
+const STATUS: Record<AnyCreator["status"], [string, string]> = {
+  verified: ["bestätigt", "var(--success)"],
+  waiting: ["wartet auf Bio-Code", "var(--warning)"],
+  paused: ["pausiert", "var(--warning)"],
+  closed: ["geschlossen", "var(--danger)"],
+  unconnected: ["kein TikTok", "var(--fg-4)"],
+  manual: ["aktiv", "var(--success)"],
+};
+
 function DetourMarke({ an }: { an: boolean }) {
   return (
     <span className="klar-marke">
@@ -60,7 +75,21 @@ export default async function CreatorsPage({
 }) {
   await requireAdminPage();
   const sp = await searchParams;
-  const { apps, creators, users, errors } = await fetchCreators();
+  const [{ apps, creators, users, errors }, accounts, run, owed] = await Promise.all([
+    fetchCreators(),
+    listCreatorAccounts(),
+    latestModelRun(),
+    balances().catch(() => []),
+  ]);
+  const earnings = run ? await monthEarnings(run.month) : [];
+  const alle = mergeCreators({
+    accounts,
+    manual: creators,
+    appNames: Object.fromEntries(apps.map((a) => [a.slug, a.name])),
+    monthCents: new Map(earnings.map((e) => [e.creator_id, e.payable_cents])),
+    owedCents: new Map(owed.map((b) => [b.creatorId, b.owedCents])),
+  });
+  const vonPlattform = alle.filter((c) => c.origin === "platform").length;
   const filter = apps.some((a) => a.slug === sp.app) ? sp.app : undefined;
   const sichtbar = filter ? creators.filter((c) => c.appSlug === filter) : creators;
   const zugeordnet = creators.reduce((n, c) => n + (c.referrals ?? 0), 0);
@@ -73,13 +102,13 @@ export default async function CreatorsPage({
       <AdminTopbar titel="Creators" />
       <div className="content">
         <PageHeader eyebrow="Klar Control" icon={<Users />} title="Creators">
-          Wer einen Link hat und wie viele Nutzer über ihn gekommen sind. Gezählt wird, wer sich nach dem Klick in der App
-          angemeldet hat, und nur bei Apps mit Detour.
+          Alle Creator, von der Plattform und von Hand angelegt. Darunter die Apps und die Links: gezählt wird, wer sich
+          nach dem Klick in der App angemeldet hat, und nur bei Apps mit Detour.
         </PageHeader>
 
         <Kennzahlen
           zahlen={[
-            { label: "Creators", wert: creators.length, zusatz: `in ${mitCreators.length} von ${apps.length} Apps` },
+            { label: "Creators", wert: alle.length, zusatz: `${vonPlattform} von der Plattform, ${alle.length - vonPlattform} von Hand` },
             { label: "Zugeordnet", wert: zugeordnet, zusatz: "angemeldete Nutzer über einen Link" },
             {
               label: "Davon Pro",
@@ -97,6 +126,59 @@ export default async function CreatorsPage({
             {e}
           </TextureCard>
         ))}
+
+        <h2>Alle Creator</h2>
+        <TextureCard className="mb-8">
+          <div style={{ overflowX: "auto" }}>
+            <table className={tabelle}>
+              <thead>
+                <tr>
+                  <th>Creator</th>
+                  <th>App</th>
+                  <th>Herkunft</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: "right" }}>Follower</th>
+                  <th>Link</th>
+                  <th style={{ textAlign: "right" }}>Zugeordnet</th>
+                  <th style={{ textAlign: "right" }}>Diesen Monat</th>
+                  <th style={{ textAlign: "right" }}>Offen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {alle.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="text-fg-3">
+                      Noch keine Creator.
+                    </td>
+                  </tr>
+                ) : (
+                  alle.map((c) => (
+                    <tr key={c.key}>
+                      <td>
+                        <a href={`https://www.tiktok.com/@${c.handle}`} target="_blank" rel="noopener noreferrer" style={{ ...mono, color: "var(--fg)" }}>
+                          @{c.handle}
+                        </a>
+                      </td>
+                      <td>{c.appName}</td>
+                      <td>{c.origin === "platform" ? "Plattform" : "von Hand"}</td>
+                      <td>
+                        <span className="klar-marke">
+                          <span className="klar-punkt" style={{ background: STATUS[c.status][1] }} aria-hidden="true" />
+                          {STATUS[c.status][0]}
+                        </span>
+                      </td>
+                      <td style={{ ...mono, textAlign: "right" }}>{c.followers === null ? "–" : c.followers.toLocaleString("de-CH")}</td>
+                      <td>{c.shortLink ? <LinkZelle href={`https://${c.shortLink.replace(/^https:\/\//, "")}`} /> : c.hasLink ? "ja" : "–"}</td>
+                      <td style={{ ...mono, textAlign: "right" }}>{c.referrals ?? "–"}</td>
+                      <td style={{ ...mono, textAlign: "right" }}>{usd(c.monthCents)}</td>
+                      <td style={{ ...mono, textAlign: "right" }}>{usd(c.owedCents)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </TextureCard>
 
         <div className="flex items-end justify-between gap-3">
           <h2>Apps</h2>

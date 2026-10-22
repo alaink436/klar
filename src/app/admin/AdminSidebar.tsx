@@ -68,8 +68,9 @@ export default function AdminSidebar({
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
-  const studio = orderedSection("studio", prefs);
-  const studios = orderedSection("studios", prefs);
+  // Pages that sit under another entry as a tab (_nav tabOf) have no row of their own.
+  const studio = orderedSection("studio", prefs).filter((i) => !i.tabOf);
+  const studios = orderedSection("studios", prefs).filter((i) => !i.tabOf);
 
   /** `dragged` dorthin schieben, wo `target` steht, alle anderen bleiben. */
   function reorder(dragged: string, target: string) {

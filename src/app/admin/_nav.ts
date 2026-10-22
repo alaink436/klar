@@ -25,6 +25,10 @@ export interface NavItemDef {
   icon: string;
   href: string;
   section: NavSection;
+  /** The sidebar entry this page sits under as a tab. Pages with it don't get their own sidebar row; the page, its
+      URL and its place in the palette stay as they are (Alain 2026-10-22: "übersichtlich, aber nichts an der
+      Verdrahtung zerstören"). */
+  tabOf?: string;
 }
 
 export const NAV_ITEMS: NavItemDef[] = [
@@ -33,7 +37,7 @@ export const NAV_ITEMS: NavItemDef[] = [
   { id: "inbox", labelKey: "navInbox", icon: "inbox", href: "/admin/inbox", section: "studio" },
   { id: "bookings", labelKey: "navBookings", icon: "calendar", href: "/admin/bookings", section: "studio" },
   { id: "brain", labelKey: "navBrain", icon: "brain", href: "/admin/brain", section: "studio" },
-  { id: "chronik", labelKey: "navChronik", icon: "doc", href: "/admin/chronik", section: "studio" },
+  { id: "chronik", labelKey: "navChronik", icon: "doc", href: "/admin/chronik", section: "studio", tabOf: "brain" },
   { id: "vault", labelKey: "navVault", icon: "key", href: "/admin/vault", section: "studio" },
   // Klar Studios. Feedback sind die Mails an die Support-Adressen der Apps
   // (lib/feedbackStore), der Rest ist aus Studio hierher gezogen.
@@ -41,28 +45,42 @@ export const NAV_ITEMS: NavItemDef[] = [
   { id: "content", labelKey: "navContent", icon: "content", href: "/admin/content", section: "studios" },
   // Konten (seit 2026-10-01): jedes Social-Konto mit Login und Passwort an einer
   // Stelle. Passwoerter liegen verschluesselt im Vault, siehe lib/socialAccountsStore.
-  { id: "accounts", labelKey: "navAccounts", icon: "lock", href: "/admin/accounts", section: "studios" },
+  { id: "accounts", labelKey: "navAccounts", icon: "lock", href: "/admin/accounts", section: "studios", tabOf: "content" },
   { id: "collabs", labelKey: "navCollabs", icon: "reply", href: "/admin/collabs", section: "studios" },
   { id: "analytics", labelKey: "navAnalytics", icon: "analytics", href: "/admin/analytics", section: "studios" },
   // Creators (seit 2026-10-14): Affiliates mit ihrem Detour-Link und wie viele
   // Nutzer ihnen in der App zugeordnet sind. Direkt unter Analytics (Alains Ansage).
   { id: "creators", labelKey: "navCreators", icon: "creators", href: "/admin/creators", section: "studios" },
   // Formate (seit 2026-10-21): die Slideshows im Kit der Creator, hoechstens 5 an.
-  { id: "formats", labelKey: "navFormats", icon: "content", href: "/admin/formate", section: "studios" },
+  { id: "formats", labelKey: "navFormats", icon: "content", href: "/admin/formate", section: "studios", tabOf: "creators" },
   // Pruefliste (seit 2026-10-21): Creator-Posts, die Basalt nennen, aber keine Fassung sind.
-  { id: "review", labelKey: "navReview", icon: "check", href: "/admin/pruefliste", section: "studios" },
+  { id: "review", labelKey: "navReview", icon: "check", href: "/admin/pruefliste", section: "studios", tabOf: "creators" },
   // Modell (seit 2026-10-21): das Rechenmodell hinter der Provision der Creator ohne Link.
-  { id: "model", labelKey: "navModel", icon: "analytics", href: "/admin/modell", section: "studios" },
+  { id: "model", labelKey: "navModel", icon: "analytics", href: "/admin/modell", section: "studios", tabOf: "creators" },
   // Auszahlung (seit 2026-10-21): was Creator zugut haben, Alain gibt jede Auszahlung an Wise frei.
-  { id: "payouts", labelKey: "navPayouts", icon: "check", href: "/admin/auszahlung", section: "studios" },
+  { id: "payouts", labelKey: "navPayouts", icon: "check", href: "/admin/auszahlung", section: "studios", tabOf: "creators" },
   // Bewerbungen (seit 2026-10-15): das Creator-Formular der Startseite. Die
   // Inbox auf "Anfragen" gefiltert, darum ihr Symbol.
-  { id: "bewerbungen", labelKey: "navApplications", icon: "inbox", href: "/admin/bewerbungen", section: "studios" },
+  { id: "bewerbungen", labelKey: "navApplications", icon: "inbox", href: "/admin/bewerbungen", section: "studios", tabOf: "creators" },
   // App-Nutzung aus PostHog (seit 2026-09-17): Starts, Screens, Versionen je
   // App. Eigener Punkt neben Analytics, weil Analytics die Landings und den
   // Umsatz zeigt und diese Seite das Verhalten IN den Apps.
-  { id: "app-analytics", labelKey: "navAppAnalytics", icon: "activity", href: "/admin/app-analytics", section: "studios" },
+  { id: "app-analytics", labelKey: "navAppAnalytics", icon: "activity", href: "/admin/app-analytics", section: "studios", tabOf: "analytics" },
 ];
+
+/** The menu entry a path belongs to: the one whose href is the path or its longest prefix. */
+export function navItemForPath(path: string): NavItemDef | undefined {
+  return NAV_ITEMS.filter((i) => path === i.href || path.startsWith(`${i.href}/`)).sort((a, b) => b.href.length - a.href.length)[0];
+}
+
+/** The tabs of the group a path belongs to (the sidebar entry first), or null when its page stands alone. */
+export function navTabs(path: string): NavItemDef[] | null {
+  const item = navItemForPath(path);
+  if (!item) return null;
+  const leader = item.tabOf ?? item.id;
+  const members = NAV_ITEMS.filter((i) => i.id === leader || i.tabOf === leader);
+  return members.length > 1 ? members : null;
+}
 
 /** What the `klar_nav` cookie carries. Both fields are optional on the wire. */
 export interface NavPrefs {

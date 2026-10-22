@@ -23,7 +23,8 @@ export default function NavSettings({ lang, prefs }: { lang: AdminLang; prefs: N
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const items = orderedAll(prefs);
+  // The sidebar's rows only: pages under another entry as a tab (_nav tabOf) have none to show or hide.
+  const items = orderedAll(prefs).filter((i) => !i.tabOf);
 
   function save(next: NavPrefs) {
     startTransition(async () => {
