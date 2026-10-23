@@ -298,6 +298,9 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   // UserJot: one workspace ("Klar Studios") with a board per app, one token for
   // all of them. Feedback > UserJot finds it by provider "userjot" (lib/userjot).
   { id: "userjot", label: "UserJot (API Token)", category: "Sonstiges", provider: "userjot", baseUrl: "https://api.userjot.com/v1", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "API-Token aus den Workspace-Einstellungen", en: "API token from the workspace settings" }, labelExample: "UserJot Klar Studios" },
+  // The project secret that signs app users into their board (automatic login,
+  // /api/userjot/sign). Store-only: it is never sent anywhere, only used to sign.
+  { id: "userjot-login", label: "UserJot (Login-Geheimnis)", category: "Sonstiges", provider: "userjot-login", baseUrl: "", authHeader: "authorization", authScheme: "", keyExample: { de: "Project secret aus UserJot: Settings > Login > Secrets", en: "Project secret from UserJot: Settings > Login > Secrets" }, labelExample: "UserJot Login-Geheimnis" },
   // Analytics
   // PostHog: the PERSONAL API key (phx_…) is the one that drives the private
   // REST API (projects, insights, dashboards, flags) and the MCP server. It is
