@@ -26,6 +26,7 @@ import MailClient, {
 import { INBOX_FILTERS, isTestInquiry, type InboxFilter } from "./inboxFilters";
 import { signupConversations } from "./signupConversations";
 import { listCreatorAccounts, listUnfinishedSignups } from "@/lib/creatorAccounts";
+import { creatorPostLines } from "@/lib/postCheck";
 
 import { TextureCard } from "@/components/ui/texture-card";
 import { AdminTopbar } from "../AdminTopbar";
@@ -194,7 +195,7 @@ export default async function InboxAnsicht({
 
   // ── Creator sign-ups from the dashboard, and logins that never sent the form ─
   const [accounts, unfinished] = await Promise.all([listCreatorAccounts(), listUnfinishedSignups()]);
-  const signupConvs = signupConversations(accounts, unfinished);
+  const signupConvs = signupConversations(accounts, unfinished, await creatorPostLines(accounts));
 
   const starredIds = await listStarredIds();
   const conversations: Conversation[] = [...inquiryConvs, ...collabConvs, ...signupConvs]
