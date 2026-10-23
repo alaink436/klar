@@ -39,8 +39,9 @@ export const NAV_ITEMS: NavItemDef[] = [
   { id: "brain", labelKey: "navBrain", icon: "brain", href: "/admin/brain", section: "studio" },
   { id: "chronik", labelKey: "navChronik", icon: "doc", href: "/admin/chronik", section: "studio", tabOf: "brain" },
   { id: "vault", labelKey: "navVault", icon: "key", href: "/admin/vault", section: "studio" },
-  // Klar Studios. Feedback sind die Mails an die Support-Adressen der Apps
-  // (lib/feedbackStore), der Rest ist aus Studio hierher gezogen.
+  // Klar Studios. Feedback oeffnet die UserJot-Boards der Apps (lib/userjot),
+  // daneben die Mails an die Support-Adressen (lib/feedbackStore); der Rest ist
+  // aus Studio hierher gezogen.
   { id: "feedback", labelKey: "navFeedback", icon: "chat", href: "/admin/feedback", section: "studios" },
   { id: "content", labelKey: "navContent", icon: "content", href: "/admin/content", section: "studios" },
   // Konten (seit 2026-10-01): jedes Social-Konto mit Login und Passwort an einer

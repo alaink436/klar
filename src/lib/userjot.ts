@@ -16,7 +16,7 @@ const API = "https://api.userjot.com/v1";
 export const WORKSPACE_URL = "https://klarstudios.userjot.com";
 
 export interface UserjotApp {
-  /** In der Adresse: /admin/feedback/userjot?app=<slug>. */
+  /** In der Adresse: /admin/feedback?app=<slug>. */
   slug: string;
   name: string;
   /** Slug des Boards im Workspace; die App oeffnet WORKSPACE_URL/board/<boardSlug> (Basalt: BOARD_URL in lib/legal). */
