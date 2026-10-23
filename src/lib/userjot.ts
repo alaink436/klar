@@ -23,7 +23,11 @@ export interface UserjotApp {
   boardSlug: string;
 }
 
-export const USERJOT_APPS: UserjotApp[] = [{ slug: "basalt", name: "Basalt", boardSlug: "basalt" }];
+export const USERJOT_APPS: UserjotApp[] = [
+  { slug: "basalt", name: "Basalt", boardSlug: "basalt" },
+  { slug: "kelva", name: "Kelva", boardSlug: "kelva" },
+  { slug: "pocketmate", name: "Pocketmate", boardSlug: "pocketmate" },
+];
 
 export function findUserjotApp(slug: string | null | undefined): UserjotApp | null {
   return USERJOT_APPS.find((a) => a.slug === slug) ?? null;
