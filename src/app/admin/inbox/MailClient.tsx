@@ -92,7 +92,7 @@ export interface Conversation {
   };
   // Present when kind === "signup" (signupConversations.ts). Answered by mail
   // from Alain's own mail program.
-  signup?: { status: string; at: "angemeldet" | "eingeloggt"; tiktok: string | null };
+  signup?: { status: string; at: "angemeldet" | "eingeloggt"; tiktok: string | null; posts?: string };
 }
 
 // Website contact-form request folded into the inbox. Answered by mail.
@@ -590,6 +590,7 @@ export default function MailClient({
                       )}
                       {c.signup && <Badge className="h-5 px-2 text-[10.5px]">{c.signup.status}</Badge>}
                     </div>
+                    {c.signup?.posts && <div className="w-full truncate text-[11.5px] text-fg-2">{c.signup.posts}</div>}
                     {preview && (
                       <div className="line-clamp-2 w-full text-[12px] leading-[1.4] text-fg-3">
                         {preview}
@@ -707,6 +708,7 @@ export default function MailClient({
                         TikTok-Profil
                       </a>
                     )}
+                    {sel.signup.posts && <span className="basis-full text-[12px] text-fg-2">{sel.signup.posts}</span>}
                   </div>
                 ) : sel.kind === "inquiry" && sel.contactEmail ? (
                   <span className="text-[11.5px] text-fg-3">Antwort per Mail an {sel.contactEmail}</span>

@@ -31,6 +31,11 @@ describe("signupConversations", () => {
     expect(c.messages[0].body).toContain("Angemeldet: 22.10.26, 07:13");
   });
 
+  it("carries the post line of a confirmed account", () => {
+    const [c] = signupConversations([account({ status: "verified" })], [], new Map([["a1", "0 Posts seit Anmeldung"]]));
+    expect(c.signup?.posts).toBe("0 Posts seit Anmeldung");
+  });
+
   it("shows an account without TikTok by its mail address, as a sign-up", () => {
     const [c] = signupConversations([account({ tiktok_handle: null, country: null, status: "unconnected" })], []);
     expect(c).toMatchObject({ id: "signup-a1", handle: "pete@gmail.com", displayName: "pete@gmail.com", platform: "" });

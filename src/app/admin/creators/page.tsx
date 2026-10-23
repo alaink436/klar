@@ -14,6 +14,7 @@ import { USER_LIST_LIMIT, fetchCreators } from "../../../lib/creators";
 import { mergeCreators, type AnyCreator } from "../../../lib/allCreators";
 import { listCreatorAccounts } from "../../../lib/creatorAccounts";
 import { latestModelRun, monthEarnings } from "../../../lib/creatorEarnings";
+import { creatorPostLines } from "../../../lib/postCheck";
 import { balances } from "../../../lib/payouts";
 import { AdminTopbar } from "../AdminTopbar";
 import { Kennzahlen } from "../Kennzahlen";
@@ -81,13 +82,14 @@ export default async function CreatorsPage({
     latestModelRun(),
     balances().catch(() => []),
   ]);
-  const earnings = run ? await monthEarnings(run.month) : [];
+  const [earnings, postLines] = await Promise.all([run ? monthEarnings(run.month) : [], creatorPostLines(accounts)]);
   const alle = mergeCreators({
     accounts,
     manual: creators,
     appNames: Object.fromEntries(apps.map((a) => [a.slug, a.name])),
     monthCents: new Map(earnings.map((e) => [e.creator_id, e.payable_cents])),
     owedCents: new Map(owed.map((b) => [b.creatorId, b.owedCents])),
+    postLines,
   });
   const vonPlattform = alle.filter((c) => c.origin === "platform").length;
   const filter = apps.some((a) => a.slug === sp.app) ? sp.app : undefined;
@@ -138,6 +140,7 @@ export default async function CreatorsPage({
                   <th>Herkunft</th>
                   <th>Status</th>
                   <th style={{ textAlign: "right" }}>Follower</th>
+                  <th>Posts</th>
                   <th>Link</th>
                   <th style={{ textAlign: "right" }}>Zugeordnet</th>
                   <th style={{ textAlign: "right" }}>Diesen Monat</th>
@@ -147,7 +150,7 @@ export default async function CreatorsPage({
               <tbody>
                 {alle.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="text-fg-3">
+                    <td colSpan={10} className="text-fg-3">
                       Noch keine Creator.
                     </td>
                   </tr>
@@ -168,6 +171,7 @@ export default async function CreatorsPage({
                         </span>
                       </td>
                       <td style={{ ...mono, textAlign: "right" }}>{c.followers === null ? "–" : c.followers.toLocaleString("de-CH")}</td>
+                      <td>{c.posts ?? "–"}</td>
                       <td>{c.shortLink ? <LinkZelle href={`https://${c.shortLink.replace(/^https:\/\//, "")}`} /> : c.hasLink ? "ja" : "–"}</td>
                       <td style={{ ...mono, textAlign: "right" }}>{c.referrals ?? "–"}</td>
                       <td style={{ ...mono, textAlign: "right" }}>{usd(c.monthCents)}</td>

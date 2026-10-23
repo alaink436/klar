@@ -34,6 +34,8 @@ const isTest = (email: string) => email.startsWith("klar_test") || email.endsWit
 export function signupConversations(
   accounts: Array<CreatorAccount & { status: AccountStatus }>,
   unfinished: UnfinishedSignup[],
+  /** lib/postCheck creatorPostLines, by account id. */
+  postLines?: Map<string, string>,
 ): Conversation[] {
   const signedUp = accounts
     .filter((a) => !isTest(a.email))
@@ -65,7 +67,7 @@ export function signupConversations(
         lastInboundAt: a.created_at,
         lastActivityAt: a.created_at,
         kind: "signup",
-        signup: { status, at: "angemeldet", tiktok: handle ? `https://www.tiktok.com/@${handle}` : null },
+        signup: { status, at: "angemeldet", tiktok: handle ? `https://www.tiktok.com/@${handle}` : null, posts: postLines?.get(a.id) },
       };
     });
   const stuck = unfinished

@@ -16,6 +16,7 @@
 import "server-only";
 import { Resend } from "resend";
 import { signPaths } from "./creatorKit";
+import { postLine, type PostRow } from "./creatorPosts";
 import { MATCH_INLIERS, bestMatch, features, type Features } from "./imageMatch";
 import { getForProxy } from "./vault";
 
@@ -354,4 +355,28 @@ export async function listCreatorPosts(creatorId: string): Promise<CreatorPost[]
       };
     })
     .sort((a, b) => b.postedAt.localeCompare(a.postedAt));
+}
+
+/** The post line (lib/creatorPosts) of every confirmed account, by account id. Unconfirmed ones aren't read, so none. */
+export async function creatorPostLines(accounts: Array<{ id: string; created_at: string; verified_at: string | null }>): Promise<Map<string, string>> {
+  const read = accounts.filter((a) => a.verified_at);
+  if (read.length === 0) return new Map();
+  const checks = await hubGet<{ post_id: string; creator_id: string; status: CheckStatus }>(
+    `klar_post_checks?creator_id=${inList(read.map((a) => a.id))}&select=post_id,creator_id,status`,
+  );
+  const posted = new Map(
+    checks.length === 0
+      ? []
+      : (await hubGet<{ post_id: string; posted_at: string }>(`klar_posts?post_id=${inList(checks.map((c) => c.post_id))}&select=post_id,posted_at`)).map(
+          (p) => [p.post_id, p.posted_at],
+        ),
+  );
+  return new Map(
+    read.map((a) => {
+      const rows: PostRow[] = checks
+        .filter((c) => c.creator_id === a.id && posted.has(c.post_id))
+        .map((c) => ({ status: c.status, postedAt: posted.get(c.post_id)! }));
+      return [a.id, postLine(a.created_at, rows)];
+    }),
+  );
 }

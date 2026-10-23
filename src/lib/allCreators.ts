@@ -23,6 +23,8 @@ export interface AnyCreator {
   monthCents: number | null;
   /** Owed from closed months, platform only. */
   owedCents: number | null;
+  /** lib/creatorPosts line, confirmed platform creators only. */
+  posts?: string;
 }
 
 const isTest = (a: Pick<CreatorAccount, "email" | "tiktok_handle">) =>
@@ -34,6 +36,7 @@ export function mergeCreators(args: {
   appNames: Record<string, string>;
   monthCents: Map<string, number>;
   owedCents: Map<string, number>;
+  postLines?: Map<string, string>;
 }): AnyCreator[] {
   const manualByKey = new Map(args.manual.map((c) => [`${c.appSlug}/${c.handle.toLowerCase()}`, c]));
   const platform: AnyCreator[] = [];
@@ -54,6 +57,7 @@ export function mergeCreators(args: {
       referrals: linked?.referrals ?? null,
       monthCents: args.monthCents.get(a.id) ?? 0,
       owedCents: args.owedCents.get(a.id) ?? 0,
+      posts: args.postLines?.get(a.id),
     });
   }
   const manual: AnyCreator[] = [...manualByKey.entries()].map(([key, c]) => ({
