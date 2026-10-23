@@ -147,10 +147,10 @@ export default async function BoardPage({
 
   return (
     <>
-      <title>Board · Feedback · Klar Control</title>
-      <AdminTopbar titel="Board" bereich="Klar Studios" />
+      <title>Neu in Basalt · Feedback · Klar Control</title>
+      <AdminTopbar titel="Neu in Basalt" bereich="Klar Studios" />
       <div className="content">
-        <PageHeader eyebrow="Klar Studios · Feedback" icon={<Lightbulb />} title="Board">
+        <PageHeader eyebrow="Klar Studios · Feedback" icon={<Lightbulb />} title="Neu in Basalt">
           Das Board der Apps: Ideen, auf die Nutzer stimmen, deine Kommentare dazu und die Wünsche, die Nutzer schicken.
           Was du speicherst, übersetzt Claude in alle Sprachen der App.
         </PageHeader>

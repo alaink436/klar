@@ -15,7 +15,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   try {
     form = await req.formData();
   } catch {
-    return NextResponse.redirect(new URL("/admin/feedback?stand=fehler&msg=Kein+Formular", req.url), 303);
+    return NextResponse.redirect(new URL("/admin/feedback/postfach?stand=fehler&msg=Kein+Formular", req.url), 303);
   }
   const feld = (name: string, max: number) => String(form.get(name) ?? "").slice(0, max);
   const erledigt = feld("erledigt", 1) === "1";
@@ -31,5 +31,5 @@ export async function POST(req: NextRequest): Promise<Response> {
     q.set("msg", "Konnte nicht gespeichert werden.");
   }
   const s = q.toString();
-  return NextResponse.redirect(new URL(s ? `/admin/feedback?${s}` : "/admin/feedback", req.url), 303);
+  return NextResponse.redirect(new URL(s ? `/admin/feedback/postfach?${s}` : "/admin/feedback/postfach", req.url), 303);
 }
