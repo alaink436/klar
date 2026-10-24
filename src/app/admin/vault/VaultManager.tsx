@@ -261,6 +261,13 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   // `v1/apps` and the reporting endpoints are reachable through one entry.
   { id: "appstore", label: "App Store Connect (.p8)", category: "Mobile / Stores", provider: "apple", baseUrl: "https://api.appstoreconnect.apple.com", authHeader: "authorization", authScheme: "Bearer ", keyKind: "asc", keyExample: "-----BEGIN PRIVATE KEY----- (.p8)", labelExample: "App Store Connect API" },
   { id: "expo", label: "Expo / EAS", category: "Mobile / Stores", provider: "expo", baseUrl: "https://api.expo.dev", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "Expo Access-Token", en: "Expo access token" }, labelExample: "Expo EAS" },
+  // Superwall (paywalls and subscriptions) for OurApps LLC, Vincent's
+  // organization, where OurWipe lives. The ORGANIZATION key from Settings ›
+  // API Keys drives the REST API (`v2/projects`, `v2/products`,
+  // `v2/entitlements`, `v2/campaigns`, `v2/paywalls`) as a Bearer token; its
+  // scopes and project access are set when it is created. The public SDK key
+  // belongs in the app as a build variable, not here.
+  { id: "superwall", label: "Superwall (OurApps LLC)", category: "Mobile / Stores", provider: "superwall", baseUrl: "https://api.superwall.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "Organisations-API-Key aus Settings › API Keys", en: "Organization API key from Settings › API Keys" }, labelExample: "Superwall OurApps LLC" },
   // Roblox Open Cloud: one user-owned key for every Roblox project, created on
   // create.roblox.com/dashboard/credentials with `assets` (Read + Write) and
   // `universe-places` (Write), not restricted to one game. The raw key goes on
