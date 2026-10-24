@@ -58,6 +58,12 @@ export const USERJOT_APPS: UserjotApp[] = [
   },
 ];
 
+/**
+ * Web-Apps, die /api/userjot/sign aus dem Browser rufen (CORS). Die nativen Apps brauchen das nicht;
+ * learnbound.app ist die Laptop-Seite von Learnbound und oeffnet das Board von dort.
+ */
+export const SIGN_WEB_ORIGINS = ["https://learnbound.app"];
+
 export function findUserjotApp(slug: string | null | undefined): UserjotApp | null {
   return USERJOT_APPS.find((a) => a.slug === slug) ?? null;
 }
