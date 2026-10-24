@@ -49,6 +49,13 @@ export const USERJOT_APPS: UserjotApp[] = [
     supabaseUrl: "https://jkgymggxshtsljjvketi.supabase.co",
     publishableKey: "sb_publishable_cfG84iuarli5HgWDO7d3uw_m1SiH9pM",
   },
+  {
+    slug: "learnbound",
+    name: "Learnbound",
+    boardSlug: "learnbound",
+    supabaseUrl: "https://xnalthywhcbgyhawqxlh.supabase.co",
+    publishableKey: "sb_publishable_mbtFLS6qx_xpeLD9HMMNJQ_1vegCuFf",
+  },
 ];
 
 export function findUserjotApp(slug: string | null | undefined): UserjotApp | null {
