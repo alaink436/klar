@@ -49,6 +49,9 @@ export interface CreatorAccount {
   followers: number | null;
   /** When he accepted the creator terms, with his first Wise details (migrations/0053). */
   terms_accepted_at?: string | null;
+  /** The warning after 7 days without a counted post, and why the account was closed (migrations/0055). */
+  inactive_warned_at?: string | null;
+  closed_reason?: "inactive" | null;
 }
 
 /** From here TikTok lets a creator put a link in his bio. */
