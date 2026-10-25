@@ -144,13 +144,16 @@ export default async function CreatorDashboard({ searchParams }: { searchParams:
           {!account && <p className={`${card} mt-8 text-[15px]`}>We couldn&apos;t load your dashboard. Reload the page in a moment.</p>}
           {account && !account.tiktok_handle && <ConnectTiktok />}
           {account?.tiktok_handle && !account.verified_at && <VerifyStep handle={account.tiktok_handle} code={account.bio_code} />}
-          {verified && (closed || paused || verified.strikes > 0) && (
+          {/* closed for not posting (lib/creatorInactive) can happen before the TikTok is confirmed, so that one shows for every account */}
+          {account && (closed || (verified && (paused || verified.strikes > 0))) && (
             <div className={`${card} mt-8 border-[#b42318]/30 text-[15px] leading-relaxed`}>
               {closed
-                ? "Your account is closed after three rejected posts. We no longer read your posts; what you earned with posts that counted is still paid out."
+                ? account.closed_reason === "inactive"
+                  ? "Your account is closed: no slideshow from your dashboard went up after our warning email. We no longer read your posts; what you earned with posts that counted is still paid out. Want back in? Reply to that email."
+                  : "Your account is closed after three rejected posts. We no longer read your posts; what you earned with posts that counted is still paid out."
                 : paused
-                  ? `Your account is paused until ${new Date(verified.suspended_until!).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}. Posts in this time don't count and you get no new posts.`
-                  : verified.strikes >= 2
+                  ? `Your account is paused until ${new Date(account.suspended_until!).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}. Posts in this time don't count and you get no new posts.`
+                  : account.strikes >= 2
                     ? "Your pause is over. One more rejected post closes your account."
                     : "You have one warning: a post was rejected. A second rejection pauses your account for 30 days."}
             </div>

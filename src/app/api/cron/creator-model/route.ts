@@ -1,10 +1,12 @@
 // GET /api/cron/creator-model — daily estimate of what creators without a link
-// brought (lib/creatorModelRun), plus the weekly report to Alain on Mondays.
+// brought (lib/creatorModelRun), plus the weekly report to Alain on Mondays, and
+// the warning or closing for creators who don't post (lib/creatorInactive).
 //
 // Hit by the Vercel Cron in vercel.json, after app-metrics. Auth like
 // app-metrics: `Authorization: Bearer $CRON_SECRET`, fail-closed.
 
 import { NextResponse, type NextRequest } from "next/server";
+import { runInactiveCreators } from "@/lib/creatorInactive";
 import { runCreatorModel } from "@/lib/creatorModelRun";
 import { sendWeeklyReport } from "@/lib/creatorReport";
 
@@ -20,5 +22,6 @@ export async function GET(req: NextRequest): Promise<Response> {
   }
   const run = await runCreatorModel().catch((e: unknown) => ({ ok: false, error: e instanceof Error ? e.message : String(e) }));
   const report = run.ok && new Date().getUTCDay() === 1 ? await sendWeeklyReport() : false;
-  return NextResponse.json({ ...run, report }, { status: run.ok ? 200 : 500 });
+  const inactive = await runInactiveCreators().catch((e: unknown) => ({ error: e instanceof Error ? e.message : String(e) }));
+  return NextResponse.json({ ...run, report, inactive }, { status: run.ok ? 200 : 500 });
 }

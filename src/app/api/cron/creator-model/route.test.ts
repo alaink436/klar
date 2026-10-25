@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const run = vi.fn();
 const report = vi.fn();
+const inactive = vi.fn();
 vi.mock("@/lib/creatorModelRun", () => ({ runCreatorModel: () => run() }));
 vi.mock("@/lib/creatorReport", () => ({ sendWeeklyReport: () => report() }));
+vi.mock("@/lib/creatorInactive", () => ({ runInactiveCreators: () => inactive() }));
 
 import { NextRequest } from "next/server";
 import { GET } from "./route";
@@ -15,6 +17,7 @@ describe("GET /api/cron/creator-model", () => {
     vi.stubEnv("CRON_SECRET", "s3cret");
     run.mockReset().mockResolvedValue({ ok: true, ratePer1000: 0.5, rateSource: "prior", creators: 0 });
     report.mockReset().mockResolvedValue(true);
+    inactive.mockReset().mockResolvedValue({ warned: [], closed: [] });
   });
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -36,6 +39,15 @@ describe("GET /api/cron/creator-model", () => {
     vi.setSystemTime(new Date("2026-10-26T04:30:00Z")); // Monday
     expect(await (await GET(req("Bearer s3cret"))).json()).toMatchObject({ ok: true, report: true });
     expect(report).toHaveBeenCalledTimes(1);
+  });
+
+  it("warns and closes creators who don't post every day, and a failure there leaves the model run standing", async () => {
+    inactive.mockResolvedValue({ warned: ["lisa"], closed: ["quiet"] });
+    expect(await (await GET(req("Bearer s3cret"))).json()).toMatchObject({ ok: true, inactive: { warned: ["lisa"], closed: ["quiet"] } });
+    inactive.mockRejectedValue(new Error("hub 503 klar_creator_accounts"));
+    const res = await GET(req("Bearer s3cret"));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, inactive: { error: "hub 503 klar_creator_accounts" } });
   });
 
   it("answers 500 with the reason when the run fails", async () => {
