@@ -10,6 +10,9 @@
 // and moderation, study stats and an exam planner, an app lock on Apple's Screen Time,
 // purchases through Apple and RevenueCat, and a one-time
 // anonymous install event to the Klar hub for adults only.
+// The notebook (Heft, AI-Brain Projects/Pod/specs/learnbound-heft/spec.md): pages as vector
+// content on Supabase, readable only by the owner, not end-to-end encrypted; one page can hang
+// as the moodboard, seen by accepted friends, reportable, typed text word-filtered.
 //
 // What a reviewer will look for, said plainly:
 //   - Screen Time: the app never learns which apps are locked; only counts (taps on the
@@ -30,7 +33,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "8 October 2026";
+const AS_OF = "25 October 2026";
 const CONTACT = "feedback+learnbound@reply.getklar.org";
 
 export default function LearnboundPrivacyPage() {
@@ -100,6 +103,13 @@ export default function LearnboundPrivacyPage() {
             postcards from members under 18 are visible to friends only, or stay pending until a
             moderator approves them. Members under 16 only see approved postcards.
           </p>
+          <p>
+            <b>Your moodboard.</b> If you hang a page of your notebook in your box room as your
+            moodboard, your accepted friends see that one page, live as you change it, wherever your
+            room is shown to them. People who are not your friends never see it, and neither does
+            anyone you blocked, anyone who blocked you, or a friend who reported it. All your other
+            pages stay private.
+          </p>
         </Section>
 
         <Section n="04" title="What we store to run the app">
@@ -110,12 +120,46 @@ export default function LearnboundPrivacyPage() {
             your subjects, exams and study phases from the planner, daily and weekly totals for your
             stats and streaks, your avatar (the item ids you picked, never a photo), the items and
             acorns you earned, your season progress, your friends and blocked users, your postcards
-            and cheers, and the reports you file. All of it is linked to your account and used only
-            to provide the app.
+            and cheers, the pages of your notebook (next section), and the reports you file. All of it
+            is linked to your account and used only to provide the app.
           </p>
         </Section>
 
-        <Section n="05" title="The app lock (Screen Time)">
+        <Section n="05" title="Your notebook">
+          <p>
+            The notebook holds the pages you draw and write on. For each page we store what is on it as
+            a description of your strokes and text boxes (tool, color, points, pen pressure, position and
+            the text you typed), not as an image, together with its date, the subject if you started it
+            after a session, a version number, and when it was created and last changed. The pages are
+            stored with your account in our database in the European Union (Frankfurt), so the notebook
+            is the same on your phone, your iPad and your laptop. Your devices keep a copy so you can keep
+            drawing offline; in a laptop browser that copy is removed when you sign out.
+          </p>
+          <p>
+            <b>Who can read it.</b>{" "}Only you. Other members cannot open your pages, with one exception:
+            the page you hang as your moodboard (see &quot;What other people can see&quot;). Your pages
+            travel over an encrypted connection, but the notebook is not end-to-end encrypted: it is
+            stored on our server in a form we could technically read. We access a page only to run the
+            notebook, to handle a report about your moodboard, or where the law requires it.
+          </p>
+          <p>
+            <b>Word filter.</b> Private pages are never checked or filtered. When you hang a page, or save
+            the page that hangs, the text typed on it passes the same word filter as display names; if it
+            does not, the page does not go on the wall.
+          </p>
+          <p>
+            <b>Sharing a page.</b>{" "}&quot;Share as image&quot; draws the page into a picture on your device
+            and hands it to your system&apos;s share sheet (in a browser, to its share function or a
+            download). We do not receive or store that picture; where it goes is up to you and the app
+            you pick.
+          </p>
+          <p>
+            <b>Deleting.</b> A page you delete is removed from our server at once and from your other
+            devices when they next sync. All your pages are deleted together with your account.
+          </p>
+        </Section>
+
+        <Section n="06" title="The app lock (Screen Time)">
           <p>
             With Pro you can lock apps while you study. The lock runs on Apple&apos;s Screen Time
             framework (Family Controls). The apps you pick are an opaque token that Apple keeps on
@@ -126,7 +170,7 @@ export default function LearnboundPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="06" title="The AR box and motion sensors">
+        <Section n="07" title="The AR box and motion sensors">
           <p>
             <b>Camera.</b> To place the box and to check that your phone arrived in it, the app uses
             the camera through Apple&apos;s ARKit, only while you place the box or put the phone back.
@@ -141,7 +185,7 @@ export default function LearnboundPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="07" title="Nudges">
+        <Section n="08" title="Nudges">
           <p>
             When your phone leaves the box outside a break, people in your room and your friends can
             nudge you. We store who nudged whom and when, so that each person can nudge you only once
@@ -150,16 +194,22 @@ export default function LearnboundPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="08" title="Reports and moderation">
+        <Section n="09" title="Reports and moderation">
           <p>
-            You can report a user or a postcard. A report stores who reported what and the reason you
-            gave. A new report sends an email with the reported content to our support inbox so we can
+            You can report a user, a postcard or a friend&apos;s moodboard. A report stores who reported
+            what and the reason you gave. A new report sends an email with the reported content to our support inbox so we can
             act within 24 hours. Three reports from different people hide a postcard or reset a display
             name automatically until we review it.
           </p>
+          <p>
+            A moodboard you report disappears for you at once. The email about it names the owner of the
+            page and contains the page&apos;s date, its subject and the text typed on it, not the drawing.
+            If we act on it, we take the page off its owner&apos;s wall; it then stays in their notebook as
+            a private page.
+          </p>
         </Section>
 
-        <Section n="09" title="Notifications">
+        <Section n="10" title="Notifications">
           <p>
             Notifications about your study session, such as its end or a reminder to put your phone back in the box, are
             local notifications scheduled on your phone. Nudges are push notifications: if you allow notifications,
@@ -168,7 +218,7 @@ export default function LearnboundPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="10" title="Purchases">
+        <Section n="11" title="Purchases">
           <p>
             Payments are processed by Apple. To unlock Learnbound Pro, our subscription provider
             RevenueCat receives the App Store receipt together with your account id. We receive only the
@@ -177,7 +227,7 @@ export default function LearnboundPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="11" title="An anonymous install signal (adults only)">
+        <Section n="12" title="An anonymous install signal (adults only)">
           <p>
             If your age band is 18 and over, the app sends a single anonymous event to our own server so we
             can count installs. It contains a random identifier generated on your device, the platform, the
@@ -186,7 +236,7 @@ export default function LearnboundPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="12" title="What we do not do">
+        <Section n="13" title="What we do not do">
           <p>
             No advertising and no ad networks. No analytics SDK. No cross-app or cross-site tracking, and no
             advertising identifier (IDFA). The camera is only used for the AR box and never records. No
@@ -195,7 +245,7 @@ export default function LearnboundPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="13" title="Children and teenagers">
+        <Section n="14" title="Children and teenagers">
           <p>
             Learnbound is for people aged 13 and over. If you choose an age under 13 in onboarding, no account
             is created. For members under 18 we show an alias to anyone who is not their friend, keep their
@@ -204,7 +254,7 @@ export default function LearnboundPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="14" title="Why we process this data">
+        <Section n="15" title="Why we process this data">
           <p>
             To provide the app and its social features, to keep your Pro purchase, to keep the community safe,
             and to count installs. Legal bases under the GDPR are the performance of our contract with you
@@ -214,7 +264,7 @@ export default function LearnboundPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="15" title="Service providers">
+        <Section n="16" title="Service providers">
           <p>
             <b>Apple</b> for Sign in with Apple, Screen Time, notifications and all payments, under its own
             privacy policy. <b>Supabase</b> for authentication, database and realtime presence, hosted in the
@@ -224,24 +274,25 @@ export default function LearnboundPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="16" title="How long we keep data">
+        <Section n="17" title="How long we keep data">
           <p>
-            Your account data is kept for as long as your account exists. Live room presence ends when you leave.
+            Your account data is kept for as long as your account exists. The pages of your notebook are kept
+            until you delete them or your account. Live room presence ends when you leave.
             Reports are kept while they are needed for moderation. Purchase entitlements are held by RevenueCat
             for as long as they are needed to honour your purchase.
           </p>
         </Section>
 
-        <Section n="17" title="Deleting your account">
+        <Section n="18" title="Deleting your account">
           <p>
             Delete your account in the app under Settings → Account → Delete account. Deletion is immediate and
             removes your account and everything attached to it on our side: profile, sessions, stats, planner,
-            avatar, items, friends, nudges, push tokens, postcards and reports you filed. An active subscription keeps running at Apple
+            avatar, items, notebook pages, friends, nudges, push tokens, postcards and reports you filed. An active subscription keeps running at Apple
             until you cancel it in your Apple ID settings.
           </p>
         </Section>
 
-        <Section n="18" title="Your rights">
+        <Section n="19" title="Your rights">
           <p>
             You have the right to access, correct, delete and export your personal data, and to object to or
             restrict its processing. For any request, write to{" "}
@@ -250,7 +301,7 @@ export default function LearnboundPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="19" title="Changes to this policy">
+        <Section n="20" title="Changes to this policy">
           <p>
             We may update this policy as the app evolves. The current version is always available at this page,
             with the date shown below.
