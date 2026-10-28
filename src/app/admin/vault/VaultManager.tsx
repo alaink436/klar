@@ -249,6 +249,11 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   // segment because their MCP server sits outside it (app.slideyourapp.com/mcp)
   // and is not reachable through this entry.
   { id: "slideyourapp", label: "SlideYourApp", category: "Social / Marketing", provider: "slideyourapp", baseUrl: "https://app.slideyourapp.com/api/v1", authHeader: "authorization", authScheme: "Bearer ", keyExample: "nl_…", labelExample: "SlideYourApp" },
+  // App Store Tracker (competitor apps: charts, revenue estimates, ads, captured
+  // screens). Every MCP tool is also `GET /api/v1/<tool>` with its arguments as
+  // query, so base_url carries /api/v1 and the MCP endpoint (/api/mcp) is not
+  // reachable through this entry. Keys come from /account/api, shown once.
+  { id: "appstoretracker", label: "App Store Tracker", category: "Social / Marketing", provider: "appstoretracker", baseUrl: "https://www.appstoretracker.com/api/v1", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sk_mcp_…", labelExample: "App Store Tracker API" },
   // Scraping
   { id: "evomi", label: "Evomi (Scraper API)", category: "Scraping", provider: "evomi", baseUrl: "https://scrape.evomi.com/api/v1/scraper", authHeader: "api_key", authScheme: "", authIn: "query", keyExample: { de: "Evomi api_key (Query-Param)", en: "Evomi api_key (query param)" }, labelExample: "Evomi Scraper API" },
   // Personal API Key (my.evomi.com → Settings → API) — account-level: balance,
