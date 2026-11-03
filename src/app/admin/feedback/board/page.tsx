@@ -12,6 +12,7 @@ import {
   BoardError,
   IDEA_STATUSES,
   IDEA_STATUS_LABELS,
+  VERSION_PATTERN,
   fetchComments,
   fetchIdeas,
   fetchWishes,
@@ -206,7 +207,8 @@ export default async function BoardPage({
                           </div>
                           <div className="mt-1 flex items-center gap-1.5 text-[12px] text-fg-4">
                             <Punkt ton={TON[i.status]} />
-                            {IDEA_STATUS_LABELS[i.status]} · Gewicht {i.weight}
+                            {IDEA_STATUS_LABELS[i.status]}
+                            {i.shippedIn ? ` in ${i.shippedIn}` : ""} · Gewicht {i.weight}
                             {Object.keys(i.translations).length ? null : " · nicht übersetzt"}
                           </div>
                         </Listeneintrag>
@@ -326,6 +328,31 @@ function IdeeAnsicht({ app, idee, kommentare }: { app: BoardApp; idee: Idea; kom
           ))}
         </form>
       </section>
+
+      {idee.status === "shipped" ? (
+        <section className="grid gap-2">
+          <span className={LABEL}>Fertig in Version</span>
+          <form method="POST" action={AKTION} className="flex flex-wrap items-center gap-2">
+            <Felder app={app} tat="version" ansicht="ideen" id={idee.id} />
+            <input
+              name="version"
+              pattern={VERSION_PATTERN}
+              maxLength={20}
+              placeholder="2.7.0"
+              defaultValue={idee.shippedIn ?? ""}
+              aria-label="Fertig in Version"
+              title="Major.Minor.Patch, etwa 2.7.0"
+              className="klar-feld w-28"
+            />
+            <Button type="submit" variant="pill-dark" size="sm">Setzen</Button>
+            <span className="text-[12px] text-fg-4">
+              {idee.shippedIn
+                ? `Wer ${app.name} ${idee.shippedIn} zum ersten Mal öffnet, sieht die Idee einmal als neu. Leer speichern entfernt die Version.`
+                : `Ohne Version sieht niemand die Idee als neu in ${app.name}. Format Major.Minor.Patch, etwa 2.7.0.`}
+            </span>
+          </form>
+        </section>
+      ) : null}
 
       <section className="grid gap-2">
         <span className={LABEL}>Gewicht</span>
