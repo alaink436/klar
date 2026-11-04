@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 
 const TYPE_MS = 75;
 const ERASE_MS = 35;
-const HOLD_MS = 1700;
+const HOLD_MS = 3000; // long enough for the hero phone to turn in and be seen
 
 type BeamApp = { name: string; icon: string };
 
@@ -51,7 +51,7 @@ export default function BeamPill({ apps }: { apps: BeamApp[] }) {
   const words = useMemo(() => apps.map((a) => a.name), [apps]);
   const { text, index } = useTyped(words);
 
-  // The hero phones listen and wiggle that app's logo (HeroPhones).
+  // The hero phone follows: that app's phone turns in (PhoneStage).
   useEffect(() => {
     window.dispatchEvent(new CustomEvent("klar:beam", { detail: index }));
   }, [index]);

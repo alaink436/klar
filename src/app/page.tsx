@@ -3,15 +3,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { findKlarApp } from "@/lib/klarApps";
 import { AppleSvg, PlaySvg } from "./components/StoreBadges";
-import DissolveWord from "./components/home/DissolveWord";
 import BeamPill from "./components/home/BeamPill";
 import AppCarousel from "./components/home/AppCarousel";
 import Film from "./components/home/Film";
-import Site from "./components/home/Site";
+import Site, { SUPPORT_EMAIL } from "./components/home/Site";
 import BlurHeadline from "./components/home/BlurHeadline";
 import CreatorForm from "./components/home/CreatorForm";
 import { card } from "./components/home/formStyles";
-import HeroPhones from "./components/home/HeroPhones";
+import GlassTitle from "./components/home/GlassTitle";
+import PhoneStage from "./components/home/PhoneStage";
+import OpenOnHash from "./components/home/OpenOnHash";
 
 // getklar.org's front page: the apps, nothing else (Alain's call, 2026-10-01).
 // Klar OS, which stood here before, moved to /os and is not linked from here.
@@ -84,6 +85,10 @@ const STEPS = [
 ];
 // Not to promote right now: still listed in the form, marked as not recommended.
 const NOT_RECOMMENDED = new Set(["yarnstash", "animevault"]);
+// Up for sale (Alain, 2026-11-04): a label on the card, in the app row and under
+// the hero phone; the card's label opens a mail for an offer.
+const OPEN_TO_SELL = new Set(["yarnstash", "animevault"]);
+const offerMail = (app: App) => `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Offer for ${app.name}`)}`;
 // The app keys klar_inquiries.target_app accepts (myloo = Pocketmate, wavelength = Basalt).
 const INQUIRY_SLUG: Record<string, string> = {
   pocketmate: "myloo",
@@ -143,9 +148,19 @@ function AppCard({ app, index }: { app: App; index: number }) {
       id={app.id}
       className="w-[86vw] max-w-[1100px] shrink-0 snap-center scroll-mt-24 rounded-[30px] border border-white/70 bg-white/45 p-3 shadow-[0_30px_60px_-40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl sm:p-4 md:rounded-[40px] md:p-5"
     >
-      <p className="px-2 pt-1 text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">
-        {String(index + 1).padStart(2, "0")} · {app.kind} · {app.soon ? "Coming soon" : app.play ? "iPhone & Android" : "iPhone"}
-      </p>
+      <div className="flex items-center justify-between gap-3 px-2 pt-1">
+        <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">
+          {String(index + 1).padStart(2, "0")} · {app.kind} · {app.soon ? "Coming soon" : app.play ? "iPhone & Android" : "iPhone"}
+        </p>
+        {OPEN_TO_SELL.has(app.id) && (
+          <a
+            href={offerMail(app)}
+            className="shrink-0 rounded-full border border-[var(--ink)] px-3 py-1 text-[12.5px] font-medium tracking-[-0.01em] transition hover:bg-[var(--ink)] hover:text-[var(--paper)]"
+          >
+            Open to sell
+          </a>
+        )}
+      </div>
 
       {/* Over a dark fade so the text reads on bright films too. On phones the
           3:2 film only has room for logo and name; line and buttons go below. */}
@@ -214,29 +229,37 @@ export default function Home() {
         <section className="relative overflow-hidden">
           <div className="home-grid absolute inset-0" aria-hidden="true" />
           <div className="home-glow absolute inset-0" aria-hidden="true" />
+          <div className="home-ray absolute inset-0" aria-hidden="true" />
           <div className="relative px-5 pt-28 text-center sm:pt-32">
             <p className="text-[13px] font-medium tracking-[-0.005em]">Made in Switzerland</p>
-            <h1 className="mt-7 text-[clamp(76px,15.5vw,236px)] font-medium leading-[0.86] tracking-[-0.06em]">
-              <span className="block">Klar</span>
-              <span className="block">
-                <DissolveWord>Studios.</DissolveWord>
-              </span>
-            </h1>
-            <div className="mt-10">
+            <GlassTitle />
+            <div className="mt-8">
               <BeamPill apps={APPS.map(({ name, icon }) => ({ name, icon }))} />
             </div>
           </div>
-          <HeroPhones apps={APPS.map(({ id, name, icon, play, soon }) => ({ id, name, icon, play, soon }))} />
+          <PhoneStage
+            apps={APPS.map(({ id, name, icon, play, soon }) => ({ id, name, icon, play, soon, forSale: OPEN_TO_SELL.has(id) }))}
+          />
         </section>
 
-        <section id="creators" className="scroll-mt-20 border-t">
-          <div className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 md:px-12 md:py-32">
-            <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">For creators</p>
-            <BlurHeadline
-              lead="Post about Basalt."
-              glass="Get paid."
-              className="mt-6 text-[clamp(52px,8vw,128px)] font-medium leading-[0.9] tracking-[-0.055em]"
-            />
+        {/* Folded by default (Alain, 2026-11-04: "ausklappbar"); the header's "For
+            creators" lands here with #creators and opens it. */}
+        <section className="border-t">
+          <details id="creators" className="group/creators mx-auto max-w-[1280px] scroll-mt-20 px-5 py-20 sm:px-8 md:px-12 md:py-28">
+            <OpenOnHash hash="#creators" />
+            <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+              <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">For creators</p>
+              <BlurHeadline
+                lead="Post about Basalt."
+                glass="Get paid."
+                className="mt-6 text-[clamp(52px,8vw,128px)] font-medium leading-[0.9] tracking-[-0.055em]"
+              />
+              <span className="mt-8 inline-flex h-11 items-center gap-2.5 rounded-full border border-[var(--ink)] px-5 text-[15px] font-medium tracking-[-0.01em] transition hover:bg-[var(--ink)] hover:text-[var(--paper)]">
+                <span className="group-open/creators:hidden">How it works</span>
+                <span className="hidden group-open/creators:inline">Close</span>
+                <span aria-hidden="true" className="inline-block transition group-open/creators:rotate-180">↓</span>
+              </span>
+            </summary>
             <div className="mt-14 grid gap-12 md:grid-cols-[1fr_1.1fr] md:gap-16">
               <div>
                 <p className="max-w-[34ch] text-[clamp(18px,1.6vw,23px)] leading-[1.3] tracking-[-0.015em] text-[var(--ink-2)]">
@@ -284,7 +307,7 @@ export default function Home() {
                 </details>
               </div>
             </div>
-          </div>
+          </details>
         </section>
 
         <nav id="apps" aria-label="Apps" className="scroll-mt-4 border-t">
@@ -301,6 +324,7 @@ export default function Home() {
                   />
                   <span className="text-[12.5px] font-medium leading-tight tracking-[-0.01em]">{app.name}</span>
                   {app.soon && <span className="-mt-2 text-[11px] text-[var(--ink-3)]">Coming soon</span>}
+                  {OPEN_TO_SELL.has(app.id) && <span className="-mt-2 text-[11px] text-[var(--ink-3)]">Open to sell</span>}
                 </a>
               </li>
             ))}

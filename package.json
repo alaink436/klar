@@ -19,6 +19,8 @@
     "@radix-ui/react-label": "^2.1.9",
     "@radix-ui/react-slot": "^1.2.5",
     "@radix-ui/react-tabs": "^1.1.14",
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
     "@remixicon/react": "^4.9.0",
     "@sneas/telephone": "^1.1.2",
     "@supabase/ssr": "^0.10.3",
@@ -49,7 +51,8 @@
     "resend": "^6.32.1",
     "sonner": "^2.0.8",
     "stripe": "^18.5.0",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "three": "^0.187.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -57,6 +60,7 @@
     "@types/qrcode": "1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.187.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "supabase": "^2.100.1",
