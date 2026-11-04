@@ -244,7 +244,15 @@ export default function Home() {
             </div>
           </div>
           <PhoneStage
-            apps={APPS.map(({ id, name, icon, play, soon }) => ({ id, name, icon, play, soon, forSale: FOR_SALE.has(id) }))}
+            apps={APPS.map(({ id, name, icon, play, soon, shots }) => ({
+              id,
+              name,
+              icon,
+              play,
+              soon,
+              forSale: FOR_SALE.has(id),
+              shots: Array.from({ length: shots }, (_, i) => shot(id, i + 1)),
+            }))}
           />
         </section>
 
