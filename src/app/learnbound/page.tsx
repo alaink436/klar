@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 };
 
 const APP_STORE_URL = "https://apps.apple.com/app/id6778560113";
+const WEBSITE = "https://learnbound.app";
 const CONTACT = "feedback+learnbound@reply.getklar.org";
 
 const GROUND = "#1A1410";
@@ -66,6 +67,8 @@ export default function LearnboundHomePage() {
 
         <p style={{ fontSize: 14, lineHeight: 1.6, color: MUTED }}>
           sign in with apple, no phone number. accounts from 13. the box is free. pro: monthly, yearly or lifetime.
+          <br />
+          on the web and your laptop: <a href={WEBSITE} style={{ color: INK }}>learnbound.app</a>
           <br />
           questions: <a href={`mailto:${CONTACT}`} style={{ color: INK }}>{CONTACT}</a>
         </p>
