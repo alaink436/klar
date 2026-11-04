@@ -234,7 +234,11 @@ export default function Home() {
           <div className="home-ray absolute inset-0" aria-hidden="true" />
           <div className="relative px-5 pt-28 text-center sm:pt-32">
             <p className="text-[13px] font-medium tracking-[-0.005em]">Made in Switzerland</p>
-            <GlassTitle />
+            <GlassTitle
+              lines={["Klar", "Studios."]}
+              className="mx-auto mt-7 aspect-[2.35/1] w-[min(96vw,1040px)]"
+              textClassName="text-[clamp(64px,15.2vw,236px)] leading-[0.86] tracking-[-0.06em]"
+            />
             <div className="mt-8">
               <BeamPill apps={APPS.map(({ name, icon }) => ({ name, icon }))} />
             </div>
@@ -249,11 +253,14 @@ export default function Home() {
         <section id="work" className="border-t">
           <div className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 md:px-12 md:py-32">
             <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">Work with us</p>
-            <BlurHeadline
-              lead="Consults &"
-              glass="Collaborations."
+            {/* glass in 3D like the hero (Alain, 2026-11-04: "auch noch 3d") */}
+            <GlassTitle
+              as="h2"
+              left
+              lines={["Consults &", "Collaborations."]}
+              className="mt-6 aspect-[3.4/1] w-full max-w-[1100px]"
               // "Collaborations." is 5.8em wide: 14.5vw fills a phone without spilling over
-              className="mt-6 text-[clamp(44px,14.5vw,150px)] font-medium leading-[0.9] tracking-[-0.055em]"
+              textClassName="text-[clamp(44px,14.5vw,150px)] leading-[0.9] tracking-[-0.055em]"
             />
             <p className="mt-10 max-w-[34ch] text-[clamp(18px,1.6vw,23px)] leading-[1.3] tracking-[-0.015em] text-[var(--ink-2)]">
               Building an app, or want to make something together? Write us.
