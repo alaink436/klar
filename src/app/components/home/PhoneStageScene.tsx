@@ -156,11 +156,13 @@ function Phones({ apps, active, onReady }: { apps: StageApp[]; active: number; o
   const { scene } = useGLTF(PHONE);
   const scenes = useTexture(apps.map((a) => `/home/scenes/${a.id}.webp`));
   const icons = useTexture(apps.map((a) => a.icon));
-  const canvas = useThree((st) => st.gl.domElement);
+  const gl = useThree((st) => st.gl);
   const screens = useMemo(() => {
-    const font = getComputedStyle(canvas).fontFamily; // the page's own type
+    const font = getComputedStyle(gl.domElement).fontFamily; // the page's own type
     return apps.map((a, i) => screenTexture(scenes[i].image as HTMLImageElement, icons[i].image as HTMLImageElement, a, font));
-  }, [apps, scenes, icons, canvas]);
+  }, [apps, scenes, icons, gl]);
+  // all screens to the GPU now, not each one as its phone first turns in
+  useEffect(() => screens.forEach((t) => gl.initTexture(t)), [screens, gl]);
   const refs = useRef<(THREE.Group | null)[]>([]);
   const rig = useRef<THREE.Group>(null);
   // t0 = -1: the first phone turns in as soon as the scene has its first frame
@@ -231,7 +233,8 @@ function Light() {
 export default function PhoneStageScene({ apps, active, onReady, run }: { apps: StageApp[]; active: number; onReady: () => void; run: boolean }) {
   return (
     <Canvas
-      frameloop={run ? "always" : "never"}
+      // off screen: no frames, but the first one is drawn at load (see GlassTitleScene)
+      frameloop={run ? "always" : "demand"}
       dpr={[1, 2]}
       gl={{ alpha: true, antialias: true }}
       camera={{ position: [0, 0, 5.2], fov: 30 }}

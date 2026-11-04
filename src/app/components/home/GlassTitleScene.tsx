@@ -42,8 +42,10 @@ function backdrop() {
 function Word({ text, y, left, onSize }: { text: string; y: number; left: boolean; onSize: (w: number, h: number) => void }) {
   const bg = useMemo(() => backdrop(), []);
   return (
-    // `right` puts the line's left edge on x = 0, so left-aligned lines start together
-    <Center right={left} position={[0, y, 0]} onCentered={({ width, height }) => onSize(width, height)}>
+    // `right` puts the line's left edge on x = 0, so left-aligned lines start together.
+    // Not `precise`: that walks every vertex of the bevelled glyphs again on each
+    // re-render (each time the title scrolls in or out), a visible hitch.
+    <Center right={left} precise={false} position={[0, y, 0]} onCentered={({ width, height }) => onSize(width, height)}>
       <Text3D
         font={FONT}
         size={1}
@@ -61,7 +63,7 @@ function Word({ text, y, left, onSize }: { text: string; y: number; left: boolea
           backside
           backsideThickness={0.25}
           samples={6}
-          resolution={768}
+          resolution={512}
           thickness={0.6}
           roughness={0.02}
           ior={1.5}
@@ -122,15 +124,17 @@ function Title({ lines, left, onReady }: { lines: string[]; left: boolean; onRea
 }
 
 function Light() {
-  const key = useRef<THREE.Mesh>(null);
-  useFrame(({ clock }) => {
-    if (key.current) key.current.position.y = Math.sin(clock.elapsedTime * 0.35) * 2.5;
+  // The key light drifts up and down the left side so the glints move. The room
+  // is rendered once and turned (about the view axis), instead of re-rendering
+  // it with the panel moved on every frame.
+  useFrame(({ scene, clock }) => {
+    scene.environmentRotation.z = Math.sin(clock.elapsedTime * 0.35) * 0.26;
   });
   return (
-    <Environment resolution={256} frames={Infinity}>
+    <Environment resolution={256}>
       {/* a dark room, so the glass edges read; all light comes from the panels */}
       <color attach="background" args={["#5c5c5e"]} />
-      <Lightformer ref={key} form="rect" intensity={9} color="#fff0d8" position={[-9, 0, 3]} rotation-y={Math.PI / 2.4} scale={[3, 12, 1]} />
+      <Lightformer form="rect" intensity={9} color="#fff0d8" position={[-9, 0, 3]} rotation-y={Math.PI / 2.4} scale={[3, 12, 1]} />
       <Lightformer form="rect" intensity={2} position={[0, 7, 2]} rotation-x={Math.PI / 2} scale={[14, 2, 1]} />
       <Lightformer form="rect" intensity={0.6} position={[9, 0, -2]} rotation-y={-Math.PI / 2} scale={[2, 10, 1]} />
     </Environment>
@@ -142,7 +146,9 @@ export default function GlassTitleScene({ lines, left, onReady, run }: { lines: 
     // flat: no tone mapping, so the paper seen through the glass stays paper white
     <Canvas
       flat
-      frameloop={run ? "always" : "never"}
+      // off screen: no frames, but the first one is drawn at load (shaders compiled
+      // then), not in the middle of a scroll
+      frameloop={run ? "always" : "demand"}
       dpr={[1, 2]}
       gl={{ alpha: true, antialias: true }}
       camera={{ position: [0, 0, 10], fov: 22 }}
