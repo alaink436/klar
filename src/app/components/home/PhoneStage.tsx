@@ -68,13 +68,8 @@ export default function PhoneStage({ apps }: { apps: StageApp[] }) {
                 )}
               </>
             )}
-            {app.forSale && (
-              <>
-                <span className="text-[var(--ink-3)]">·</span>
-                Open to sell
-              </>
-            )}
           </p>
+          {app.forSale && <p className="mt-1 text-[12px] font-medium leading-none text-[var(--ink-2)]">Available to be bought</p>}
         </div>
       </a>
     </div>

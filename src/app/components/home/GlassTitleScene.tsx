@@ -5,15 +5,17 @@ import { Center, Environment, Lightformer, MeshTransmissionMaterial, Text3D } fr
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
-// "Klar / Studios." as glass (Alain, 2026-11-04: "glass, 3d, von links ein
-// Licht"). Inter Tight 500 like the h1, extruded and bevelled, in transmission
+// Headlines as glass: "Klar / Studios." and "Consults & / Collaborations."
+// (Alain, 2026-11-04: "glass, 3d, von links ein Licht", then "auch noch 3d").
+// Inter Tight 500 like the headings, extruded and bevelled, in transmission
 // glass. Light comes from a warm panel on the left, so the left bevels flare and
 // the light runs through the letters; it drifts slowly so the glints move. The
-// glass refracts the page's own grid with a warm streak from the left, drawn
-// here, because the canvas cannot see the page behind it.
+// glass refracts a paper backdrop with a warm streak from the left, drawn here,
+// because the canvas cannot see the page behind it. Every glyph used must be in
+// the typeface file (AI-Brain Projects/Klar/Content/web-hero/glyphen.py).
 
 const FONT = "/home/3d/intertight-500.json";
-const LINE = 0.86; // the h1's line height
+const LINE = 0.86; // line height in font units
 
 function backdrop() {
   const c = document.createElement("canvas");
@@ -37,10 +39,11 @@ function backdrop() {
   return t;
 }
 
-function Word({ text, y, onSize }: { text: string; y: number; onSize: (w: number, h: number) => void }) {
+function Word({ text, y, left, onSize }: { text: string; y: number; left: boolean; onSize: (w: number, h: number) => void }) {
   const bg = useMemo(() => backdrop(), []);
   return (
-    <Center position={[0, y, 0]} onCentered={({ width, height }) => onSize(width, height)}>
+    // `right` puts the line's left edge on x = 0, so left-aligned lines start together
+    <Center right={left} position={[0, y, 0]} onCentered={({ width, height }) => onSize(width, height)}>
       <Text3D
         font={FONT}
         size={1}
@@ -78,19 +81,22 @@ function Word({ text, y, onSize }: { text: string; y: number; onSize: (w: number
   );
 }
 
-function Title({ onReady }: { onReady: () => void }) {
+function Title({ lines, left, onReady }: { lines: string[]; left: boolean; onReady: () => void }) {
   const group = useRef<THREE.Group>(null);
+  const block = useRef<THREE.Group>(null);
   // the lines' sizes in font units, kept out of React state (measuring re-renders)
-  const top = useRef({ w: 4, h: 0.8 });
-  const bottom = useRef({ w: 4, h: 0.8 });
+  const sizes = useRef(lines.map(() => ({ w: 4, h: 0.8 })));
   useEffect(onReady, [onReady]);
 
   useFrame(({ pointer, clock, viewport }) => {
     const g = group.current;
-    if (!g) return;
-    const w = Math.max(top.current.w, bottom.current.w);
-    const h = LINE + Math.max(top.current.h, bottom.current.h);
-    g.scale.setScalar(Math.min((viewport.width * 0.8) / w, (viewport.height * 0.8) / h));
+    if (!g || !block.current) return;
+    const w = Math.max(...sizes.current.map((s) => s.w));
+    const h = LINE * (lines.length - 1) + Math.max(...sizes.current.map((s) => s.h));
+    // centred: room around for the tilt; left-aligned: as wide as the column
+    const fill = left ? 0.95 : 0.8;
+    g.scale.setScalar(Math.min((viewport.width * fill) / w, (viewport.height * fill) / h));
+    block.current.position.x = left ? -w / 2 : 0;
     const t = clock.elapsedTime;
     // turned a little towards the light, so the lit left sides of the letters show
     g.rotation.y = THREE.MathUtils.damp(g.rotation.y, 0.1 + pointer.x * 0.06 + Math.sin(t * 0.3) * 0.04, 3, 1 / 60);
@@ -99,8 +105,17 @@ function Title({ onReady }: { onReady: () => void }) {
 
   return (
     <group ref={group}>
-      <Word text="Klar" y={LINE / 2} onSize={(w, h) => (top.current = { w, h })} />
-      <Word text="Studios." y={-LINE / 2} onSize={(w, h) => (bottom.current = { w, h })} />
+      <group ref={block}>
+        {lines.map((text, i) => (
+          <Word
+            key={text}
+            text={text}
+            left={left}
+            y={((lines.length - 1) / 2 - i) * LINE}
+            onSize={(w, h) => (sizes.current[i] = { w, h })}
+          />
+        ))}
+      </group>
     </group>
   );
 }
@@ -121,7 +136,7 @@ function Light() {
   );
 }
 
-export default function GlassTitleScene({ onReady, run }: { onReady: () => void; run: boolean }) {
+export default function GlassTitleScene({ lines, left, onReady, run }: { lines: string[]; left: boolean; onReady: () => void; run: boolean }) {
   return (
     // flat: no tone mapping, so the paper seen through the glass stays paper white
     <Canvas
@@ -134,7 +149,7 @@ export default function GlassTitleScene({ onReady, run }: { onReady: () => void;
     >
       <Suspense fallback={null}>
         <Light />
-        <Title onReady={onReady} />
+        <Title lines={lines} left={left} onReady={onReady} />
       </Suspense>
     </Canvas>
   );

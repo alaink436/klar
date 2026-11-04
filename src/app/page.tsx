@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { RiGithubFill } from "@remixicon/react";
 import { findKlarApp } from "@/lib/klarApps";
 import { AppleSvg, PlaySvg } from "./components/StoreBadges";
 import BeamPill from "./components/home/BeamPill";
@@ -62,7 +63,7 @@ const APPS: App[] = [
   { id: "basalt", name: "Basalt", kind: "Weekly habits", line: "Write down what you want to follow through on, then tick it off on the home screen.", ...fromRegistry("wavelength"), film: { wide: film("basalt-wide") }, shots: 5 },
   { id: "kelva", name: "Kelva", kind: "Strength & cycle", line: "Your programme stays put. Kelva adjusts today's session to the week you are having.", ...fromRegistry("kelva"), film: { wide: film("kelva-wide"), tall: film("kelva-tall") }, shots: 6 },
   { id: "pocketmate", name: "Pocketmate", kind: "Couple widget", line: "A home-screen widget for two people who like each other.", ...fromRegistry("myloo"), film: { wide: film("pocketmate-tall") }, shots: 5 },
-  { id: "learnbound", name: "Learnbound", kind: "Put your phone in the box", line: "Set a box on your desk and put your phone in. Only the time it stays there counts as study time.", icon: "/learnbound/icon-v2.webp", href: "/learnbound", soon: true, film: { wide: film("learnbound-wide"), tall: film("learnbound-tall") }, shots: 0 },
+  { id: "learnbound", name: "Learnbound", kind: "Put your phone in the box", line: "Set a box on your desk and put your phone in. Only the time it stays there counts as study time.", ...fromRegistry("learnbound"), icon: "/learnbound/icon-v2.webp", film: { wide: film("learnbound-wide"), tall: film("learnbound-tall") }, shots: 0 },
   { id: "yarnstash", name: "My Yarn Stash", kind: "Row counter", line: "A row counter built for the moment your hands are full.", ...fromRegistry("yarn-stash"), film: { wide: film("yarnstash-wide"), tall: film("yarnstash-tall") }, shots: 4 },
   { id: "animevault", name: "Anime Vault", kind: "Tracker & list", line: "Talk about anime, keep your list and never miss an episode.", ...fromRegistry("anime-vault"), film: { wide: film("animevault-wide"), tall: film("animevault-tall") }, shots: 4 },
 ];
@@ -85,10 +86,11 @@ const STEPS = [
 ];
 // Not to promote right now: still listed in the form, marked as not recommended.
 const NOT_RECOMMENDED = new Set(["yarnstash", "animevault"]);
-// Up for sale (Alain, 2026-11-04): a label on the card, in the app row and under
-// the hero phone; the card's label opens a mail for an offer.
-const OPEN_TO_SELL = new Set(["yarnstash", "animevault"]);
+// Up for sale (Alain, 2026-11-04: "available to be bought"): a label on the card,
+// in the app row and under the hero phone; the card's label opens a mail for an offer.
+const FOR_SALE = new Set(["yarnstash", "animevault"]);
 const offerMail = (app: App) => `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Offer for ${app.name}`)}`;
+const GITHUB = "https://github.com/alaink436";
 // The app keys klar_inquiries.target_app accepts (myloo = Pocketmate, wavelength = Basalt).
 const INQUIRY_SLUG: Record<string, string> = {
   pocketmate: "myloo",
@@ -152,12 +154,12 @@ function AppCard({ app, index }: { app: App; index: number }) {
         <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">
           {String(index + 1).padStart(2, "0")} · {app.kind} · {app.soon ? "Coming soon" : app.play ? "iPhone & Android" : "iPhone"}
         </p>
-        {OPEN_TO_SELL.has(app.id) && (
+        {FOR_SALE.has(app.id) && (
           <a
             href={offerMail(app)}
             className="shrink-0 rounded-full border border-[var(--ink)] px-3 py-1 text-[12.5px] font-medium tracking-[-0.01em] transition hover:bg-[var(--ink)] hover:text-[var(--paper)]"
           >
-            Open to sell
+            Available to be bought
           </a>
         )}
       </div>
@@ -232,14 +234,55 @@ export default function Home() {
           <div className="home-ray absolute inset-0" aria-hidden="true" />
           <div className="relative px-5 pt-28 text-center sm:pt-32">
             <p className="text-[13px] font-medium tracking-[-0.005em]">Made in Switzerland</p>
-            <GlassTitle />
+            <GlassTitle
+              lines={["Klar", "Studios."]}
+              className="mx-auto mt-7 aspect-[2.35/1] w-[min(96vw,1040px)]"
+              textClassName="text-[clamp(64px,15.2vw,236px)] leading-[0.86] tracking-[-0.06em]"
+            />
             <div className="mt-8">
               <BeamPill apps={APPS.map(({ name, icon }) => ({ name, icon }))} />
             </div>
           </div>
           <PhoneStage
-            apps={APPS.map(({ id, name, icon, play, soon }) => ({ id, name, icon, play, soon, forSale: OPEN_TO_SELL.has(id) }))}
+            apps={APPS.map(({ id, name, icon, play, soon }) => ({ id, name, icon, play, soon, forSale: FOR_SALE.has(id) }))}
           />
+        </section>
+
+        {/* Consulting and collaborations, large and right under the hero (Alain,
+            2026-11-04: "viel grösser", "weiter oben", "verlinke mein GitHub"). */}
+        <section id="work" className="border-t">
+          <div className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 md:px-12 md:py-32">
+            <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">Work with us</p>
+            {/* glass in 3D like the hero (Alain, 2026-11-04: "auch noch 3d") */}
+            <GlassTitle
+              as="h2"
+              left
+              lines={["Consults &", "Collaborations."]}
+              className="mt-6 aspect-[3.4/1] w-full max-w-[1100px]"
+              // "Collaborations." is 5.8em wide: 14.5vw fills a phone without spilling over
+              textClassName="text-[clamp(44px,14.5vw,150px)] leading-[0.9] tracking-[-0.055em]"
+            />
+            <p className="mt-10 max-w-[34ch] text-[clamp(18px,1.6vw,23px)] leading-[1.3] tracking-[-0.015em] text-[var(--ink-2)]">
+              Building an app, or want to make something together? Write us.
+            </p>
+            <div className="mt-10 flex flex-wrap gap-3">
+              <a
+                href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Consults & Collaborations")}`}
+                className="inline-flex h-14 items-center rounded-full bg-[var(--ink)] px-8 text-[16px] font-medium tracking-[-0.01em] text-[var(--paper)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition hover:opacity-85"
+              >
+                Get in touch
+              </a>
+              <a
+                href={GITHUB}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-14 items-center gap-2.5 rounded-full border border-white/70 bg-white/50 px-8 text-[16px] font-medium tracking-[-0.01em] shadow-[0_8px_24px_-14px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl transition hover:bg-white/80"
+              >
+                <RiGithubFill size={18} aria-hidden="true" />
+                GitHub
+              </a>
+            </div>
+          </div>
         </section>
 
         {/* Folded by default (Alain, 2026-11-04: "ausklappbar"); the header's "For
@@ -324,7 +367,7 @@ export default function Home() {
                   />
                   <span className="text-[12.5px] font-medium leading-tight tracking-[-0.01em]">{app.name}</span>
                   {app.soon && <span className="-mt-2 text-[11px] text-[var(--ink-3)]">Coming soon</span>}
-                  {OPEN_TO_SELL.has(app.id) && <span className="-mt-2 text-[11px] text-[var(--ink-3)]">Open to sell</span>}
+                  {FOR_SALE.has(app.id) && <span className="-mt-2 text-[11px] leading-tight text-[var(--ink-3)]">Available to be bought</span>}
                 </a>
               </li>
             ))}
