@@ -627,6 +627,11 @@ html:has(.home), html:has(.home) body { background: #ededeb; }
 @keyframes home-pop {
   from { opacity: 0; transform: scale(0.6); filter: blur(4px); }
 }
+/* the way back out, quicker and without the overshoot (PhoneStage screenshots) */
+.home-pop-out { animation: home-pop-out 0.3s cubic-bezier(0.4, 0, 1, 1) both; }
+@keyframes home-pop-out {
+  to { opacity: 0; transform: scale(0.8); filter: blur(4px); }
+}
 @keyframes home-breathe {
   0%, 100% { opacity: 0.85; }
   50% { opacity: 1; }
@@ -635,7 +640,7 @@ html:has(.home), html:has(.home) body { background: #ededeb; }
   50% { opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .home-beam, .home-caret, .home-pop { animation: none; }
+  .home-beam, .home-caret, .home-pop, .home-pop-out { animation: none; }
 }
 
 /* App-page phones (AppLanding): the rise and the float on two layers. */

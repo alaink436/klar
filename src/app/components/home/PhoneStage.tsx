@@ -12,6 +12,9 @@ import useOnScreen from "./useOnScreen";
 
 const Scene = dynamic(() => import("./PhoneStageScene"), { ssr: false });
 
+// how long the old screenshots take to go out (home-pop-out, 0.3 s, plus the stagger)
+const OUT_MS = 450;
+
 export type StageApp = { id: string; name: string; icon: string; play?: string; soon: boolean; forSale: boolean; shots: string[] };
 
 export default function PhoneStage({ apps }: { apps: StageApp[] }) {
@@ -32,7 +35,17 @@ export default function PhoneStage({ apps }: { apps: StageApp[] }) {
     apps[(active + 1) % apps.length].shots.forEach((src) => (new Image().src = src));
   }, [active, apps]);
 
+  // the screenshots shown lag behind the phone: the old ones go out first
+  // (Alain, 2026-11-04: "auch ease out"), then the new ones come in
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    const t = window.setTimeout(() => setShown(active), OUT_MS);
+    return () => window.clearTimeout(t);
+  }, [active]);
+  const leaving = shown !== active;
+
   const app = apps[active];
+  const tiles = apps[shown];
 
   return (
     <div ref={box} className="relative mt-8 md:mt-10">
@@ -50,12 +63,12 @@ export default function PhoneStage({ apps }: { apps: StageApp[] }) {
       {/* each screenshot its own tile ("darunter unterteilt", Alain 2026-11-04);
           name and stores are on the phone's screen */}
       <a
-        key={app.id}
-        href={`#${app.id}`}
-        aria-label={`${app.name}: jump to the app`}
+        key={tiles.id}
+        href={`#${tiles.id}`}
+        aria-label={`${tiles.name}: jump to the app`}
         className="mx-auto flex max-w-[1100px] justify-center gap-2 px-5 pb-12 sm:gap-3 md:pb-16"
       >
-        {app.shots.map((src, i) => (
+        {tiles.shots.map((src, i) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={src}
@@ -63,9 +76,8 @@ export default function PhoneStage({ apps }: { apps: StageApp[] }) {
             alt=""
             width={660}
             height={1434}
-            className={`home-pop h-auto min-w-0 max-w-[130px] flex-1 rounded-[14px] shadow-[0_18px_40px_-22px_rgba(0,0,0,0.4)] ${i >= 3 ? "hidden sm:block" : ""}`}
-            // they come as the new phone turns in, not while the old one is still in front
-            style={{ animationDelay: `${450 + i * 60}ms` }}
+            className={`${leaving ? "home-pop-out" : "home-pop"} h-auto min-w-0 max-w-[130px] flex-1 rounded-[14px] shadow-[0_18px_40px_-22px_rgba(0,0,0,0.4)] ${i >= 3 ? "hidden sm:block" : ""}`}
+            style={{ animationDelay: `${i * (leaving ? 30 : 60)}ms` }}
           />
         ))}
       </a>
