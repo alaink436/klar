@@ -41,8 +41,8 @@ export default function GlassTitle({
           </span>
         ))}
       </Tag>
-      {/* the canvas reaches past the box so tilt and bevels are not cut; left-aligned it keeps the column's edges */}
-      <div aria-hidden="true" className={`absolute transition-opacity duration-700 ${left ? "inset-x-0 inset-y-[-14%]" : "inset-[-6%]"} ${ready ? "" : "opacity-0"}`}>
+      {/* the canvas reaches past the box so tilt and bevels are not cut (left-aligned it ran flush with the column and the turned "C" was cut off, Alain 2026-11-04) */}
+      <div aria-hidden="true" className={`absolute transition-opacity duration-700 ${left ? "inset-x-[-6%] inset-y-[-14%]" : "inset-[-6%]"} ${ready ? "" : "opacity-0"}`}>
         <Scene lines={lines} left={left} onReady={onReady} run={run} />
       </div>
     </div>

@@ -93,8 +93,9 @@ function Title({ lines, left, onReady }: { lines: string[]; left: boolean; onRea
     if (!g || !block.current) return;
     const w = Math.max(...sizes.current.map((s) => s.w));
     const h = LINE * (lines.length - 1) + Math.max(...sizes.current.map((s) => s.h));
-    // centred: room around for the tilt; left-aligned: as wide as the column
-    const fill = left ? 0.95 : 0.8;
+    // centred: room around for the tilt; left-aligned: as wide as the column, which
+    // is the canvas minus the 6 % it reaches out on each side (GlassTitle)
+    const fill = left ? 0.86 : 0.8;
     g.scale.setScalar(Math.min((viewport.width * fill) / w, (viewport.height * fill) / h));
     block.current.position.x = left ? -w / 2 : 0;
     const t = clock.elapsedTime;
