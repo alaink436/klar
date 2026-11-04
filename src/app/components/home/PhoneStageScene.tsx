@@ -1,17 +1,20 @@
 "use client";
 
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, useGLTF, useTexture } from "@react-three/drei";
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { APPLE_PATH, PLAY_PATH } from "../StoreBadges";
+import type { StageApp } from "./PhoneStage";
 
 // The cinematic shot under the headline (Alain, 2026-11-04: "wie bei Basalt auf
 // der Pre-Paywall von den Shortcuts"): the real iPhone model from that scene
 // (Pod/Content/oberflaeche/proto/model/iphone.glb), big, tilted back, in front
 // of the same sea of clouds (a still behind the transparent canvas, see
 // PhoneStage). One phone per app, its screen the scene from the app's store
-// film. When the pill above names the next app, the phone turns away to the
-// left or right and the next one turns in, each time in a new pose from POSES.
+// film with the app's card on top (Alain, 2026-11-04: "das Logo drauf"). When
+// the pill above names the next app, the phone turns away to the left or right
+// and the next one turns in, each time in a new pose from POSES.
 
 const PHONE = "/home/3d/iphone.glb";
 const SCALE = 2.05;
@@ -50,6 +53,81 @@ function roundedRect(w: number, h: number, r: number) {
   return g;
 }
 
+// The screen: the scene with a dark glass card in its upper part, as the small
+// phones had it (HeroPhones, until 2026-11-04), only larger: icon, name, where
+// the app is out. Sizes in % of the screen width (u), like the cqw there.
+function screenTexture(scene: HTMLImageElement, icon: HTMLImageElement, app: StageApp, font: string) {
+  const c = document.createElement("canvas");
+  c.width = 750;
+  c.height = Math.round((c.width * scene.height) / scene.width);
+  const g = c.getContext("2d")!;
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8; // tilted back, the card would blur without it
+  const u = c.width / 100;
+
+  const draw = () => {
+    g.drawImage(scene, 0, 0, c.width, c.height);
+    const x = 6 * u, y = 22 * u, w = 88 * u, h = (app.forSale ? 30 : 25) * u;
+    g.save();
+    g.beginPath();
+    g.roundRect(x, y, w, h, 7 * u);
+    g.clip();
+    g.filter = "blur(14px)";
+    g.drawImage(scene, 0, 0, c.width, c.height);
+    g.filter = "none";
+    g.fillStyle = "rgba(0,0,0,0.5)";
+    g.fillRect(x, y, w, h);
+    g.restore();
+
+    const s = 17 * u, ix = x + 3 * u, iy = y + (h - s) / 2;
+    g.save();
+    g.beginPath();
+    g.roundRect(ix, iy, s, s, s * 0.225);
+    g.clip();
+    g.drawImage(icon, ix, iy, s, s);
+    g.restore();
+
+    let tx = ix + s + 3.5 * u, ty = y + h / 2 - (app.forSale ? 9.2 : 6) * u;
+    g.textBaseline = "top";
+    g.fillStyle = "#fff";
+    g.font = `600 ${8 * u}px ${font}`;
+    g.fillText(app.name, tx, ty);
+    ty += 10 * u;
+    g.fillStyle = "rgba(255,255,255,0.75)";
+    g.font = `500 ${4.5 * u}px ${font}`;
+    const glyph = (d: string, vw: number) => {
+      const k = (4.5 * u) / 26;
+      g.save();
+      g.translate(tx, ty - 0.4 * u);
+      g.scale(k, k);
+      g.fill(new Path2D(d));
+      g.restore();
+      tx += vw * k + 1.6 * u;
+    };
+    const word = (text: string) => {
+      g.fillText(text, tx, ty);
+      tx += g.measureText(text).width + 1.6 * u;
+    };
+    if (app.soon) word("Coming soon");
+    else {
+      glyph(APPLE_PATH, 22);
+      word("App Store");
+      if (app.play) {
+        word("·");
+        glyph(PLAY_PATH, 22);
+        word("Google Play");
+      }
+    }
+    if (app.forSale) g.fillText("Available to be bought", ix + s + 3.5 * u, ty + 7 * u);
+    t.needsUpdate = true;
+  };
+  draw();
+  // the page font may still be on its way; draw again once it is there
+  document.fonts.load(`600 ${8 * u}px ${font}`).then(draw);
+  return t;
+}
+
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 function Phone({ scene: src, screen, phone }: { scene: THREE.Object3D; screen: THREE.Texture; phone: React.Ref<THREE.Group> }) {
@@ -74,11 +152,15 @@ function Phone({ scene: src, screen, phone }: { scene: THREE.Object3D; screen: T
   );
 }
 
-function Phones({ ids, active, onReady }: { ids: string[]; active: number; onReady: () => void }) {
+function Phones({ apps, active, onReady }: { apps: StageApp[]; active: number; onReady: () => void }) {
   const { scene } = useGLTF(PHONE);
-  const screens = useTexture(ids.map((id) => `/home/scenes/${id}.webp`), (ts) =>
-    ts.forEach((t) => (t.colorSpace = THREE.SRGBColorSpace)),
-  );
+  const scenes = useTexture(apps.map((a) => `/home/scenes/${a.id}.webp`));
+  const icons = useTexture(apps.map((a) => a.icon));
+  const canvas = useThree((st) => st.gl.domElement);
+  const screens = useMemo(() => {
+    const font = getComputedStyle(canvas).fontFamily; // the page's own type
+    return apps.map((a, i) => screenTexture(scenes[i].image as HTMLImageElement, icons[i].image as HTMLImageElement, a, font));
+  }, [apps, scenes, icons, canvas]);
   const refs = useRef<(THREE.Group | null)[]>([]);
   const rig = useRef<THREE.Group>(null);
   // t0 = -1: the first phone turns in as soon as the scene has its first frame
@@ -127,8 +209,8 @@ function Phones({ ids, active, onReady }: { ids: string[]; active: number; onRea
 
   return (
     <group ref={rig}>
-      {ids.map((id, i) => (
-        <Phone key={id} scene={scene} screen={screens[i]} phone={(g) => { refs.current[i] = g; }} />
+      {apps.map((a, i) => (
+        <Phone key={a.id} scene={scene} screen={screens[i]} phone={(g) => { refs.current[i] = g; }} />
       ))}
     </group>
   );
@@ -146,7 +228,7 @@ function Light() {
   );
 }
 
-export default function PhoneStageScene({ ids, active, onReady, run }: { ids: string[]; active: number; onReady: () => void; run: boolean }) {
+export default function PhoneStageScene({ apps, active, onReady, run }: { apps: StageApp[]; active: number; onReady: () => void; run: boolean }) {
   return (
     <Canvas
       frameloop={run ? "always" : "never"}
@@ -157,7 +239,7 @@ export default function PhoneStageScene({ ids, active, onReady, run }: { ids: st
     >
       <Suspense fallback={null}>
         <Light />
-        <Phones ids={ids} active={active} onReady={onReady} />
+        <Phones apps={apps} active={active} onReady={onReady} />
       </Suspense>
     </Canvas>
   );
