@@ -611,6 +611,14 @@ html:has(.home), html:has(.home) body { background: #ededeb; }
 .home-glow {
   background: radial-gradient(ellipse 55% 45% at 50% 32%, rgb(255 255 255 / 0.7), transparent 70%);
 }
+/* warm light from the left across the glass headline */
+.home-ray {
+  background: radial-gradient(ellipse 70% 22% at 0% 26%, rgb(255 238 210 / 0.75), transparent 72%);
+}
+/* the creators section opens smoothly where the browser can animate to auto */
+#creators { interpolate-size: allow-keywords; }
+#creators::details-content { height: 0; overflow: clip; transition: height 0.5s ease, content-visibility 0.5s allow-discrete; }
+#creators[open]::details-content { height: auto; }
 
 /* The light in the hero capsule breathes, the caret blinks. */
 .home-beam { animation: home-breathe 5.5s ease-in-out infinite; transform-origin: left center; }
@@ -630,14 +638,7 @@ html:has(.home), html:has(.home) body { background: #ededeb; }
   .home-beam, .home-caret, .home-pop { animation: none; }
 }
 
-/* Hero phones: position, tilt and depth on the link, the rise and the float on
-   two inner layers, so the three transforms never overwrite each other. */
-.home-phone {
-  transform: translateY(var(--lift, 0px)) rotate(var(--rot)) scale(var(--z));
-  transform-origin: 50% 100%;
-  transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.home-phone:hover, .home-phone:focus-visible { --lift: -18px; }
+/* App-page phones (AppLanding): the rise and the float on two layers. */
 .home-phone-rise { animation: home-phone-rise 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .home-phone-bob { animation: home-phone-bob 6s ease-in-out infinite; }
 @keyframes home-phone-rise {
@@ -646,16 +647,8 @@ html:has(.home), html:has(.home) body { background: #ededeb; }
 @keyframes home-phone-bob {
   50% { transform: translateY(-4%); }
 }
-/* the logo on a hero phone when the beam pill names its app */
-.home-wiggle { animation: home-wiggle 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
-@keyframes home-wiggle {
-  15% { transform: rotate(-12deg) scale(1.14); }
-  35% { transform: rotate(10deg) scale(1.14); }
-  55% { transform: rotate(-6deg) scale(1.07); }
-  75% { transform: rotate(3deg) scale(1.02); }
-}
 @media (prefers-reduced-motion: reduce) {
-  .home-phone-rise, .home-phone-bob, .home-wiggle { animation: none; }
+  .home-phone-rise, .home-phone-bob { animation: none; }
 }
 
 /* Creators heading: words come into focus one by one, the last line is set in

@@ -18,7 +18,8 @@ const SECURITY_HEADERS = [
       "media-src 'self' blob:",
       // Permit Brevo/Supabase POST targets
       "frame-src 'self'",
-      "connect-src 'self' https://*.supabase.co https://api.brevo.com https://va.vercel-scripts.com",
+      // blob: the hero's iPhone model (three.js GLTFLoader) fetches its own textures as blob URLs
+      "connect-src 'self' blob: https://*.supabase.co https://api.brevo.com https://va.vercel-scripts.com",
       // Only Klar itself may embed Klar pages
       "frame-ancestors 'self'",
       "base-uri 'self'",
