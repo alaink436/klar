@@ -173,13 +173,17 @@ export const KLAR_APPS: KlarAppMeta[] = [
   },
   // Learnbound (repo Podify, formerly Focus Crew) since 2026-10-21: users from
   // its Supabase, revenue from the RevenueCat project that is still called
-  // "Podify". iOS 1.0.1 waits for Apple, so it stays off the public site.
-  // Last in the list so every other app keeps its chart colour.
+  // "Podify". Out on both stores, measured 2026-11-04 (iTunes lookup 1.2.0 in
+  // CH, US, DE, GB; Play page 200). Last in the list so every other app keeps
+  // its chart colour.
   {
     slug: "learnbound",
     name: "Learnbound",
     icon: "/icons/learnbound-v3.webp",
-    status: "BETA",
+    status: "LIVE",
+    release: "v1.2.0",
+    appStoreUrl: "https://apps.apple.com/app/id6778560113",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=com.podifyapp.app",
     publicSite: false,
     aliases: ["Podify"],
   },
