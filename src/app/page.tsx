@@ -237,7 +237,6 @@ export default function Home() {
             <GlassTitle
               lines={["Klar", "Studios."]}
               className="mx-auto mt-7 aspect-[2.35/1] w-[min(96vw,1040px)]"
-              textClassName="text-[clamp(64px,15.2vw,236px)] leading-[0.86] tracking-[-0.06em]"
             />
             <div className="mt-8">
               <BeamPill apps={APPS.map(({ name, icon }) => ({ name, icon }))} />
@@ -267,8 +266,6 @@ export default function Home() {
               left
               lines={["Consults &", "Collaborations."]}
               className="mt-6 aspect-[3.4/1] w-full max-w-[1100px]"
-              // "Collaborations." is 5.8em wide: 14.5vw fills a phone without spilling over
-              textClassName="text-[clamp(44px,14.5vw,150px)] leading-[0.9] tracking-[-0.055em]"
             />
             <p className="mt-10 max-w-[34ch] text-[clamp(18px,1.6vw,23px)] leading-[1.3] tracking-[-0.015em] text-[var(--ink-2)]">
               Building an app, or want to make something together? Write us.
