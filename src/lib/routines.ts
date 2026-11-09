@@ -48,12 +48,15 @@ export interface RoutinePostView {
   handle: string;
   name: string;
   format: string | null;
+  caption: string | null;
   scheduledFor: string | null;
   url: string | null;
   postedAt: string | null;
   views24h: number | null;
   views3d: number | null;
   viewsNow: number | null;
+  /** scheduled for later than now: not on TikTok yet */
+  planned: boolean;
 }
 
 type Write = { ok: true; msg: string } | { ok: false; msg: string };
@@ -183,9 +186,10 @@ export async function routinePosts(days = 14, now = Date.now()): Promise<Routine
     handle: string;
     name: string;
     format: string | null;
+    caption: string | null;
     scheduled_for: string | null;
     post_id: string | null;
-  }>(`klar_routine_posts?scheduled_for=gte.${since}&select=id,app_slug,handle,name,format,scheduled_for,post_id&order=scheduled_for.desc`);
+  }>(`klar_routine_posts?scheduled_for=gte.${since}&select=id,app_slug,handle,name,format,caption,scheduled_for,post_id&order=scheduled_for.desc`);
   const ids = rows.map((r) => r.post_id).filter((p): p is string => Boolean(p));
   const [posts, snaps] = ids.length
     ? await Promise.all([
@@ -207,12 +211,14 @@ export async function routinePosts(days = 14, now = Date.now()): Promise<Routine
       handle: r.handle,
       name: r.name,
       format: r.format,
+      caption: r.caption,
       scheduledFor: r.scheduled_for,
       url: p?.url ?? null,
       postedAt: p?.posted_at ?? null,
       views24h: p ? viewsAt(s, p.posted_at, DAY, now) : null,
       views3d: p ? viewsAt(s, p.posted_at, 3 * DAY, now) : null,
       viewsNow: s.length ? s[s.length - 1].views : null,
+      planned: Boolean(r.scheduled_for && Date.parse(r.scheduled_for) > now),
     };
   });
 }

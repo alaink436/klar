@@ -1,6 +1,7 @@
 // Klar Control · Content — the marketing infrastructure in one place.
 //
-// Two tabs. "Landkarte" opens first: every social account across the five apps
+// Three tabs. "Formate" opens first since 2026-11-09 (./FormatBoard): the routines' formats and posts with their
+// views. Then "Landkarte": every social account across the five apps
 // as a graph (React Flow, same mechanics as the AI-Brain viewer), including the
 // private niche accounts Blotato has never seen. That is the overview question —
 // what do we own and how big is it — and it is the one asked most often.
@@ -44,6 +45,7 @@ import { TextureCard, TextureCardHeader, TextureCardTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ContentChart, { type ContentChartRow } from "./ContentChart";
+import { FormatBoard } from "./FormatBoard";
 import { Kennzahlen } from "../Kennzahlen";
 import { appChartColor, chartColorValue } from "../tremor/utils/chartColors";
 import AccountBoard from "@/app/components/accounts/AccountBoard";
@@ -394,17 +396,51 @@ function buildChart(
 
 // ---------- page ----------
 
+function ContentTabs({ tab, rangeKey }: { tab: "formate" | "map" | "pipeline"; rangeKey: string }) {
+  return (
+    <div className="klar-segment mb-5" role="tablist" aria-label="Content Tab">
+      {(
+        [
+          { key: "formate", label: "Formate", href: "/admin/content" },
+          { key: "map", label: "Landkarte", href: "/admin/content?tab=map" },
+          { key: "pipeline", label: "Pipeline", href: `/admin/content?tab=pipeline&range=${rangeKey}` },
+        ] as const
+      ).map((t) => (
+        <Link key={t.key} href={t.href} role="tab" aria-selected={tab === t.key}>
+          {t.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export default async function ContentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string; hide?: string; tab?: string }>;
+  searchParams: Promise<{ range?: string; hide?: string; tab?: string; app?: string; kanal?: string; format?: string }>;
 }) {
   await requireAdminPage();
 
   const sp = await searchParams;
-  const tab = sp.tab === "pipeline" ? "pipeline" : "map";
+  // Formate opens first since 2026-11-09 (Alain: "den Tab Content neu, mit einerseits den Formaten, dann die Posts
+  // dort drinnen"); the map and the pipeline are unchanged behind it.
+  const tab = sp.tab === "pipeline" ? "pipeline" : sp.tab === "map" ? "map" : "formate";
   const onMap = tab === "map";
   const range = RANGES.find((r) => r.key === sp.range) ?? RANGES[1]; // default 30d
+
+  if (tab === "formate") {
+    return (
+      <>
+        <title>Content · Klar Control</title>
+        <AdminTopbar titel="Content" />
+        <div className="content">
+          <PageHeader eyebrow="Marketing-Infrastruktur" icon={<Clapperboard />} title="Content" />
+          <ContentTabs tab={tab} rangeKey={range.key} />
+          <FormatBoard app={sp.app} kanal={sp.kanal} format={sp.format} />
+        </div>
+      </>
+    );
+  }
   const sinceMs = range.days == null ? 0 : Date.now() - range.days * 86_400_000;
 
   // Each tab pays only for its own data. The map needs one request (which
@@ -553,18 +589,7 @@ export default async function ContentPage({
       <div className="content">
         <PageHeader eyebrow="Marketing-Infrastruktur" icon={<Clapperboard />} title="Content" />
 
-        <div className="klar-segment mb-5" role="tablist" aria-label="Content Tab">
-          {(
-            [
-              { key: "map", label: "Landkarte", href: "/admin/content" },
-              { key: "pipeline", label: "Pipeline", href: `/admin/content?tab=pipeline&range=${range.key}` },
-            ] as const
-          ).map((t) => (
-            <Link key={t.key} href={t.href} role="tab" aria-selected={tab === t.key}>
-              {t.label}
-            </Link>
-          ))}
-        </div>
+        <ContentTabs tab={tab} rangeKey={range.key} />
 
         {onMap ? (
           <AccountBoard accounts={mapAccounts} />
