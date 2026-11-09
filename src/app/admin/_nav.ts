@@ -47,6 +47,8 @@ export const NAV_ITEMS: NavItemDef[] = [
   // Konten (seit 2026-10-01): jedes Social-Konto mit Login und Passwort an einer
   // Stelle. Passwoerter liegen verschluesselt im Vault, siehe lib/socialAccountsStore.
   { id: "accounts", labelKey: "navAccounts", icon: "lock", href: "/admin/accounts", section: "studios", tabOf: "content" },
+  // Routinen (seit 2026-11-09): die taeglichen TikTok-Routinen, ihre Uhrzeiten und wie ihre Posts liefen.
+  { id: "routines", labelKey: "navRoutines", icon: "calendar", href: "/admin/routinen", section: "studios", tabOf: "content" },
   { id: "collabs", labelKey: "navCollabs", icon: "reply", href: "/admin/collabs", section: "studios" },
   { id: "analytics", labelKey: "navAnalytics", icon: "analytics", href: "/admin/analytics", section: "studios" },
   // Creators (seit 2026-10-14): Affiliates mit ihrem Detour-Link und wie viele
