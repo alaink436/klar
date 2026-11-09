@@ -3,7 +3,7 @@
 //
 // The cloud routines read their row through GET /api/routines and report every scheduled draft through
 // POST /api/routines/posts. Alain changes the times on /admin/routinen. After every read of our own accounts
-// (lib/ownViews, through Evomi, four times a day) matchRoutinePosts() ties new drafts to the TikTok posts they became (lib/routineMatch).
+// (lib/ownViews, through Evomi, every 6 hours) matchRoutinePosts() ties new drafts to the TikTok posts they became (lib/routineMatch).
 
 import "server-only";
 import { matchPosts, viewsAt } from "./routineMatch";

@@ -3,7 +3,7 @@
 // The four daily TikTok post routines (Learnbound, Pocketmate, Basalt, Kelva), migrations/0056. Per routine: on or
 // off, its posting times as chips (each click saves; the number of chips that are on is the frequency), the daily
 // Higgsfield budget, and every post it scheduled with its views after 24 hours and after 3 days, as Evomi read them
-// (lib/ownViews, four times a day).
+// (lib/ownViews, every 6 hours).
 // The cloud routines read these settings through GET /api/routines at the start of each run (Alain 2026-11-09:
 // "dass ich dann die Frequenz dort auch gleich mit einstellen kann ... dass man immer sieht welcher Post gut
 // performt hat"). Written through /admin/routinen/save, read through src/lib/routines.ts.
@@ -66,7 +66,7 @@ export default async function RoutinenPage({ searchParams }: { searchParams: Pro
       <div className="content">
         <PageHeader eyebrow="Klar Studios" icon={<CalendarClock />} title="Routinen">
           Die täglichen TikTok-Routinen. Jede Uhrzeit, die an ist, wird ein Post; die Routine liest das beim nächsten
-          Lauf. Darunter jeder Post der letzten 14 Tage mit seinen Views, viermal am Tag über Evomi gelesen.
+          Lauf. Darunter jeder Post der letzten 14 Tage mit seinen Views, alle 6 Stunden über Evomi gelesen.
         </PageHeader>
 
         <Kennzahlen

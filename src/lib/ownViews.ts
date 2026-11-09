@@ -7,7 +7,7 @@
 // text, which starts with the caption, i.e. our hashtag line. No likes or shares. Enough to tie a routine's draft to
 // its post (lib/routineMatch) and to compare posts.
 //
-// Read four times a day by Vercel cron (Hobby allows each cron once a day, so four entries, /api/cron/own-views/1..4).
+// Read every 6 hours by Vercel cron (/api/cron/own-views), like the Apify schedule before.
 // The accounts are the routines' own (klar_routines.accounts). Each run then does what Apify's own run did as the
 // clock: match the drafts, confirm bio codes, and start the creators' Apify task (lib/postViews.runCreatorClock).
 
