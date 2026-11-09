@@ -2,8 +2,8 @@
 // how those posts did on TikTok.
 //
 // The cloud routines read their row through GET /api/routines and report every scheduled draft through
-// POST /api/routines/posts. Alain changes the times on /admin/routinen. After every Apify run of our own accounts
-// (lib/postViews) matchRoutinePosts() ties new drafts to the TikTok posts they became (lib/routineMatch).
+// POST /api/routines/posts. Alain changes the times on /admin/routinen. After every read of our own accounts
+// (lib/ownViews, through Evomi, four times a day) matchRoutinePosts() ties new drafts to the TikTok posts they became (lib/routineMatch).
 
 import "server-only";
 import { matchPosts, viewsAt } from "./routineMatch";
@@ -112,21 +112,28 @@ export async function stepCredits(app: string, step: 1 | -1): Promise<Write> {
 
 /** Stores what a routine scheduled. A post sent again under the same name (a resend) updates its row. */
 export async function recordRoutinePosts(posts: RoutinePostIn[]): Promise<Write> {
-  const apps = new Set((await listRoutines()).map((r) => r.app_slug));
+  // The handle must be one of the routine's own accounts: the conflict key is (handle, name), so a foreign pair
+  // could otherwise overwrite another routine's row (Codeguard 2026-11-09).
+  const accountsOf = new Map((await listRoutines()).map((r) => [r.app_slug, new Set(r.accounts.map((a) => a.handle.toLowerCase()))]));
+  // Every text field a string or absent: an array or object would pass slice() and land in full length.
+  const text = (v: unknown, max: number): string | null | undefined =>
+    v === undefined || v === null ? null : typeof v === "string" ? v.slice(0, max) : undefined;
   const rows = [];
   for (const p of posts) {
-    const handle = String(p.handle ?? "").replace(/^@/, "").toLowerCase();
-    if (!apps.has(p.app_slug) || !HANDLE_RE.test(handle) || !p.name) return { ok: false, msg: `Unbekannte Routine oder Post: ${p.app_slug}/${p.name}` };
-    if (p.scheduled_for && Number.isNaN(Date.parse(p.scheduled_for))) return { ok: false, msg: `Termin unlesbar: ${p.name}` };
-    rows.push({
-      app_slug: p.app_slug,
-      handle,
-      name: p.name.slice(0, 80),
-      format: p.format?.slice(0, 40) ?? null,
-      caption: p.caption?.slice(0, 2200) ?? null,
-      scheduled_for: p.scheduled_for ?? null,
-      blotato_id: p.blotato_id?.slice(0, 80) ?? null,
-    });
+    const handle = typeof p.handle === "string" ? p.handle.replace(/^@/, "").toLowerCase() : "";
+    const [name, format, caption, scheduledFor, blotatoId] = [
+      text(p.name, 80),
+      text(p.format, 40),
+      text(p.caption, 2200),
+      text(p.scheduled_for, 40),
+      text(p.blotato_id, 80),
+    ];
+    if (!accountsOf.get(p.app_slug)?.has(handle) || !HANDLE_RE.test(handle) || !name) {
+      return { ok: false, msg: `Unbekannte Routine, Konto oder Post: ${String(p.app_slug)}/${handle}/${String(name)}` };
+    }
+    if ([format, caption, scheduledFor, blotatoId].includes(undefined)) return { ok: false, msg: `Feld ist kein Text: ${name}` };
+    if (scheduledFor && Number.isNaN(Date.parse(scheduledFor))) return { ok: false, msg: `Termin unlesbar: ${name}` };
+    rows.push({ app_slug: p.app_slug, handle, name, format, caption, scheduled_for: scheduledFor, blotato_id: blotatoId });
   }
   if (rows.length === 0) return { ok: true, msg: "Nichts zu speichern." };
   const res = await fetch(`${HUB}/rest/v1/klar_routine_posts?on_conflict=handle,name`, {
@@ -139,7 +146,7 @@ export async function recordRoutinePosts(posts: RoutinePostIn[]): Promise<Write>
   return { ok: true, msg: `${rows.length} Posts gespeichert.` };
 }
 
-/** Ties drafts of the last two weeks to the TikTok posts Apify read. Returns how many new links were made. */
+/** Ties drafts of the last two weeks to the TikTok posts read by Evomi (or Apify). Returns how many new links were made. */
 export async function matchRoutinePosts(now = Date.now()): Promise<number> {
   const since = new Date(now - 14 * DAY).toISOString();
   const routine = await hubGet<{ id: string; handle: string; caption: string | null; scheduled_for: string | null; post_id: string | null }>(
@@ -210,8 +217,16 @@ export async function routinePosts(days = 14, now = Date.now()): Promise<Routine
   });
 }
 
-/** Which handles Apify reads right now (active own accounts). */
-export async function trackedHandles(): Promise<Set<string>> {
-  const rows = await hubGet<{ handle: string }>("klar_view_accounts?active=eq.true&source=eq.own&select=handle");
-  return new Set(rows.map((r) => r.handle.toLowerCase()));
+/** Which of the given accounts got a view count in the last two days (read by Evomi, lib/ownViews). */
+export async function recentlyRead(handles: string[], now = Date.now()): Promise<Set<string>> {
+  if (handles.length === 0) return new Set();
+  const posts = await hubGet<{ post_id: string; handle: string }>(
+    `klar_posts?handle=${inList(handles.map((h) => h.toLowerCase()))}&posted_at=gte.${new Date(now - 30 * DAY).toISOString()}&select=post_id,handle`,
+  );
+  if (posts.length === 0) return new Set();
+  const read = await hubGet<{ post_id: string }>(
+    `klar_post_views?post_id=${inList(posts.map((p) => p.post_id))}&fetched_at=gte.${new Date(now - 2 * DAY).toISOString()}&select=post_id`,
+  );
+  const handleOf = new Map(posts.map((p) => [p.post_id, p.handle]));
+  return new Set(read.map((r) => handleOf.get(r.post_id)!).filter(Boolean));
 }

@@ -9,6 +9,22 @@
     {
       "path": "/api/cron/creator-model",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/own-views/1",
+      "schedule": "15 4 * * *"
+    },
+    {
+      "path": "/api/cron/own-views/2",
+      "schedule": "15 10 * * *"
+    },
+    {
+      "path": "/api/cron/own-views/3",
+      "schedule": "15 16 * * *"
+    },
+    {
+      "path": "/api/cron/own-views/4",
+      "schedule": "15 22 * * *"
     }
   ]
 }

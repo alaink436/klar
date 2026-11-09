@@ -2,14 +2,15 @@
 //
 // The four daily TikTok post routines (Learnbound, Pocketmate, Basalt, Kelva), migrations/0056. Per routine: on or
 // off, its posting times as chips (each click saves; the number of chips that are on is the frequency), the daily
-// Higgsfield budget, and every post it scheduled with its views after 24 hours and after 3 days, as Apify read them.
+// Higgsfield budget, and every post it scheduled with its views after 24 hours and after 3 days, as Evomi read them
+// (lib/ownViews, four times a day).
 // The cloud routines read these settings through GET /api/routines at the start of each run (Alain 2026-11-09:
 // "dass ich dann die Frequenz dort auch gleich mit einstellen kann ... dass man immer sieht welcher Post gut
 // performt hat"). Written through /admin/routinen/save, read through src/lib/routines.ts.
 
 import { CalendarClock } from "lucide-react";
 import { requireAdminPage } from "../../../lib/adminGuard";
-import { SLOT_CHOICES, listRoutines, routinePosts, trackedHandles, type RoutinePostView } from "../../../lib/routines";
+import { SLOT_CHOICES, listRoutines, recentlyRead, routinePosts, type RoutinePostView } from "../../../lib/routines";
 import { AdminTopbar } from "../AdminTopbar";
 import { Kennzahlen } from "../Kennzahlen";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,7 @@ function Marke({ an }: { an: boolean }) {
   );
 }
 
-/** Formats ranked by mean views after 24 hours, only posts Apify has read. */
+/** Formats ranked by mean views after 24 hours, only posts with a count by then. */
 function formatRanking(posts: RoutinePostView[]): Array<{ format: string; posts: number; views: number }> {
   const by = new Map<string, number[]>();
   for (const p of posts) if (p.format && p.views24h !== null) by.set(p.format, [...(by.get(p.format) ?? []), p.views24h]);
@@ -50,11 +51,13 @@ function formatRanking(posts: RoutinePostView[]): Array<{ format: string; posts:
 export default async function RoutinenPage({ searchParams }: { searchParams: Promise<{ msg?: string; err?: string }> }) {
   await requireAdminPage();
   const sp = await searchParams;
-  const [routines, posts, tracked] = await Promise.all([listRoutines(), routinePosts(14), trackedHandles()]);
+  const [routines, posts] = await Promise.all([listRoutines(), routinePosts(14)]);
+  const handles = [...new Set(routines.flatMap((r) => r.accounts.map((a) => a.handle.toLowerCase())))];
+  const read = await recentlyRead(handles);
   const an = routines.filter((r) => r.active);
-  const read = posts.filter((p) => p.views24h !== null);
-  const best = [...read].sort((a, b) => (b.views24h ?? 0) - (a.views24h ?? 0))[0];
-  const untracked = routines.flatMap((r) => r.accounts.map((a) => a.handle)).filter((h) => !tracked.has(h.toLowerCase()));
+  const counted = posts.filter((p) => p.views24h !== null);
+  const best = [...counted].sort((a, b) => (b.views24h ?? 0) - (a.views24h ?? 0))[0];
+  const unread = handles.filter((h) => !read.has(h));
 
   return (
     <>
@@ -63,7 +66,7 @@ export default async function RoutinenPage({ searchParams }: { searchParams: Pro
       <div className="content">
         <PageHeader eyebrow="Klar Studios" icon={<CalendarClock />} title="Routinen">
           Die täglichen TikTok-Routinen. Jede Uhrzeit, die an ist, wird ein Post; die Routine liest das beim nächsten
-          Lauf. Darunter jeder Post der letzten 14 Tage mit seinen Views, sobald Apify ihn gelesen hat.
+          Lauf. Darunter jeder Post der letzten 14 Tage mit seinen Views, viermal am Tag über Evomi gelesen.
         </PageHeader>
 
         <Kennzahlen
@@ -74,7 +77,7 @@ export default async function RoutinenPage({ searchParams }: { searchParams: Pro
               wert: an.reduce((n, r) => n + r.slots.length * r.accounts.length, 0),
               zusatz: "über alle Konten",
             },
-            { label: "Gelesen", wert: `${read.length} / ${posts.length}`, zusatz: "Posts mit Views nach 24 h" },
+            { label: "Gelesen", wert: `${counted.length} / ${posts.length}`, zusatz: "Posts mit Views nach 24 h" },
             { label: "Bester Post", wert: best ? zahl(best.views24h) : "-", zusatz: best ? `${best.name}, Views nach 24 h` : "noch keiner gelesen" },
           ]}
         />
@@ -82,9 +85,10 @@ export default async function RoutinenPage({ searchParams }: { searchParams: Pro
         {sp.msg || sp.err ? (
           <TextureCard className="mb-4 px-5 py-3.5 text-[12.5px] text-fg-2">{sp.err ?? sp.msg}</TextureCard>
         ) : null}
-        {untracked.length ? (
+        {unread.length ? (
           <TextureCard className="mb-4 px-5 py-3.5 text-[12.5px] text-fg-2">
-            Apify liest diese Konten noch nicht, ihre Posts bleiben ohne Views: {untracked.map((h) => `@${h}`).join(", ")}.
+            Seit zwei Tagen keine Views gelesen für {unread.map((h) => `@${h}`).join(", ")}. Gibt es das Konto unter
+            diesem Namen noch?
           </TextureCard>
         ) : null}
 

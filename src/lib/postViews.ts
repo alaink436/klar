@@ -193,16 +193,34 @@ export async function ingestRun(runId: string): Promise<IngestResult> {
 
   // A creator's post counts only after the check (caption, images); our own always do.
   if (run.actorTaskId === APIFY_CREATOR_TASK_ID) await checkCreatorPosts(items);
-  // Every 6 h with our own run: confirm whoever has the code in the bio by now (lib/autoVerify), before the inputs
-  // are synced, so they are read in the creators' run below. Never fails the ingest.
-  if (run.actorTaskId === APIFY_TASK_ID) await checkWaitingBios().catch(() => null);
-  // Our own posts just came in: tie the routines' drafts to them (lib/routines). Never fails the ingest.
-  if (run.actorTaskId === APIFY_TASK_ID) await matchRoutinePosts().catch(() => 0);
-
-  const { own, creators } = await syncTaskInputs(key);
-  // Our own run is the clock: it starts the creators' run, never the other way round.
-  if (run.actorTaskId === APIFY_TASK_ID && creators > 0) {
-    await fetch(`${APIFY}/actor-tasks/${APIFY_CREATOR_TASK_ID}/runs`, { method: "POST", headers: auth, cache: "no-store" });
+  if (run.actorTaskId === APIFY_TASK_ID) {
+    // Our own posts just came in: tie the routines' drafts to them (lib/routines). Never fails the ingest.
+    await matchRoutinePosts().catch(() => 0);
+    const { own, creators } = await creatorClock(key);
+    return { ok: true, runId, fetchedAt: run.finishedAt, posts: posts.length, accounts: own + creators };
   }
+  const { own, creators } = await syncTaskInputs(key);
   return { ok: true, runId, fetchedAt: run.finishedAt, posts: posts.length, accounts: own + creators };
+}
+
+/** What a read of our own accounts sets off every 6 h: confirm whoever has the code in the bio by now
+    (lib/autoVerify), sync both task inputs so they are read in the creators' run, then start that run. Our own
+    read is the clock, never the creators'. Since 2026-11-09 our own accounts are read through Evomi
+    (lib/ownViews, /api/cron/own-views), which calls this through runCreatorClock(). */
+async function creatorClock(key: string): Promise<{ own: number; creators: number }> {
+  await checkWaitingBios().catch(() => null);
+  const counts = await syncTaskInputs(key);
+  if (counts.creators > 0) {
+    await fetch(`${APIFY}/actor-tasks/${APIFY_CREATOR_TASK_ID}/runs`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}` },
+      cache: "no-store",
+    });
+  }
+  return counts;
+}
+
+export async function runCreatorClock(): Promise<{ own: number; creators: number } | null> {
+  const key = await getApifyKey();
+  return key && HUB_KEY() ? creatorClock(key) : null;
 }
