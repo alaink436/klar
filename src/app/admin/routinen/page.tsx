@@ -177,7 +177,11 @@ export default async function RoutinenPage({ searchParams }: { searchParams: Pro
                             <TableCell className="text-right" style={mono}>{zahl(p.views24h)}</TableCell>
                             <TableCell className="text-right" style={mono}>{zahl(p.views3d)}</TableCell>
                             <TableCell className="text-right" style={mono}>
-                              {p.url ? zahl(p.viewsNow) : <span className="text-fg-4">nicht gefunden</span>}
+                              {p.url ? (
+                                zahl(p.viewsNow)
+                              ) : (
+                                <span className="text-fg-4">{p.planned ? "geplant" : "nicht gefunden"}</span>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
