@@ -5,6 +5,8 @@ const checkCreatorPosts = vi.fn(async () => ({ checked: 0, promoted: 0 }));
 vi.mock("./postCheck", () => ({ checkCreatorPosts: (...a: unknown[]) => checkCreatorPosts(...(a as [])) }));
 const checkWaitingBios = vi.fn(async () => ({ checked: 0, confirmed: [] as string[] }));
 vi.mock("./autoVerify", () => ({ checkWaitingBios: (...a: unknown[]) => checkWaitingBios(...(a as [])) }));
+const matchRoutinePosts = vi.fn(async () => 0);
+vi.mock("./routines", () => ({ matchRoutinePosts: (...a: unknown[]) => matchRoutinePosts(...(a as [])) }));
 vi.mock("./vault", () => ({
   listSecrets: async () => [{ id: "k1", provider: "apify", label: "Apify Key", revoked_at: null }],
   revealSecret: async () => "apify-key",
@@ -41,6 +43,7 @@ describe("parseItems", () => {
         posted_at: "2026-10-20T20:41:16.000Z",
         url: "https://www.tiktok.com/@motivationwithbasalt/photo/7698852867943255318",
         is_slideshow: true,
+        caption: null,
       },
     ]);
     expect(views).toEqual([

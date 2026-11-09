@@ -26,6 +26,7 @@
 import "server-only";
 import { checkWaitingBios } from "./autoVerify";
 import { checkCreatorPosts } from "./postCheck";
+import { matchRoutinePosts } from "./routines";
 import { listSecrets, revealSecret } from "./vault";
 
 const HUB = process.env.KLAR_INBOX_SUPABASE_URL ?? "https://exiuwektrqxvycclqfdd.supabase.co";
@@ -48,6 +49,8 @@ export interface PostRow {
   posted_at: string;
   url: string | null;
   is_slideshow: boolean | null;
+  /** The post's text. For our photo posts only the hashtag line; lib/routineMatch ties drafts by it. */
+  caption: string | null;
 }
 
 export interface ViewRow {
@@ -90,6 +93,7 @@ export function parseItems(items: unknown[], fetchedAt: string): { posts: PostRo
       posted_at: new Date(created * 1000).toISOString(),
       url: typeof r.webVideoUrl === "string" ? r.webVideoUrl : null,
       is_slideshow: typeof r.isSlideshow === "boolean" ? r.isSlideshow : null,
+      caption: typeof r.text === "string" ? r.text.slice(0, 2200) : null,
     });
     views.push({
       post_id: id,
@@ -119,7 +123,7 @@ async function getApifyKey(): Promise<string> {
   return key;
 }
 
-async function hubInsert(table: string, rows: object[]): Promise<string | null> {
+async function hubInsert(table: string, rows: object[], resolution = "ignore-duplicates"): Promise<string | null> {
   if (rows.length === 0) return null;
   const res = await fetch(`${HUB}/rest/v1/${table}`, {
     method: "POST",
@@ -127,7 +131,7 @@ async function hubInsert(table: string, rows: object[]): Promise<string | null> 
       apikey: HUB_KEY(),
       Authorization: `Bearer ${HUB_KEY()}`,
       "Content-Type": "application/json",
-      Prefer: "resolution=ignore-duplicates,return=minimal",
+      Prefer: `resolution=${resolution},return=minimal`,
     },
     body: JSON.stringify(rows),
     cache: "no-store",
@@ -183,7 +187,8 @@ export async function ingestRun(runId: string): Promise<IngestResult> {
   const items = (await itemsRes.json()) as unknown[];
   const { posts, views } = parseItems(items, run.finishedAt);
 
-  const err = (await hubInsert("klar_posts", posts)) ?? (await hubInsert("klar_post_views", views));
+  // Posts merge, so a post first stored before klar_posts.caption existed gets its caption on the next read.
+  const err = (await hubInsert("klar_posts", posts, "merge-duplicates")) ?? (await hubInsert("klar_post_views", views));
   if (err) return { ok: false, error: err, retry: true };
 
   // A creator's post counts only after the check (caption, images); our own always do.
@@ -191,6 +196,8 @@ export async function ingestRun(runId: string): Promise<IngestResult> {
   // Every 6 h with our own run: confirm whoever has the code in the bio by now (lib/autoVerify), before the inputs
   // are synced, so they are read in the creators' run below. Never fails the ingest.
   if (run.actorTaskId === APIFY_TASK_ID) await checkWaitingBios().catch(() => null);
+  // Our own posts just came in: tie the routines' drafts to them (lib/routines). Never fails the ingest.
+  if (run.actorTaskId === APIFY_TASK_ID) await matchRoutinePosts().catch(() => 0);
 
   const { own, creators } = await syncTaskInputs(key);
   // Our own run is the clock: it starts the creators' run, never the other way round.
