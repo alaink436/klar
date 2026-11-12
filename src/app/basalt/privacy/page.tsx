@@ -19,12 +19,20 @@
 // app stores one for anyone who allows notifications (reminders since
 // 2026-09-24); corrected. Goes live together with the app OTA that sends them.
 //
+// 2026-11-12: crash reports (Unhook#104, @sentry/react-native to our own
+// GlitchTip on the Hetzner VPS, glitchtip.getklar.org). The event carries the
+// error, stack, device model, OS and app version, update channel, and screen
+// names and server paths as breadcrumbs. No account, no PII (sendDefaultPii
+// false); console breadcrumbs dropped, query strings cut from request paths.
+// Goes live before the first build that carries the SDK.
+//
 // Linked from App Store Connect (App Privacy + App Information) and from the
 // in-app Settings. Kept in sync with what the app actually does, which for this
 // app is more than the usual: Supabase auth, the routines you write and the
 // days you tick off, Screen Time enforcement, a read-only share, local
-// notifications, an optional calendar export, the camera for invite codes, and
-// a one-time clipboard read for influencer attribution.
+// notifications, an optional calendar export, the camera for invite codes,
+// crash reports to our own server, and a one-time clipboard read for
+// influencer attribution.
 //
 // Two of those need saying out loud because a reviewer will look for them:
 //   - Screen Time. The app never learns WHICH apps you picked. The selection is
@@ -45,7 +53,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "1 October 2026";
+const AS_OF = "12 November 2026";
 const CONTACT = "support@getklar.org";
 
 export default function BasaltPrivacyPage() {
@@ -150,6 +158,17 @@ export default function BasaltPrivacyPage() {
             which apps you shut, and no card or payment details.
           </p>
           <p>
+            <b>Crash reports.</b> If the app crashes or a screen fails, a
+            technical report goes to a crash server we run ourselves. It holds
+            the error and where in the code it happened, the device model, the
+            system and app version, and which screens were open and which of our
+            server addresses the app called just before, without the data it
+            sent. It is not linked to your account, your name or your email, and
+            it contains no routine names, no places and nothing about which apps
+            you shut. We use it only to find and fix bugs, never for advertising
+            or profiles.
+          </p>
+          <p>
             <b>A one-time clipboard read.</b> If you arrived through a link from
             someone who recommends the app, that link places a short token on
             your clipboard. On the first cold start the app reads the clipboard
@@ -210,12 +229,12 @@ export default function BasaltPrivacyPage() {
         <Section n="05" title="Why we process this data">
           <p>
             To provide the app and your account, to keep your routines and your
-            history, to unlock and restore the paid features, and to understand
-            how the app is used, including where a purchase fails. Legal bases
-            under the GDPR are the performance of our contract with you
-            (Art. 6 para. 1 lit. b) and our
+            history, to unlock and restore the paid features, to understand
+            how the app is used, including where a purchase fails, and to fix
+            crashes. Legal bases under the GDPR are the performance of our
+            contract with you (Art. 6 para. 1 lit. b) and our
             legitimate interest in basic, privacy friendly usage statistics
-            (Art. 6 para. 1 lit. f). The Swiss Data Protection Act (DSG) applies
+            and in keeping the app working (Art. 6 para. 1 lit. f). The Swiss Data Protection Act (DSG) applies
             in parallel.
           </p>
         </Section>
@@ -233,6 +252,11 @@ export default function BasaltPrivacyPage() {
             managing subscription entitlements. These providers process data on
             our behalf under data processing agreements.
           </p>
+          <p>
+            Crash reports are not passed to a crash reporting company: they go
+            to software we run ourselves, on a server rented from{" "}
+            <b>Hetzner</b>.
+          </p>
         </Section>
 
         <Section n="07" title="Where data is stored and how long">
@@ -243,7 +267,9 @@ export default function BasaltPrivacyPage() {
             under Settings; that removes your account, your routines, every day
             you have ticked off, the places you set, and any share you had set up.
             Usage statistics that were already sent stay with PostHog, linked
-            only to the account ID of an account that no longer exists.
+            only to the account ID of an account that no longer exists. Crash
+            reports are stored on our own crash server and are not linked to an
+            account in the first place.
           </p>
         </Section>
 
