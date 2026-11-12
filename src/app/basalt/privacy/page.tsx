@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "1 October 2026";
+const AS_OF = "9 November 2026";
 const CONTACT = "support@getklar.org";
 
 export default function BasaltPrivacyPage() {
@@ -117,6 +117,18 @@ export default function BasaltPrivacyPage() {
             off, your phone measures where it is and compares that with the place
             itself; that measurement is not sent to us. Without a place, the app
             never asks for your location.
+          </p>
+          <p>
+            <b>Ticking off on its own, if you switch it on.</b> For a routine with
+            a place, you can let the day tick off on its own. You then allow
+            location access &ldquo;always&rdquo;, and iOS tells the app when your
+            phone arrives at or leaves that place, also while the app is closed.
+            If your phone was there for at least 20 minutes, the day is ticked off
+            as you leave. The arrival time is kept on your phone only; what
+            reaches us is the tick itself, as if you had made it. No position is
+            sent, and no other places are watched. Switch it off on the
+            routine&rsquo;s places screen, or take the permission away in the iOS
+            settings.
           </p>
           <p>
             <b>Notifications.</b> If you allow notifications, your phone gets a
@@ -199,7 +211,8 @@ export default function BasaltPrivacyPage() {
           <p>
             No advertising and no ad networks. No cross-app or cross-site
             tracking, and no advertising identifier. No location tracking: the only
-            position we keep is a place you set yourself. No access to your
+            position we keep is a place you set yourself, and the only places the
+            phone watches are those of routines you set to tick off on their own. No access to your
             contacts, your photo library or your microphone. No feed, no public
             profiles, and nothing about you is visible to anyone you have not
             explicitly shared a routine with. We do not sell or rent personal
