@@ -24,8 +24,9 @@ describe("menu groups", () => {
     expect(navItemForPath("/admin/creators/save")?.id).toBe("creators");
     expect(navTabs("/admin/auszahlung")?.map((i) => i.id)).toEqual(["creators", "formats", "review", "model", "payouts", "bewerbungen"]);
     expect(navTabs("/admin/creators")?.[0].id).toBe("creators");
-    expect(navTabs("/admin/app-analytics")?.map((i) => i.id)).toEqual(["analytics", "app-analytics", "conversion"]);
+    expect(navTabs("/admin/app-analytics")?.map((i) => i.id)).toEqual(["analytics", "app-analytics"]);
     expect(navTabs("/admin/inbox")).toBeNull();
     expect(navTabs("/admin/settings")).toBeNull();
+    expect(navTabs("/admin/conversion")).toBeNull();
   });
 });
