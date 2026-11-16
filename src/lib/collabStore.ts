@@ -284,6 +284,32 @@ export interface CollabThread {
   lastActivityAt: string | null;
 }
 
+/**
+ * How many threads wait for a reply: whose newest message came in. Only the four columns that decide it,
+ * not the bodies (the sidebar badge on every admin page fetched 400 whole messages for this, 2026-11-16).
+ * Vercel's shared data cache, a minute. Fail-soft to 0.
+ */
+export async function countWaitingCollabThreads(limit = 400): Promise<number> {
+  if (!KLAR_INBOX_KEY) return 0;
+  try {
+    const res = await fetch(
+      `${KLAR_INBOX_URL}/rest/v1/klar_collab_messages?select=app,contact_email,direction,created_at&order=created_at.desc&limit=${limit}`,
+      { headers: hdr(), next: { revalidate: 60 } },
+    );
+    if (!res.ok) return 0;
+    const rows = (await res.json()) as Pick<CollabMessage, "app" | "contact_email" | "direction" | "created_at">[];
+    // Newest first: the first row of a thread is its last message.
+    const newest = new Map<string, string>();
+    for (const m of rows) {
+      const key = collabThreadKey(m.app, m.contact_email);
+      if (!newest.has(key)) newest.set(key, m.direction);
+    }
+    return [...newest.values()].filter((d) => d === "in").length;
+  } catch {
+    return 0;
+  }
+}
+
 /** Alle Collab-Threads, jüngste Aktivität zuerst. Gruppiert die letzten
  *  `limit` Nachrichten nach (app, contact_email). Fail-soft zu [].
  *

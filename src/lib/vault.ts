@@ -6,6 +6,7 @@
 // keys exist only transiently inside getForProxy() while forwarding a request,
 // and are never returned to any client. Never import into a client component.
 
+import { revalidateTag } from "next/cache";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
 import { parseAscKey, signAscJwt } from "./ascJwt";
 
@@ -123,6 +124,7 @@ export async function addSecret(
       cache: "no-store",
     });
     if (!res.ok) return { ok: false, error: `insert failed (${res.status})` };
+    vaultChanged();
     return { ok: true };
   } catch {
     return { ok: false, error: "network error" };
@@ -158,18 +160,37 @@ export async function storeSecretReturningId(input: {
     });
     if (!res.ok) return null;
     const rows = (await res.json()) as Array<{ id: string }>;
+    vaultChanged();
     return rows[0]?.id ?? null;
   } catch {
     return null;
   }
 }
 
-export async function listSecrets(): Promise<VaultSecretMeta[]> {
+// The dashboard's own key lookups (PostHog, RevenueCat, Blotato, UserJot, Evomi, Claude for the board)
+// opt into Vercel's shared data cache for five minutes (Alain, 2026-11-16: "warum dauert es so lange"):
+// each of them asked the Hub once or twice in a row before its slow upstream call. Only the encrypted row
+// is cached; the key is decrypted per request. Every change to the vault clears the tag at once
+// (`vaultChanged`). The proxy for agents, the exec route and the vault page stay uncached, so a revoked
+// key is gone for them the moment it is revoked.
+const CACHED: RequestInit = { next: { revalidate: 300, tags: ["vault"] } };
+const fresh: RequestInit = { cache: "no-store" };
+
+/** After any write to vault_secrets: the cached rows are stale now, not in five minutes. */
+function vaultChanged(): void {
+  try {
+    revalidateTag("vault", { expire: 0 });
+  } catch {
+    // Outside a request (scripts, tests) there is no cache to clear.
+  }
+}
+
+export async function listSecrets(opts: { cached?: boolean } = {}): Promise<VaultSecretMeta[]> {
   if (!SB_KEY()) return [];
   try {
     const res = await fetch(
       `${URL_BASE}/rest/v1/vault_secrets?select=id,label,provider,category,base_url,auth_header,auth_scheme,auth_in,created_at,last_used_at,revoked_at&order=created_at.desc`,
-      { headers: sbHeaders(), cache: "no-store" },
+      { headers: sbHeaders(), ...(opts.cached ? CACHED : fresh) },
     );
     if (!res.ok) return [];
     const j = await res.json();
@@ -227,6 +248,7 @@ export async function updateSecretMeta(
       cache: "no-store",
     });
     if (!res.ok) return { ok: false, error: `update failed (${res.status})` };
+    vaultChanged();
     return { ok: true };
   } catch {
     return { ok: false, error: "network error" };
@@ -250,6 +272,7 @@ export async function rotateSecret(
       cache: "no-store",
     });
     if (!res.ok) return { ok: false, error: `update failed (${res.status})` };
+    vaultChanged();
     return { ok: true };
   } catch {
     return { ok: false, error: "network error" };
@@ -264,6 +287,7 @@ export async function deleteSecret(id: string): Promise<boolean> {
       headers: sbHeaders({ Prefer: "return=minimal" }),
       cache: "no-store",
     });
+    if (res.ok) vaultChanged();
     return res.ok;
   } catch {
     return false;
@@ -274,12 +298,12 @@ export async function deleteSecret(id: string): Promise<boolean> {
 // back ("reveal"). Only ever called from an admin-session-gated route; the key
 // is sent server -> the admin's browser and never logged. Distinct from the
 // proxy path (does not touch last_used_at — revealing is not "using").
-export async function revealSecret(id: string): Promise<string | null> {
+export async function revealSecret(id: string, opts: { cached?: boolean } = {}): Promise<string | null> {
   if (!vaultReady()) return null;
   try {
     const res = await fetch(
       `${URL_BASE}/rest/v1/vault_secrets?id=eq.${encodeURIComponent(id)}&select=ciphertext,iv,auth_tag&limit=1`,
-      { headers: sbHeaders(), cache: "no-store" },
+      { headers: sbHeaders(), ...(opts.cached ? CACHED : fresh) },
     );
     if (!res.ok) return null;
     const rows = (await res.json()) as Array<{ ciphertext: string; iv: string; auth_tag: string }>;
@@ -353,7 +377,7 @@ export function touchSecretUsed(id: string): void {
 // { touch: false } to skip (the proxy stamps later, once auth has also passed).
 export async function getForProxy(
   id: string,
-  opts: { touch?: boolean } = {},
+  opts: { touch?: boolean; cached?: boolean } = {},
 ): Promise<{
   baseUrl: string;
   authHeader: string;
@@ -365,7 +389,7 @@ export async function getForProxy(
   try {
     const res = await fetch(
       `${URL_BASE}/rest/v1/vault_secrets?id=eq.${encodeURIComponent(id)}&select=base_url,auth_header,auth_scheme,auth_in,ciphertext,iv,auth_tag,revoked_at&limit=1`,
-      { headers: sbHeaders(), cache: "no-store" },
+      { headers: sbHeaders(), ...(opts.cached ? CACHED : fresh) },
     );
     if (!res.ok) return null;
     const rows = (await res.json()) as Array<{

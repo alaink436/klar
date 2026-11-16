@@ -66,7 +66,7 @@ async function projectIdFor(secretKey: string): Promise<string | null> {
 }
 
 async function readVaultConfigs(): Promise<RcConfig[]> {
-  const secrets = (await listSecrets()).filter(
+  const secrets = (await listSecrets({ cached: true })).filter(
     (s) => !s.revoked_at && s.provider.toLowerCase() === "revenuecat",
   );
   const found = await Promise.all(
@@ -74,7 +74,7 @@ async function readVaultConfigs(): Promise<RcConfig[]> {
       const names = new Set([norm(app.name), norm(app.slug), ...(app.aliases ?? []).map(norm)]);
       const entry = secrets.find((s) => names.has(norm(s.label)));
       if (!entry) return null;
-      const secretKey = await revealSecret(entry.id);
+      const secretKey = await revealSecret(entry.id, { cached: true });
       if (!secretKey) return null;
       const projectId = await projectIdFor(secretKey);
       return projectId ? { slug: appBackendKey(app), projectId, secretKey } : null;

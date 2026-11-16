@@ -171,8 +171,8 @@ async function get(token: string, path: string): Promise<Record<string, unknown>
 
 /** Die 100 Wuensche mit den meisten Stimmen auf dem Board dieser App. */
 export async function fetchRequests(app: UserjotApp): Promise<UserjotRequest[]> {
-  const secret = (await listSecrets()).find((s) => !s.revoked_at && s.provider.toLowerCase() === "userjot");
-  const token = secret ? await revealSecret(secret.id) : null;
+  const secret = (await listSecrets({ cached: true })).find((s) => !s.revoked_at && s.provider.toLowerCase() === "userjot");
+  const token = secret ? await revealSecret(secret.id, { cached: true }) : null;
   if (!token) throw new UserjotError('Kein UserJot-Token im Vault (Vorlage "UserJot", Provider "userjot").');
 
   // Die API filtert nach Board-ID, die App kennt den Slug aus der Adresse.

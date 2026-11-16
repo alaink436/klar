@@ -73,11 +73,11 @@ async function getBlotatoKey(): Promise<string> {
   if (_keyCache && Date.now() - _keyCache.at < 300_000) return _keyCache.key;
   let key = "";
   try {
-    const secrets = await listSecrets();
+    const secrets = await listSecrets({ cached: true });
     const entry = secrets.find(
       (s) => !s.revoked_at && (s.provider.toLowerCase() === "blotato" || s.label.toLowerCase().includes("blotato")),
     );
-    if (entry) key = (await revealSecret(entry.id)) ?? "";
+    if (entry) key = (await revealSecret(entry.id, { cached: true })) ?? "";
   } catch {
     /* vault unreachable — overview falls back to "no-key" */
   }

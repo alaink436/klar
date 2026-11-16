@@ -98,19 +98,31 @@ export default async function InboxAnsicht({
     if (!appMeta[meta.app]) appMeta[meta.app] = { name: meta.name, icon: "" };
   }
 
+  // Every source at once (Alain, 2026-11-16: "warum dauert es so lange"): the seven reads waited for
+  // each other although none needs another, except the post lines, which need the accounts.
+  const inquiryRows: Promise<Inquiry[]> = KLAR_INBOX_KEY
+    ? fetch(`${KLAR_INBOX_URL}/rest/v1/klar_inquiries?select=*&order=created_at.desc&limit=200`, {
+        headers: { apikey: KLAR_INBOX_KEY, Authorization: `Bearer ${KLAR_INBOX_KEY}`, Accept: "application/json" },
+        cache: "no-store",
+      })
+        .then((res) => (res.ok ? (res.json() as Promise<Inquiry[]>) : []))
+        .catch(() => [])
+    : Promise.resolve([]);
+  const signups = Promise.all([listCreatorAccounts(), listUnfinishedSignups()]).then(async ([accounts, unfinished]) =>
+    signupConversations(accounts, unfinished, await creatorPostLines(accounts)),
+  );
+  const [rowsAll, collabThreads, signupConvs, starredIds, replyTemplates] = await Promise.all([
+    inquiryRows,
+    listCollabThreads(),
+    signups,
+    listStarredIds(),
+    // Reply templates for the composer: DB-editable (klar_reply_templates) with a
+    // fallback to the hardcoded set so the dropdown is never empty.
+    getReplyTemplates(),
+  ]);
+
   // ── Inquiry side: website contact-form requests ──────────────────────────
-  let inquiryConvs: Conversation[] = [];
-  if (KLAR_INBOX_KEY) {
-    try {
-      const res = await fetch(
-        `${KLAR_INBOX_URL}/rest/v1/klar_inquiries?select=*&order=created_at.desc&limit=200`,
-        {
-          headers: { apikey: KLAR_INBOX_KEY, Authorization: `Bearer ${KLAR_INBOX_KEY}`, Accept: "application/json" },
-          cache: "no-store",
-        },
-      );
-      const rowsAll: Inquiry[] = res.ok ? ((await res.json()) as Inquiry[]) : [];
-      inquiryConvs = rowsAll
+  const inquiryConvs: Conversation[] = rowsAll
         .filter((r) => !isTestInquiry(r))
         .filter((r): r is Inquiry & { id: string } => Boolean(r.id))
         .map((r): Conversation => {
@@ -148,13 +160,8 @@ export default async function InboxAnsicht({
             inquiry: meta,
           };
         });
-    } catch {
-      inquiryConvs = [];
-    }
-  }
 
   // ── Collab side: mail to the public per-app addresses (TikTok-Bio) ───────
-  const collabThreads = await listCollabThreads();
   const collabConvs: Conversation[] = collabThreads.map((t): Conversation => {
     const messages: ThreadMessage[] = t.messages.map((m) => ({
       id: m.id,
@@ -193,18 +200,10 @@ export default async function InboxAnsicht({
     };
   });
 
-  // ── Creator sign-ups from the dashboard, and logins that never sent the form ─
-  const [accounts, unfinished] = await Promise.all([listCreatorAccounts(), listUnfinishedSignups()]);
-  const signupConvs = signupConversations(accounts, unfinished, await creatorPostLines(accounts));
-
-  const starredIds = await listStarredIds();
+  // ── Creator sign-ups from the dashboard, and logins that never sent the form: read above ─
   const conversations: Conversation[] = [...inquiryConvs, ...collabConvs, ...signupConvs]
     .sort((a, b) => (b.lastActivityAt || "").localeCompare(a.lastActivityAt || ""))
     .map((c) => (starredIds.has(c.id) ? { ...c, starred: true } : c));
-
-  // Reply templates for the composer: DB-editable (klar_reply_templates) with a
-  // fallback to the hardcoded set so the dropdown is never empty.
-  const replyTemplates = await getReplyTemplates();
 
   return (
     <>

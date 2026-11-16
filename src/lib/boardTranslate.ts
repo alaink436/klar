@@ -44,7 +44,7 @@ export async function translateItems(
   const out: Record<string, Translations> = Object.fromEntries(Object.keys(items).map((k) => [k, {}]));
   if (!Object.keys(clean).length || !langs.length) return out;
 
-  const secret = await getForProxy(ANTHROPIC_SECRET_ID);
+  const secret = await getForProxy(ANTHROPIC_SECRET_ID, { cached: true });
   if (!secret) throw new BoardError("Anthropic-Key im Vault nicht nutzbar. Nichts gespeichert.");
 
   const schema = objectSchema(
