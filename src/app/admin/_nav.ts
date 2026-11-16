@@ -69,6 +69,9 @@ export const NAV_ITEMS: NavItemDef[] = [
   // App. Eigener Punkt neben Analytics, weil Analytics die Landings und den
   // Umsatz zeigt und diese Seite das Verhalten IN den Apps.
   { id: "app-analytics", labelKey: "navAppAnalytics", icon: "activity", href: "/admin/app-analytics", section: "studios", tabOf: "analytics" },
+  // Conversion aus PostHog (seit 2026-11-16): Funnel, Verlauf mit Aenderungen, Wochen und Builds je App.
+  // Erst im OurApps-Dashboard gebaut, hierher gezogen, weil der PostHog-Key im Vault liegt (Alain: "(3)").
+  { id: "conversion", labelKey: "navConversion", icon: "analytics", href: "/admin/conversion", section: "studios", tabOf: "analytics" },
 ];
 
 /** The menu entry a path belongs to: the one whose href is the path or its longest prefix. */

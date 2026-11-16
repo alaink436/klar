@@ -16,6 +16,17 @@
 // `captureAppLifecycleEvents`: "Application Installed", "Application Opened",
 // plus "$screen" with `$screen_name` from our own ScreenTracker.
 import "server-only";
+import {
+  stepCounts,
+  TREND_DAYS,
+  TREND_STEPS,
+  trendPoints,
+  type Funnel,
+  type FunnelRow,
+  type Interval,
+  type Platform,
+  type TrendPoint,
+} from "./conversion";
 import { getForProxy } from "./vault";
 
 const POSTHOG_SECRET_ID = "5cf88b00-eb0c-4863-bc69-bf317bd6e999"; // vault: "Posthog Personal Key"
@@ -28,12 +39,14 @@ export interface PosthogApp {
   label: string;
   /** The per-app dashboard created 2026-09-17 via the API. */
   dashboardId: number;
+  /** `$app_name` as PostHog's SDK reports it, where it is not the label. */
+  appName?: string;
 }
 
 export const POSTHOG_APPS: PosthogApp[] = [
   { slug: "basalt", label: "Basalt", dashboardId: 958868 },
   { slug: "kelva", label: "Kelva", dashboardId: 958869 },
-  { slug: "myloo", label: "MyLoo", dashboardId: 958870 },
+  { slug: "myloo", label: "MyLoo", dashboardId: 958870, appName: "Pocketmate" },
   { slug: "anime-vault", label: "Anime Vault", dashboardId: 958871 },
 ];
 
@@ -224,4 +237,144 @@ async function fetchUncached(slug: string, period: UsagePeriod): Promise<AppUsag
 /** Deep link to the app's dashboard in PostHog, for the "open there" button. */
 export function posthogDashboardUrl(app: PosthogApp): string {
   return `${POSTHOG_APP_URL}/project/${POSTHOG_PROJECT_ID}/dashboard/${app.dashboardId}`;
+}
+
+// ---------------------------------------------------------------------------
+// Conversion (Alain, 2026-11-16): PostHog's own funnel per app, its rates over time, and the new users
+// per week and build. Ported from the OurApps dashboard; here the key comes from the vault as above.
+//
+// Both apps send the same names (Basalt and Kelva, measured 2026-11-16): iap_paywall_viewed (pro=true is a
+// Pro user looking at their own plan), iap_purchase_start on the buy tap, iap_purchase_result with result
+// 'ok'. A trial is a purchase whose intro price has only zeros ("$0.00", "0,00 €"); a paid intro (£4.99)
+// is a purchase. Sandbox buys (own tests, App Review) are out. "Application Installed" fires before the
+// app registers `app`, so the funnel tells apps apart by `$app_name` ("Basalt", "Basalt - Follow Through").
+
+/** The apps whose paywall sends the iap_ events; the others would show an empty funnel. */
+export const CONVERSION_APPS = POSTHOG_APPS.filter((a) => a.slug === "basalt" || a.slug === "kelva");
+
+const prop = (key: string, value: unknown, operator: string) => ({ key, value, operator, type: "event" });
+const PURCHASE_OK = [prop("result", ["ok"], "exact"), prop("sandbox", ["true"], "is_not")];
+const FREE_INTRO = [prop("intro", "[0-9]", "regex"), prop("intro", "[1-9]", "not_regex")];
+// iPads report iPadOS; for Klar Control they are iOS.
+const OS_NAMES: Record<Platform, string[]> = { ios: ["iOS", "iPadOS"], android: ["Android"] };
+
+function funnelQuery(
+  appName: string,
+  days: number,
+  platform: Platform | null,
+  trialsOnly: boolean,
+  trend?: { from: number; to: number; interval: Interval },
+): Record<string, unknown> {
+  const funnelsFilter: Record<string, unknown> = {
+    funnelVizType: "steps",
+    funnelOrderType: "ordered",
+    funnelWindowInterval: 14,
+    funnelWindowIntervalUnit: "day",
+  };
+  const steps = {
+    kind: "FunnelsQuery",
+    series: [
+      { kind: "EventsNode", event: "Application Installed", custom_name: "Installiert" },
+      { kind: "EventsNode", event: "iap_paywall_viewed", custom_name: "Paywall gesehen", properties: [prop("pro", ["true"], "is_not")] },
+      { kind: "EventsNode", event: "iap_purchase_start", custom_name: "Kauf-Klick" },
+      {
+        kind: "EventsNode",
+        event: "iap_purchase_result",
+        custom_name: "Trial oder Kauf",
+        properties: trialsOnly ? [...PURCHASE_OK, ...FREE_INTRO] : PURCHASE_OK,
+      },
+    ],
+    dateRange: { date_from: `-${days}d` },
+    properties: [prop("$app_name", appName, "icontains"), ...(platform ? [prop("$os", OS_NAMES[platform], "exact")] : [])],
+    // PostHog's defaults for a new funnel.
+    funnelsFilter,
+    filterTestAccounts: false,
+  };
+  if (!trend) return steps;
+  return {
+    ...steps,
+    interval: trend.interval,
+    funnelsFilter: { ...funnelsFilter, funnelVizType: "trends", funnelFromStep: trend.from, funnelToStep: trend.to },
+  };
+}
+
+/** New users per week and build, by the week of their first event (HogQL, values as placeholders). */
+const WEEKLY = `
+select app, toStartOfWeek(first_seen, 1) as week, build, count() as neu,
+  countIf(pw > 0) as paywall, countIf(klick > 0) as klick, countIf(trial > 0) as trials, countIf(trial = 0 and paid > 0) as direkt
+from (
+  select properties.app as app, person_id, min(timestamp) as first_seen,
+    argMin(lower(toString(properties.$os)), timestamp) as os,
+    argMin(toString(properties.$app_build), timestamp) as build,
+    countIf(event = 'iap_paywall_viewed' and coalesce(properties.pro, false) != true) as pw,
+    countIf(event = 'iap_purchase_start') as klick,
+    countIf(event = 'iap_purchase_result' and properties.result = 'ok' and coalesce(properties.sandbox, false) != true
+      and match(toString(properties.intro), '[0-9]') and not match(toString(properties.intro), '[1-9]')) as trial,
+    countIf(event = 'iap_purchase_result' and properties.result = 'ok' and coalesce(properties.sandbox, false) != true) as paid
+  from events
+  where properties.app = {app} and timestamp >= toDateTime({scan_from})
+  group by app, person_id
+)
+where first_seen >= toDateTime({since}) %PLATFORM%
+group by app, week, build
+order by app, week, build`;
+
+export interface Conversion {
+  funnel: Funnel;
+  /** The four rates of TREND_STEPS over twelve weeks. */
+  trends: TrendPoint[][];
+  rows: FunnelRow[];
+  /** When PostHog was asked, for the "Stand" line. */
+  at: number;
+}
+
+export type ConversionResult = { ok: true; conversion: Conversion } | { ok: false; error: string };
+
+const conversionCache = new Map<string, { at: number; result: ConversionResult }>();
+
+/** One app's conversion. Never throws; errors are not cached, so a fixed key shows at once. */
+export async function fetchConversion(
+  app: PosthogApp,
+  days: number,
+  interval: Interval,
+  platform: Platform | null,
+  since: string,
+): Promise<ConversionResult> {
+  const key = [app.slug, days, interval, platform ?? "", since].join(":");
+  const hit = conversionCache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.result;
+  const routing = await getForProxy(POSTHOG_SECRET_ID, { touch: false });
+  if (!routing) return { ok: false, error: "Kein PostHog-Key im Vault (Eintrag „Posthog Personal Key“ fehlt, ist widerrufen oder hat keine Base-URL)." };
+  const name = app.appName ?? app.label;
+  const raw = (q: Record<string, unknown>) => runQuery(routing, q) as Promise<unknown>;
+  try {
+    const scanFrom = new Date(`${since}T00:00:00Z`);
+    scanFrom.setUTCDate(scanFrom.getUTCDate() - 120);
+    const values: Record<string, unknown> = { app: app.slug, scan_from: `${scanFrom.toISOString().slice(0, 10)} 00:00:00`, since: `${since} 00:00:00` };
+    if (platform) values.oses = OS_NAMES[platform].map((o) => o.toLowerCase());
+    // Two at a time: PostHog limits parallel queries per project.
+    const [all, trials] = await Promise.all([raw(funnelQuery(name, days, platform, false)), raw(funnelQuery(name, days, platform, true))]);
+    const trend = (i: number) => raw(funnelQuery(name, TREND_DAYS, platform, false, { ...TREND_STEPS[i], interval })).then(trendPoints);
+    const [t0, t1] = await Promise.all([trend(0), trend(1)]);
+    const [t2, t3] = await Promise.all([trend(2), trend(3)]);
+    const weekly = await raw({ kind: "HogQLQuery", query: WEEKLY.replace("%PLATFORM%", platform ? "and os in {oses}" : ""), values });
+    const rows: FunnelRow[] = (Array.isArray(weekly) ? (weekly as unknown[][]) : []).map(([a, week, build, neu, paywall, klick, tr, direkt]) => ({
+      app: String(a),
+      week: String(week).slice(0, 10),
+      build: build ? String(build) : "?",
+      neu: Number(neu),
+      paywall: Number(paywall),
+      klick: Number(klick),
+      trials: Number(tr),
+      direkt: Number(direkt),
+    }));
+    const result: ConversionResult = {
+      ok: true,
+      conversion: { funnel: { counts: stepCounts(all), trials: stepCounts(trials)[3] ?? 0 }, trends: [t0, t1, t2, t3], rows, at: Date.now() },
+    };
+    conversionCache.set(key, { at: Date.now(), result });
+    return result;
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
