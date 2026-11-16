@@ -45,6 +45,27 @@ function at(list: TicketEntry[], path: string): TicketEntry {
 }
 
 describe("readTickets", () => {
+  it("reads all tickets in one batch when the source can, and none one by one", async () => {
+    const one = await tickets();
+    const vault = sampleVault({
+      async notes(paths) {
+        return { ok: true, texts: new Map(paths.map((p) => [p, readFileSync(join(ROOT, p), "utf-8")])) };
+      },
+    });
+    const res = await vault.reader.readTickets();
+    if (!res.ok) throw new Error(res.error);
+    expect(res.tickets).toEqual(one);
+    expect(vault.reads.filter((p) => p.includes("/issues/"))).toEqual([]);
+  });
+
+  it("falls back to one by one when the batch fails", async () => {
+    const one = await tickets();
+    const vault = sampleVault({ notes: async () => ({ ok: false, status: 502, error: "GitHub 502" }) });
+    const res = await vault.reader.readTickets();
+    if (!res.ok) throw new Error(res.error);
+    expect(res.tickets).toEqual(one);
+  });
+
   it("reads only files named issues/<NN>-<slug>.md under a spec", async () => {
     const { reader, reads } = sampleVault();
     const res = await reader.readTickets();

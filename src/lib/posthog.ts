@@ -126,7 +126,9 @@ async function runQuery(routing: Routing, source: Record<string, unknown>): Prom
       [routing.authHeader || "authorization"]: `${routing.authScheme ?? ""}${routing.key}`,
     },
     body: JSON.stringify({ query: source }),
-    cache: "no-store",
+    // Vercel's shared data cache, keyed by the query: five minutes, as the Maps below, but for every
+    // instance (a Map lives in one; an admin tool mostly lands on a fresh one, 2026-11-16).
+    next: { revalidate: CACHE_TTL_MS / 1000 },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -191,7 +193,7 @@ export async function fetchAppUsage(slug: string, period: UsagePeriod): Promise<
 }
 
 async function fetchUncached(slug: string, period: UsagePeriod): Promise<AppUsageResult> {
-  const routing = await getForProxy(POSTHOG_SECRET_ID, { touch: false });
+  const routing = await getForProxy(POSTHOG_SECRET_ID, { touch: false, cached: true });
   if (!routing) return { ok: false, error: "Kein PostHog-Key im Vault (Eintrag „Posthog Personal Key“ fehlt, ist widerrufen oder hat keine Base-URL)." };
   const dateFrom = `-${period}d`;
   const t0 = Date.now();
@@ -343,7 +345,7 @@ export async function fetchConversion(
   const key = [app.slug, days, interval, platform ?? "", since].join(":");
   const hit = conversionCache.get(key);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.result;
-  const routing = await getForProxy(POSTHOG_SECRET_ID, { touch: false });
+  const routing = await getForProxy(POSTHOG_SECRET_ID, { touch: false, cached: true });
   if (!routing) return { ok: false, error: "Kein PostHog-Key im Vault (Eintrag „Posthog Personal Key“ fehlt, ist widerrufen oder hat keine Base-URL)." };
   const name = app.appName ?? app.label;
   const raw = (q: Record<string, unknown>) => runQuery(routing, q) as Promise<unknown>;
@@ -352,12 +354,17 @@ export async function fetchConversion(
     scanFrom.setUTCDate(scanFrom.getUTCDate() - 120);
     const values: Record<string, unknown> = { app: app.slug, scan_from: `${scanFrom.toISOString().slice(0, 10)} 00:00:00`, since: `${since} 00:00:00` };
     if (platform) values.oses = OS_NAMES[platform].map((o) => o.toLowerCase());
-    // Two at a time: PostHog limits parallel queries per project.
-    const [all, trials] = await Promise.all([raw(funnelQuery(name, days, platform, false)), raw(funnelQuery(name, days, platform, true))]);
+    // All seven at once, as App-Nutzung does with its eight; they waited in four rounds before (2026-11-16).
     const trend = (i: number) => raw(funnelQuery(name, TREND_DAYS, platform, false, { ...TREND_STEPS[i], interval })).then(trendPoints);
-    const [t0, t1] = await Promise.all([trend(0), trend(1)]);
-    const [t2, t3] = await Promise.all([trend(2), trend(3)]);
-    const weekly = await raw({ kind: "HogQLQuery", query: WEEKLY.replace("%PLATFORM%", platform ? "and os in {oses}" : ""), values });
+    const [all, trials, t0, t1, t2, t3, weekly] = await Promise.all([
+      raw(funnelQuery(name, days, platform, false)),
+      raw(funnelQuery(name, days, platform, true)),
+      trend(0),
+      trend(1),
+      trend(2),
+      trend(3),
+      raw({ kind: "HogQLQuery", query: WEEKLY.replace("%PLATFORM%", platform ? "and os in {oses}" : ""), values }),
+    ]);
     const rows: FunnelRow[] = (Array.isArray(weekly) ? (weekly as unknown[][]) : []).map(([a, week, build, neu, paywall, klick, tr, direkt]) => ({
       app: String(a),
       week: String(week).slice(0, 10),

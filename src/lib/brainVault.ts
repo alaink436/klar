@@ -200,7 +200,9 @@ export async function fetchPaths(): Promise<PathsResult> {
   if (!TOKEN) return { ok: false, status: 503, error: "BRAIN_GITHUB_TOKEN missing" };
 
   const url = `https://api.github.com/repos/${REPO}/git/trees/${BRANCH}?recursive=1`;
-  const res = await fetch(url, { headers: githubHeaders(), cache: "no-store" });
+  // Vercel's shared data cache, a minute, as the reader's own TTL: every instance gets the list without
+  // asking GitHub again (a Map lives in one instance only; an admin tool mostly lands on fresh ones).
+  const res = await fetch(url, { headers: githubHeaders(), next: { revalidate: 60 } });
   if (!res.ok) return { ok: false, status: res.status, error: res.statusText };
 
   const data = (await res.json()) as { tree?: { path: string; type: string }[]; truncated?: boolean };
@@ -209,6 +211,55 @@ export async function fetchPaths(): Promise<PathsResult> {
   if (data.truncated) return { ok: false, status: 502, error: "tree truncated" };
   const paths = (data.tree ?? []).filter((e) => e.type === "blob" && !isHidden(e.path)).map((e) => e.path);
   return { ok: true, paths };
+}
+
+export type NotesResult =
+  | { ok: true; texts: Map<string, string> }
+  | { ok: false; status: number; error: string };
+
+/** Paths per GraphQL query: 15 queries of 30 read the 434 tickets in 1.8 s, the one-by-one way took 19 s (2026-11-16). */
+const NOTES_PER_QUERY = 30;
+
+/**
+ * Many notes at once (Tickets reads 434): one GraphQL query per 30 paths, all in parallel, through
+ * Vercel's shared data cache for a minute. Same guards as fetchNote; a path that is not a note or not
+ * there is missing from the map, and the caller decides.
+ */
+export async function fetchNotes(paths: string[]): Promise<NotesResult> {
+  if (!TOKEN) return { ok: false, status: 503, error: "BRAIN_GITHUB_TOKEN missing" };
+  const clean = paths.filter((p) => p.toLowerCase().endsWith(".md") && !p.includes("..") && !isHidden(p));
+  const chunks: string[][] = [];
+  for (let i = 0; i < clean.length; i += NOTES_PER_QUERY) chunks.push(clean.slice(i, i + NOTES_PER_QUERY));
+  const [owner, name] = REPO.split("/");
+  const texts = new Map<string, string>();
+  try {
+    await Promise.all(
+      chunks.map(async (chunk) => {
+        // Paths go in as variables, never into the query text.
+        const vars = Object.fromEntries(chunk.map((p, i) => [`e${i}`, `${BRANCH}:${p}`]));
+        const query = `query(${chunk.map((_, i) => `$e${i}: String!`).join(", ")}) { repository(owner: "${owner}", name: "${name}") { ${chunk
+          .map((_, i) => `f${i}: object(expression: $e${i}) { ... on Blob { text } }`)
+          .join(" ")} } }`;
+        const res = await fetch("https://api.github.com/graphql", {
+          method: "POST",
+          headers: githubHeaders(),
+          body: JSON.stringify({ query, variables: vars }),
+          next: { revalidate: 60 },
+        });
+        if (!res.ok) throw new Error(`GitHub ${res.status}`);
+        const json = (await res.json()) as { data?: { repository?: Record<string, { text?: string } | null> }; errors?: unknown };
+        const repo = json.data?.repository;
+        if (!repo) throw new Error("GitHub GraphQL: no repository");
+        chunk.forEach((p, i) => {
+          const text = repo[`f${i}`]?.text;
+          if (typeof text === "string") texts.set(p, text);
+        });
+      }),
+    );
+  } catch (e) {
+    return { ok: false, status: 502, error: e instanceof Error ? e.message : String(e) };
+  }
+  return { ok: true, texts };
 }
 
 /** The note's page on GitHub, for a link out of Klar Control. */

@@ -16,7 +16,7 @@
 // it never breaks the page. Tickets are the exception: a ticket that does not
 // parse comes back as unreadable instead of vanishing from the list.
 
-import { blobUrl, fetchNote, fetchPaths, type NoteResult, type PathsResult } from "@/lib/brainVault";
+import { blobUrl, fetchNote, fetchNotes, fetchPaths, type NoteResult, type NotesResult, type PathsResult } from "@/lib/brainVault";
 
 type Failed = Extract<NoteResult, { ok: false }>;
 
@@ -26,6 +26,8 @@ export interface BrainSource {
   note(path: string): Promise<NoteResult>;
   /** Every file path in the vault. */
   paths(): Promise<PathsResult>;
+  /** Many notes in few requests (GitHub GraphQL); without it they are read one by one. */
+  notes?(paths: string[]): Promise<NotesResult>;
 }
 
 const TTL_MS = 60_000;
@@ -633,6 +635,16 @@ export function createBrainReader(source: BrainSource) {
 
     const files: Array<{ path: string; text: string }> = [];
     const failed: UnreadableTicket[] = [];
+    // Many at once; if that fails, the old way below still gets them.
+    const many = source.notes ? await source.notes(paths) : null;
+    if (many?.ok) {
+      for (const p of paths) {
+        const text = many.texts.get(p);
+        if (text !== undefined) files.push({ path: p, text });
+        else failed.push(unreadableTicket(p, "GitHub: nicht gelesen"));
+      }
+      return { ok: true, tickets: [...parseTickets(files), ...failed].sort((a, b) => a.path.localeCompare(b.path)) };
+    }
     // Ten at a time: GitHub limits concurrent requests per token.
     for (let i = 0; i < paths.length; i += 10) {
       const batch = paths.slice(i, i + 10);
@@ -652,4 +664,5 @@ export function createBrainReader(source: BrainSource) {
 export const { readActiveProjects, readSessions, readLearnings, readVaultChecks, readTickets } = createBrainReader({
   note: (path) => fetchNote(path, null),
   paths: fetchPaths,
+  notes: fetchNotes,
 });

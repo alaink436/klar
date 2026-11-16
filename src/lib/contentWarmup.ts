@@ -150,7 +150,7 @@ export interface TiktokProfile {
  *  platform checks a bio code right after the creator set it. Given more time
  *  than the admin lookups, because a creator is waiting on the answer. */
 export async function readTiktokProfile(handle: string): Promise<TiktokProfile> {
-  const routing = await getForProxy(EVOMI_ID);
+  const routing = await getForProxy(EVOMI_ID, { cached: true });
   if (!routing) return { ok: false, bio: "", followers: null };
   const info = await tiktokUserInfo(handle, routing, 25_000);
   if (!info?.user) return { ok: false, bio: "", followers: null };
@@ -180,7 +180,7 @@ export async function getNativeCounts(
   }
   if (stale.length === 0) return out;
 
-  const routing = await getForProxy(EVOMI_ID);
+  const routing = await getForProxy(EVOMI_ID, { cached: true });
   if (!routing) {
     // Vault/creds unavailable — return misses for the stale ones, do not cache.
     for (const s of stale) out.set(s.handle, miss());

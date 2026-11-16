@@ -11,6 +11,7 @@ import {
   collabAddressFor,
   collabAppOptions,
   collabThreadKey,
+  countWaitingCollabThreads,
   listCollabKontakte,
   listCollabStages,
   listCollabThreads,
@@ -126,6 +127,5 @@ export async function buildCollabView(): Promise<CollabView> {
  * minute late in a counter is not worth a PostgREST round-trip per navigation.
  */
 export async function countOpenCollabs(): Promise<number> {
-  const threads = await listCollabThreads(400, { revalidateSeconds: 60 });
-  return threads.filter((t) => t.messages[t.messages.length - 1]?.direction === "in").length;
+  return countWaitingCollabThreads(400);
 }
