@@ -190,8 +190,9 @@ export default function LearnboundPrivacyPage() {
             If your age band is 18 and over, the app also sends usage statistics to PostHog so we can see how
             the app is used and improve it: which screens you open, when the app is opened or closed, and when
             you view the Pro offer, tap to buy and whether the purchase went through or was cancelled. These
-            events carry your account id, the device model, the operating system and app version, and your app
-            language. PostHog derives your country from your IP address and then discards the address. No
+            events carry your account id, the device model and screen size, the operating system and app
+            version, your app language and time zone. PostHog derives an approximate location (country and
+            city) from your IP address and then discards the address. No
             name, email, age, study content, screen recordings or advertising identifier. Nothing is sent
             before your profile shows that you are 18 or over, and for members under 18 nothing is sent at all.
           </p>
