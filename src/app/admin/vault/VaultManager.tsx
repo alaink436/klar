@@ -244,6 +244,9 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   { id: "apify", label: "Apify", category: "Automation", provider: "apify", baseUrl: "https://api.apify.com/v2", authHeader: "authorization", authScheme: "Bearer ", keyExample: "apify_api_…", labelExample: "Apify" },
   // Social / Marketing
   { id: "blotato", label: "Blotato", category: "Social / Marketing", provider: "blotato", baseUrl: "https://backend.blotato.com/v2", authHeader: "blotato-api-key", authScheme: "", keyExample: { de: "…== (Base64, = gehört dazu)", en: "…== (Base64, the = is part of it)" }, labelExample: "Blotato" },
+  // Post for Me (trial as Blotato replacement, 2026-11-18). base_url stops before
+  // /v1, so proxy paths start with v1/ (v1/social-posts, v1/media/create-upload-url).
+  { id: "postforme", label: "Post for Me", category: "Social / Marketing", provider: "postforme", baseUrl: "https://api.postforme.dev", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "API-Key …", en: "API key …" }, labelExample: "Post for Me API" },
   // SlideYourApp keys are shown once and stored hashed on their side — losing
   // one means replacing it, not looking it up. base_url carries the /api/v1
   // segment because their MCP server sits outside it (app.slideyourapp.com/mcp)
