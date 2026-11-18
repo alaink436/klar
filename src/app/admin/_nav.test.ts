@@ -28,5 +28,10 @@ describe("menu groups", () => {
     expect(navTabs("/admin/inbox")).toBeNull();
     expect(navTabs("/admin/settings")).toBeNull();
     expect(navTabs("/admin/conversion")).toBeNull();
+    // Konten steht seit 2026-11-18 als eigener Punkt direkt unter Vault, nicht mehr als Reiter unter Content.
+    expect(navTabs("/admin/accounts")).toBeNull();
+    expect(navTabs("/admin/content")?.map((i) => i.id)).toEqual(["content", "routines"]);
+    const studio = NAV_ITEMS.filter((i) => i.section === "studio").map((i) => i.id);
+    expect(studio.indexOf("accounts")).toBe(studio.indexOf("vault") + 1);
   });
 });
