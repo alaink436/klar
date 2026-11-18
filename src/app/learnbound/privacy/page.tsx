@@ -8,14 +8,16 @@
 // live study rooms where other people see your chibi and timer, an account via Sign in
 // with Apple on Supabase (EU), friends, postcards (user-generated content) with reports
 // and moderation, study stats and an exam planner, an app lock on Apple's Screen Time,
-// purchases through Apple and RevenueCat, and a one-time
-// anonymous install event to the Klar hub for adults only.
+// purchases through Apple and RevenueCat, a one-time anonymous install event to the Klar hub
+// for adults only, and usage statistics in PostHog (EU) for adults only (since 18 November 2026;
+// Learnbound `src/lib/analytics.ts`: opted out until an 18p profile, client IPs discarded in the
+// project, no flags, no session recording).
 //
 // What a reviewer will look for, said plainly:
 //   - Screen Time: the app never learns which apps are locked; only counts (taps on the
 //     shield) are stored, never app names.
 //   - Minors: no account under 13; under 18 only an alias is shown to non-friends, public
-//     postcards are adults-only, and no install attribution is sent.
+//     postcards are adults-only, and neither install attribution nor usage statistics are sent.
 //   - Account deletion in the app, immediate.
 //
 // Structure mirrors src/app/podify/privacy/page.tsx.
@@ -30,7 +32,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "8 October 2026";
+const AS_OF = "18 November 2026";
 const CONTACT = "feedback+learnbound@reply.getklar.org";
 
 export default function LearnboundPrivacyPage() {
@@ -177,18 +179,29 @@ export default function LearnboundPrivacyPage() {
           </p>
         </Section>
 
-        <Section n="11" title="An anonymous install signal (adults only)">
+        <Section n="11" title="Install signal and usage statistics (adults only)">
           <p>
             If your age band is 18 and over, the app sends a single anonymous event to our own server so we
             can count installs. It contains a random identifier generated on your device, the platform, the
             app version and build, and your app language. No name, email, age, study data or advertising
             identifier, and it is not linked to your account. For members under 18 it is never sent.
           </p>
+          <p>
+            If your age band is 18 and over, the app also sends usage statistics to PostHog so we can see how
+            the app is used and improve it: which screens you open, when the app is opened or closed, and when
+            you view the Pro offer, tap to buy and whether the purchase went through or was cancelled. These
+            events carry your account id, the device model and screen size, the operating system and app
+            version, your app language and time zone. PostHog derives an approximate location (country and
+            city) from your IP address and then discards the address. No
+            name, email, age, study content, screen recordings or advertising identifier. Nothing is sent
+            before your profile shows that you are 18 or over, and for members under 18 nothing is sent at all.
+          </p>
         </Section>
 
         <Section n="12" title="What we do not do">
           <p>
-            No advertising and no ad networks. No analytics SDK. No cross-app or cross-site tracking, and no
+            No advertising and no ad networks. No analytics beyond the usage statistics in section 11. No
+            cross-app or cross-site tracking, and no
             advertising identifier (IDFA). The camera is only used for the AR box and never records. No
             microphone, no contacts, no precise location. No private messages. We do not sell or rent personal
             data to anyone.
@@ -199,7 +212,7 @@ export default function LearnboundPrivacyPage() {
           <p>
             Learnbound is for people aged 13 and over. If you choose an age under 13 in onboarding, no account
             is created. For members under 18 we show an alias to anyone who is not their friend, keep their
-            postcards out of the public feed, and send no install signal. If you believe a child under 13 has
+            postcards out of the public feed, and send no install signal and no usage statistics. If you believe a child under 13 has
             created an account, contact us and we will delete it.
           </p>
         </Section>
@@ -207,9 +220,9 @@ export default function LearnboundPrivacyPage() {
         <Section n="14" title="Why we process this data">
           <p>
             To provide the app and its social features, to keep your Pro purchase, to keep the community safe,
-            and to count installs. Legal bases under the GDPR are the performance of our contract with you
+            to count installs, and to understand how the app is used. Legal bases under the GDPR are the performance of our contract with you
             (Art. 6 para. 1 lit. b), your consent where iOS asks you for a permission (Art. 6 para. 1 lit. a),
-            and our legitimate interest in moderation and privacy friendly install statistics (Art. 6 para. 1
+            and our legitimate interest in moderation and privacy friendly install and usage statistics (Art. 6 para. 1
             lit. f). The Swiss Data Protection Act (DSG) applies in parallel.
           </p>
         </Section>
@@ -219,7 +232,8 @@ export default function LearnboundPrivacyPage() {
             <b>Apple</b> for Sign in with Apple, Screen Time, notifications and all payments, under its own
             privacy policy. <b>Supabase</b> for authentication, database and realtime presence, hosted in the
             European Union (Frankfurt). <b>RevenueCat</b> for purchase entitlements. <b>Expo</b> (650 Industries)
-            to deliver nudges as push notifications. <b>Resend</b> to deliver report emails to our support inbox. These providers process data on our behalf under data
+            to deliver nudges as push notifications. <b>PostHog</b> for usage statistics of adult members, hosted
+            in the European Union. <b>Resend</b> to deliver report emails to our support inbox. These providers process data on our behalf under data
             processing agreements.
           </p>
         </Section>
@@ -228,7 +242,8 @@ export default function LearnboundPrivacyPage() {
           <p>
             Your account data is kept for as long as your account exists. Live room presence ends when you leave.
             Reports are kept while they are needed for moderation. Purchase entitlements are held by RevenueCat
-            for as long as they are needed to honour your purchase.
+            for as long as they are needed to honour your purchase. Usage statistics are kept in PostHog for as
+            long as we need them to understand how the app is used.
           </p>
         </Section>
 
@@ -237,7 +252,8 @@ export default function LearnboundPrivacyPage() {
             Delete your account in the app under Settings → Account → Delete account. Deletion is immediate and
             removes your account and everything attached to it on our side: profile, sessions, stats, planner,
             avatar, items, friends, nudges, push tokens, postcards and reports you filed. An active subscription keeps running at Apple
-            until you cancel it in your Apple ID settings.
+            until you cancel it in your Apple ID settings. Usage statistics in PostHog are not removed by this
+            step: write to us and we delete them.
           </p>
         </Section>
 
