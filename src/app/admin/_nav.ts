@@ -39,14 +39,15 @@ export const NAV_ITEMS: NavItemDef[] = [
   { id: "brain", labelKey: "navBrain", icon: "brain", href: "/admin/brain", section: "studio" },
   { id: "chronik", labelKey: "navChronik", icon: "doc", href: "/admin/chronik", section: "studio", tabOf: "brain" },
   { id: "vault", labelKey: "navVault", icon: "key", href: "/admin/vault", section: "studio" },
+  // Konten (seit 2026-10-01): jedes Social-Konto mit Login und Passwort an einer Stelle. Passwoerter liegen
+  // verschluesselt im Vault, siehe lib/socialAccountsStore. Bis 2026-11-18 ein Reiter unter Content, seither eigener
+  // Punkt direkt unter Vault (Alain suchte die TikTok-Passwoerter im Vault und fand nur die leere Seite oben rechts).
+  { id: "accounts", labelKey: "navAccounts", icon: "at", href: "/admin/accounts", section: "studio" },
   // Klar Studios. Feedback oeffnet die UserJot-Boards der Apps (lib/userjot),
   // daneben die Mails an die Support-Adressen (lib/feedbackStore); der Rest ist
   // aus Studio hierher gezogen.
   { id: "feedback", labelKey: "navFeedback", icon: "chat", href: "/admin/feedback", section: "studios" },
   { id: "content", labelKey: "navContent", icon: "content", href: "/admin/content", section: "studios" },
-  // Konten (seit 2026-10-01): jedes Social-Konto mit Login und Passwort an einer
-  // Stelle. Passwoerter liegen verschluesselt im Vault, siehe lib/socialAccountsStore.
-  { id: "accounts", labelKey: "navAccounts", icon: "lock", href: "/admin/accounts", section: "studios", tabOf: "content" },
   // Routinen (seit 2026-11-09): die taeglichen TikTok-Routinen, ihre Uhrzeiten und wie ihre Posts liefen.
   { id: "routines", labelKey: "navRoutines", icon: "calendar", href: "/admin/routinen", section: "studios", tabOf: "content" },
   { id: "collabs", labelKey: "navCollabs", icon: "reply", href: "/admin/collabs", section: "studios" },

@@ -7,16 +7,14 @@
 // the key never passes through the client beyond the form submit.
 
 import { headers } from "next/headers";
-import Link from "next/link";
 import { DATE_LOCALE, LANG_COOKIE, flashText, normalizeAdminLang, tAdmin } from "../_i18n";
 import { requireAdminPage } from "../../../lib/adminGuard";
 import { readCookie } from "../../../lib/adminSession";
 import { datumInZone } from "@/lib/zeit";
 import { listSecrets, vaultReady } from "../../../lib/vault";
-import { ArrowRight, LockKeyhole } from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 import { TextureCard } from "@/components/ui/texture-card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { PageHeader } from "@/components/ui/page-header";
 import { NumberTicker } from "@/components/ui/number-ticker";
@@ -78,15 +76,7 @@ export default async function VaultPage({
       <title>Vault · Klar Control</title>
       <AdminTopbar titel={t.vaultTitle} />
       <div className="content">
-        <div className="flex flex-wrap items-start justify-between gap-x-6">
-          <PageHeader eyebrow="Klar Control" icon={<LockKeyhole />} title={t.vaultTitle} />
-          <Button asChild variant="pill-dark" size="sm" className="mb-8 h-8 px-3.5 text-[12.5px]">
-            <Link href="/admin/vault/tiktok">
-              {lang === "en" ? "TikTok channels" : "TikTok-Kanäle"}
-              <ArrowRight />
-            </Link>
-          </Button>
-        </div>
+        <PageHeader eyebrow="Klar Control" icon={<LockKeyhole />} title={t.vaultTitle} />
 
         {!ready && (
           <Notice tone="warn">
