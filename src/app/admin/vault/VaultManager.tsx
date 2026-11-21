@@ -323,6 +323,13 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   // app code, not here. base_url is the EU cloud without a version segment so
   // `api/projects/…` and `api/organizations/…` both go through one entry.
   { id: "posthog", label: "PostHog (Personal API Key)", category: "Analytics", provider: "posthog", baseUrl: "https://eu.posthog.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "phx_…", labelExample: "PostHog Personal API Key" },
+  // Sentry (crash reports): a PERSONAL token (sntryu_…, User Settings › Personal
+  // Tokens) with org:read, project:read, project:write, project:releases and
+  // event:read drives `api/0/…` (projects, DSN keys, issues) as a Bearer token
+  // and doubles as SENTRY_AUTH_TOKEN for the source-map upload in the EAS build.
+  // The DSN is public and lives in the app code, not here. An organization in
+  // the EU region needs https://de.sentry.io as base_url.
+  { id: "sentry", label: "Sentry (Personal Token)", category: "Analytics", provider: "sentry", baseUrl: "https://sentry.io", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sntryu_…", labelExample: "Sentry OurApps" },
   // Infrastruktur
   { id: "vercel", label: "Vercel", category: "Infrastruktur", provider: "vercel", baseUrl: "https://api.vercel.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "Bearer-Token …", en: "Bearer token …" }, labelExample: "Vercel Token" },
   // Scaleway: an API key is an access key (SCW…) plus a secret key (UUID). Only
