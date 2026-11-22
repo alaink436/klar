@@ -331,6 +331,11 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
   // the EU region needs https://de.sentry.io as base_url.
   { id: "sentry", label: "Sentry (Personal Token)", category: "Analytics", provider: "sentry", baseUrl: "https://sentry.io", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sntryu_…", labelExample: "Sentry OurApps" },
   // Infrastruktur
+  // OurApps dashboard (Postwerk, OurApps LLC): an agent key (oa_…) from Einstellungen › "Schlüssel für
+  // alle Organisationen" drives its MCP server as a Bearer token. Proxy path `api/mcp`, JSON-RPC per POST;
+  // `?org=<slug>` picks the organisation (without: the first). base_url stays the origin, so the path
+  // never ends in a slash.
+  { id: "ourapps-dashboard", label: "OurApps Dashboard (Agenten-Schlüssel)", category: "Infrastruktur", provider: "ourapps", baseUrl: "https://ourapps-dashboard.vercel.app", authHeader: "authorization", authScheme: "Bearer ", keyExample: "oa_…", labelExample: "OurApps Dashboard Agent" },
   { id: "vercel", label: "Vercel", category: "Infrastruktur", provider: "vercel", baseUrl: "https://api.vercel.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "Bearer-Token …", en: "Bearer token …" }, labelExample: "Vercel Token" },
   // Scaleway: an API key is an access key (SCW…) plus a secret key (UUID). Only
   // the SECRET key authenticates, raw on `x-auth-token` with no scheme. base_url
