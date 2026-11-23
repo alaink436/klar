@@ -9,7 +9,9 @@ import GlassTitle from "../components/home/GlassTitle";
 // "Das sollte auch noch etwas validität dazu geben"). Who Alain is, what he helps with,
 // the apps as proof, how it starts. People land here from the Klar TikTok posts.
 // User numbers as on the front page (klar_app_stats() per app, measured 2026-11-23).
-// No prices on the page: Alain has not set any.
+// Booking (2026-11-23, Alain: "Erst zahlen, dann buchen", Stripe instead of RevenueCat): a Stripe
+// Payment Link (account "Klar", $99) redirects to the hidden cal.com event cal.getklar.org/klar/consult,
+// which needs Alain's confirmation, so a booking without a payment never goes through on its own.
 
 export const metadata: Metadata = {
   title: "Consults & Collaborations · Klar Studios",
@@ -20,6 +22,7 @@ export const metadata: Metadata = {
 
 const MAIL = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Consult")}`;
 const GITHUB = "https://github.com/alaink436";
+const BOOK = "https://buy.stripe.com/fZufZh2kr07q4114ul5sA00";
 
 const HELP = [
   { title: "Ship your app", text: "iPhone and Android with Expo, React Native and Supabase, from the first screen to App Store review." },
@@ -37,9 +40,9 @@ const PROOF = [
 ];
 
 const STEPS = [
-  "Write me what you are building and where you are stuck.",
-  "We talk for 30 minutes and see if it fits.",
-  "A fixed project or hours as you need them.",
+  "Book a 60-minute call for $99 and pick a time that suits you.",
+  "Tell me what you are building and where you are stuck. We work on it together.",
+  "Want more after that? A fixed project or hours as you need them.",
 ];
 
 const primary =
@@ -67,7 +70,8 @@ export default function Consult() {
               I built myself. I can help you ship yours.
             </p>
             <div className="mt-10 flex flex-wrap gap-3">
-              <a href={MAIL} className={primary}>Write me</a>
+              <a href={BOOK} className={primary}>Book a call · $99</a>
+              <a href={MAIL} className={glass}>Write me</a>
               <a href={GITHUB} target="_blank" rel="noopener noreferrer" className={glass}>
                 <RiGithubFill size={18} aria-hidden="true" />
                 GitHub
@@ -123,8 +127,9 @@ export default function Consult() {
                   </li>
                 ))}
               </ol>
-              <div className="mt-12">
-                <a href={MAIL} className={primary}>Write me</a>
+              <div className="mt-12 flex flex-wrap gap-3">
+                <a href={BOOK} className={primary}>Book a call · $99</a>
+                <a href={MAIL} className={glass}>Write me</a>
               </div>
             </div>
           </div>
