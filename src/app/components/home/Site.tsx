@@ -26,8 +26,8 @@ export default function Site({ children, nav }: { children: React.ReactNode; nav
             <Image src="/logo/klar-symbol.png" alt="" width={40} height={40} className="size-10 object-contain" />
             <span className="text-[19px] font-semibold tracking-[-0.04em]">Klar Studios</span>
           </Link>
-          {/* getklar.org is where creators land from TikTok; support stays in the footer (Basalt's store listing links /support). */}
-          {/* With "Sign in" the row needs about 334 px: below 390 px (iPhone mini, small Androids) "Apps" steps aside. */}
+          {/* Consults first since 2026-11-23; support stays in the footer (Basalt's store listing links /support). */}
+          {/* Below 390 px (iPhone mini, small Androids) "Apps" steps aside. */}
           {nav ?? (
             <nav className="flex items-center gap-3 whitespace-nowrap text-[13px] font-medium text-[var(--ink-2)] sm:gap-7">
               <Link href="/#apps" className="transition hover:text-[var(--ink)] max-[389px]:hidden">Apps</Link>
