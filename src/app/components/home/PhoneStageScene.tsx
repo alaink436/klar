@@ -5,7 +5,7 @@ import { Environment, Lightformer, useGLTF, useTexture } from "@react-three/drei
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { APPLE_PATH, PLAY_PATH } from "../StoreBadges";
-import type { StageApp } from "./PhoneStage";
+import { PHONE, type StageApp } from "./PhoneStage";
 
 // The cinematic shot under the headline (Alain, 2026-11-04: "wie bei Basalt auf
 // der Pre-Paywall von den Shortcuts"): the real iPhone model from that scene
@@ -16,7 +16,6 @@ import type { StageApp } from "./PhoneStage";
 // the pill above names the next app, the phone turns away to the left or right
 // and the next one turns in, each time in a new pose from POSES.
 
-const PHONE = "/home/3d/iphone.glb";
 const SCALE = 2.05;
 const TURN = 1.3; // seconds for one change
 

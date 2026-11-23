@@ -1,9 +1,10 @@
 "use client";
 
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Center, Environment, Lightformer, MeshTransmissionMaterial, Text3D } from "@react-three/drei";
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { FONT } from "./GlassTitle";
 
 // Headlines as glass: "Klar / Studios." and "Consults & / Collaborations."
 // (Alain, 2026-11-04: "glass, 3d, von links ein Licht", then "auch noch 3d").
@@ -14,7 +15,6 @@ import * as THREE from "three";
 // because the canvas cannot see the page behind it. Every glyph used must be in
 // the typeface file (AI-Brain Projects/Klar/Content/web-hero/glyphen.py).
 
-const FONT = "/home/3d/intertight-500.json";
 const LINE = 0.86; // line height in font units
 
 function backdrop() {
@@ -123,6 +123,15 @@ function Title({ lines, left, onReady }: { lines: string[]; left: boolean; onRea
   );
 }
 
+// Compile every glass line's shaders before the first frame. Left to the first
+// frame, the first line's backside pass dropped the front program while the
+// second line had not taken it yet, and three compiled it (125 ms) a second time.
+function Warm() {
+  const { gl, scene, camera } = useThree();
+  useLayoutEffect(() => void gl.compile(scene, camera), [gl, scene, camera]);
+  return null;
+}
+
 function Light() {
   // The key light drifts up and down the left side so the glints move. The room
   // is rendered once and turned (about the view axis), instead of re-rendering
@@ -157,6 +166,7 @@ export default function GlassTitleScene({ lines, left, onReady, run }: { lines: 
       <Suspense fallback={null}>
         <Light />
         <Title lines={lines} left={left} onReady={onReady} />
+        <Warm />
       </Suspense>
     </Canvas>
   );
