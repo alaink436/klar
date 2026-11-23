@@ -8,14 +8,11 @@ import BeamPill from "./components/home/BeamPill";
 import AppCarousel from "./components/home/AppCarousel";
 import Film from "./components/home/Film";
 import Site, { SUPPORT_EMAIL } from "./components/home/Site";
-import BlurHeadline from "./components/home/BlurHeadline";
-import CreatorForm from "./components/home/CreatorForm";
-import { card } from "./components/home/formStyles";
 import GlassTitle from "./components/home/GlassTitle";
 import PhoneStage from "./components/home/PhoneStage";
-import OpenOnHash from "./components/home/OpenOnHash";
 
-// getklar.org's front page: the apps, nothing else (Alain's call, 2026-10-01).
+// getklar.org's front page: consults first, then the apps (since 2026-11-23; from
+// 2026-10-01 it was the apps only, and 10-14 to 11-23 also the creator sign-up).
 // Klar OS, which stood here before, moved to /os and is not linked from here.
 //
 // Light editorial look since 2026-10-14, after a reference Alain sent (huge
@@ -32,7 +29,7 @@ import OpenOnHash from "./components/home/OpenOnHash";
 export const metadata: Metadata = {
   title: "Klar Studios",
   description:
-    "Pocketmate, Anime Vault, My Yarn Stash, Kelva, Basalt and Learnbound. Apps by Klar Studios, made in Switzerland.",
+    "Consults and collaborations for app builders, and six apps by Klar Studios: Basalt, Kelva, Pocketmate, Learnbound, My Yarn Stash and Anime Vault. Made in Switzerland.",
   alternates: { canonical: "/" },
 };
 
@@ -48,6 +45,7 @@ type App = {
   soon: boolean;
   film: { wide: string; tall?: string };
   shots: number;
+  users: string;
 };
 
 function fromRegistry(slug: string) {
@@ -59,47 +57,30 @@ const shot = (id: string, n: number) => `/home/shots/${id}/${String(n).padStart(
 const film = (name: string) => `/home/films/${name}`;
 
 // Order and the two not to promote: Alain, 2026-10-14.
+// `users`: signed-up users from klar_app_stats() in each app's database, rounded
+// down, measured 2026-11-23 (Basalt 903, Anime Vault 248, Pocketmate 186, Kelva 133,
+// My Yarn Stash 114, Learnbound 30). Below 100 it reads "Under 100 users" (Alain:
+// "bei den Apps welche noch nicht so klappen einfach ein unter 100").
+// Kelva since its relaunch as a 64-day grid: line, five store screenshots and a
+// film panned over them from the en-US store set of 2026-11-05.
 const APPS: App[] = [
-  { id: "basalt", name: "Basalt", kind: "Weekly habits", line: "Write down what you want to follow through on, then tick it off on the home screen.", ...fromRegistry("wavelength"), film: { wide: film("basalt-wide") }, shots: 5 },
-  { id: "kelva", name: "Kelva", kind: "Strength & cycle", line: "Your programme stays put. Kelva adjusts today's session to the week you are having.", ...fromRegistry("kelva"), film: { wide: film("kelva-wide"), tall: film("kelva-tall") }, shots: 6 },
-  { id: "pocketmate", name: "Pocketmate", kind: "Couple widget", line: "A home-screen widget for two people who like each other.", ...fromRegistry("myloo"), film: { wide: film("pocketmate-tall") }, shots: 5 },
-  { id: "learnbound", name: "Learnbound", kind: "Put your phone in the box", line: "Set a box on your desk and put your phone in. Only the time it stays there counts as study time.", ...fromRegistry("learnbound"), icon: "/learnbound/icon-v2.webp", film: { wide: film("learnbound-wide"), tall: film("learnbound-tall") }, shots: 4 },
-  { id: "yarnstash", name: "My Yarn Stash", kind: "Row counter", line: "A row counter built for the moment your hands are full.", ...fromRegistry("yarn-stash"), film: { wide: film("yarnstash-wide"), tall: film("yarnstash-tall") }, shots: 4 },
-  { id: "animevault", name: "Anime Vault", kind: "Tracker & list", line: "Talk about anime, keep your list and never miss an episode.", ...fromRegistry("anime-vault"), film: { wide: film("animevault-wide"), tall: film("animevault-tall") }, shots: 4 },
+  { id: "basalt", name: "Basalt", kind: "Weekly habits", line: "Write down what you want to follow through on, then tick it off on the home screen.", ...fromRegistry("wavelength"), film: { wide: film("basalt-wide") }, shots: 5, users: "900+ users" },
+  { id: "kelva", name: "Kelva", kind: "64-day grid", line: "One goal, 64 small steps, one a day. Bring your girls.", ...fromRegistry("kelva"), film: { wide: film("kelva-wide"), tall: film("kelva-tall") }, shots: 5, users: "130+ users" },
+  { id: "pocketmate", name: "Pocketmate", kind: "Couple widget", line: "A home-screen widget for two people who like each other.", ...fromRegistry("myloo"), film: { wide: film("pocketmate-tall") }, shots: 5, users: "180+ users" },
+  { id: "learnbound", name: "Learnbound", kind: "Put your phone in the box", line: "Set a box on your desk and put your phone in. Only the time it stays there counts as study time.", ...fromRegistry("learnbound"), icon: "/learnbound/icon-v2.webp", film: { wide: film("learnbound-wide"), tall: film("learnbound-tall") }, shots: 4, users: "Under 100 users" },
+  { id: "yarnstash", name: "My Yarn Stash", kind: "Row counter", line: "A row counter built for the moment your hands are full.", ...fromRegistry("yarn-stash"), film: { wide: film("yarnstash-wide"), tall: film("yarnstash-tall") }, shots: 4, users: "110+ users" },
+  { id: "animevault", name: "Anime Vault", kind: "Tracker & list", line: "Talk about anime, keep your list and never miss an episode.", ...fromRegistry("anime-vault"), film: { wide: film("animevault-wide"), tall: film("animevault-tall") }, shots: 4, users: "240+ users" },
 ];
 
-// Creators (getklar.org is the page creators land on from TikTok, Alain 2026-10-14).
-// Since the creator platform (spec Projects/Klar/specs/creator-plattform, ticket
-// 07): creators sign up themselves, only for Basalt, and post slideshows from
-// their kit; 50 % of the revenue they bring, estimated without a link, exact with
-// one. CPM and the paid test week are gone for now. The old form stays for
-// everything else (other apps, brands, agencies). One sentence and three steps
-// since 2026-10-22 (Alain: "komprimieren", the section was two phone screens);
-// link, threshold and payout details live in the dashboard and /creator-terms.
-// DM account: Alain, 2026-10-14. The account was renamed to klar.studios; the
-// old handle answers "account not found" (measured 2026-10-18).
-const TIKTOK = "klar.studios";
-const STEPS = [
-  "Sign up with your email and TikTok.",
-  "Put a short code in your bio.",
-  "Post your kit with “Basalt” in the caption. We pay monthly through Wise.",
-];
-// Not to promote right now: still listed in the form, marked as not recommended.
-const NOT_RECOMMENDED = new Set(["yarnstash", "animevault"]);
+// The creator section ("Post about Basalt. Get paid.") left the page on 2026-11-23
+// (Alain: "das ganze mit dem creator slideshows kannst du wieder rausnehmen. Mach
+// dann bitte lieber ein Consult-Page"); signed-in creators still reach /dashboard
+// from the header.
 // Up for sale (Alain, 2026-11-04: "available to be bought"): a label on the card,
 // in the app row and under the hero phone; the card's label opens a mail for an offer.
 const FOR_SALE = new Set(["yarnstash", "animevault"]);
 const offerMail = (app: App) => `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Offer for ${app.name}`)}`;
 const GITHUB = "https://github.com/alaink436";
-// The app keys klar_inquiries.target_app accepts (myloo = Pocketmate, wavelength = Basalt).
-const INQUIRY_SLUG: Record<string, string> = {
-  pocketmate: "myloo",
-  animevault: "anime-vault",
-  yarnstash: "yarn-stash",
-  kelva: "kelva",
-  basalt: "wavelength",
-  learnbound: "learnbound",
-};
 
 // `onFilm`: the buttons sit on the dark fade over the film (md and up), so the
 // App Store button turns white and the others go glassy-dark.
@@ -152,7 +133,7 @@ function AppCard({ app, index }: { app: App; index: number }) {
     >
       <div className="flex items-center justify-between gap-3 px-2 pt-1">
         <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">
-          {String(index + 1).padStart(2, "0")} · {app.kind} · {app.soon ? "Coming soon" : app.play ? "iPhone & Android" : "iPhone"}
+          {String(index + 1).padStart(2, "0")} · {app.kind} · {app.soon ? "Coming soon" : app.play ? "iPhone & Android" : "iPhone"} · {app.users}
         </p>
         {FOR_SALE.has(app.id) && (
           <a
@@ -241,6 +222,19 @@ export default function Home() {
             <div className="mt-8">
               <BeamPill apps={APPS.map(({ name, icon }) => ({ name, icon }))} />
             </div>
+            {/* Consults right in the hero (Alain, 2026-11-23: "das Consult und Collab
+                bitte etwas höher"); 1,600+ is the sum of the users in APPS. */}
+            <div className="mt-8 flex flex-col items-center gap-3">
+              <Link
+                href="/consult"
+                className="inline-flex h-12 items-center rounded-full bg-[var(--ink)] px-7 text-[15px] font-medium tracking-[-0.01em] text-[var(--paper)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition hover:opacity-85"
+              >
+                Book a consult
+              </Link>
+              <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">
+                Six apps, 1,600+ users, built by one person.
+              </p>
+            </div>
           </div>
           <PhoneStage
             apps={APPS.map(({ id, name, icon, play, soon, shots }) => ({
@@ -268,14 +262,21 @@ export default function Home() {
               className="mt-6 aspect-[3.4/1] w-full max-w-[1100px]"
             />
             <p className="mt-10 max-w-[34ch] text-[clamp(18px,1.6vw,23px)] leading-[1.3] tracking-[-0.015em] text-[var(--ink-2)]">
-              Building an app, or want to make something together? Write us.
+              Building an app, or want to make something together? I build and run six apps on my own with AI agents,
+              and I can help you do the same.
             </p>
             <div className="mt-10 flex flex-wrap gap-3">
-              <a
-                href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Consults & Collaborations")}`}
+              <Link
+                href="/consult"
                 className="inline-flex h-14 items-center rounded-full bg-[var(--ink)] px-8 text-[16px] font-medium tracking-[-0.01em] text-[var(--paper)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition hover:opacity-85"
               >
-                Get in touch
+                How I work
+              </Link>
+              <a
+                href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Consults & Collaborations")}`}
+                className="inline-flex h-14 items-center rounded-full border border-white/70 bg-white/50 px-8 text-[16px] font-medium tracking-[-0.01em] shadow-[0_8px_24px_-14px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl transition hover:bg-white/80"
+              >
+                Write me
               </a>
               <a
                 href={GITHUB}
@@ -288,74 +289,6 @@ export default function Home() {
               </a>
             </div>
           </div>
-        </section>
-
-        {/* Folded by default (Alain, 2026-11-04: "ausklappbar"); the header's "For
-            creators" lands here with #creators and opens it. */}
-        <section className="border-t">
-          <details id="creators" className="group/creators mx-auto max-w-[1280px] scroll-mt-20 px-5 py-20 sm:px-8 md:px-12 md:py-28">
-            <OpenOnHash hash="#creators" />
-            <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-              <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">For creators</p>
-              <BlurHeadline
-                lead="Post about Basalt."
-                glass="Get paid."
-                className="mt-6 text-[clamp(52px,8vw,128px)] font-medium leading-[0.9] tracking-[-0.055em]"
-              />
-              <span className="mt-8 inline-flex h-11 items-center gap-2.5 rounded-full border border-[var(--ink)] px-5 text-[15px] font-medium tracking-[-0.01em] transition hover:bg-[var(--ink)] hover:text-[var(--paper)]">
-                <span className="group-open/creators:hidden">How it works</span>
-                <span className="hidden group-open/creators:inline">Close</span>
-                <span aria-hidden="true" className="inline-block transition group-open/creators:rotate-180">↓</span>
-              </span>
-            </summary>
-            <div className="mt-14 grid gap-12 md:grid-cols-[1fr_1.1fr] md:gap-16">
-              <div>
-                <p className="max-w-[34ch] text-[clamp(18px,1.6vw,23px)] leading-[1.3] tracking-[-0.015em] text-[var(--ink-2)]">
-                  We make the slideshows, you post them. You get 50 % of what your posts earn, with or without a bio link. No follower minimum.
-                </p>
-                <ol className="mt-8 space-y-4">
-                  {STEPS.map((step, i) => (
-                    <li key={step} className="grid grid-cols-[2.5rem_1fr] items-baseline">
-                      <span className="text-[13px] tabular-nums text-[var(--ink-3)]">{String(i + 1).padStart(2, "0")}</span>
-                      <span className="text-[17px] leading-snug tracking-[-0.01em]">{step}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-              {/* On the phone the sign-up comes first: people arrive from TikTok to sign up. */}
-              <div className="order-first md:order-none">
-                <div className={card}>
-                  <p className="text-[clamp(26px,3vw,36px)] font-medium leading-tight tracking-[-0.04em]">Start in two minutes.</p>
-                  <p className="mt-3 max-w-[36ch] text-[16px] leading-relaxed text-[var(--ink-2)]">
-                    Sign up with your email and your first posts are waiting in your dashboard.
-                  </p>
-                  <Link
-                    href="/dashboard/join"
-                    className="mt-7 inline-flex h-12 items-center rounded-full bg-[var(--ink)] px-7 text-[15px] font-medium tracking-[-0.01em] text-[var(--paper)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition hover:opacity-85"
-                  >
-                    Sign up
-                  </Link>
-                  <p className="mt-4 text-[14px] text-[var(--ink-3)]">
-                    Already in?{" "}
-                    <Link href="/dashboard/login" className="font-medium text-[var(--ink)] underline decoration-[var(--hair)] underline-offset-4">
-                      Sign in
-                    </Link>
-                  </p>
-                </div>
-                <details className="group mt-6">
-                  <summary className="cursor-pointer list-none text-[15px] font-medium tracking-[-0.01em]">
-                    Something else? Another app, a brand or an{" "}
-                    <span className="whitespace-nowrap">
-                      agency <span className="inline-block text-[var(--ink-3)] transition group-open:rotate-90">→</span>
-                    </span>
-                  </summary>
-                  <div className="mt-4">
-                    <CreatorForm tiktok={TIKTOK} apps={APPS.map((a) => ({ slug: INQUIRY_SLUG[a.id], name: a.name, icon: a.icon, recommended: !NOT_RECOMMENDED.has(a.id) }))} />
-                  </div>
-                </details>
-              </div>
-            </div>
-          </details>
         </section>
 
         <nav id="apps" aria-label="Apps" className="scroll-mt-4 border-t">

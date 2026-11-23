@@ -72,6 +72,8 @@ export const KLAR_APPS: KlarAppMeta[] = [
     status: "LIVE",
     release: "v1.0.10",
     appStoreUrl: "https://apps.apple.com/app/id6767200261",
+    // Live on Google Play as "Pocketmate: Couple Widget" (listing read 2026-11-23).
+    playStoreUrl: "https://play.google.com/store/apps/details?id=com.myloo.app",
     publicSite: true,
   },
   // Runs on promillio's old Supabase project (recycled 2026-06-30), so every
@@ -102,7 +104,7 @@ export const KLAR_APPS: KlarAppMeta[] = [
   {
     slug: "kelva",
     name: "Kelva",
-    icon: "/icons/kelva-v3.webp",
+    icon: "/icons/kelva-v4.webp", // the "64" store icon since the relaunch, pulled from the App Store 2026-11-23
     status: "LIVE",
     release: "v1.4.2",
     appStoreUrl: "https://apps.apple.com/app/id6761271923",
