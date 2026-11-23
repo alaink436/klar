@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useRef, useState } from "react";
+import { preload } from "react-dom";
 import useOnScreen from "./useOnScreen";
 
 // A glass headline (the hero's h1, the consults h2). The words stay real text
@@ -11,7 +12,10 @@ import useOnScreen from "./useOnScreen";
 // The box stays empty until then and the glass fades in. `className` sizes the
 // box (give it an aspect ratio).
 
-const Scene = dynamic(() => import("./GlassTitleScene"), { ssr: false });
+const Scene = dynamic(() => import("./scenes").then((m) => m.GlassTitleScene), { ssr: false });
+
+// the typeface for the glass letters, fetched with the page instead of after the 3D code
+export const FONT = "/home/3d/intertight-500.json";
 
 export default function GlassTitle({
   lines,
@@ -24,6 +28,7 @@ export default function GlassTitle({
   left?: boolean;
   className: string;
 }) {
+  preload(FONT, { as: "fetch", crossOrigin: "anonymous" });
   const box = useRef<HTMLDivElement>(null);
   const run = useOnScreen(box);
   const [ready, setReady] = useState(false);

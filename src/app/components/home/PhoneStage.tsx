@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { preload } from "react-dom";
 import useOnScreen from "./useOnScreen";
 
 // The cinematic shot under the headline: frame, clouds and the app's store
@@ -10,7 +11,10 @@ import useOnScreen from "./useOnScreen";
 // its phone turns in and its screenshots come with it (Alain, 2026-11-04). A
 // click on the phone or a screenshot jumps to the app's section.
 
-const Scene = dynamic(() => import("./PhoneStageScene"), { ssr: false });
+const Scene = dynamic(() => import("./scenes").then((m) => m.PhoneStageScene), { ssr: false });
+
+// the phone model, fetched with the page instead of after the 3D code
+export const PHONE = "/home/3d/iphone.glb";
 
 // how long the old screenshots take to go out (home-pop-out, 0.3 s, plus the stagger)
 const OUT_MS = 450;
@@ -18,6 +22,7 @@ const OUT_MS = 450;
 export type StageApp = { id: string; name: string; icon: string; play?: string; soon: boolean; forSale: boolean; shots: string[] };
 
 export default function PhoneStage({ apps }: { apps: StageApp[] }) {
+  preload(PHONE, { as: "fetch", crossOrigin: "anonymous" });
   const box = useRef<HTMLDivElement>(null);
   const run = useOnScreen(box);
   const [active, setActive] = useState(0); // the pill starts on the first app
