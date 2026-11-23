@@ -22,7 +22,9 @@ export const metadata: Metadata = {
 
 const MAIL = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Consult")}`;
 const GITHUB = "https://github.com/alaink436";
-const BOOK = "https://buy.stripe.com/fZufZh2kr07q4114ul5sA00";
+// Open times first (cal.com, hidden event "consult"), then cal.com forwards the booking to the $99 Stripe link.
+// Alain confirms the booking once the payment is in (the event requires confirmation).
+const BOOK = "https://cal.getklar.org/klar/consult";
 
 const HELP = [
   { title: "Ship your app", text: "iPhone and Android with Expo, React Native and Supabase, from the first screen to App Store review." },
@@ -40,7 +42,7 @@ const PROOF = [
 ];
 
 const STEPS = [
-  "Book a 60-minute call for $99 and pick a time that suits you.",
+  "Pick an open time for a call of about 60 minutes, then pay $99.",
   "Tell me what you are building and where you are stuck. We work on it together.",
   "Want more after that? A fixed project or hours as you need them.",
 ];

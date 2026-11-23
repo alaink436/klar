@@ -1,9 +1,10 @@
 // Kelva: app page, /kelva. The page a creator link opens on a computer; the
 // product site stays at kelva.space. Layout and banners: components/landing.
 //
-// Film: an iPhone simulator recording of a workout (Content/werbung/waist-05);
-// behind it the week screen from the store shots (Content/asc/store-shots-
-// 2026-10-10). Claims stay within the App Store listing.
+// Film: the current app (1.4.8 screens of 2026-11-14) sliding from Home to the
+// grid to the progress photos; behind it the grid screen. Claims stay within the
+// App Store listing (read 2026-11-23). The strength-training copy and the workout
+// film of the old app were replaced on 2026-11-23.
 
 import AppLanding, { landingMetadata, type Landing } from "../components/landing/AppLanding";
 
@@ -11,35 +12,35 @@ const KELVA: Landing = {
   id: "kelva",
   registry: "kelva",
   name: "Kelva",
-  kind: "Strength & cycle",
-  headline: "Some weeks feel twice as heavy.",
-  sub: "Kelva keeps your programme and adjusts today's session to your sleep and, if you share it, your cycle.",
+  kind: "64-day challenge",
+  headline: "One goal. 64 small steps.",
+  sub: "Your goal in the middle, eight life areas around it, eight small fields in each. Every day one new field opens, and your friends see when your day is done.",
   features: [
     {
-      title: "Your programme stays put",
-      line: "Kelva never rebuilds your plan. What changes is today: a little less volume, a lower target, or a deliberate deload.",
+      title: "A ready grid or your own",
+      line: "My best self, glow up, healthy body, calm mind, that girl routine, confidence. Or write every field yourself.",
     },
     {
-      title: "Sleep and cycle, your way",
-      line: "Your sleep from Apple Health against your own average, your cycle day if you share it. Switch either off anytime.",
+      title: "Your day on one list",
+      line: "Your open fields, some movement and a progress photo. Tick it all off and today's field lights up.",
     },
     {
-      title: "Every exercise opened up",
-      line: "Step-by-step instructions, the muscles that work, the equipment you need, a substitute and an easier version.",
+      title: "Bring your friends",
+      line: "Invite them with a link. They see whose day is done, never your words, your goal or your cycle.",
     },
     {
-      title: "Your data stays on your iPhone",
-      line: "Sleep, cycle and your daily check-ins are stored and calculated on your device, not on our server.",
+      title: "Bad days still count",
+      line: "On your period or a sick day a lighter list still counts. Missed one? Tick off yesterday until noon.",
     },
   ],
-  film: "/kelva/workout",
-  filmLabel: "Kelva guiding a workout set by set",
+  film: "/kelva/tour",
+  filmLabel: "Kelva: today's list, the 64-field grid and the progress photos",
   filmHasIsland: true,
-  screen: { src: "/kelva/screen-week.webp", alt: "Kelva: your programme and your week" },
+  screen: { src: "/kelva/screen-grid.webp", alt: "Kelva: your grid on day 38 of 64" },
   privacy: "https://kelva.space/privacy",
   terms: "https://kelva.space/terms",
-  title: "Kelva · Strength training for women",
-  description: "Your programme stays put. Kelva adjusts today's session to your sleep and, if you share it, your cycle.",
+  title: "Kelva · 64 Day Challenge",
+  description: "A 64-day challenge on a grid: one goal, eight life areas, one new field a day, with your friends.",
 };
 
 export const metadata = landingMetadata(KELVA);

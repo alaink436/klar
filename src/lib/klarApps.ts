@@ -84,7 +84,7 @@ export const KLAR_APPS: KlarAppMeta[] = [
     // -v2 is not cosmetic: Vercel serves /public with `immutable, max-age=1y`,
     // so replacing an icon's BYTES changes nothing for anyone who already
     // loaded the old one. Swapping an icon means a new filename. Hence -v3.
-    icon: "/icons/animevault-v3.webp",
+    icon: "/icons/animevault-v4.webp", // the "AV" store icon, pulled from the App Store 2026-11-23
     status: "LIVE",
     release: "v1.2.1",
     appStoreUrl: "https://apps.apple.com/app/id6759915617",
