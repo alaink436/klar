@@ -1,6 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["fra1"],
+  "regions": [
+    "fra1"
+  ],
   "crons": [
     {
       "path": "/api/cron/app-metrics",
@@ -13,6 +15,10 @@
     {
       "path": "/api/cron/own-views",
       "schedule": "15 */6 * * *"
+    },
+    {
+      "path": "/api/cron/consult-week",
+      "schedule": "0 17 * * 0"
     }
   ]
 }
