@@ -4,6 +4,7 @@ import { RiGithubFill } from "@remixicon/react";
 import { findKlarApp } from "@/lib/klarApps";
 import Site, { SUPPORT_EMAIL } from "../components/home/Site";
 import GlassTitle from "../components/home/GlassTitle";
+import ProjectForm from "./ProjectForm";
 
 // getklar.org/consult (Alain, 2026-11-23: "Mach dann bitte lieber ein Consult-Page",
 // "Das sollte auch noch etwas validität dazu geben"). Who Alain is, what he helps with,
@@ -71,7 +72,7 @@ export default function Consult() {
             </p>
             <div className="mt-10 flex flex-wrap gap-3">
               <a href={BOOK} className={primary}>Book a call · CHF 99</a>
-              <a href={MAIL} className={glass}>Write me</a>
+              <a href="#project" className={glass}>Start a project</a>
               <a href={GITHUB} target="_blank" rel="noopener noreferrer" className={glass}>
                 <RiGithubFill size={18} aria-hidden="true" />
                 GitHub
@@ -131,6 +132,25 @@ export default function Consult() {
                 <a href={BOOK} className={primary}>Book a call · CHF 99</a>
                 <a href={MAIL} className={glass}>Write me</a>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="project" className="scroll-mt-24 border-t">
+          <div className="mx-auto grid max-w-[1280px] gap-14 px-5 py-20 sm:px-8 md:grid-cols-[1fr_1.4fr] md:px-12 md:py-28">
+            <div>
+              <p className="text-[13px] font-medium tracking-[-0.005em] text-[var(--ink-3)]">Build it with me</p>
+              <p className="mt-6 max-w-[22ch] text-[clamp(26px,3vw,40px)] font-medium leading-[1.1] tracking-[-0.04em]">
+                Need more than a call? I build it with you.
+              </p>
+              <p className="mt-6 max-w-[40ch] text-[16px] leading-relaxed text-[var(--ink-2)]">
+                A whole app for iPhone and Android, a backend on Supabase, a paywall, or an AI agent setup for your
+                team. Tell me what you have in mind and I&apos;ll come back with how I would do it, how long it takes
+                and what it costs.
+              </p>
+            </div>
+            <div className={panel}>
+              <ProjectForm />
             </div>
           </div>
         </section>
