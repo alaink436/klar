@@ -4,7 +4,7 @@
 //   consult          "Consult: sofort angenommen"  -> booked right away
 //   consult-anfrage  "Consult: mit Bestätigung"    -> Alain confirms by email
 // The visitor sees one list; each time links to the booking form of the event it belongs to. Both events
-// forward to the $99 Stripe link after booking.
+// forward to /consult/pay and the CHF 99 RevenueCat checkout after booking.
 
 const CAL = "https://cal.getklar.org";
 const USER = "klar";

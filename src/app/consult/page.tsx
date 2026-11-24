@@ -9,7 +9,7 @@ import GlassTitle from "../components/home/GlassTitle";
 // "Das sollte auch noch etwas validität dazu geben"). Who Alain is, what he helps with,
 // the apps as proof, how it starts. People land here from the Klar TikTok posts.
 // User numbers as on the front page (klar_app_stats() per app, measured 2026-11-23).
-// Booking since 2026-11-24: times first (/consult/book), then cal.com, then the $99 Stripe link.
+// Booking since 2026-11-24: times first (/consult/book), then cal.com, then the CHF 99 RevenueCat checkout (via /consult/pay).
 
 export const metadata: Metadata = {
   title: "Consults & Collaborations · Klar Studios",
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 const MAIL = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Consult")}`;
 const GITHUB = "https://github.com/alaink436";
 // Open times first: /consult/book lists the free times of both cal.com consult events (lib/consultSlots), each links
-// to cal.com's form, which forwards to the $99 Stripe link after booking.
+// to cal.com's form, which forwards to /consult/pay and the CHF 99 RevenueCat checkout after booking.
 const BOOK = "/consult/book";
 
 const HELP = [
@@ -40,7 +40,7 @@ const PROOF = [
 ];
 
 const STEPS = [
-  "Pick an open time for a call of about 60 minutes, then pay $99.",
+  "Pick an open time for a call of about 60 minutes, then pay CHF 99.",
   "Tell me what you are building and where you are stuck. We work on it together.",
   "Want more after that? A fixed project or hours as you need them.",
 ];
@@ -70,7 +70,7 @@ export default function Consult() {
               I built myself. I can help you ship yours.
             </p>
             <div className="mt-10 flex flex-wrap gap-3">
-              <a href={BOOK} className={primary}>Book a call · $99</a>
+              <a href={BOOK} className={primary}>Book a call · CHF 99</a>
               <a href={MAIL} className={glass}>Write me</a>
               <a href={GITHUB} target="_blank" rel="noopener noreferrer" className={glass}>
                 <RiGithubFill size={18} aria-hidden="true" />
@@ -128,7 +128,7 @@ export default function Consult() {
                 ))}
               </ol>
               <div className="mt-12 flex flex-wrap gap-3">
-                <a href={BOOK} className={primary}>Book a call · $99</a>
+                <a href={BOOK} className={primary}>Book a call · CHF 99</a>
                 <a href={MAIL} className={glass}>Write me</a>
               </div>
             </div>

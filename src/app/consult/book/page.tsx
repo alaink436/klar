@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Site, { SUPPORT_EMAIL } from "../../components/home/Site";
 import { fetchConsultDays } from "@/lib/consultSlots";
 
-// getklar.org/consult/book: the open consult times first, then cal.com's form, then the $99 Stripe link
+// getklar.org/consult/book: the open consult times first, then cal.com's form, then the CHF 99 RevenueCat checkout (via /consult/pay)
 // (Alain, 2026-11-23: "dass man zuerst die offenen termine sieht, ehe man zum stripe-fenster kommt").
 // Times come from two cal.com events, merged in lib/consultSlots: which ones are taken at once and which
 // Alain confirms himself he sets in cal.com, the visitor never sees the difference.
@@ -11,7 +11,7 @@ export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Book a call · Klar Studios",
-  description: "Pick an open time for a call of about 60 minutes with Alain Kessler. $99.",
+  description: "Pick an open time for a call of about 60 minutes with Alain Kessler. CHF 99.",
   alternates: { canonical: "/consult/book" },
 };
 
@@ -43,7 +43,7 @@ export default async function BookConsult() {
             </h1>
             <p className="mt-5 max-w-[52ch] text-[17px] leading-relaxed text-[var(--ink-2)]">
               A call of about 60 minutes on your app. Times are in Swiss time (Europe/Zurich). After you pick one you
-              leave your name and email, then pay $99 on the next page.
+              leave your name and email, then pay CHF 99 on the next page.
             </p>
 
             <div className={`mt-12 ${panel}`}>
