@@ -9,9 +9,7 @@ import GlassTitle from "../components/home/GlassTitle";
 // "Das sollte auch noch etwas validität dazu geben"). Who Alain is, what he helps with,
 // the apps as proof, how it starts. People land here from the Klar TikTok posts.
 // User numbers as on the front page (klar_app_stats() per app, measured 2026-11-23).
-// Booking (2026-11-23, Alain: "Erst zahlen, dann buchen", Stripe instead of RevenueCat): a Stripe
-// Payment Link (account "Klar", $99) redirects to the hidden cal.com event cal.getklar.org/klar/consult,
-// which needs Alain's confirmation, so a booking without a payment never goes through on its own.
+// Booking since 2026-11-24: times first (/consult/book), then cal.com, then the $99 Stripe link.
 
 export const metadata: Metadata = {
   title: "Consults & Collaborations · Klar Studios",
@@ -22,9 +20,9 @@ export const metadata: Metadata = {
 
 const MAIL = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Consult")}`;
 const GITHUB = "https://github.com/alaink436";
-// Open times first (cal.com, hidden event "consult"), then cal.com forwards the booking to the $99 Stripe link.
-// Alain confirms the booking once the payment is in (the event requires confirmation).
-const BOOK = "https://cal.getklar.org/klar/consult";
+// Open times first: /consult/book lists the free times of both cal.com consult events (lib/consultSlots), each links
+// to cal.com's form, which forwards to the $99 Stripe link after booking.
+const BOOK = "/consult/book";
 
 const HELP = [
   { title: "Ship your app", text: "iPhone and Android with Expo, React Native and Supabase, from the first screen to App Store review." },
