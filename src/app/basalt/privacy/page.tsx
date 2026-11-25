@@ -173,6 +173,15 @@ export default function BasaltPrivacyPage() {
             and fix bugs, never for advertising or profiles.
           </p>
           <p>
+            <b>Screen recordings.</b> For a share of sessions the app records
+            what the screens look like and where you tap, and sends that
+            recording to PostHog, so we can see where the app is hard to use.
+            All text, every input field and every image are hidden in it, and
+            the screens where you pick apps to shut are not recorded at all, so
+            a recording never shows which apps you chose. Like the usage
+            statistics, after you sign in it is linked to your account ID.
+          </p>
+          <p>
             <b>A one-time clipboard read.</b> If you arrived through a link from
             someone who recommends the app, that link places a short token on
             your clipboard. On the first cold start the app reads the clipboard
@@ -250,8 +259,8 @@ export default function BasaltPrivacyPage() {
           <p>
             <b>Apple</b> for Sign in with Apple, for Screen Time, and for payments
             on iPhone. <b>Google</b> for payments on Android and for delivering
-            notifications there. <b>PostHog</b> for usage statistics and crash
-            reports, located in the European Union. <b>Supabase</b> for account authentication and database
+            notifications there. <b>PostHog</b> for usage statistics, crash
+            reports and screen recordings, located in the European Union. <b>Supabase</b> for account authentication and database
             hosting, located in the European Union. <b>RevenueCat</b> for
             managing subscription entitlements. These providers process data on
             our behalf under data processing agreements.
@@ -265,7 +274,7 @@ export default function BasaltPrivacyPage() {
             account exists. You can delete your account at any time in the app
             under Settings; that removes your account, your routines, every day
             you have ticked off, the places you set, and any share you had set up.
-            Usage statistics and crash reports that were already sent stay with
+            Usage statistics, crash reports and screen recordings that were already sent stay with
             PostHog, linked only to the account ID of an account that no longer
             exists.
           </p>
