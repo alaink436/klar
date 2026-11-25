@@ -26,12 +26,17 @@
 // false); console breadcrumbs dropped, query strings cut from request paths.
 // Goes live before the first build that carries the SDK.
 //
+// 2026-11-25: #104 never shipped. Crash reports now go to PostHog error
+// tracking (Unhook#106, EU cloud) instead of GlitchTip: same PostHog client as
+// the usage statistics, so after sign-in a report is linked to the account ID
+// like every other event. Error, stack, device model, OS and app version.
+//
 // Linked from App Store Connect (App Privacy + App Information) and from the
 // in-app Settings. Kept in sync with what the app actually does, which for this
 // app is more than the usual: Supabase auth, the routines you write and the
 // days you tick off, Screen Time enforcement, a read-only share, local
 // notifications, an optional calendar export, the camera for invite codes,
-// crash reports to our own server, and a one-time clipboard read for
+// crash reports to PostHog, and a one-time clipboard read for
 // influencer attribution.
 //
 // Two of those need saying out loud because a reviewer will look for them:
@@ -53,7 +58,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const AS_OF = "12 November 2026";
+const AS_OF = "25 November 2026";
 const CONTACT = "support@getklar.org";
 
 export default function BasaltPrivacyPage() {
@@ -159,14 +164,13 @@ export default function BasaltPrivacyPage() {
           </p>
           <p>
             <b>Crash reports.</b> If the app crashes or a screen fails, a
-            technical report goes to a crash server we run ourselves. It holds
-            the error and where in the code it happened, the device model, the
-            system and app version, and which screens were open and which of our
-            server addresses the app called just before, without the data it
-            sent. It is not linked to your account, your name or your email, and
-            it contains no routine names, no places and nothing about which apps
-            you shut. We use it only to find and fix bugs, never for advertising
-            or profiles.
+            technical report goes to PostHog, the same analytics provider in the
+            European Union. It holds the error and where in the code it
+            happened, the device model, and the system and app version. Like the
+            usage statistics, after you sign in it is linked to your account ID,
+            never to your name or email, and it contains no routine names, no
+            places and nothing about which apps you shut. We use it only to find
+            and fix bugs, never for advertising or profiles.
           </p>
           <p>
             <b>A one-time clipboard read.</b> If you arrived through a link from
@@ -246,16 +250,11 @@ export default function BasaltPrivacyPage() {
           <p>
             <b>Apple</b> for Sign in with Apple, for Screen Time, and for payments
             on iPhone. <b>Google</b> for payments on Android and for delivering
-            notifications there. <b>PostHog</b> for usage statistics, located in
-            the European Union. <b>Supabase</b> for account authentication and database
+            notifications there. <b>PostHog</b> for usage statistics and crash
+            reports, located in the European Union. <b>Supabase</b> for account authentication and database
             hosting, located in the European Union. <b>RevenueCat</b> for
             managing subscription entitlements. These providers process data on
             our behalf under data processing agreements.
-          </p>
-          <p>
-            Crash reports are not passed to a crash reporting company: they go
-            to software we run ourselves, on a server rented from{" "}
-            <b>Hetzner</b>.
           </p>
         </Section>
 
@@ -266,10 +265,9 @@ export default function BasaltPrivacyPage() {
             account exists. You can delete your account at any time in the app
             under Settings; that removes your account, your routines, every day
             you have ticked off, the places you set, and any share you had set up.
-            Usage statistics that were already sent stay with PostHog, linked
-            only to the account ID of an account that no longer exists. Crash
-            reports are stored on our own crash server and are not linked to an
-            account in the first place.
+            Usage statistics and crash reports that were already sent stay with
+            PostHog, linked only to the account ID of an account that no longer
+            exists.
           </p>
         </Section>
 
