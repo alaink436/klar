@@ -383,10 +383,14 @@ export default function BrainAccessManager({
                       />{" "}
                       vault:use
                     </label>
+                    <label className={chipCls}>
+                      <input type="checkbox" name="scope_claude" className="accent-[var(--brand)]" /> claude:start
+                    </label>
                   </div>
                   <p className="text-[12px] leading-relaxed text-fg-3">
                     learnings:read liefert nur Learnings/. brain:read liefert das ganze Brain
-                    (Projekte, Infrastruktur, Geschäft), also nur für dich.
+                    (Projekte, Infrastruktur, Geschäft), also nur für dich. claude:start lässt einen
+                    Bot über den Agent-Gateway eine Claude-Session anstossen.
                   </p>
                 </div>
                 {useOn && (
