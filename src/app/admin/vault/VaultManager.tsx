@@ -204,6 +204,8 @@ interface ProviderPreset {
 const PROVIDER_PRESETS: ProviderPreset[] = [
   // KI / LLM
   { id: "anthropic", label: "Anthropic (Claude)", category: "KI / LLM", provider: "anthropic", baseUrl: "https://api.anthropic.com", authHeader: "x-api-key", authScheme: "", keyExample: "sk-ant-…", labelExample: "Anthropic Prod" },
+  // The agent gateway (/api/agent/mcp) finds this entry by its provider. Base URL = the routine's whole Fire URL.
+  { id: "claude-routine", label: "Claude Routine (Fire-Token)", category: "KI / LLM", provider: "claude-routine", baseUrl: "", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sk-ant-oat01-…", labelExample: "Claude Routine: Agent-Auftrag" },
   { id: "openai", label: "OpenAI", category: "KI / LLM", provider: "openai", baseUrl: "https://api.openai.com", authHeader: "authorization", authScheme: "Bearer ", keyExample: "sk-proj-… / sk-…", labelExample: "OpenAI Prod" },
   { id: "gemini", label: "Google Gemini", category: "KI / LLM", provider: "google", baseUrl: "https://generativelanguage.googleapis.com", authHeader: "x-goog-api-key", authScheme: "", keyExample: "AIza…", labelExample: "Gemini" },
   { id: "mistral", label: "Mistral", category: "KI / LLM", provider: "mistral", baseUrl: "https://api.mistral.ai", authHeader: "authorization", authScheme: "Bearer ", keyExample: { de: "API-Key …", en: "API key …" }, labelExample: "Mistral" },

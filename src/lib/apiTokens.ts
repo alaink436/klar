@@ -16,7 +16,9 @@ const KEY = () => process.env.KLAR_INBOX_SERVICE_KEY ?? "";
 // "learnings:read" ist der Zugang fuer Fremde: der Export liefert damit nur
 // Learnings/, serverseitig erzwungen. Projekte, Infrastruktur und Geschaeft
 // bleiben brain:read vorbehalten.
-export type Scope = "brain:read" | "learnings:read" | "vault:use";
+// "claude:start" darf ueber den Agent-Gateway (/api/agent/mcp) eine Claude-Session
+// anstossen; die Suche dort laeuft ueber brain:read.
+export type Scope = "brain:read" | "learnings:read" | "vault:use" | "claude:start";
 
 export interface ApiTokenRow {
   id: string;
