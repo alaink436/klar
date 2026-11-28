@@ -29,6 +29,7 @@ import { Users } from "@/components/animate-ui/icons/users";
 import { CircuitBoard } from "@/components/animate-ui/icons/circuit-board";
 import { Clock } from "@/components/animate-ui/icons/clock";
 import { LockKeyhole } from "@/components/animate-ui/icons/lock-keyhole";
+import { AtSign } from "@/components/animate-ui/icons/at-sign";
 import { Settings } from "@/components/animate-ui/icons/settings";
 import { LogOut } from "@/components/animate-ui/icons/log-out";
 
@@ -53,6 +54,7 @@ export const NAV_ICON: Record<string, NavIcon> = {
   brain: CircuitBoard, // Knoten und Kanten, wie der Graph selbst
   doc: Clock, // Chronik ist eine Zeitachse, kein Blatt
   key: LockKeyhole, // Vault
+  at: AtSign, // Konten, wie im Kopf der Seite
   lock: Settings, // Einstellungen
   logout: LogOut,
 };
